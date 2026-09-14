@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import VoiceCoachCore
 
@@ -8,6 +9,7 @@ struct ContentView: View {
     @State private var showReport = false
     @State private var showPractice = true
     @State private var selectedWordIndex: Int?
+    @State private var isDiagramCopied = false
 
     init(
         initialPlot: AnalysisPlot = .pitch,
@@ -296,74 +298,158 @@ struct ContentView: View {
     }
 
     private func plots(_ session: PracticeSession) -> some View {
-        let result = session.result
         let highlightedRange = selectedWordRange(in: session)
         return VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                SectionEyebrow(text: "Listen closer")
-                Spacer()
-                HStack(spacing: 2) {
-                    ForEach(AnalysisPlot.allCases) { plot in
-                        Button { selectedPlot = plot } label: {
-                            Text(plot.rawValue)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(selectedPlot == plot ? Studio.ink : Studio.secondary)
-                                .frame(width: 82, height: 28)
-                                .background(selectedPlot == plot ? Studio.accent.opacity(0.15) : .clear, in: Capsule())
-                                .contentShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("\(plot.rawValue) chart")
-                        .accessibilityAddTraits(selectedPlot == plot ? [.isSelected] : [])
-                    }
-                }.padding(4).modifier(ControlGlass(tint: nil, opaque: false))
-            }
-            Group {
-                switch selectedPlot {
-                case .pitch:
-                    LabeledLineChart(
-                        points: result.pitchContour,
-                        color: Studio.accent,
-                        range: pitchBounds(result),
-                        duration: result.metrics.duration,
-                        unit: "Hz",
-                        playbackTime: model.playbackTime,
-                        isPlaying: model.isPlaying,
-                        highlightedRange: highlightedRange,
-                        onSeek: { time in model.seek(to: time, autoplay: true) },
-                        onScrub: { time in model.seek(to: time, autoplay: false) }
-                    )
-                case .loudness:
-                    LabeledLineChart(
-                        points: result.loudnessContour,
-                        color: Studio.accent,
-                        range: -60...0,
-                        duration: result.metrics.duration,
-                        unit: "dBFS",
-                        playbackTime: model.playbackTime,
-                        isPlaying: model.isPlaying,
-                        highlightedRange: highlightedRange,
-                        onSeek: { time in model.seek(to: time, autoplay: true) },
-                        onScrub: { time in model.seek(to: time, autoplay: false) }
-                    )
-                case .spectrum:
-                    VStack(spacing: 10) {
-                        HStack(spacing: 12) {
-                            VStack(alignment: .trailing) {
-                                Text("\(Int(min(8000, result.metrics.sampleRateHz / 2))) Hz")
-                                Spacer()
-                                Text("\(Int(min(4000, result.metrics.sampleRateHz / 4))) Hz")
-                                Spacer()
-                                Text("0 Hz")
-                            }
-                            .frame(width: 55, alignment: .trailing)
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(Studio.secondary)
+            plotsHeader(session: session)
+            activePlotView(session: session, highlightedRange: highlightedRange, interactive: true)
+                .frame(height: 164)
+            Rectangle().fill(Studio.line).frame(height: 1)
+            plotsWaveformRow(session: session, highlightedRange: highlightedRange, interactive: true)
+        }
+        .padding(22)
+        .background(Studio.surface.opacity(0.7), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Studio.line))
+    }
 
-                            ZStack {
-                                SpectrogramView(data: result.spectrogram)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                                TimeRangeHighlight(range: highlightedRange, duration: result.metrics.duration)
+    private func plotsHeader(session: PracticeSession) -> some View {
+        HStack {
+            SectionEyebrow(text: "Listen closer")
+            Spacer()
+            HStack(spacing: 8) {
+                plotSelector
+                copyDiagramButton(session: session)
+            }
+        }
+    }
+
+    private var plotSelector: some View {
+        HStack(spacing: 2) {
+            ForEach(AnalysisPlot.allCases) { plot in
+                Button { selectedPlot = plot } label: {
+                    Text(plot.rawValue)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(selectedPlot == plot ? Studio.ink : Studio.secondary)
+                        .frame(width: 82, height: 28)
+                        .background(selectedPlot == plot ? Studio.accent.opacity(0.15) : .clear, in: Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(plot.rawValue) chart")
+                .accessibilityAddTraits(selectedPlot == plot ? [.isSelected] : [])
+            }
+        }
+        .padding(4)
+        .modifier(ControlGlass(tint: nil, opaque: false))
+    }
+
+    private func copyDiagramButton(session: PracticeSession) -> some View {
+        Button {
+            copyDiagramToClipboard(session: session)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: isDiagramCopied ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 10, weight: .semibold))
+                Text(isDiagramCopied ? "Copied" : "Copy")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .foregroundStyle(isDiagramCopied ? Studio.accent : Studio.secondary)
+            .padding(.horizontal, 10)
+            .frame(height: 28)
+            .background(isDiagramCopied ? Studio.accent.opacity(0.15) : .clear, in: Capsule())
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .padding(4)
+        .modifier(ControlGlass(tint: nil, opaque: false))
+        .help("Copy diagram screenshot to clipboard for AI analysis")
+        .accessibilityLabel("Copy diagram screenshot to clipboard")
+        .task(id: isDiagramCopied) {
+            guard isDiagramCopied else { return }
+            try? await Task.sleep(for: .seconds(2.0))
+            if !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isDiagramCopied = false
+                }
+            }
+        }
+    }
+
+    private func plotsWaveformRow(session: PracticeSession, highlightedRange: ClosedRange<Double>?, interactive: Bool) -> some View {
+        let result = session.result
+        let showPlaybackTime = interactive && (model.isPlaying || model.playbackTime > 0.05)
+        return HStack(spacing: 12) {
+            VStack(alignment: .trailing, spacing: 2) {
+                Image(systemName: "waveform").font(.system(size: 13, weight: .medium))
+                Text(String(format: "%.1fs", showPlaybackTime ? model.playbackTime : result.metrics.duration))
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(showPlaybackTime ? Studio.accent : Studio.secondary)
+            }
+            .frame(width: 55, alignment: .trailing)
+            .foregroundStyle(Studio.secondary)
+
+            InteractiveWaveformView(
+                points: result.waveform,
+                duration: result.metrics.duration,
+                playbackTime: interactive ? model.playbackTime : 0,
+                isPlaying: interactive ? model.isPlaying : false,
+                color: Studio.accent,
+                highlightedRange: highlightedRange,
+                onSeek: interactive ? { time in model.seek(to: time, autoplay: true) } : nil,
+                onScrub: interactive ? { time in model.seek(to: time, autoplay: false) } : nil
+            )
+            .frame(height: 38)
+        }
+    }
+
+    private func activePlotView(session: PracticeSession, highlightedRange: ClosedRange<Double>?, interactive: Bool) -> some View {
+        let result = session.result
+        return Group {
+            switch selectedPlot {
+            case .pitch:
+                LabeledLineChart(
+                    points: result.pitchContour,
+                    color: Studio.accent,
+                    range: pitchBounds(result),
+                    duration: result.metrics.duration,
+                    unit: "Hz",
+                    playbackTime: interactive ? model.playbackTime : 0,
+                    isPlaying: interactive ? model.isPlaying : false,
+                    highlightedRange: highlightedRange,
+                    onSeek: interactive ? { time in model.seek(to: time, autoplay: true) } : nil,
+                    onScrub: interactive ? { time in model.seek(to: time, autoplay: false) } : nil
+                )
+            case .loudness:
+                LabeledLineChart(
+                    points: result.loudnessContour,
+                    color: Studio.accent,
+                    range: -60...0,
+                    duration: result.metrics.duration,
+                    unit: "dBFS",
+                    playbackTime: interactive ? model.playbackTime : 0,
+                    isPlaying: interactive ? model.isPlaying : false,
+                    highlightedRange: highlightedRange,
+                    onSeek: interactive ? { time in model.seek(to: time, autoplay: true) } : nil,
+                    onScrub: interactive ? { time in model.seek(to: time, autoplay: false) } : nil
+                )
+            case .spectrum:
+                VStack(spacing: 10) {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .trailing) {
+                            Text("\(Int(min(8000, result.metrics.sampleRateHz / 2))) Hz")
+                            Spacer()
+                            Text("\(Int(min(4000, result.metrics.sampleRateHz / 4))) Hz")
+                            Spacer()
+                            Text("0 Hz")
+                        }
+                        .frame(width: 55, alignment: .trailing)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(Studio.secondary)
+
+                        ZStack {
+                            SpectrogramView(data: result.spectrogram)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                            TimeRangeHighlight(range: highlightedRange, duration: result.metrics.duration)
+                            if interactive {
                                 InteractiveGraphOverlay(
                                     duration: result.metrics.duration,
                                     playbackTime: model.playbackTime,
@@ -375,52 +461,77 @@ struct ContentView: View {
                                 )
                             }
                         }
-                        HStack {
-                            Text("0s")
-                            Spacer()
-                            Text(String(format: "%.1fs", result.metrics.duration / 2))
-                            Spacer()
-                            Text(String(format: "%.1fs", result.metrics.duration))
-                        }
-                        .padding(.leading, 67)
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(Studio.secondary)
                     }
-                }
-            }.frame(height: 164)
-            Rectangle().fill(Studio.line).frame(height: 1)
-            HStack(spacing: 12) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Image(systemName: "waveform").font(.system(size: 13, weight: .medium))
-                    if model.isPlaying || model.playbackTime > 0.05 {
-                        Text(String(format: "%.1fs", model.playbackTime))
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(Studio.accent)
-                    } else {
+                    HStack {
+                        Text("0s")
+                        Spacer()
+                        Text(String(format: "%.1fs", result.metrics.duration / 2))
+                        Spacer()
                         Text(String(format: "%.1fs", result.metrics.duration))
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(Studio.secondary)
                     }
+                    .padding(.leading, 67)
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(Studio.secondary)
                 }
-                .frame(width: 55, alignment: .trailing)
-                .foregroundStyle(Studio.secondary)
-
-                InteractiveWaveformView(
-                    points: result.waveform,
-                    duration: result.metrics.duration,
-                    playbackTime: model.playbackTime,
-                    isPlaying: model.isPlaying,
-                    color: Studio.accent,
-                    highlightedRange: highlightedRange,
-                    onSeek: { time in model.seek(to: time, autoplay: true) },
-                    onScrub: { time in model.seek(to: time, autoplay: false) }
-                )
-                .frame(height: 38)
             }
         }
+    }
+
+    private func diagramSnapshotCard(session: PracticeSession) -> some View {
+        let highlightedRange = selectedWordRange(in: session)
+        return VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text("LISTEN CLOSER · \(selectedPlot.rawValue.uppercased())")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(2)
+                    .foregroundStyle(Studio.secondary)
+                Spacer()
+                Text("Voice Coach Analysis")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Studio.secondary.opacity(0.7))
+            }
+
+            activePlotView(session: session, highlightedRange: highlightedRange, interactive: false)
+                .frame(height: 164)
+
+            Rectangle().fill(Studio.line).frame(height: 1)
+
+            plotsWaveformRow(session: session, highlightedRange: highlightedRange, interactive: false)
+        }
         .padding(22)
-        .background(Studio.surface.opacity(0.7), in: RoundedRectangle(cornerRadius: 18))
+        .frame(width: 780)
+        .background(Studio.surface)
         .overlay(RoundedRectangle(cornerRadius: 18).stroke(Studio.line))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .preferredColorScheme(.dark)
+        .environment(\.studioSnapshot, true)
+    }
+
+    func makeDiagramSnapshot(session: PracticeSession) -> some View {
+        diagramSnapshotCard(session: session)
+    }
+
+    @MainActor
+    private func copyDiagramToClipboard(session: PracticeSession) {
+        let snapshot = diagramSnapshotCard(session: session)
+        let renderer = ImageRenderer(content: snapshot)
+        renderer.scale = 2.0
+
+        guard let nsImage = renderer.nsImage else { return }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        if let cgImage = renderer.cgImage,
+           let pngData = NSBitmapImageRep(cgImage: cgImage).representation(using: .png, properties: [:]) {
+            pasteboard.setData(pngData, forType: .png)
+        }
+        pasteboard.writeObjects([nsImage])
+
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            isDiagramCopied = true
+        }
+        model.exportMessage = "\(selectedPlot.rawValue) diagram copied to clipboard"
     }
 
     private var reportPanel: some View {

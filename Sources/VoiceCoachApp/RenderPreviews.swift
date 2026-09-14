@@ -88,6 +88,22 @@ func renderStudioPreviewsIfRequested() {
         try render("studio-wide", width: 1600, height: 1160)
         try render("studio-loudness", height: 1160, plot: .loudness, selectedWord: 2)
         try render("studio-spectrum", height: 1160, plot: .spectrum)
+
+        func renderDiagramSnapshot(_ name: String, plot: AnalysisPlot = .spectrum, selectedWord: Int? = nil) throws {
+            let view = ContentView(initialPlot: plot, initialSelectedWordIndex: selectedWord)
+                .makeDiagramSnapshot(session: model.session!)
+                .environmentObject(model)
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 2
+            guard let image = renderer.cgImage,
+                  let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
+                throw NSError(domain: "StudioPreview", code: 2)
+            }
+            try png.write(to: directory.appendingPathComponent(name + ".png"))
+        }
+        try renderDiagramSnapshot("copied-diagram-spectrum", plot: .spectrum)
+        try renderDiagramSnapshot("copied-diagram-pitch", plot: .pitch, selectedWord: 2)
+
         try render("studio-report", height: 1480, expanded: true)
         model.isPlaying = true
         model.playbackTime = 3.6
