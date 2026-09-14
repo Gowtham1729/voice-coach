@@ -1,4 +1,6 @@
+#if canImport(AVFoundation)
 import AVFoundation
+#endif
 import Foundation
 
 public enum AnalysisError: LocalizedError {
@@ -16,6 +18,7 @@ public enum AnalysisError: LocalizedError {
 public struct AudioAnalyzer: Sendable {
     public init() {}
 
+    #if canImport(AVFoundation)
     public func analyze(url: URL) throws -> AnalysisResult {
         let file = try AVAudioFile(forReading: url)
         let format = file.processingFormat
@@ -37,6 +40,7 @@ public struct AudioAnalyzer: Sendable {
         }
         return analyze(samples: samples, sampleRate: format.sampleRate)
     }
+    #endif
 
     public func analyze(samples: [Float], sampleRate: Double) -> AnalysisResult {
         guard !samples.isEmpty, sampleRate > 0 else {

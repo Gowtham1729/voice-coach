@@ -361,6 +361,7 @@ do {
     let correctedGlideFrequencies = correctedGlideTrack.compactMap { $0?.frequency }
     try check(correctedGlideFrequencies == glideInput, "Genuine intonation glide was altered or smoothed")
 
+    #if canImport(AVFoundation)
     if let timelineIndex = CommandLine.arguments.firstIndex(of: "--timeline"),
        CommandLine.arguments.indices.contains(timelineIndex + 1) {
         let audioURL = URL(fileURLWithPath: CommandLine.arguments[timelineIndex + 1])
@@ -428,6 +429,7 @@ do {
         }
         print(ReportFormatter.makeReport(session: liveSession))
     }
+    #endif
 
     if CommandLine.arguments.contains("--dump-sample-report") {
         print(report)
