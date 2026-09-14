@@ -6,6 +6,7 @@ struct SnapshotSourceListSidebar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
+            Color.clear.frame(height: 8)
             snapshotRow("Studio", symbol: "waveform", selected: model.destination.navigationSection == .studio)
             snapshotRow("All Sessions", symbol: "rectangle.stack", selected: model.destination.navigationSection == .sessions)
             snapshotRow("Insights", symbol: "chart.xyaxis.line", selected: model.destination.navigationSection == .insights)
@@ -85,6 +86,9 @@ struct SourceListSidebar: View {
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
         .background(Studio.sidebar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Color.clear.frame(height: 12)
+        }
         .safeAreaInset(edge: .bottom) {
             Label("On-device", systemImage: "lock.fill")
                 .font(.caption)
@@ -139,6 +143,7 @@ struct DesktopStudioWorkspace: View {
             Text(session.updatedAt.formatted(.relative(presentation: .named)))
                 .font(.caption)
                 .foregroundStyle(Studio.secondary)
+            WorkspaceChromeButtons()
         }
     }
 
@@ -255,18 +260,24 @@ struct DesktopStudioWorkspace: View {
     }
 
     private var emptyStudio: some View {
-        ContentUnavailableView {
-            Label("Voice Coach Studio", systemImage: "waveform")
-        } description: {
-            Text("Create a session or start a quick recording.")
-        } actions: {
+        VStack(spacing: 18) {
             HStack {
-                Button("Quick Record", action: model.startQuickPractice)
-                Button("New Session") { model.navigate(to: .create) }
+                Spacer()
+                WorkspaceChromeButtons()
             }
-            .buttonStyle(.borderedProminent)
+            ContentUnavailableView {
+                Label("Voice Coach Studio", systemImage: "waveform")
+            } description: {
+                Text("Create a session or start a quick recording.")
+            } actions: {
+                HStack {
+                    Button("Quick Record", action: model.startQuickPractice)
+                    Button("New Session") { model.navigate(to: .create) }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .frame(maxWidth: .infinity, minHeight: 460)
         }
-        .frame(maxWidth: .infinity, minHeight: 500)
     }
 
     private func recordButtonTitle(_ session: CoachingSession) -> String {
@@ -312,6 +323,7 @@ struct DesktopSessionsWorkspace: View {
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 220)
                     }
+                    WorkspaceChromeButtons()
                 }
 
                 if filteredSessions.isEmpty {

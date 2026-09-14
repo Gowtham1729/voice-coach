@@ -40,6 +40,8 @@ struct TakeView: View {
 
     private func takeBar(_ session: CoachingSession, take: PracticeSession) -> some View {
         HStack(spacing: 12) {
+            WorkspaceChromeButtons(includeBack: true)
+
             Label(take.takeSource.title, systemImage: take.takeSource.icon)
                 .font(.callout.weight(.medium))
 
