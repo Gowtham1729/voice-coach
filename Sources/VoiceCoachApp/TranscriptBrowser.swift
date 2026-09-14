@@ -2,12 +2,8 @@ import AppKit
 import SwiftUI
 import VoiceCoachCore
 
-/// Fixed-size transcript prose that never participates in SwiftUI text layout.
-///
-/// Nested `ScrollView` + `Text(longString)` was hanging the review page for a minute-plus:
-/// StudioPage's outer scroll measured the inner scroll's content, which forced CoreText
-/// `StyledTextLayoutEngine` / `TASCIIEncoder` over the entire transcript on the main thread.
-/// An AppKit text view reports only the proposed frame size back to SwiftUI.
+/// AppKit prose that reports only its proposed frame to SwiftUI, so nested
+/// StudioPage scrolling never measures a long transcript through CoreText.
 struct TranscriptProseView: NSViewRepresentable {
     let text: String
 
@@ -43,7 +39,6 @@ struct TranscriptProseView: NSViewRepresentable {
         textView.textContainer?.lineFragmentPadding = 0
         textView.string = text
         context.coordinator.lastText = text
-
         scrollView.documentView = textView
         return scrollView
     }
@@ -58,22 +53,15 @@ struct TranscriptProseView: NSViewRepresentable {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSScrollView, context: Context) -> CGSize? {
-        CGSize(
-            width: proposal.width ?? 500,
-            height: proposal.height ?? 150
-        )
+        CGSize(width: proposal.width ?? 500, height: proposal.height ?? 150)
     }
 
-    private static var inkColor: NSColor {
-        NSColor(red: 0.92, green: 0.95, blue: 0.92, alpha: 1)
-    }
+    private static let inkColor = NSColor(red: 0.92, green: 0.95, blue: 0.92, alpha: 1)
 
     private static var proseFont: NSFont {
         let base = NSFont.systemFont(ofSize: 20)
-        if let serif = base.fontDescriptor.withDesign(.serif) {
-            return NSFont(descriptor: serif, size: 20) ?? base
-        }
-        return base
+        guard let serif = base.fontDescriptor.withDesign(.serif) else { return base }
+        return NSFont(descriptor: serif, size: 20) ?? base
     }
 }
 
@@ -101,7 +89,7 @@ struct ReviewTranscriptPane: View {
     @ViewBuilder
     private var prose: some View {
         if snapshot {
-            Text(transcription.text)
+            Text(String(transcription.text.prefix(400)))
                 .font(.system(size: 20, weight: .regular, design: .serif))
                 .lineSpacing(5)
                 .lineLimit(6)
@@ -120,13 +108,10 @@ struct ReviewTranscriptPane: View {
     private var wordBrowser: some View {
         let words = Array(transcription.words.enumerated())
         if snapshot {
-            // Offscreen proofs flatten scrolling; keep a bounded sample so layout stays finite.
             wordGrid(entries: Array(words.prefix(36)))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .clipped()
         } else {
-            // Only the word chips scroll in SwiftUI. Concrete height keeps laziness intact
-            // even when this pane sits inside StudioPage's outer ScrollView.
             ScrollView {
                 wordGrid(entries: words)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -142,10 +127,9 @@ struct ReviewTranscriptPane: View {
                     word: word,
                     isHighlighted: highlightedWordIndex == index,
                     isPlaying: isPlaying,
-                    reduceMotion: reduceMotion
-                ) {
-                    onSelectWord(index, word)
-                }
+                    reduceMotion: reduceMotion,
+                    action: { onSelectWord(index, word) }
+                )
             }
         }
     }

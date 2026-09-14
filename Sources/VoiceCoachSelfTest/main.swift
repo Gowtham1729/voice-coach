@@ -174,29 +174,21 @@ do {
     try check(!lowercaseReport.contains("cpp_db"), "Structured report contains cpp_db when it should be excluded")
     try check(!compactReport.contains("cpp_db"), "Compact report contains cpp_db when it should be excluded")
 
-    // Long-take regression: word-level JSON must stay cheap to build even when a transcript
-    // has thousands of tokens (the review hang was UI text layout, not report encoding, but
-    // expanded JSON still has to remain responsive when copied or shown).
-    let longWords = (0..<4_000).map { index in
-        TranscriptWord(word: "w\(index)", start: Double(index) * 0.12, end: Double(index) * 0.12 + 0.1)
-    }
-    let longText = longWords.map(\.word).joined(separator: " ")
-    let longTranscription = TranscriptionResult(text: longText, words: longWords)
+    // Keep word-level JSON responsive for long takes (copy/export path).
     let emptyPitch = WordPitchMetrics(
-        medianHz: nil,
-        relativeMedianSemitones: nil,
-        rangeSemitones: nil,
-        startToEndSemitones: nil
+        medianHz: nil, relativeMedianSemitones: nil, rangeSemitones: nil, startToEndSemitones: nil
     )
     let emptyLoudness = WordLoudnessMetrics(relativeMeanDB: nil, startToEndDB: nil)
-    let longWordAnalyses = longWords.map {
-        WordAnalysis(word: $0.word, start: $0.start, end: $0.end, pitch: emptyPitch, loudness: emptyLoudness)
+    let longWords = (0..<4_000).map { index in
+        TranscriptWord(word: "w\(index)", start: Double(index) * 0.12, end: Double(index) * 0.12 + 0.1)
     }
     let longSession = PracticeSession(
         audioURL: URL(fileURLWithPath: "/tmp/voice-coach-long-take.wav"),
         result: steadyResult,
-        transcription: longTranscription,
-        words: longWordAnalyses
+        transcription: TranscriptionResult(text: longWords.map(\.word).joined(separator: " "), words: longWords),
+        words: longWords.map {
+            WordAnalysis(word: $0.word, start: $0.start, end: $0.end, pitch: emptyPitch, loudness: emptyLoudness)
+        }
     )
     let longReportStarted = Date()
     let longReport = ReportFormatter.makeReport(session: longSession)

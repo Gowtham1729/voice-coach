@@ -116,7 +116,6 @@ struct ReviewView: View {
                     .font(.system(size: 9, design: .monospaced)).foregroundStyle(Studio.secondary)
             }
             if let transcription = take.transcription {
-                // AppKit prose + lazy word chips: avoid nested ScrollView measuring Text via CoreText.
                 ReviewTranscriptPane(
                     transcription: transcription,
                     highlightedWordIndex: highlightedWordIndex,
@@ -272,7 +271,6 @@ struct ReviewView: View {
                 Button { reportExpanded.toggle() } label: { Image(systemName: "ellipsis") }.buttonStyle(StudioButtonStyle())
             }
             if reportExpanded {
-                // TextEditor is AppKit-backed and keeps this large JSON out of SwiftUI text layout.
                 TextEditor(text: .constant(model.report))
                     .font(.system(size: 10, design: .monospaced))
                     .scrollContentBackground(.hidden)

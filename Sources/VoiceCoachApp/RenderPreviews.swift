@@ -56,6 +56,34 @@ func renderStudioPreviewsIfRequested() {
         model.elapsed = 12.4
         try render("08-recording")
 
+        // Hang regression: a multi-thousand-word transcript must layout quickly.
+        // Snapshot mode truncates prose; live mode uses AppKit for the full string.
+        let longWords = (0..<3_000).map { index in
+            TranscriptWord(word: "w\(index)", start: Double(index) * 0.1, end: Double(index) * 0.1 + 0.08)
+        }
+        let longTranscription = TranscriptionResult(
+            text: longWords.map(\.word).joined(separator: " "),
+            words: longWords
+        )
+        for snapshot in [true, false] {
+            let started = ContinuousClock.now
+            let pane = ReviewTranscriptPane(
+                transcription: longTranscription,
+                highlightedWordIndex: 12,
+                isPlaying: false,
+                reduceMotion: true,
+                onSelectWord: { _, _ in }
+            )
+            .environment(\.studioSnapshot, snapshot)
+            .frame(width: 540, height: 420)
+            let renderer = ImageRenderer(content: pane)
+            renderer.scale = 1
+            precondition(renderer.cgImage != nil, "Long transcript pane failed to render (snapshot=\(snapshot))")
+            let elapsed = started.duration(to: .now)
+            precondition(elapsed < .seconds(5), "Long transcript pane hung (snapshot=\(snapshot)): \(elapsed)")
+            print("Long transcript pane (snapshot=\(snapshot)): \(elapsed)")
+        }
+
         print("Rendered 8 major-upgrade previews; persistence round-trip passed. Output: \(output.path)")
         exit(0)
     } catch {

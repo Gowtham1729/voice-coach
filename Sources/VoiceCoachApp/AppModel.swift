@@ -78,25 +78,26 @@ final class AppModel: ObservableObject {
         return selectedSession.takes[index - 1]
     }
 
-    private var cachedReportTakeID: UUID?
-    private var cachedReport = ""
-    private var cachedCompactReportTakeID: UUID?
-    private var cachedCompactReport = ""
+    private var reportCache: (takeID: UUID, value: String)?
+    private var compactReportCache: (takeID: UUID, value: String)?
 
     var report: String {
-        guard let take = selectedTake else { return "" }
-        if cachedReportTakeID == take.id { return cachedReport }
-        cachedReport = ReportFormatter.makeReport(session: take)
-        cachedReportTakeID = take.id
-        return cachedReport
+        cachedReport(using: &reportCache, build: ReportFormatter.makeReport)
     }
 
     var compactReport: String {
+        cachedReport(using: &compactReportCache, build: ReportFormatter.makeCompactReport)
+    }
+
+    private func cachedReport(
+        using cache: inout (takeID: UUID, value: String)?,
+        build: (PracticeSession) -> String
+    ) -> String {
         guard let take = selectedTake else { return "" }
-        if cachedCompactReportTakeID == take.id { return cachedCompactReport }
-        cachedCompactReport = ReportFormatter.makeCompactReport(session: take)
-        cachedCompactReportTakeID = take.id
-        return cachedCompactReport
+        if let cache, cache.takeID == take.id { return cache.value }
+        let value = build(take)
+        cache = (take.id, value)
+        return value
     }
     var storageLocation: URL { store.rootURL }
     var totalTakeCount: Int { sessions.reduce(0) { $0 + $1.takeCount } }
