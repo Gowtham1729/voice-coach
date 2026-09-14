@@ -41,9 +41,9 @@ func renderStudioPreviewsIfRequested() {
         model.resumeSession(model.sessions[0].id)
         try render("03-practice")
         if let latest = model.selectedTake {
-            model.review(sessionID: model.sessions[0].id, takeID: latest.id)
+            model.openTake(sessionID: model.sessions[0].id, takeID: latest.id)
         }
-        try render("04-review", height: 980)
+        try render("04-take", height: 1_360)
         model.destination = .sessions
         try render("05-sessions")
         model.destination = .insights
@@ -67,7 +67,7 @@ func renderStudioPreviewsIfRequested() {
         )
         for snapshot in [true, false] {
             let started = ContinuousClock.now
-            let pane = ReviewTranscriptPane(
+            let pane = TakeTranscriptPane(
                 transcription: longTranscription,
                 highlightedWordIndex: 12,
                 isPlaying: false,

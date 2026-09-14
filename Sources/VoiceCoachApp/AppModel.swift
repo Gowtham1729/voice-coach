@@ -72,31 +72,13 @@ final class AppModel: ObservableObject {
         return selectedSession.latestTake
     }
 
-    var previousTake: PracticeSession? {
-        guard let selectedSession, let selectedTake else { return nil }
-        guard let index = selectedSession.takes.firstIndex(where: { $0.id == selectedTake.id }), index > 0 else { return nil }
-        return selectedSession.takes[index - 1]
-    }
-
     private var reportCache: (takeID: UUID, value: String)?
-    private var compactReportCache: (takeID: UUID, value: String)?
 
     var report: String {
-        cachedReport(using: &reportCache, build: ReportFormatter.makeReport)
-    }
-
-    var compactReport: String {
-        cachedReport(using: &compactReportCache, build: ReportFormatter.makeCompactReport)
-    }
-
-    private func cachedReport(
-        using cache: inout (takeID: UUID, value: String)?,
-        build: (PracticeSession) -> String
-    ) -> String {
         guard let take = selectedTake else { return "" }
-        if let cache, cache.takeID == take.id { return cache.value }
-        let value = build(take)
-        cache = (take.id, value)
+        if let reportCache, reportCache.takeID == take.id { return reportCache.value }
+        let value = ReportFormatter.makeReport(session: take)
+        reportCache = (take.id, value)
         return value
     }
     var storageLocation: URL { store.rootURL }
@@ -148,29 +130,20 @@ final class AppModel: ObservableObject {
         navigate(to: .practice(id))
     }
 
-    func review(sessionID: UUID, takeID: UUID? = nil) {
+    func openTake(sessionID: UUID, takeID: UUID? = nil) {
         guard let session = sessions.first(where: { $0.id == sessionID }),
               let take = takeID.flatMap({ id in session.takes.first(where: { $0.id == id }) }) ?? session.latestTake
         else { return }
         selectedSessionID = sessionID
         selectedTakeID = take.id
-        navigate(to: .review(sessionID, take.id))
+        navigate(to: .take(sessionID, take.id))
     }
 
     func selectTake(_ takeID: UUID) {
         guard let selectedSession, selectedSession.takes.contains(where: { $0.id == takeID }) else { return }
         stopPlayback()
         selectedTakeID = takeID
-        if case .review(let sessionID, _) = destination { destination = .review(sessionID, takeID) }
-    }
-
-    func selectAdjacentTake(offset: Int) {
-        guard let selectedSession, let selectedTake,
-              let index = selectedSession.takes.firstIndex(where: { $0.id == selectedTake.id })
-        else { return }
-        let target = index + offset
-        guard selectedSession.takes.indices.contains(target) else { return }
-        selectTake(selectedSession.takes[target].id)
+        if case .take(let sessionID, _) = destination { destination = .take(sessionID, takeID) }
     }
 
     func renameSession(_ id: UUID, to name: String) {
@@ -226,9 +199,9 @@ final class AppModel: ObservableObject {
         if selectedTakeID == takeID {
             let remaining = sessions[sessionIndex].takes
             selectedTakeID = remaining.indices.contains(takeIndex) ? remaining[takeIndex].id : remaining.last?.id
-            if case .review = destination {
+            if case .take = destination {
                 if let selectedTakeID {
-                    destination = .review(sessionID, selectedTakeID)
+                    destination = .take(sessionID, selectedTakeID)
                 } else {
                     destination = .practice(sessionID)
                 }
@@ -245,7 +218,6 @@ final class AppModel: ObservableObject {
 
         try? FileManager.default.removeItem(at: removed.audioURL)
         if reportCache?.takeID == takeID { reportCache = nil }
-        if compactReportCache?.takeID == takeID { compactReportCache = nil }
         toastMessage = sessions[sessionIndex].takes.isEmpty
             ? "Take removed. Record another when you are ready."
             : "Take removed"
@@ -297,10 +269,20 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func copyReport() { copyJSON(report, message: "Word-level voice data copied") }
-    func copyCompactReport() { copyJSON(compactReport, message: "Compact voice data copied") }
+    func copyReport() { copyToPasteboard(report, message: "Word-level voice data copied") }
 
-    private func copyJSON(_ value: String, message: String) {
+    func copyAICoachPrompt() {
+        guard let session = selectedSession, !report.isEmpty else { return }
+        let coachPrompt = """
+        You are an expert speech coach. Assess the objective acoustic measurements for the take below from the session “\(session.name)”. Explain the strongest delivery patterns, identify the two highest-impact improvements, and give three specific exercises for the next take. Treat HNR and CPP as acoustic proxies, not medical measurements. Do not invent observations that are not supported by the data.
+
+        VOICE COACH JSON
+        \(report)
+        """
+        copyToPasteboard(coachPrompt, message: "AI coach prompt copied")
+    }
+
+    private func copyToPasteboard(_ value: String, message: String) {
         guard !value.isEmpty else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(value, forType: .string)

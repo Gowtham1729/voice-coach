@@ -1,14 +1,14 @@
 # Voice Coach 3
 
-A local-first macOS voice practice studio. Create focused sessions, record and compare multiple takes, review objective acoustic measurements, and build a private practice history that persists between launches.
+A local-first macOS voice practice studio. Create focused sessions, record multiple takes, inspect objective acoustic measurements, and build a private practice history that persists between launches.
 
 ## Session workflow
 
 - Create named sessions for general practice, reading a prompt, or free speaking.
 - Record multiple takes or import an audio/video clip inside one session and move between them without losing earlier work.
 - Resume recent sessions from Studio or search the full Sessions library.
-- Compare the current take with another take from the same session.
-- Review aggregate practice activity and objective trends in Insights.
+- Open any take from its session to inspect the transcript, playback, and acoustic analysis together.
+- Inspect aggregate practice activity and objective trends in Insights.
 - Keep every recording, or configure a session to retain only its newest take.
 - Rename and delete sessions; deleting a session also removes its dedicated recording folder.
 
@@ -70,9 +70,9 @@ swift run VoiceCoachSelfTest
 
 ## Version 3 studio
 
-The interface uses an ink-and-mint palette, a voice-reactive line sculpture, a full Studio dashboard, session creation, a multi-take practice workspace, detailed review, searchable Sessions, Insights, and Settings. Record with Space, listen back, switch between pitch, loudness and spectrum, compare takes, and expand or copy structured data. Selecting a transcript word highlights its time region across the active graph and waveform. The previous successful take stays available if a subsequent recording fails.
+The interface uses an ink-and-mint palette with a fixed source list, a focused session workspace, a complete per-take screen, searchable Sessions, Insights, and Settings. Record with Space, listen back, and switch between pitch, loudness, and spectrum. Selecting a transcript word highlights its time region across the active graph and waveform. The previous successful take stays available if a subsequent recording fails.
 
-On macOS 26 and later, controls use SwiftUI's real `glassEffect` material. macOS 14–15 use a material fallback. Reduce Transparency replaces glass with an opaque surface; Reduce Motion freezes the sculpture and removes the recording transition. The sculpture is decorative, reacts to microphone level only while recording, and does not imply a voice-quality score. A matching app icon is included.
+The shell uses native SwiftUI navigation, toolbar, list, inspector, and control components. Reduce Motion disables the Take and graph-selection transitions. A matching app icon is included.
 
 The content/control separation follows [Apple's Materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials) and [Meet Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/).
 
@@ -84,9 +84,9 @@ These fixture-based screenshots show the current major flows without including p
 | --- | --- |
 | ![Studio dashboard](docs/screenshots/studio.png) | ![Create a session](docs/screenshots/create-session.png) |
 
-| Practice | Review |
+| Session | Take |
 | --- | --- |
-| ![Practice workspace](docs/screenshots/practice.png) | ![Take review](docs/screenshots/review.png) |
+| ![Session workspace](docs/screenshots/practice.png) | ![Take screen](docs/screenshots/review.png) |
 
 | Sessions | Insights |
 | --- | --- |
@@ -104,4 +104,4 @@ These fixture-based screenshots show the current major flows without including p
 
 This runs the acoustic/report self-test and generates eight major-screen layout proofs in `build/previews` using synthetic audio only. It also saves and reloads a synthetic session library to verify the persistence round-trip. Preview mode is debug-only and never opens the microphone or reads personal recordings. The offscreen renderer flattens native scrolling and glass into opaque layout representations; these images verify content, spacing and chart states, not live glass refraction, window scrolling or microphone/playback behavior. The shipped app uses native scrolling and Liquid Glass.
 
-For an interactive check, open `build/Voice Coach.app`, create a session, record two 10–30 second takes, stop and listen back, compare them, switch all three chart views, copy/expand JSON, export the WAV/report pair, and relaunch the app to confirm the session returns. Verify keyboard focus, resizing and the macOS accessibility appearance settings. A live microphone/playback and glass-compositing check remains necessary on the running app.
+For an interactive check, open `build/Voice Coach.app`, create a session, record two 10–30 second takes, open each Take screen, listen back, switch all three chart views, copy JSON, export the WAV/report pair, and relaunch the app to confirm the session returns. Verify keyboard focus, resizing, and the macOS accessibility appearance settings. A live microphone/playback check remains necessary on the running app.

@@ -72,18 +72,23 @@ enum AppDestination: Equatable {
     case studio
     case create
     case practice(UUID)
-    case review(UUID, UUID)
+    case take(UUID, UUID)
     case sessions
     case insights
     case settings
 
     var navigationSection: NavigationSection {
         switch self {
-        case .studio, .create, .practice, .review: .studio
+        case .studio, .create, .practice, .take: .studio
         case .sessions: .sessions
         case .insights: .insights
         case .settings: .settings
         }
+    }
+
+    var isTake: Bool {
+        if case .take = self { return true }
+        return false
     }
 }
 
