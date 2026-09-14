@@ -1,6 +1,12 @@
-@preconcurrency import AVFoundation
 import Foundation
+
+#if canImport(UniformTypeIdentifiers)
 import UniformTypeIdentifiers
+#endif
+
+#if canImport(AVFoundation)
+@preconcurrency import AVFoundation
+#endif
 
 public enum AudioImportError: LocalizedError {
     case noAudioTrack
@@ -20,7 +26,9 @@ public enum AudioImportError: LocalizedError {
 }
 
 public struct AudioImportService {
+    #if canImport(UniformTypeIdentifiers)
     public static let allowedContentTypes: [UTType] = [.audio, .movie]
+    #endif
 
     public static func source(for url: URL) -> TakeSource {
         let fileExtension = url.pathExtension.lowercased()
@@ -30,11 +38,16 @@ public struct AudioImportService {
         default:
             break
         }
+        #if canImport(UniformTypeIdentifiers)
         guard let type = UTType(filenameExtension: fileExtension) else { return .importedAudio }
         return type.conforms(to: .movie) ? .importedVideo : .importedAudio
+        #else
+        return .importedAudio
+        #endif
     }
 
     public static func prepareAudio(from sourceURL: URL, to destinationURL: URL) async throws {
+        #if canImport(AVFoundation)
         if source(for: sourceURL) == .importedAudio {
             try await normalizeAudio(from: sourceURL, to: destinationURL)
             return
@@ -67,8 +80,12 @@ public struct AudioImportService {
             let detail = "\(nsError.localizedDescription) \(reason)"
             throw AudioImportError.exportFailed(detail)
         }
+        #else
+        throw AudioImportError.unsupportedMedia
+        #endif
     }
 
+    #if canImport(AVFoundation)
     private static func normalizeAudio(from sourceURL: URL, to destinationURL: URL) async throws {
         try await Task.detached(priority: .userInitiated) {
             let input = try AVAudioFile(forReading: sourceURL)
@@ -91,4 +108,5 @@ public struct AudioImportService {
             }
         }.value
     }
+    #endif
 }

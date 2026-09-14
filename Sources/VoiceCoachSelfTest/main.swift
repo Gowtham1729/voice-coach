@@ -1,4 +1,6 @@
+#if canImport(AVFoundation)
 import AVFoundation
+#endif
 import Foundation
 import VoiceCoachCore
 
@@ -11,6 +13,7 @@ private func check(_ condition: @autoclosure () -> Bool, _ message: String) thro
     if !condition() { throw CheckFailed(message: message) }
 }
 
+#if canImport(AVFoundation)
 private func writeTestWAV(samples: [Float], sampleRate: Double, to url: URL) throws {
     guard let format = AVAudioFormat(
         commonFormat: .pcmFormatFloat32,
@@ -43,6 +46,7 @@ private func verifyAudioImport(samples: [Float], sampleRate: Double) async throw
     let importedAnalysis = try AudioAnalyzer().analyze(url: importedURL)
     try check(importedAnalysis.metrics.duration > 1, "Prepared import could not be analyzed")
 }
+#endif
 
 do {
     // print("Args: \(CommandLine.arguments)")
@@ -53,7 +57,12 @@ do {
     let steady = (0..<Int(sampleRate * duration)).map { index in
         Float(0.35 * sin(2 * .pi * frequency * Double(index) / sampleRate))
     }
+    #if canImport(AVFoundation)
     try await verifyAudioImport(samples: steady, sampleRate: sampleRate)
+    #else
+    try check(AudioImportService.source(for: URL(fileURLWithPath: "/tmp/phone-recording.wav")) == .importedAudio, "Audio source was not identified")
+    try check(AudioImportService.source(for: URL(fileURLWithPath: "/tmp/reference.mov")) == .importedVideo, "Video source was not identified")
+    #endif
     let steadyResult = AudioAnalyzer().analyze(samples: steady, sampleRate: sampleRate)
     try check(abs(steadyResult.metrics.duration - duration) < 0.01, "Duration calculation failed")
     try check(steadyResult.metrics.medianPitchHz != nil, "Pitch was not detected")
@@ -164,6 +173,31 @@ do {
     try check(!lowercaseReport.contains("acousticframes"), "Structured report contains dense acoustic frames")
     try check(!lowercaseReport.contains("cpp_db"), "Structured report contains cpp_db when it should be excluded")
     try check(!compactReport.contains("cpp_db"), "Compact report contains cpp_db when it should be excluded")
+
+    // Keep word-level JSON responsive for long takes (copy/export path).
+    let emptyPitch = WordPitchMetrics(
+        medianHz: nil, relativeMedianSemitones: nil, rangeSemitones: nil, startToEndSemitones: nil
+    )
+    let emptyLoudness = WordLoudnessMetrics(relativeMeanDB: nil, startToEndDB: nil)
+    let longWords = (0..<4_000).map { index in
+        TranscriptWord(word: "w\(index)", start: Double(index) * 0.12, end: Double(index) * 0.12 + 0.1)
+    }
+    let longSession = PracticeSession(
+        audioURL: URL(fileURLWithPath: "/tmp/voice-coach-long-take.wav"),
+        result: steadyResult,
+        transcription: TranscriptionResult(text: longWords.map(\.word).joined(separator: " "), words: longWords),
+        words: longWords.map {
+            WordAnalysis(word: $0.word, start: $0.start, end: $0.end, pitch: emptyPitch, loudness: emptyLoudness)
+        }
+    )
+    let longReportStarted = Date()
+    let longReport = ReportFormatter.makeReport(session: longSession)
+    let longReportElapsed = Date().timeIntervalSince(longReportStarted)
+    try check(longReportElapsed < 2.0, "Word-level report for 4000 words took \(longReportElapsed)s")
+    try check(longReport.contains("\"w3999\""), "Long-take report omitted the final word")
+    let longReportJSON = try JSONSerialization.jsonObject(with: Data(longReport.utf8)) as? [String: Any]
+    try check(longReportJSON?["words"] is [Any], "Long-take report words array missing")
+    print(String(format: "Long-take report (4000 words): %.3fs, %d bytes", longReportElapsed, longReport.utf8.count))
 
     let parserFixture = Data(#"{"result":{"text":"I really tried","words":[{"word":"I","start":0.1,"end":0.22},{"word":"really","start":0.55,"end":0.94,"confidence":0.97},{"word":"tried","start":1.0,"duration":0.3}]}}"#.utf8)
     let parsed = try NemoSpeechTranscriber.parseOutput(parserFixture)

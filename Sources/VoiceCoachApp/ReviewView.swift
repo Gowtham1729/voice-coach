@@ -116,37 +116,15 @@ struct ReviewView: View {
                     .font(.system(size: 9, design: .monospaced)).foregroundStyle(Studio.secondary)
             }
             if let transcription = take.transcription {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text(transcription.text)
-                            .font(.system(size: 20, weight: .regular, design: .serif)).lineSpacing(5)
-                            .textSelection(.enabled)
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 8)], alignment: .leading, spacing: 8) {
-                            ForEach(Array(transcription.words.enumerated()), id: \.offset) { index, word in
-                                Button {
-                                    selectedWordIndex = selectedWordIndex == index ? nil : index
-                                    model.seek(to: word.start)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(word.word).font(.system(size: 12, weight: .medium)).lineLimit(1)
-                                        Text("\(vcNumber(word.start, 2))–\(vcNumber(word.end, 2))s")
-                                            .font(.system(size: 8, design: .monospaced)).foregroundStyle(Studio.secondary)
-                                    }
-                                    .padding(.horizontal, 10).padding(.vertical, 8)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(highlightedWordIndex == index ? Studio.accent.opacity(0.16) : Studio.surface.opacity(0.7), in: RoundedRectangle(cornerRadius: 9))
-                                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(highlightedWordIndex == index ? Studio.accent : Studio.line))
-                                    .scaleEffect(highlightedWordIndex == index && model.isPlaying ? 1.015 : 1)
-                                    .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: highlightedWordIndex)
-                                }.buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                ReviewTranscriptPane(
+                    transcription: transcription,
+                    highlightedWordIndex: highlightedWordIndex,
+                    isPlaying: model.isPlaying,
+                    reduceMotion: reduceMotion
+                ) { index, word in
+                    selectedWordIndex = selectedWordIndex == index ? nil : index
+                    model.seek(to: word.start)
                 }
-                // Fixed height required: maxHeight is ignored when nested inside StudioPage's ScrollView.
-                .frame(height: 420)
-                .clipped()
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "text.badge.xmark").font(.system(size: 28)).foregroundStyle(Studio.secondary)
@@ -293,11 +271,12 @@ struct ReviewView: View {
                 Button { reportExpanded.toggle() } label: { Image(systemName: "ellipsis") }.buttonStyle(StudioButtonStyle())
             }
             if reportExpanded {
-                ScrollView {
-                    Text(model.report).font(.system(size: 10, design: .monospaced)).textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading).padding(14)
-                }
-                .frame(height: 240).background(Studio.background.opacity(0.55), in: RoundedRectangle(cornerRadius: 10))
+                TextEditor(text: .constant(model.report))
+                    .font(.system(size: 10, design: .monospaced))
+                    .scrollContentBackground(.hidden)
+                    .padding(10)
+                    .frame(height: 240)
+                    .background(Studio.background.opacity(0.55), in: RoundedRectangle(cornerRadius: 10))
             }
         }
         .padding(18)
