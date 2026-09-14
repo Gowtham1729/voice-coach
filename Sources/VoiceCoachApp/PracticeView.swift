@@ -3,10 +3,13 @@ import VoiceCoachCore
 
 struct PracticeView: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.studioSnapshot) private var snapshot
     @AppStorage("voiceCoach.showPromptByDefault") private var showPrompt = true
+    @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
     @State private var transcriptExpanded = false
     @State private var analysisExpanded = false
     @State private var exportExpanded = false
+    @State private var takePendingDelete: UUID?
 
     var body: some View {
         StudioPage {
@@ -94,6 +97,7 @@ struct PracticeView: View {
                     details
                     PrivacyFooter()
                 }
+                .modifier(DeleteTakeDialog(takeID: $takePendingDelete, onDelete: model.deleteTake))
             } else {
                 EmptyState(icon: "exclamationmark.triangle", title: "Session not found", detail: "This session is no longer in your local library.", actionTitle: "Back to studio") {
                     model.navigate(to: AppDestination.studio)
@@ -226,30 +230,88 @@ struct PracticeView: View {
 
     private func takeHistory(_ session: CoachingSession) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionEyebrow(text: "Take history")
-            HStack(spacing: 10) {
-                ForEach(Array(session.takes.suffix(5).enumerated()), id: \.element.id) { offset, take in
-                    let index = session.takes.count - min(session.takes.count, 5) + offset
-                    Button { model.selectTake(take.id) } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: model.selectedTakeID == take.id && model.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.system(size: 9)).frame(width: 28, height: 28).background(Studio.line, in: Circle())
-                            Text("Take \(index + 1)").font(.system(size: 11, weight: .medium))
-                            if take.takeSource != .recorded {
-                                Image(systemName: take.takeSource.icon)
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(Studio.accent)
-                            }
-                            Text("\(vcNumber(take.result.metrics.duration, 1))s").font(.system(size: 9, design: .monospaced)).foregroundStyle(Studio.secondary)
-                            MiniSparkline(points: take.result.pitchContour).frame(width: 70, height: 24)
+            HStack {
+                SectionEyebrow(text: "Take history")
+                Spacer()
+                Text("\(session.takeCount) takes")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(Studio.secondary)
+            }
+            let cards = ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, take in
+                takeHistoryCard(take, index: index).id(take.id)
+            }
+            if snapshot {
+                HStack(spacing: 10) { cards }
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: true) {
+                        HStack(spacing: 10) { cards }.padding(.vertical, 2)
+                    }
+                    .frame(height: 52)
+                    .onAppear { scrollHistory(to: model.selectedTakeID, proxy: proxy) }
+                    .onChange(of: model.selectedTakeID) { _, takeID in
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            scrollHistory(to: takeID, proxy: proxy)
                         }
-                        .padding(.horizontal, 10).frame(maxWidth: .infinity, minHeight: 46)
-                        .background(model.selectedTakeID == take.id ? Studio.accent.opacity(0.08) : Studio.surface.opacity(0.55), in: RoundedRectangle(cornerRadius: 11))
-                        .overlay(RoundedRectangle(cornerRadius: 11).stroke(model.selectedTakeID == take.id ? Studio.accent : Studio.line))
-                    }.buttonStyle(.plain)
+                    }
                 }
             }
         }
+    }
+
+    private func scrollHistory(to takeID: UUID?, proxy: ScrollViewProxy) {
+        guard let takeID else { return }
+        proxy.scrollTo(takeID, anchor: .center)
+    }
+
+    private func requestDelete(_ takeID: UUID) {
+        if confirmBeforeDelete { takePendingDelete = takeID }
+        else { model.deleteTake(takeID) }
+    }
+
+    private func takeHistoryCard(_ take: PracticeSession, index: Int) -> some View {
+        let selected = model.selectedTakeID == take.id
+        return HStack(spacing: 8) {
+            Button {
+                if selected { model.playCurrent() }
+                else { model.selectTake(take.id) }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: selected && model.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 9)).frame(width: 28, height: 28).background(Studio.line, in: Circle())
+                    Text("Take \(index + 1)").font(.system(size: 11, weight: .medium))
+                    if take.takeSource != .recorded {
+                        Image(systemName: take.takeSource.icon)
+                            .font(.system(size: 9))
+                            .foregroundStyle(Studio.accent)
+                    }
+                    Text("\(vcNumber(take.result.metrics.duration, 1))s")
+                        .font(.system(size: 9, design: .monospaced)).foregroundStyle(Studio.secondary)
+                    MiniSparkline(points: take.result.pitchContour).frame(width: 70, height: 24)
+                }
+                .padding(.leading, 10)
+                .frame(minHeight: 46)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if !snapshot {
+                Button { requestDelete(take.id) } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Studio.secondary)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Delete Take \(index + 1)")
+                .disabled(model.isRecording || model.isAnalyzing || model.isPlaying)
+            }
+        }
+        .padding(.trailing, 8)
+        .background(selected ? Studio.accent.opacity(0.08) : Studio.surface.opacity(0.55), in: RoundedRectangle(cornerRadius: 11))
+        .overlay(RoundedRectangle(cornerRadius: 11).stroke(selected ? Studio.accent : Studio.line))
+        .frame(minWidth: 220)
     }
 
     private var details: some View {

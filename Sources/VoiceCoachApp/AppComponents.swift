@@ -182,6 +182,7 @@ struct TakePlaybackRow: View {
     @EnvironmentObject private var model: AppModel
     let take: PracticeSession
     var large = false
+    var spaceShortcut = false
 
     var body: some View {
         HStack(spacing: large ? 18 : 11) {
@@ -193,6 +194,9 @@ struct TakePlaybackRow: View {
                     .background(Studio.accent, in: Circle())
             }
             .buttonStyle(.plain)
+            .help(spaceShortcut ? "Play or pause (Space)" : "Play or pause")
+            .modifier(ConditionalSpaceShortcut(enabled: spaceShortcut))
+
             VStack(spacing: 6) {
                 InteractiveWaveformView(
                     points: take.result.waveform,
@@ -214,7 +218,48 @@ struct TakePlaybackRow: View {
                     .foregroundStyle(Studio.secondary)
                 }
             }
-            Text("1×").font(.system(size: 10, design: .monospaced)).foregroundStyle(Studio.secondary)
+            Text(spaceShortcut ? "SPACE" : "1×")
+                .font(.system(size: spaceShortcut ? 9 : 10, design: .monospaced))
+                .tracking(spaceShortcut ? 1.2 : 0)
+                .foregroundStyle(Studio.secondary)
+        }
+    }
+}
+
+private struct ConditionalSpaceShortcut: ViewModifier {
+    let enabled: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if enabled {
+            content.keyboardShortcut(.space, modifiers: [])
+        } else {
+            content
+        }
+    }
+}
+
+struct DeleteTakeDialog: ViewModifier {
+    @Binding var takeID: UUID?
+    var onDelete: (UUID) -> Void
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            "Delete this take?",
+            isPresented: Binding(
+                get: { takeID != nil },
+                set: { if !$0 { takeID = nil } }
+            )
+        ) {
+            Button("Delete take", role: .destructive) {
+                if let takeID {
+                    onDelete(takeID)
+                }
+                takeID = nil
+            }
+            Button("Cancel", role: .cancel) { takeID = nil }
+        } message: {
+            Text("The recording and analysis for this take will be removed from the session.")
         }
     }
 }

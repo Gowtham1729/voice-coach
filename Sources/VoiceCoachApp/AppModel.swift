@@ -210,6 +210,47 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func deleteTake(_ takeID: UUID) {
+        stopPlayback()
+        guard let sessionID = selectedSessionID,
+              let sessionIndex = sessions.firstIndex(where: { $0.id == sessionID }),
+              let takeIndex = sessions[sessionIndex].takes.firstIndex(where: { $0.id == takeID })
+        else { return }
+
+        let previousSessions = sessions
+        let previousTakeID = selectedTakeID
+        let previousDestination = destination
+        let removed = sessions[sessionIndex].takes.remove(at: takeIndex)
+        sessions[sessionIndex].updatedAt = Date()
+
+        if selectedTakeID == takeID {
+            let remaining = sessions[sessionIndex].takes
+            selectedTakeID = remaining.indices.contains(takeIndex) ? remaining[takeIndex].id : remaining.last?.id
+            if case .review = destination {
+                if let selectedTakeID {
+                    destination = .review(sessionID, selectedTakeID)
+                } else {
+                    destination = .practice(sessionID)
+                }
+            }
+        }
+
+        sortSessions()
+        guard persist() else {
+            sessions = previousSessions
+            selectedTakeID = previousTakeID
+            destination = previousDestination
+            return
+        }
+
+        try? FileManager.default.removeItem(at: removed.audioURL)
+        if reportCache?.takeID == takeID { reportCache = nil }
+        if compactReportCache?.takeID == takeID { compactReportCache = nil }
+        toastMessage = sessions[sessionIndex].takes.isEmpty
+            ? "Take removed. Record another when you are ready."
+            : "Take removed"
+    }
+
     func recordButtonPressed() {
         guard !isAnalyzing, !isRequestingPermission else { return }
         isRecording ? stopRecording() : requestPermissionAndRecord()

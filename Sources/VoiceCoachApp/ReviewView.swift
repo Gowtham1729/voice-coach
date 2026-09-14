@@ -14,6 +14,8 @@ struct ReviewView: View {
     @State private var draftName = ""
     @State private var reportExpanded = false
     @State private var isGraphCopied = false
+    @State private var takePendingDelete: UUID?
+    @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
 
     var body: some View {
         StudioPage(maxWidth: 1560) {
@@ -36,6 +38,10 @@ struct ReviewView: View {
                     if comparisonTakeID == nil { comparisonTakeID = model.previousTake?.id }
                 }
                 .onChange(of: model.selectedTakeID) { _, _ in selectedWordIndex = nil }
+                .modifier(DeleteTakeDialog(takeID: $takePendingDelete) { id in
+                    if comparisonTakeID == id { comparisonTakeID = nil }
+                    model.deleteTake(id)
+                })
             } else {
                 EmptyState(icon: "waveform", title: "Take not found", detail: "Choose another session from your local library.", actionTitle: "View sessions") {
                     model.navigate(to: AppDestination.sessions)
@@ -88,6 +94,12 @@ struct ReviewView: View {
                 }
                 Button { model.selectAdjacentTake(offset: 1) } label: { Image(systemName: "chevron.right") }
                     .buttonStyle(StudioButtonStyle())
+                Button { requestDelete(take.id) } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(StudioButtonStyle(destructive: true))
+                .help("Delete this take")
+                .disabled(model.isPlaying || model.isAnalyzing)
                 if session.takeCount > 1 {
                     if snapshot {
                         Text(comparisonLabel(session))
@@ -134,7 +146,7 @@ struct ReviewView: View {
             }
             Spacer(minLength: 8)
             Rectangle().fill(Studio.line).frame(height: 1)
-            TakePlaybackRow(take: take)
+            TakePlaybackRow(take: take, spaceShortcut: true)
         }
         .padding(22)
         .frame(minHeight: 590, alignment: .topLeading)
@@ -286,6 +298,14 @@ struct ReviewView: View {
     private func commitName(_ id: UUID) {
         model.renameSession(id, to: draftName)
         editingName = false
+    }
+
+    private func requestDelete(_ takeID: UUID) {
+        if confirmBeforeDelete { takePendingDelete = takeID }
+        else {
+            if comparisonTakeID == takeID { comparisonTakeID = nil }
+            model.deleteTake(takeID)
+        }
     }
 
     private func comparisonTake(in session: CoachingSession, excluding id: UUID) -> PracticeSession? {
