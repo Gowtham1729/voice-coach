@@ -51,6 +51,8 @@ install_system_deps
 install_swift
 
 swift --version
-# VoiceCoachApp is macOS-only; build the Linux-buildable targets only.
-swift build --target VoiceCoachSelfTest
+# VoiceCoachApp is macOS-only (SwiftUI/AppKit/Metal); build the Linux-buildable
+# product only. Building the product (not just the target) links the executable
+# so it is ready to run.
+swift build --product VoiceCoachSelfTest
 echo "Voice Coach Cloud Agent environment ready."
