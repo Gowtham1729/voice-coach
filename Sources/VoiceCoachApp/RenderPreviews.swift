@@ -64,49 +64,11 @@ func renderStudioPreviewsIfRequested() {
         let silence = AudioAnalyzer().analyze(samples: [Float](repeating: 0, count: 16000), sampleRate: rate)
         model.session = PracticeSession(audioURL: directory.appendingPathComponent("silence.wav"), result: silence)
         try render("studio-silence", height: 1160)
-        let iconset = directory.appendingPathComponent("AppIcon.iconset", isDirectory: true)
-        try FileManager.default.createDirectory(at: iconset, withIntermediateDirectories: true)
-        for size in [16, 32, 128, 256, 512] {
-            for scale in [1, 2] {
-                let renderer = ImageRenderer(content: StudioIconArtwork().frame(width: 1024, height: 1024))
-                renderer.scale = Double(size * scale) / 1024
-                guard let image = renderer.cgImage,
-                      let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
-                    throw NSError(domain: "StudioIcon", code: 1)
-                }
-                let suffix = scale == 2 ? "@2x" : ""
-                try png.write(to: iconset.appendingPathComponent("icon_\(size)x\(size)\(suffix).png"))
-            }
-        }
         print("Rendered 11 SwiftUI layout previews; busy-state guards passed. Output: \(directory.path)")
         exit(0)
     } catch {
         print("Preview rendering failed: \(error)")
         exit(1)
-    }
-}
-
-private struct StudioIconArtwork: View {
-    private let heights: [CGFloat] = [150, 310, 460, 310, 150]
-    var body: some View {
-        ZStack {
-            // Keep the icon fully opaque so iconutil accepts every representation.
-            Studio.background
-            RoundedRectangle(cornerRadius: 190, style: .continuous)
-                .fill(LinearGradient(colors: [Color(red: 0.16, green: 0.24, blue: 0.23), Studio.background],
-                                     startPoint: .topLeading, endPoint: .bottomTrailing))
-            RoundedRectangle(cornerRadius: 190, style: .continuous)
-                .strokeBorder(LinearGradient(colors: [Studio.accent.opacity(0.65), .white.opacity(0.03), Studio.accent.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 3)
-            Circle().fill(Studio.accent.opacity(0.09)).blur(radius: 50).padding(90)
-            HStack(spacing: 35) {
-                ForEach(0..<heights.count, id: \.self) { index in
-                    Capsule().fill(LinearGradient(colors: [Color(red: 0.85, green: 1, blue: 0.9), Studio.accent, Color(red: 0.36, green: 0.62, blue: 0.53)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .frame(width: 52, height: heights[index])
-                        .shadow(color: Studio.accent.opacity(0.2), radius: 15, y: 6)
-                }
-            }
-        }
-        .padding(100)
     }
 }
 #endif
