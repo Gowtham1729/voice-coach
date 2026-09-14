@@ -13,6 +13,9 @@ public enum TranscriptionError: LocalizedError, Sendable {
         case .launchFailed(let detail):
             return "Could not start local transcription: \(detail)"
         case .recognitionFailed(let detail):
+            if detail.lowercased().contains("input must be a .wav") {
+                return "This older imported clip was not stored as WAV. Import the source again to generate its local transcript."
+            }
             return "Local transcription failed: \(detail)"
         case .invalidOutput:
             return "Local transcription returned an unreadable result."

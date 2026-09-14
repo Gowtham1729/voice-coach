@@ -5,7 +5,7 @@ A local-first macOS voice practice studio. Create focused sessions, record and c
 ## Session workflow
 
 - Create named sessions for general practice, reading a prompt, or free speaking.
-- Record multiple takes inside one session and move between them without losing earlier work.
+- Record multiple takes or import an audio/video clip inside one session and move between them without losing earlier work.
 - Resume recent sessions from Studio or search the full Sessions library.
 - Compare the current take with another take from the same session.
 - Review aggregate practice activity and objective trends in Insights.
@@ -58,7 +58,7 @@ swift run VoiceCoachApp
 open "build/Voice Coach.app"
 ```
 
-The exported session contains `recording.wav` and `voice-report.json`. In the app you can copy either the original compact six-section V1 JSON or the expanded report, which preserves those six sections and adds `transcription` and `words`. Each word contains its timestamps plus aligned pitch/loudness summaries. Dense acoustic frames, waveform data, and spectrogram data are not exported. The first recording asks for microphone access. Recordings are stored in the app's Application Support folder and are never uploaded automatically.
+The exported session contains the locally analyzed audio file and `voice-report.json`. In the app you can copy either the original compact six-section V1 JSON or the expanded report, which preserves those six sections and adds `transcription` and `words`. Each word contains its timestamps plus aligned pitch/loudness summaries. Dense acoustic frames, waveform data, and spectrogram data are not exported. You can import an audio or video file; Voice Coach normalizes its audio to a local WAV before analysis and transcription. Nothing is uploaded. The first recording asks for microphone access. Recordings are stored in the app's Application Support folder and are never uploaded automatically.
 
 If macOS reports that the Xcode license has not been accepted, open Terminal once and run `sudo xcodebuild -license`, review it, and accept it yourself.
 
@@ -75,6 +75,26 @@ The interface uses an ink-and-mint palette, a voice-reactive line sculpture, a f
 On macOS 26 and later, controls use SwiftUI's real `glassEffect` material. macOS 14–15 use a material fallback. Reduce Transparency replaces glass with an opaque surface; Reduce Motion freezes the sculpture and removes the recording transition. The sculpture is decorative, reacts to microphone level only while recording, and does not imply a voice-quality score. A matching app icon is included.
 
 The content/control separation follows [Apple's Materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials) and [Meet Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/).
+
+## Screenshots
+
+These fixture-based screenshots show the current major flows without including personal recordings or transcripts.
+
+| Studio | Create a session |
+| --- | --- |
+| ![Studio dashboard](docs/screenshots/studio.png) | ![Create a session](docs/screenshots/create-session.png) |
+
+| Practice | Review |
+| --- | --- |
+| ![Practice workspace](docs/screenshots/practice.png) | ![Take review](docs/screenshots/review.png) |
+
+| Sessions | Insights |
+| --- | --- |
+| ![Sessions library](docs/screenshots/sessions.png) | ![Insights](docs/screenshots/insights.png) |
+
+| Settings | Recording state |
+| --- | --- |
+| ![Settings](docs/screenshots/settings.png) | ![Recording state](docs/screenshots/recording.png) |
 
 ### Visual checks
 

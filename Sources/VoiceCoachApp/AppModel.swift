@@ -196,6 +196,47 @@ final class AppModel: ObservableObject {
         isRecording ? stopRecording() : requestPermissionAndRecord()
     }
 
+    func importClip() {
+        guard !isRecording, !isAnalyzing, !isRequestingPermission, ensureActiveSession(), let sessionID = selectedSessionID else { return }
+
+        let panel = NSOpenPanel()
+        panel.title = "Import an audio or video clip"
+        panel.message = "Voice Coach will extract the audio and save an analyzed copy in this session."
+        panel.prompt = "Import clip"
+        panel.allowedContentTypes = AudioImportService.allowedContentTypes
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        guard panel.runModal() == .OK, let sourceURL = panel.url else { return }
+
+        let takeID = UUID()
+        let source = AudioImportService.source(for: sourceURL)
+        do {
+            let destinationURL = try store.importedAudioURL(
+                sessionID: sessionID,
+                takeID: takeID,
+                fileExtension: "wav"
+            )
+            isAnalyzing = true
+            errorMessage = nil
+            toastMessage = nil
+            transcriptionNotice = nil
+
+            Task {
+                do {
+                    try await AudioImportService.prepareAudio(from: sourceURL, to: destinationURL)
+                    analyze(url: destinationURL, takeID: takeID, source: source)
+                } catch {
+                    try? FileManager.default.removeItem(at: destinationURL)
+                    errorMessage = "Import failed: \(error.localizedDescription)"
+                    isAnalyzing = false
+                }
+            }
+        } catch {
+            errorMessage = "Voice Coach could not create local storage for this import. \(error.localizedDescription)"
+        }
+    }
+
     func copyReport() { copyJSON(report, message: "Word-level voice data copied") }
     func copyCompactReport() { copyJSON(compactReport, message: "Compact voice data copied") }
 
@@ -268,9 +309,10 @@ final class AppModel: ObservableObject {
         let folder = parent.appendingPathComponent("Voice Coach \(formatter.string(from: take.createdAt))", isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
-            try FileManager.default.copyItem(at: take.audioURL, to: folder.appendingPathComponent("recording.wav"))
+            let extensionName = take.audioURL.pathExtension.isEmpty ? "m4a" : take.audioURL.pathExtension
+            try FileManager.default.copyItem(at: take.audioURL, to: folder.appendingPathComponent("recording.\(extensionName)"))
             try report.write(to: folder.appendingPathComponent("voice-report.json"), atomically: true, encoding: .utf8)
-            toastMessage = "Exported recording and report"
+            toastMessage = "Exported audio and report"
             NSWorkspace.shared.activateFileViewerSelecting([folder])
         } catch { errorMessage = "Could not export the take: \(error.localizedDescription)" }
     }
@@ -335,7 +377,7 @@ final class AppModel: ObservableObject {
         analyze(url: url, takeID: takeID)
     }
 
-    private func analyze(url: URL, takeID: UUID) {
+    private func analyze(url: URL, takeID: UUID, source: TakeSource = .recorded) {
         isAnalyzing = true
         Task {
             do {
@@ -348,7 +390,7 @@ final class AppModel: ObservableObject {
                         return CompletedAnalysis(result: result, transcription: nil, words: [], transcriptionNotice: error.localizedDescription)
                     }
                 }.value
-                let take = PracticeSession(id: takeID, audioURL: url, result: completed.result, transcription: completed.transcription, words: completed.words)
+                let take = PracticeSession(id: takeID, audioURL: url, source: source, result: completed.result, transcription: completed.transcription, words: completed.words)
                 append(take)
                 transcriptionNotice = completed.transcriptionNotice
             } catch { errorMessage = "Analysis failed: \(error.localizedDescription)" }
@@ -379,7 +421,7 @@ final class AppModel: ObservableObject {
         for url in recordingsToReplace where url != take.audioURL {
             try? FileManager.default.removeItem(at: url)
         }
-        toastMessage = "Take \(selectedSession?.takeCount ?? 1) saved on this Mac"
+        toastMessage = "\(take.takeSource.title) saved on this Mac"
     }
 
     private func sortSessions() { sessions.sort { $0.updatedAt > $1.updatedAt } }

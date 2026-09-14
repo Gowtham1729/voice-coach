@@ -56,24 +56,39 @@ struct PracticeView: View {
                         readyCard(session)
                     }
 
-                    Button(action: model.recordButtonPressed) {
-                        HStack(spacing: 14) {
-                            if model.isAnalyzing { ProgressView().controlSize(.small) }
-                            else { Image(systemName: model.isRecording ? "stop.fill" : "mic.fill") }
-                            Text(recordButtonTitle(for: session))
+                    HStack(spacing: 12) {
+                        Button(action: model.recordButtonPressed) {
+                            HStack(spacing: 14) {
+                                if model.isAnalyzing { ProgressView().controlSize(.small) }
+                                else { Image(systemName: model.isRecording ? "stop.fill" : "mic.fill") }
+                                Text(recordButtonTitle(for: session))
+                            }
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(maxWidth: .infinity)
                         }
-                        .font(.system(size: 14, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(StudioButtonStyle(prominent: true, destructive: model.isRecording))
-                    .keyboardShortcut(.space, modifiers: [])
-                    .disabled(model.isAnalyzing || model.isRequestingPermission)
-                    .overlay(alignment: .trailing) {
-                        if !model.isRecording && !model.isAnalyzing {
-                            Text("SPACE").font(.system(size: 9, design: .monospaced)).tracking(1.5)
-                                .foregroundStyle(Studio.secondary).padding(.trailing, 18)
+                        .buttonStyle(StudioButtonStyle(prominent: true, destructive: model.isRecording))
+                        .keyboardShortcut(.space, modifiers: [])
+                        .disabled(model.isAnalyzing || model.isRequestingPermission)
+                        .overlay(alignment: .trailing) {
+                            if !model.isRecording && !model.isAnalyzing {
+                                Text("SPACE").font(.system(size: 9, design: .monospaced)).tracking(1.5)
+                                    .foregroundStyle(Studio.secondary).padding(.trailing, 18)
+                            }
                         }
+
+                        Button(action: model.importClip) {
+                            Label("Import audio or video", systemImage: "square.and.arrow.down")
+                                .font(.system(size: 13, weight: .semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(StudioButtonStyle())
+                        .frame(maxWidth: 270)
+                        .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
                     }
+
+                    Text("Import a phone recording, audio clip, or video to compare. The audio is extracted and kept only on this Mac.")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Studio.secondary)
 
                     if !session.takes.isEmpty { takeHistory(session) }
                     details
@@ -146,6 +161,11 @@ struct PracticeView: View {
                     SectionEyebrow(text: "Latest take")
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         Text("Take \(takeNumber(take, in: session))").font(.system(size: 18, weight: .semibold))
+                        if take.takeSource != .recorded {
+                            Label(take.takeSource.title, systemImage: take.takeSource.icon)
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(Studio.accent)
+                        }
                         Text("\(take.createdAt.formatted(date: .omitted, time: .shortened))  ·  \(vcNumber(take.result.metrics.duration, 1))s")
                             .font(.system(size: 10)).foregroundStyle(Studio.secondary)
                     }
@@ -215,6 +235,11 @@ struct PracticeView: View {
                             Image(systemName: model.selectedTakeID == take.id && model.isPlaying ? "pause.fill" : "play.fill")
                                 .font(.system(size: 9)).frame(width: 28, height: 28).background(Studio.line, in: Circle())
                             Text("Take \(index + 1)").font(.system(size: 11, weight: .medium))
+                            if take.takeSource != .recorded {
+                                Image(systemName: take.takeSource.icon)
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(Studio.accent)
+                            }
                             Text("\(vcNumber(take.result.metrics.duration, 1))s").font(.system(size: 9, design: .monospaced)).foregroundStyle(Studio.secondary)
                             MiniSparkline(points: take.result.pitchContour).frame(width: 70, height: 24)
                         }
@@ -247,7 +272,7 @@ struct PracticeView: View {
                 HStack {
                     Button("Copy compact JSON", action: model.copyCompactReport).buttonStyle(StudioButtonStyle())
                     Button("Copy word-level JSON", action: model.copyReport).buttonStyle(StudioButtonStyle())
-                    Button("Export WAV + JSON", action: model.exportCurrent).buttonStyle(StudioButtonStyle())
+                    Button("Export audio + JSON", action: model.exportCurrent).buttonStyle(StudioButtonStyle())
                 }
             }
         }

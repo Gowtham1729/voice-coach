@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import VoiceCoachCore
 
@@ -10,6 +11,39 @@ private func check(_ condition: @autoclosure () -> Bool, _ message: String) thro
     if !condition() { throw CheckFailed(message: message) }
 }
 
+private func writeTestWAV(samples: [Float], sampleRate: Double, to url: URL) throws {
+    guard let format = AVAudioFormat(
+        commonFormat: .pcmFormatFloat32,
+        sampleRate: sampleRate,
+        channels: 1,
+        interleaved: false
+    ), let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)),
+      let channel = buffer.floatChannelData?.pointee
+    else { throw CheckFailed(message: "Could not create import-test audio") }
+
+    buffer.frameLength = AVAudioFrameCount(samples.count)
+    for (index, sample) in samples.enumerated() { channel[index] = sample }
+    let file = try AVAudioFile(forWriting: url, settings: format.settings)
+    try file.write(from: buffer)
+}
+
+private func verifyAudioImport(samples: [Float], sampleRate: Double) async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("VoiceCoachImportTest-\(UUID().uuidString)", isDirectory: true)
+    let sourceURL = directory.appendingPathComponent("phone-recording.wav")
+    let importedURL = directory.appendingPathComponent("prepared.wav")
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    try writeTestWAV(samples: samples, sampleRate: sampleRate, to: sourceURL)
+    try await AudioImportService.prepareAudio(from: sourceURL, to: importedURL)
+
+    try check(FileManager.default.fileExists(atPath: importedURL.path), "Imported audio was not written locally")
+    try check(AudioImportService.source(for: sourceURL) == .importedAudio, "Audio source was not identified")
+    try check(AudioImportService.source(for: URL(fileURLWithPath: "/tmp/reference.mov")) == .importedVideo, "Video source was not identified")
+    let importedAnalysis = try AudioAnalyzer().analyze(url: importedURL)
+    try check(importedAnalysis.metrics.duration > 1, "Prepared import could not be analyzed")
+}
+
 do {
     // print("Args: \(CommandLine.arguments)")
 
@@ -19,6 +53,7 @@ do {
     let steady = (0..<Int(sampleRate * duration)).map { index in
         Float(0.35 * sin(2 * .pi * frequency * Double(index) / sampleRate))
     }
+    try await verifyAudioImport(samples: steady, sampleRate: sampleRate)
     let steadyResult = AudioAnalyzer().analyze(samples: steady, sampleRate: sampleRate)
     try check(abs(steadyResult.metrics.duration - duration) < 0.01, "Duration calculation failed")
     try check(steadyResult.metrics.medianPitchHz != nil, "Pitch was not detected")
@@ -75,6 +110,15 @@ do {
         transcription: transcription,
         words: wordAnalyses
     )
+    let legacyRoundTrip = try JSONDecoder().decode(PracticeSession.self, from: JSONEncoder().encode(session))
+    try check(legacyRoundTrip.takeSource == .recorded, "Saved recordings without a source were not treated as microphone takes")
+    let importedSession = PracticeSession(
+        audioURL: URL(fileURLWithPath: "/tmp/voice-coach-imported.wav"),
+        source: .importedVideo,
+        result: steadyResult
+    )
+    let importedRoundTrip = try JSONDecoder().decode(PracticeSession.self, from: JSONEncoder().encode(importedSession))
+    try check(importedRoundTrip.takeSource == .importedVideo, "Imported video source was not preserved")
     let report = ReportFormatter.makeReport(session: session)
     let compactReport = ReportFormatter.makeCompactReport(session: session)
     try check(report.range(of: #"\d+\.\d{3,}"#, options: .regularExpression) == nil, "Structured report contains numbers with more than 2 decimal places")

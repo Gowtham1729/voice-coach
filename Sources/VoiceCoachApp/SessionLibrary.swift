@@ -140,11 +140,22 @@ final class SessionStore {
     }
 
     func recordingURL(sessionID: UUID, takeID: UUID) throws -> URL {
+        try takeDirectory(sessionID: sessionID)
+            .appendingPathComponent("take-\(takeID.uuidString).wav")
+    }
+
+    func importedAudioURL(sessionID: UUID, takeID: UUID, fileExtension: String) throws -> URL {
+        let normalizedExtension = fileExtension.isEmpty ? "wav" : fileExtension.lowercased()
+        return try takeDirectory(sessionID: sessionID)
+            .appendingPathComponent("take-\(takeID.uuidString)-imported.\(normalizedExtension)")
+    }
+
+    private func takeDirectory(sessionID: UUID) throws -> URL {
         let directory = rootURL
             .appendingPathComponent("Sessions", isDirectory: true)
             .appendingPathComponent(sessionID.uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        return directory.appendingPathComponent("take-\(takeID.uuidString).wav")
+        return directory
     }
 
     func deleteSessionData(sessionID: UUID) throws {

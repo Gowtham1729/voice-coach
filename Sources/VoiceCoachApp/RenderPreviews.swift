@@ -64,11 +64,28 @@ func renderStudioPreviewsIfRequested() {
     }
 }
 
+/// Starts the offscreen renderer once SwiftUI has created a scene. This keeps
+/// command-line preview generation reliable without affecting the shipped app.
+struct PreviewRenderLauncher: View {
+    var body: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .onAppear { renderStudioPreviewsIfRequested() }
+            .accessibilityHidden(true)
+    }
+}
+
 private func makePreviewSessions(root: URL) -> [CoachingSession] {
     let calendar = Calendar.current
     let now = Date()
 
-    func take(frequency: Double, duration: Double, text: String, offsetHours: Int) -> PracticeSession {
+    func take(
+        frequency: Double,
+        duration: Double,
+        text: String,
+        offsetHours: Int,
+        source: TakeSource = .recorded
+    ) -> PracticeSession {
         let rate = 16_000.0
         let samples = (0..<Int(rate * duration)).map { index -> Float in
             let time = Double(index) / rate
@@ -93,6 +110,7 @@ private func makePreviewSessions(root: URL) -> [CoachingSession] {
         return PracticeSession(
             createdAt: date,
             audioURL: root.appendingPathComponent(UUID().uuidString + ".wav"),
+            source: source,
             result: result,
             transcription: transcription,
             words: WordAcousticAnalyzer().analyze(transcription: transcription, result: result)
@@ -102,7 +120,7 @@ private func makePreviewSessions(root: URL) -> [CoachingSession] {
     let interviewTakes = [
         take(frequency: 145, duration: 10.8, text: "I want to explain my experience clearly and give each idea enough space to land.", offsetHours: -4),
         take(frequency: 154, duration: 11.3, text: "I can connect my experience to the problem and show the result with a calm steady pace.", offsetHours: -3),
-        take(frequency: 166, duration: 12.4, text: "I want to speak with a little more inflection and let the most important point be heard.", offsetHours: -2)
+        take(frequency: 166, duration: 12.4, text: "I want to speak with a little more inflection and let the most important point be heard.", offsetHours: -2, source: .importedVideo)
     ]
     let first = CoachingSession(
         name: "Job Interview Prep",
