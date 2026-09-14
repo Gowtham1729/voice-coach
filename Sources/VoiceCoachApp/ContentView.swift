@@ -3,14 +3,16 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.studioSnapshot) private var snapshot
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var inspectorPresented = true
 
     var body: some View {
         shell
             .foregroundStyle(Studio.ink)
             .preferredColorScheme(.dark)
+            // Charts and selection washes use accent; glass secondary controls opt out via .tint(.primary).
             .tint(Studio.accent)
-            .environment(\.workspaceChrome, workspaceChrome)
             .alert("Voice Coach", isPresented: errorBinding) {
                 Button("OK", role: .cancel) { model.errorMessage = nil }
             } message: {
@@ -18,35 +20,40 @@ struct ContentView: View {
             }
             .overlay(alignment: .bottom) { toast }
             .onChange(of: model.destination) { _, _ in
-                inspectorPresented = inspectorEligible
+                if inspectorEligible {
+                    inspectorPresented = true
+                }
             }
     }
 
     private var shell: some View {
-        HStack(spacing: 0) {
-            Group {
-                if snapshot {
-                    SnapshotSourceListSidebar()
-                } else {
-                    SourceListSidebar()
-                }
-            }
-            .frame(width: 240)
-
-            Rectangle().fill(Studio.line).frame(width: 1)
-
+        NavigationSplitView {
+            sidebarColumn
+                .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
+        } detail: {
             destination
+                .id(destinationIdentity)
+                .transition(destinationTransition)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Studio.background)
-
-            if showInspector {
-                Rectangle().fill(Studio.line).frame(width: 1)
-                contextualInspector
-                    .frame(width: 300)
-                    .frame(maxHeight: .infinity)
-            }
+                .toolbar { workspaceToolbar }
+                .inspector(isPresented: inspectorBinding) {
+                    contextualInspector
+                        .inspectorColumnWidth(min: 260, ideal: 300, max: 380)
+                }
         }
-        .background(Studio.background)
+        .navigationSplitViewStyle(.balanced)
+        .animation(StudioMotion.page(reduceMotion: reduceMotion), value: destinationIdentity)
+        .animation(StudioMotion.page(reduceMotion: reduceMotion), value: showInspector)
+    }
+
+    @ViewBuilder
+    private var sidebarColumn: some View {
+        if snapshot {
+            SnapshotSourceListSidebar()
+        } else {
+            SourceListSidebar()
+        }
     }
 
     @ViewBuilder
@@ -78,14 +85,53 @@ struct ContentView: View {
         }
     }
 
-    private var workspaceChrome: WorkspaceChrome {
-        WorkspaceChrome(
-            showsNewSession: showsNewSession,
-            inspectorEligible: inspectorEligible,
-            inspectorPresented: showInspector,
-            onNewSession: { model.navigate(to: AppDestination.create) },
-            onToggleInspector: { inspectorPresented.toggle() },
-            onBack: goBack
+    @ToolbarContentBuilder
+    private var workspaceToolbar: some ToolbarContent {
+        if showsBackButton {
+            ToolbarItem(placement: .navigation) {
+                Button(action: goBack) {
+                    Label(backHelp, systemImage: "chevron.left")
+                }
+                .help(backHelp)
+            }
+        }
+
+        ToolbarSpacer(.flexible)
+
+        if showsNewSession {
+            ToolbarItem {
+                Button {
+                    model.navigate(to: AppDestination.create)
+                } label: {
+                    Label("New Session", systemImage: "plus")
+                }
+                .help("Create a named practice session")
+                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+            }
+        }
+
+        if inspectorEligible {
+            ToolbarItem {
+                Button {
+                    inspectorPresented.toggle()
+                } label: {
+                    Label(
+                        inspectorPresented ? "Hide Inspector" : "Show Inspector",
+                        systemImage: "sidebar.trailing"
+                    )
+                }
+                .help(inspectorPresented ? "Hide Inspector" : "Show Inspector")
+            }
+        }
+    }
+
+    private var inspectorBinding: Binding<Bool> {
+        Binding(
+            get: { showInspector },
+            set: { newValue in
+                guard inspectorEligible else { return }
+                inspectorPresented = newValue
+            }
         )
     }
 
@@ -100,6 +146,17 @@ struct ContentView: View {
         }
     }
 
+    private var showsBackButton: Bool {
+        switch model.destination {
+        case .create, .take: true
+        case .studio, .practice, .sessions, .insights, .settings: false
+        }
+    }
+
+    private var backHelp: String {
+        model.destination.isTake ? "Return to the session" : "Return to Studio"
+    }
+
     private var inspectorEligible: Bool {
         switch model.destination {
         case .studio, .practice:
@@ -109,6 +166,26 @@ struct ContentView: View {
         case .create, .sessions, .insights, .settings:
             false
         }
+    }
+
+    private var destinationIdentity: String {
+        switch model.destination {
+        case .studio: "studio"
+        case .create: "create"
+        case .practice(let id): "practice-\(id)"
+        case .take(let session, let take): "take-\(session)-\(take)"
+        case .sessions: "sessions"
+        case .insights: "insights"
+        case .settings: "settings"
+        }
+    }
+
+    private var destinationTransition: AnyTransition {
+        if reduceMotion { return .opacity }
+        return .asymmetric(
+            insertion: .opacity.combined(with: .offset(y: 8)).combined(with: .scale(scale: 0.995)),
+            removal: .opacity.combined(with: .offset(y: -4))
+        )
     }
 
     private func goBack() {
@@ -126,94 +203,29 @@ struct ContentView: View {
                     .font(.callout.weight(.medium))
                     .padding(.horizontal, 16)
                     .frame(height: 36)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                    .shadow(color: .black.opacity(0.3), radius: 14, y: 6)
+                    .modifier(ControlGlass(
+                        tint: Studio.accent.opacity(0.18),
+                        opaque: reduceTransparency || snapshot,
+                        cornerRadius: 8
+                    ))
+                    .shadow(color: .black.opacity(0.28), radius: 14, y: 6)
                     .padding(.bottom, 18)
+                    .transition(toastTransition)
                     .task(id: message) {
                         try? await Task.sleep(for: .seconds(2.7))
                         if !Task.isCancelled, model.toastMessage == message { model.toastMessage = nil }
                     }
             }
         }
+        .animation(StudioMotion.spring(reduceMotion: reduceMotion), value: model.toastMessage)
+    }
+
+    private var toastTransition: AnyTransition {
+        if reduceMotion { return .opacity }
+        return .move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.96))
     }
 
     private var errorBinding: Binding<Bool> {
         Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })
-    }
-}
-
-struct WorkspaceChrome {
-    var showsNewSession = false
-    var inspectorEligible = false
-    var inspectorPresented = false
-    var onNewSession: () -> Void = {}
-    var onToggleInspector: () -> Void = {}
-    var onBack: () -> Void = {}
-}
-
-private struct WorkspaceChromeKey: EnvironmentKey {
-    nonisolated(unsafe) static let defaultValue = WorkspaceChrome()
-}
-
-extension EnvironmentValues {
-    var workspaceChrome: WorkspaceChrome {
-        get { self[WorkspaceChromeKey.self] }
-        set { self[WorkspaceChromeKey.self] = newValue }
-    }
-}
-
-struct WorkspaceChromeButtons: View {
-    @Environment(\.workspaceChrome) private var chrome
-    @EnvironmentObject private var model: AppModel
-    var includeBack = false
-
-    var body: some View {
-        HStack(spacing: 4) {
-            if includeBack {
-                chromeButton(
-                    systemImage: "chevron.left",
-                    help: model.destination.isTake ? "Return to the session" : "Return to Studio",
-                    action: chrome.onBack
-                )
-            }
-
-            if chrome.showsNewSession {
-                chromeButton(
-                    systemImage: "plus",
-                    help: "Create a named practice session",
-                    disabled: model.isRecording || model.isAnalyzing || model.isRequestingPermission,
-                    action: chrome.onNewSession
-                )
-            }
-
-            if chrome.inspectorEligible {
-                chromeButton(
-                    systemImage: "sidebar.right",
-                    help: chrome.inspectorPresented ? "Hide Inspector" : "Show Inspector",
-                    active: chrome.inspectorPresented,
-                    action: chrome.onToggleInspector
-                )
-            }
-        }
-    }
-
-    private func chromeButton(
-        systemImage: String,
-        help: String,
-        active: Bool = false,
-        disabled: Bool = false,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(active ? Studio.accent : Studio.secondary)
-                .frame(width: 28, height: 28)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(help)
-        .disabled(disabled)
-        .opacity(disabled ? 0.4 : 1)
     }
 }

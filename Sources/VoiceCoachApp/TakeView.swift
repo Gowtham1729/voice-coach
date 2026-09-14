@@ -6,7 +6,6 @@ struct TakeView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.studioSnapshot) private var snapshot
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var plotSelection
     @State private var selectedPlot: AnalysisPlot = .pitch
     @State private var selectedWordIndex: Int?
     @State private var isGraphCopied = false
@@ -41,7 +40,7 @@ struct TakeView: View {
                 }
                 .id(take.id)
                 .transition(.opacity.combined(with: .scale(scale: 0.992, anchor: .top)))
-                .animation(takeTransition, value: model.selectedTakeID)
+                .animation(quickMotion, value: model.selectedTakeID)
                 .frame(maxWidth: 1050, alignment: .topLeading)
                 .padding(.horizontal, 20)
                 .padding(.top, 28)
@@ -59,8 +58,6 @@ struct TakeView: View {
 
     private func takeBar(_ session: CoachingSession, take: PracticeSession) -> some View {
         HStack(spacing: 12) {
-            WorkspaceChromeButtons(includeBack: true)
-
             Label(take.takeSource.title, systemImage: take.takeSource.icon)
                 .font(.callout.weight(.medium))
 
@@ -131,19 +128,16 @@ struct TakeView: View {
     }
 
     private func copyTranscriptButton(_ text: String) -> some View {
-        Button(action: { copyTranscript(text) }) {
-            Label(
-                isTranscriptCopied ? "Copied" : "Copy Transcript",
-                systemImage: isTranscriptCopied ? "checkmark" : "doc.on.doc"
-            )
+        StudioQuietIconButton(
+            systemImage: "doc.on.doc",
+            help: isTranscriptCopied ? "Copied" : "Copy transcript",
+            confirmed: isTranscriptCopied
+        ) {
+            copyTranscript(text)
         }
-        .buttonStyle(.bordered)
-        .help("Copy the full transcript text")
         .disabled(text.isEmpty)
         .task(id: isTranscriptCopied) {
-            guard isTranscriptCopied else { return }
-            try? await Task.sleep(for: .seconds(2))
-            if !Task.isCancelled { isTranscriptCopied = false }
+            await clearCopiedFlag(isTranscriptCopied) { isTranscriptCopied = false }
         }
     }
 
@@ -198,10 +192,11 @@ struct TakeView: View {
             ZStack {
                 activePlot(take, highlightedRange: highlightedRange, interactive: true)
                     .id(selectedPlot)
-                    .transition(.opacity.combined(with: .scale(scale: 0.985)))
+                    .transition(.opacity)
             }
-            .animation(plotAnimation, value: selectedPlot)
             .frame(height: 380)
+            .clipped()
+            .animation(quickMotion, value: selectedPlot)
         }
         .padding(18)
         .frame(maxWidth: .infinity, minHeight: 460, alignment: .topLeading)
@@ -209,60 +204,78 @@ struct TakeView: View {
     }
 
     private var plotPicker: some View {
-        HStack(spacing: 2) {
+        Picker("Analysis plot", selection: $selectedPlot) {
             ForEach(AnalysisPlot.allCases) { plot in
-                Button {
-                    withAnimation(plotAnimation) { selectedPlot = plot }
-                } label: {
-                    Text(plot.rawValue)
-                        .font(.caption.weight(.medium))
-                        .frame(width: 86, height: 28)
-                        .background {
-                            if selectedPlot == plot {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Studio.accent)
-                                    .matchedGeometryEffect(id: "plot-selection", in: plotSelection)
-                            }
-                        }
-                        .foregroundStyle(selectedPlot == plot ? Studio.background : Studio.secondary)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                Text(plot.rawValue).tag(plot)
             }
         }
-        .padding(3)
-        .background(Studio.background.opacity(0.45), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Studio.line))
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .tint(.primary)
+        .frame(maxWidth: 280)
     }
 
     private func copyGraphButton(_ take: PracticeSession) -> some View {
-        Button(action: { copyAnalysisSnapshot(take) }) {
-            Label(isGraphCopied ? "Copied" : "Copy Graph", systemImage: isGraphCopied ? "checkmark" : "doc.on.doc")
+        StudioQuietIconButton(
+            systemImage: "doc.on.doc",
+            help: isGraphCopied ? "Copied" : "Copy graph as PNG",
+            confirmed: isGraphCopied
+        ) {
+            copyAnalysisSnapshot(take)
         }
-        .buttonStyle(.bordered)
-        .help("Copy the current graph and waveform as a PNG")
         .task(id: isGraphCopied) {
-            guard isGraphCopied else { return }
-            try? await Task.sleep(for: .seconds(2))
-            if !Task.isCancelled { isGraphCopied = false }
+            await clearCopiedFlag(isGraphCopied) { isGraphCopied = false }
         }
     }
 
     @ViewBuilder
     private func activePlot(_ take: PracticeSession, highlightedRange: ClosedRange<Double>?, interactive: Bool) -> some View {
         let result = take.result
+        let playbackTime = interactive ? model.playbackTime : 0
+        let isPlaying = interactive && model.isPlaying
+        let onSeek: ((Double) -> Void)? = interactive ? { model.seek(to: $0, autoplay: true) } : nil
+        let onScrub: ((Double) -> Void)? = interactive ? { model.seek(to: $0) } : nil
+
         switch selectedPlot {
         case .pitch:
-            LabeledLineChart(points: result.pitchContour, color: Studio.accent, range: pitchBounds(result), duration: result.metrics.duration, unit: "Hz", playbackTime: interactive ? model.playbackTime : 0, isPlaying: interactive && model.isPlaying, highlightedRange: highlightedRange, onSeek: interactive ? { model.seek(to: $0, autoplay: true) } : nil, onScrub: interactive ? { model.seek(to: $0) } : nil)
+            LabeledLineChart(
+                points: result.pitchContour,
+                color: Studio.accent,
+                range: pitchBounds(result),
+                duration: result.metrics.duration,
+                unit: "Hz",
+                playbackTime: playbackTime,
+                isPlaying: isPlaying,
+                highlightedRange: highlightedRange,
+                onSeek: onSeek,
+                onScrub: onScrub
+            )
         case .loudness:
-            LabeledLineChart(points: result.loudnessContour, color: Studio.accent, range: -60...0, duration: result.metrics.duration, unit: "dBFS", playbackTime: interactive ? model.playbackTime : 0, isPlaying: interactive && model.isPlaying, highlightedRange: highlightedRange, onSeek: interactive ? { model.seek(to: $0, autoplay: true) } : nil, onScrub: interactive ? { model.seek(to: $0) } : nil)
+            LabeledLineChart(
+                points: result.loudnessContour,
+                color: Studio.accent,
+                range: -60...0,
+                duration: result.metrics.duration,
+                unit: "dBFS",
+                playbackTime: playbackTime,
+                isPlaying: isPlaying,
+                highlightedRange: highlightedRange,
+                onSeek: onSeek,
+                onScrub: onScrub
+            )
         case .spectrum:
             ZStack {
                 SpectrogramView(data: result.spectrogram)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                 TimeRangeHighlight(range: highlightedRange, duration: result.metrics.duration)
                 if interactive {
-                    InteractiveGraphOverlay(duration: result.metrics.duration, playbackTime: model.playbackTime, isPlaying: model.isPlaying, onSeek: { model.seek(to: $0, autoplay: true) }, onScrub: { model.seek(to: $0) })
+                    InteractiveGraphOverlay(
+                        duration: result.metrics.duration,
+                        playbackTime: model.playbackTime,
+                        isPlaying: model.isPlaying,
+                        onSeek: { model.seek(to: $0, autoplay: true) },
+                        onScrub: { model.seek(to: $0) }
+                    )
                 }
             }
         }
@@ -288,12 +301,14 @@ struct TakeView: View {
         return selectedWordIndex
     }
 
-    private var takeTransition: Animation? {
-        reduceMotion ? nil : .easeInOut(duration: 0.22)
+    private var quickMotion: Animation? {
+        StudioMotion.quick(reduceMotion: reduceMotion)
     }
 
-    private var plotAnimation: Animation? {
-        reduceMotion ? nil : .smooth(duration: 0.28, extraBounce: 0)
+    private func clearCopiedFlag(_ isCopied: Bool, clear: @escaping () -> Void) async {
+        guard isCopied else { return }
+        try? await Task.sleep(for: .seconds(2))
+        if !Task.isCancelled { clear() }
     }
 
     private func copyTranscript(_ text: String) {

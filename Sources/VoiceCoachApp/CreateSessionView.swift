@@ -3,6 +3,7 @@ import SwiftUI
 struct CreateSessionView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.studioSnapshot) private var snapshot
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var name = "Morning Practice"
     @State private var mode: PracticeMode = .general
     @State private var prompt = ""
@@ -12,7 +13,6 @@ struct CreateSessionView: View {
         StudioPage(maxWidth: 760, horizontalPadding: 24) {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    WorkspaceChromeButtons(includeBack: true)
                     Text("New Session")
                         .font(.title2.weight(.semibold))
                     Spacer()
@@ -51,6 +51,7 @@ struct CreateSessionView: View {
                             .labelsHidden()
                             .pickerStyle(.segmented)
                             .frame(maxWidth: 420)
+                            .animation(StudioMotion.spring(reduceMotion: reduceMotion), value: mode)
                         }
                     }
 
@@ -108,11 +109,13 @@ struct CreateSessionView: View {
                 HStack {
                     Spacer()
                     Button("Cancel") { model.navigate(to: AppDestination.studio) }
+                        .buttonStyle(.glass)
+                        .tint(.primary)
                         .keyboardShortcut(.cancelAction)
                     Button("Create Session") {
                         model.createSession(name: name, mode: mode, prompt: prompt, keepsRecordings: keepsRecordings)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }

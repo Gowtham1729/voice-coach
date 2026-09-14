@@ -72,9 +72,9 @@ swift run VoiceCoachSelfTest
 
 The interface uses an ink-and-mint palette with a fixed source list, a focused session workspace, a complete per-take screen, searchable Sessions, Insights, and Settings. Record with Space, listen back, and switch between pitch, loudness, and spectrum. Selecting a transcript word highlights its time region across the active graph and waveform. The previous successful take stays available if a subsequent recording fails.
 
-The shell uses native SwiftUI navigation, toolbar, list, inspector, and control components. Reduce Motion disables the Take and graph-selection transitions. A matching app icon is included.
+The shell uses SwiftUI `NavigationSplitView`, system inspector, and toolbar chrome on **macOS 26+** so the sidebar, inspector, and toolbar adopt Liquid Glass automatically. Primary actions use `.glass` / `.glassProminent`; the analysis plot control uses the system segmented picker. Content panels stay on standard materials (not glass). Reduce Transparency falls back to opaque surfaces; Reduce Motion disables Take, destination, and graph-selection transitions. A matching app icon is included.
 
-The content/control separation follows [Apple's Materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials) and [Meet Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/).
+The content/control separation follows [Apple's Materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials), [Adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass), and [Landmarks](https://developer.apple.com/documentation/swiftui/landmarks-building-an-app-with-liquid-glass).
 
 ## Screenshots
 
