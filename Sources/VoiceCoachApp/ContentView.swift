@@ -298,95 +298,107 @@ struct ContentView: View {
     }
 
     private func plots(_ session: PracticeSession) -> some View {
-        let result = session.result
         let highlightedRange = selectedWordRange(in: session)
         return VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                SectionEyebrow(text: "Listen closer")
-                Spacer()
-                HStack(spacing: 8) {
-                    HStack(spacing: 2) {
-                        ForEach(AnalysisPlot.allCases) { plot in
-                            Button { selectedPlot = plot } label: {
-                                Text(plot.rawValue)
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(selectedPlot == plot ? Studio.ink : Studio.secondary)
-                                    .frame(width: 82, height: 28)
-                                    .background(selectedPlot == plot ? Studio.accent.opacity(0.15) : .clear, in: Capsule())
-                                    .contentShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("\(plot.rawValue) chart")
-                            .accessibilityAddTraits(selectedPlot == plot ? [.isSelected] : [])
-                        }
-                    }.padding(4).modifier(ControlGlass(tint: nil, opaque: false))
-
-                    Button {
-                        copyDiagramToClipboard(session: session)
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: isDiagramCopied ? "checkmark" : "doc.on.doc")
-                                .font(.system(size: 10, weight: .semibold))
-                            Text(isDiagramCopied ? "Copied" : "Copy")
-                                .font(.system(size: 11, weight: .medium))
-                        }
-                        .foregroundStyle(isDiagramCopied ? Studio.accent : Studio.secondary)
-                        .padding(.horizontal, 10)
-                        .frame(height: 28)
-                        .background(isDiagramCopied ? Studio.accent.opacity(0.15) : .clear, in: Capsule())
-                        .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .padding(4)
-                    .modifier(ControlGlass(tint: nil, opaque: false))
-                    .help("Copy diagram screenshot to clipboard for AI analysis")
-                    .accessibilityLabel("Copy diagram screenshot to clipboard")
-                    .task(id: isDiagramCopied) {
-                        guard isDiagramCopied else { return }
-                        try? await Task.sleep(for: .seconds(2.0))
-                        if !Task.isCancelled {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isDiagramCopied = false
-                            }
-                        }
-                    }
-                }
-            }
+            plotsHeader(session: session)
             activePlotView(session: session, highlightedRange: highlightedRange, interactive: true)
                 .frame(height: 164)
             Rectangle().fill(Studio.line).frame(height: 1)
-            HStack(spacing: 12) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Image(systemName: "waveform").font(.system(size: 13, weight: .medium))
-                    if model.isPlaying || model.playbackTime > 0.05 {
-                        Text(String(format: "%.1fs", model.playbackTime))
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(Studio.accent)
-                    } else {
-                        Text(String(format: "%.1fs", result.metrics.duration))
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(Studio.secondary)
-                    }
-                }
-                .frame(width: 55, alignment: .trailing)
-                .foregroundStyle(Studio.secondary)
-
-                InteractiveWaveformView(
-                    points: result.waveform,
-                    duration: result.metrics.duration,
-                    playbackTime: model.playbackTime,
-                    isPlaying: model.isPlaying,
-                    color: Studio.accent,
-                    highlightedRange: highlightedRange,
-                    onSeek: { time in model.seek(to: time, autoplay: true) },
-                    onScrub: { time in model.seek(to: time, autoplay: false) }
-                )
-                .frame(height: 38)
-            }
+            plotsWaveformRow(session: session, highlightedRange: highlightedRange, interactive: true)
         }
         .padding(22)
         .background(Studio.surface.opacity(0.7), in: RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).stroke(Studio.line))
+    }
+
+    private func plotsHeader(session: PracticeSession) -> some View {
+        HStack {
+            SectionEyebrow(text: "Listen closer")
+            Spacer()
+            HStack(spacing: 8) {
+                plotSelector
+                copyDiagramButton(session: session)
+            }
+        }
+    }
+
+    private var plotSelector: some View {
+        HStack(spacing: 2) {
+            ForEach(AnalysisPlot.allCases) { plot in
+                Button { selectedPlot = plot } label: {
+                    Text(plot.rawValue)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(selectedPlot == plot ? Studio.ink : Studio.secondary)
+                        .frame(width: 82, height: 28)
+                        .background(selectedPlot == plot ? Studio.accent.opacity(0.15) : .clear, in: Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(plot.rawValue) chart")
+                .accessibilityAddTraits(selectedPlot == plot ? [.isSelected] : [])
+            }
+        }
+        .padding(4)
+        .modifier(ControlGlass(tint: nil, opaque: false))
+    }
+
+    private func copyDiagramButton(session: PracticeSession) -> some View {
+        Button {
+            copyDiagramToClipboard(session: session)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: isDiagramCopied ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 10, weight: .semibold))
+                Text(isDiagramCopied ? "Copied" : "Copy")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .foregroundStyle(isDiagramCopied ? Studio.accent : Studio.secondary)
+            .padding(.horizontal, 10)
+            .frame(height: 28)
+            .background(isDiagramCopied ? Studio.accent.opacity(0.15) : .clear, in: Capsule())
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .padding(4)
+        .modifier(ControlGlass(tint: nil, opaque: false))
+        .help("Copy diagram screenshot to clipboard for AI analysis")
+        .accessibilityLabel("Copy diagram screenshot to clipboard")
+        .task(id: isDiagramCopied) {
+            guard isDiagramCopied else { return }
+            try? await Task.sleep(for: .seconds(2.0))
+            if !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isDiagramCopied = false
+                }
+            }
+        }
+    }
+
+    private func plotsWaveformRow(session: PracticeSession, highlightedRange: ClosedRange<Double>?, interactive: Bool) -> some View {
+        let result = session.result
+        let showPlaybackTime = interactive && (model.isPlaying || model.playbackTime > 0.05)
+        return HStack(spacing: 12) {
+            VStack(alignment: .trailing, spacing: 2) {
+                Image(systemName: "waveform").font(.system(size: 13, weight: .medium))
+                Text(String(format: "%.1fs", showPlaybackTime ? model.playbackTime : result.metrics.duration))
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(showPlaybackTime ? Studio.accent : Studio.secondary)
+            }
+            .frame(width: 55, alignment: .trailing)
+            .foregroundStyle(Studio.secondary)
+
+            InteractiveWaveformView(
+                points: result.waveform,
+                duration: result.metrics.duration,
+                playbackTime: interactive ? model.playbackTime : 0,
+                isPlaying: interactive ? model.isPlaying : false,
+                color: Studio.accent,
+                highlightedRange: highlightedRange,
+                onSeek: interactive ? { time in model.seek(to: time, autoplay: true) } : nil,
+                onScrub: interactive ? { time in model.seek(to: time, autoplay: false) } : nil
+            )
+            .frame(height: 38)
+        }
     }
 
     private func activePlotView(session: PracticeSession, highlightedRange: ClosedRange<Double>?, interactive: Bool) -> some View {
@@ -466,7 +478,6 @@ struct ContentView: View {
     }
 
     private func diagramSnapshotCard(session: PracticeSession) -> some View {
-        let result = session.result
         let highlightedRange = selectedWordRange(in: session)
         return VStack(alignment: .leading, spacing: 18) {
             HStack {
@@ -485,24 +496,7 @@ struct ContentView: View {
 
             Rectangle().fill(Studio.line).frame(height: 1)
 
-            HStack(spacing: 12) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Image(systemName: "waveform").font(.system(size: 13, weight: .medium))
-                    Text(String(format: "%.1fs", result.metrics.duration))
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(Studio.secondary)
-                }
-                .frame(width: 55, alignment: .trailing)
-                .foregroundStyle(Studio.secondary)
-
-                InteractiveWaveformView(
-                    points: result.waveform,
-                    duration: result.metrics.duration,
-                    color: Studio.accent,
-                    highlightedRange: highlightedRange
-                )
-                .frame(height: 38)
-            }
+            plotsWaveformRow(session: session, highlightedRange: highlightedRange, interactive: false)
         }
         .padding(22)
         .frame(width: 780)
