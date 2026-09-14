@@ -8,6 +8,12 @@ final class AudioRecorder: NSObject, AVAudioRecorderDelegate, AVAudioPlayerDeleg
     var onPlaybackFinished: (() -> Void)?
 
     var isRecording: Bool { recorder?.isRecording == true }
+    var isPlaying: Bool { player?.isPlaying == true }
+    var currentTime: TimeInterval {
+        get { player?.currentTime ?? 0 }
+        set { player?.currentTime = newValue }
+    }
+    var duration: TimeInterval { player?.duration ?? 0 }
 
     func start(url: URL) throws {
         let settings: [String: Any] = [
@@ -39,16 +45,32 @@ final class AudioRecorder: NSObject, AVAudioRecorderDelegate, AVAudioPlayerDeleg
         return recorder.peakPower(forChannel: 0)
     }
 
-    func play(url: URL) throws {
-        player = try AVAudioPlayer(contentsOf: url)
-        player?.delegate = self
-        player?.prepareToPlay()
-        guard player?.play() == true else { throw RecorderError.couldNotPlay }
+    func play(url: URL, from time: TimeInterval = 0) throws {
+        if player == nil || player?.url != url {
+            player = try AVAudioPlayer(contentsOf: url)
+            player?.delegate = self
+            player?.prepareToPlay()
+        }
+        guard let player else { throw RecorderError.couldNotPlay }
+        if time > 0 {
+            player.currentTime = min(time, player.duration > 0 ? player.duration : time)
+        }
+        guard player.play() else { throw RecorderError.couldNotPlay }
+    }
+
+    func pausePlayback() {
+        player?.pause()
     }
 
     func stopPlayback() {
         player?.stop()
         player = nil
+    }
+
+    func seek(to time: TimeInterval) {
+        guard let player else { return }
+        let target = max(0, min(time, player.duration))
+        player.currentTime = target
     }
 
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
