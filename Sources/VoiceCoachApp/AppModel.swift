@@ -78,8 +78,26 @@ final class AppModel: ObservableObject {
         return selectedSession.takes[index - 1]
     }
 
-    var report: String { selectedTake.map(ReportFormatter.makeReport) ?? "" }
-    var compactReport: String { selectedTake.map(ReportFormatter.makeCompactReport) ?? "" }
+    private var cachedReportTakeID: UUID?
+    private var cachedReport = ""
+    private var cachedCompactReportTakeID: UUID?
+    private var cachedCompactReport = ""
+
+    var report: String {
+        guard let take = selectedTake else { return "" }
+        if cachedReportTakeID == take.id { return cachedReport }
+        cachedReport = ReportFormatter.makeReport(session: take)
+        cachedReportTakeID = take.id
+        return cachedReport
+    }
+
+    var compactReport: String {
+        guard let take = selectedTake else { return "" }
+        if cachedCompactReportTakeID == take.id { return cachedCompactReport }
+        cachedCompactReport = ReportFormatter.makeCompactReport(session: take)
+        cachedCompactReportTakeID = take.id
+        return cachedCompactReport
+    }
     var storageLocation: URL { store.rootURL }
     var totalTakeCount: Int { sessions.reduce(0) { $0 + $1.takeCount } }
     var totalRecordedDuration: Double { sessions.reduce(0) { $0 + $1.totalDuration } }
