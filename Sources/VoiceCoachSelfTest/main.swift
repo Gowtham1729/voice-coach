@@ -11,6 +11,8 @@ private func check(_ condition: @autoclosure () -> Bool, _ message: String) thro
 }
 
 do {
+    // print("Args: \(CommandLine.arguments)")
+
     let sampleRate = 16_000.0
     let frequency = 120.0
     let duration = 1.5
@@ -88,8 +90,8 @@ do {
     let expectedQuality: Set<String> = ["noise_floor_dbfs", "snr_db", "clipping_pct"]
     let expectedPitch: Set<String> = ["median_hz", "p05_hz", "p95_hz", "range_hz", "range_semitones", "std_hz", "std_semitones", "frame_instability_pct", "contour_semitones"]
     let expectedLoudness: Set<String> = ["active_mean_dbfs", "p10_p90_range_db", "std_db", "start_dbfs", "end_dbfs", "end_minus_start_db", "contour_relative_db"]
-    let expectedPauses: Set<String> = ["pause_ratio", "pause_count", "mean_pause_ms", "median_pause_ms", "longest_pause_ms"]
-    let expectedVoiceQuality: Set<String> = ["hnr_db", "cpp_db"]
+    let expectedPauses: Set<String> = ["non_speech_ratio", "internal_pause_count", "internal_pause_total_ms", "mean_internal_pause_ms", "median_internal_pause_ms", "longest_internal_pause_ms", "leading_silence_ms", "trailing_silence_ms"]
+    let expectedVoiceQuality: Set<String> = ["hnr_db"]
     try check(Set((json?["recording"] as? [String: Any])?.keys.map { $0 } ?? []) == expectedRecording, "Recording keys do not match the contract")
     try check(Set((json?["recording_quality"] as? [String: Any])?.keys.map { $0 } ?? []) == expectedQuality, "Recording-quality keys do not match the contract")
     let pitchSection = json?["pitch"] as? [String: Any]
@@ -103,12 +105,12 @@ do {
     try check(exportedWords?.count == 2, "Timestamped words were not exported")
     let expectedWordKeys: Set<String> = ["word", "start_s", "end_s", "duration_ms", "pitch", "loudness"]
     try check(Set(exportedWords?.first?.keys.map { $0 } ?? []) == expectedWordKeys, "Word report keys do not match the contract")
-    let expectedWordPitchKeys: Set<String> = ["median_hz", "relative_median_semitones", "range_semitones", "start_to_end_semitones"]
-    let expectedWordLoudnessKeys: Set<String> = ["relative_mean_db", "start_to_end_db"]
+    let expectedWordPitchKeys: Set<String> = ["median_hz", "relative_median_semitones", "range_semitones", "start_to_end_semitones", "valid_pitch_frames", "pitch_coverage"]
+    let expectedWordLoudnessKeys: Set<String> = ["relative_mean_db", "start_to_end_db", "active_frame_coverage"]
     try check(Set((exportedWords?.first?["pitch"] as? [String: Any])?.keys.map { $0 } ?? []) == expectedWordPitchKeys, "Word pitch keys do not match the contract")
     try check(Set((exportedWords?.first?["loudness"] as? [String: Any])?.keys.map { $0 } ?? []) == expectedWordLoudnessKeys, "Word loudness keys do not match the contract")
-    try check((pitchSection?["contour_semitones"] as? [Double])?.count == 12, "Pitch contour does not contain 12 values")
-    try check((loudnessSection?["contour_relative_db"] as? [Double])?.count == 12, "Loudness contour does not contain 12 values")
+    try check((pitchSection?["contour_semitones"] as? [Double])?.count == 24, "Pitch contour does not contain 24 values")
+    try check((loudnessSection?["contour_relative_db"] as? [Double])?.count == 24, "Loudness contour does not contain 24 values")
     let lowercaseReport = report.lowercased()
     try check(!lowercaseReport.contains("baseline"), "Structured report contains baseline data")
     try check(!lowercaseReport.contains("throat"), "Structured report contains subjective throat-effort data")
@@ -116,6 +118,8 @@ do {
     try check(!lowercaseReport.contains("waveform"), "Structured report contains UI waveform data")
     try check(!lowercaseReport.contains("spectrogram"), "Structured report contains UI spectrogram data")
     try check(!lowercaseReport.contains("acousticframes"), "Structured report contains dense acoustic frames")
+    try check(!lowercaseReport.contains("cpp_db"), "Structured report contains cpp_db when it should be excluded")
+    try check(!compactReport.contains("cpp_db"), "Compact report contains cpp_db when it should be excluded")
 
     let parserFixture = Data(#"{"result":{"text":"I really tried","words":[{"word":"I","start":0.1,"end":0.22},{"word":"really","start":0.55,"end":0.94,"confidence":0.97},{"word":"tried","start":1.0,"duration":0.3}]}}"#.utf8)
     let parsed = try NemoSpeechTranscriber.parseOutput(parserFixture)
@@ -137,8 +141,19 @@ do {
     }
     let separated = tone + [Float](repeating: 0, count: Int(sampleRate * 0.4)) + tone
     let pauseMetrics = AudioAnalyzer().analyze(samples: separated, sampleRate: sampleRate).metrics
-    try check(pauseMetrics.pauseCount == 1, "Internal pause counting failed")
-    try check(pauseMetrics.longestPauseMs > 250, "Pause duration was unexpectedly short")
+    try check(pauseMetrics.internalPauseCount == 1, "Internal pause counting failed")
+    try check(pauseMetrics.longestInternalPauseMs > 250, "Pause duration was unexpectedly short")
+    try check(pauseMetrics.internalPauseTotalMs > 250, "Total internal pause duration was unexpectedly short")
+    try check(pauseMetrics.nonSpeechRatio > 0.15, "Non-speech ratio was unexpectedly low")
+
+    // Leading and trailing silence test
+    let leadingSilence = [Float](repeating: 0, count: Int(sampleRate * 0.3))
+    let trailingSilence = [Float](repeating: 0, count: Int(sampleRate * 0.4))
+    let paddedTone = leadingSilence + tone + trailingSilence
+    let silenceMetrics = AudioAnalyzer().analyze(samples: paddedTone, sampleRate: sampleRate).metrics
+    try check(silenceMetrics.leadingSilenceMs >= 250, "Leading silence was not detected")
+    try check(silenceMetrics.trailingSilenceMs >= 350, "Trailing silence was not detected")
+    try check(silenceMetrics.internalPauseCount == 0, "False internal pause detected in leading/trailing silence")
 
     let silence = AudioAnalyzer().analyze(samples: [Float](repeating: 0, count: 16_000), sampleRate: 16_000)
     try check(silence.metrics.medianPitchHz == nil, "Silence incorrectly produced a pitch")
@@ -151,6 +166,10 @@ do {
     )
     try check(silentWords[0].pitch.medianHz == nil, "Unvoiced word invented a median pitch")
     try check(silentWords[0].pitch.relativeMedianSemitones == nil, "Unvoiced word invented a relative pitch")
+    try check(silentWords[0].pitch.validPitchFrames == 0, "Silent word reported valid pitch frames")
+    try check(silentWords[0].pitch.pitchCoverage == 0, "Silent word reported pitch coverage")
+    try check(silentWords[0].loudness.activeFrameCoverage == 0, "Silent word reported active frame coverage")
+    try check(silentWords[0].loudness.relativeMeanDB == nil, "Silent word invented loudness dB")
     let silentSession = PracticeSession(
         audioURL: URL(fileURLWithPath: "/tmp/voice-coach-silence.wav"),
         result: silence,
@@ -161,6 +180,187 @@ do {
     let silentJSON = try JSONSerialization.jsonObject(with: silentReportData) as? [String: Any]
     let silentPitch = ((silentJSON?["words"] as? [[String: Any]])?.first?["pitch"] as? [String: Any])
     try check(silentPitch?["median_hz"] is NSNull, "Missing word pitch was not exported as null")
+    try check(silentPitch?["valid_pitch_frames"] as? Int == 0, "Missing pitch frame count was not 0")
+    try check((silentPitch?["pitch_coverage"] as? Double ?? 1) == 0, "Missing pitch coverage was not 0")
+
+    // Robustness test: Low pitch coverage returns null metrics without inventing values
+    let lowCoverageTimes = (0..<10).map { 0.10 + Double($0) * 0.05 }
+    let lowCoverageResult = AnalysisResult(
+        metrics: steadyResult.metrics,
+        loudnessContour: steadyResult.loudnessContour,
+        pitchContour: steadyResult.pitchContour,
+        waveform: steadyResult.waveform,
+        spectrogram: steadyResult.spectrogram,
+        acousticFrames: AcousticFrameData(
+            loudness: lowCoverageTimes.map { TimePoint(time: $0, value: steadyResult.metrics.meanLoudnessDBFS) },
+            pitch: [TimePoint(time: 0.15, value: 200.0)] // Only 1 valid frame out of 10 -> coverage 0.10 (< 0.20)
+        )
+    )
+    let lowCoverageWord = WordAcousticAnalyzer().analyze(
+        transcription: TranscriptionResult(
+            text: "whisper",
+            words: [TranscriptWord(word: "whisper", start: 0.08, end: 0.60)]
+        ),
+        result: lowCoverageResult
+    )[0]
+    try check(lowCoverageWord.pitch.validPitchFrames == 1, "Valid pitch frame count was wrong")
+    try check(abs(lowCoverageWord.pitch.pitchCoverage - 0.10) < 0.02, "Pitch coverage calculation was inaccurate")
+    try check(lowCoverageWord.pitch.medianHz == nil, "Low coverage should return null for median Hz")
+    try check(lowCoverageWord.pitch.rangeSemitones == nil, "Low coverage should return null for range semitones")
+    try check(lowCoverageWord.pitch.startToEndSemitones == nil, "Low coverage should return null for start to end semitones")
+
+    // Robustness test: P10-P90 pitch range ignores an octave jump spike
+    let jumpTimes = (0..<10).map { 0.10 + Double($0) * 0.05 }
+    var jumpPitches = [Double](repeating: 200.0, count: 9)
+    jumpPitches.append(400.0) // Single octave spike at the end
+    let jumpResult = AnalysisResult(
+        metrics: steadyResult.metrics,
+        loudnessContour: steadyResult.loudnessContour,
+        pitchContour: steadyResult.pitchContour,
+        waveform: steadyResult.waveform,
+        spectrogram: steadyResult.spectrogram,
+        acousticFrames: AcousticFrameData(
+            loudness: jumpTimes.map { TimePoint(time: $0, value: steadyResult.metrics.meanLoudnessDBFS) },
+            pitch: zip(jumpTimes, jumpPitches).map { TimePoint(time: $0, value: $1) }
+        )
+    )
+    let jumpWord = WordAcousticAnalyzer().analyze(
+        transcription: TranscriptionResult(
+            text: "steady_jump",
+            words: [TranscriptWord(word: "steady_jump", start: 0.08, end: 0.60)]
+        ),
+        result: jumpResult
+    )[0]
+    try check((jumpWord.pitch.rangeSemitones ?? 99) < 2.0, "P10-P90 pitch range did not reject the octave jump spike")
+
+    // Robustness test: Word loudness uses active-speech frames, ignoring surrounding silence
+    let silenceWithWordTimes = (0..<12).map { 0.10 + Double($0) * 0.05 }
+    // 8 frames of silence at -60 dBFS, 4 frames of active speech at -20 dBFS
+    let loudnessValues = [Double](repeating: -60.0, count: 8) + [Double](repeating: -20.0, count: 4)
+    let wordInSilenceResult = AnalysisResult(
+        metrics: steadyResult.metrics,
+        loudnessContour: steadyResult.loudnessContour,
+        pitchContour: steadyResult.pitchContour,
+        waveform: steadyResult.waveform,
+        spectrogram: steadyResult.spectrogram,
+        acousticFrames: AcousticFrameData(
+            loudness: zip(silenceWithWordTimes, loudnessValues).map { TimePoint(time: $0, value: $1) },
+            pitch: []
+        )
+    )
+    let wordInSilence = WordAcousticAnalyzer().analyze(
+        transcription: TranscriptionResult(
+            text: "delayed",
+            words: [TranscriptWord(word: "delayed", start: 0.08, end: 0.70)]
+        ),
+        result: wordInSilenceResult
+    )[0]
+    try check(abs(wordInSilence.loudness.activeFrameCoverage - (4.0 / 12.0)) < 0.02, "Active frame coverage was inaccurate")
+    let expectedMeanDB = -20.0 - steadyResult.metrics.meanLoudnessDBFS
+    try check(abs((wordInSilence.loudness.relativeMeanDB ?? 0) - expectedMeanDB) < 0.1, "Word loudness was dragged down by silence frames instead of using active-only frames")
+
+    // Pitch accuracy at 220 Hz
+    let tone220 = (0..<Int(sampleRate * 0.5)).map { index in
+        Float(0.35 * sin(2 * .pi * 220.0 * Double(index) / sampleRate))
+    }
+    let tone220Result = AudioAnalyzer().analyze(samples: tone220, sampleRate: sampleRate)
+    try check(tone220Result.metrics.medianPitchHz != nil, "220 Hz pitch was not detected")
+    try check(abs((tone220Result.metrics.medianPitchHz ?? 0) - 220.0) < 3.0, "220 Hz pitch estimate was inaccurate")
+
+    // Continuity-aware octave-error correction and contour preservation test:
+    // Verify that a pitch trajectory containing an artificial octave jump is corrected
+    // without flattening the surrounding contour (e.g. 160, 165, 170, 338, 172, 168 Hz -> ~169 Hz).
+    let octaveInput = [160.0, 165.0, 170.0, 338.0, 172.0, 168.0]
+    let octaveTimes = (0..<6).map { Double($0) * 0.010 }
+    let rawOctavePoints: [AudioAnalyzer.PitchPoint?] = zip(octaveTimes, octaveInput).map {
+        AudioAnalyzer.PitchPoint(time: $0, frequency: $1, hnr: 15.0)
+    }
+    let correctedTrack = AudioAnalyzer().correctOctaveErrorsAndOutliers(track: rawOctavePoints)
+    let correctedFrequencies = correctedTrack.compactMap { $0?.frequency }
+    try check(correctedFrequencies.count == 6, "Octave correction dropped valid frames")
+    try check(abs(correctedFrequencies[0] - 160.0) < 0.1, "Contour frame 0 was flattened/altered")
+    try check(abs(correctedFrequencies[1] - 165.0) < 0.1, "Contour frame 1 was flattened/altered")
+    try check(abs(correctedFrequencies[2] - 170.0) < 0.1, "Contour frame 2 was flattened/altered")
+    try check(abs(correctedFrequencies[3] - 169.0) < 0.5, "Octave jump at 338 Hz was not corrected to ~169 Hz (got \(correctedFrequencies[3]))")
+    try check(abs(correctedFrequencies[4] - 172.0) < 0.1, "Contour frame 4 was flattened/altered")
+    try check(abs(correctedFrequencies[5] - 168.0) < 0.1, "Contour frame 5 was flattened/altered")
+
+    // Multi-frame octave halving run test: verify a 3-frame octave dip is corrected
+    let halvingInput = [160.0, 162.0, 75.8, 75.5, 75.6, 164.0, 166.0]
+    let halvingTimes = (0..<7).map { Double($0) * 0.010 }
+    let rawHalvingPoints: [AudioAnalyzer.PitchPoint?] = zip(halvingTimes, halvingInput).map {
+        AudioAnalyzer.PitchPoint(time: $0, frequency: $1, hnr: 15.0)
+    }
+    let correctedHalvingTrack = AudioAnalyzer().correctOctaveErrorsAndOutliers(track: rawHalvingPoints)
+    let correctedHalvingFreqs = correctedHalvingTrack.compactMap { $0?.frequency }
+    try check(correctedHalvingFreqs.count == 7, "Multi-frame halving correction dropped frames")
+    try check(abs(correctedHalvingFreqs[2] - 151.6) < 0.5, "Halving frame 2 was not doubled to ~151.6 Hz")
+    try check(abs(correctedHalvingFreqs[3] - 151.0) < 0.5, "Halving frame 3 was not doubled to ~151.0 Hz")
+    try check(abs(correctedHalvingFreqs[4] - 151.2) < 0.5, "Halving frame 4 was not doubled to ~151.2 Hz")
+
+    // Outlier rejection test: verify an isolated non-harmonic outlier is rejected
+    let outlierInput = [160.0, 165.0, 170.0, 260.0, 172.0, 168.0]
+    let rawOutlierPoints: [AudioAnalyzer.PitchPoint?] = zip(octaveTimes, outlierInput).map {
+        AudioAnalyzer.PitchPoint(time: $0, frequency: $1, hnr: 15.0)
+    }
+    let correctedOutlierTrack = AudioAnalyzer().correctOctaveErrorsAndOutliers(track: rawOutlierPoints)
+    try check(correctedOutlierTrack[3] == nil, "Isolated non-harmonic outlier was not rejected")
+    try check(correctedOutlierTrack[0]?.frequency == 160.0, "Surrounding context frame 0 was altered")
+    try check(correctedOutlierTrack[5]?.frequency == 168.0, "Surrounding context frame 5 was altered")
+
+    // Expressive intonation glide preservation test: verify a genuine pitch rise is completely preserved
+    let glideInput = [150.0, 155.0, 162.0, 170.0, 180.0, 192.0]
+    let rawGlidePoints: [AudioAnalyzer.PitchPoint?] = zip(octaveTimes, glideInput).map {
+        AudioAnalyzer.PitchPoint(time: $0, frequency: $1, hnr: 15.0)
+    }
+    let correctedGlideTrack = AudioAnalyzer().correctOctaveErrorsAndOutliers(track: rawGlidePoints)
+    let correctedGlideFrequencies = correctedGlideTrack.compactMap { $0?.frequency }
+    try check(correctedGlideFrequencies == glideInput, "Genuine intonation glide was altered or smoothed")
+
+    if let timelineIndex = CommandLine.arguments.firstIndex(of: "--timeline"),
+       CommandLine.arguments.indices.contains(timelineIndex + 1) {
+        let audioURL = URL(fileURLWithPath: CommandLine.arguments[timelineIndex + 1])
+        let liveResult = try AudioAnalyzer().analyze(url: audioURL)
+        let liveTranscription = try NemoSpeechTranscriber().transcribe(url: audioURL)
+        let liveWords = WordAcousticAnalyzer().analyze(
+            transcription: liveTranscription,
+            result: liveResult
+        )
+        let liveSession = PracticeSession(
+            audioURL: audioURL,
+            result: liveResult,
+            transcription: liveTranscription,
+            words: liveWords
+        )
+        print(ReportFormatter.makeTimelineDebug(session: liveSession))
+    }
+
+    if let pitchIndex = CommandLine.arguments.firstIndex(of: "--inspect-pitch"),
+       CommandLine.arguments.indices.contains(pitchIndex + 1) {
+        let audioURL = URL(fileURLWithPath: CommandLine.arguments[pitchIndex + 1])
+        let liveResult = try AudioAnalyzer().analyze(url: audioURL)
+        print("Median Hz: \(liveResult.metrics.medianPitchHz ?? 0)")
+        print("Pitch Range Semitones: \(liveResult.metrics.pitchRangeSemitones ?? 0)")
+        print("Pitch points count: \(liveResult.acousticFrames.pitch.count)")
+        let pts = liveResult.acousticFrames.pitch
+        for i in 1..<pts.count {
+            let jump = 12 * log2(pts[i].value / pts[i - 1].value)
+            let dt = pts[i].time - pts[i - 1].time
+            if abs(jump) >= 5.0 && dt < 0.05 {
+                print(String(format: "Jump at %.3fs -> %.3fs (dt=%.3f): %.1f Hz -> %.1f Hz (%.2f st)",
+                             pts[i - 1].time, pts[i].time, dt, pts[i - 1].value, pts[i].value, jump))
+            }
+        }
+        if let sIdx = CommandLine.arguments.firstIndex(of: "--start"),
+           let eIdx = CommandLine.arguments.firstIndex(of: "--end"),
+           let sVal = Double(CommandLine.arguments[sIdx + 1]),
+           let eVal = Double(CommandLine.arguments[eIdx + 1]) {
+            print("Frames in range [\(sVal), \(eVal)]:")
+            for p in pts where p.time >= sVal && p.time <= eVal {
+                print(String(format: "  t=%.3f: %.1f Hz", p.time, p.value))
+            }
+        }
+    }
 
     if let argumentIndex = CommandLine.arguments.firstIndex(of: "--transcribe"),
        CommandLine.arguments.indices.contains(argumentIndex + 1) {
@@ -179,7 +379,14 @@ do {
             transcription: liveTranscription,
             words: liveWords
         )
+        if CommandLine.arguments.contains("--timeline") {
+            print(ReportFormatter.makeTimelineDebug(session: liveSession))
+        }
         print(ReportFormatter.makeReport(session: liveSession))
+    }
+
+    if CommandLine.arguments.contains("--dump-sample-report") {
+        print(report)
     }
 
     print("VoiceCoach analysis self-test passed")
