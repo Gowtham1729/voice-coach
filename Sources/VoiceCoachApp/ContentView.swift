@@ -7,10 +7,16 @@ struct ContentView: View {
     @State private var selectedPlot: AnalysisPlot = .pitch
     @State private var showReport = false
     @State private var showPractice = true
+    @State private var selectedWordIndex: Int?
 
-    init(initialPlot: AnalysisPlot = .pitch, reportExpanded: Bool = false) {
+    init(
+        initialPlot: AnalysisPlot = .pitch,
+        reportExpanded: Bool = false,
+        initialSelectedWordIndex: Int? = nil
+    ) {
         _selectedPlot = State(initialValue: initialPlot)
         _showReport = State(initialValue: reportExpanded)
+        _selectedWordIndex = State(initialValue: initialSelectedWordIndex)
     }
 
     var body: some View {
@@ -43,6 +49,7 @@ struct ContentView: View {
         .foregroundStyle(Studio.ink)
         .preferredColorScheme(.dark)
         .tint(Studio.accent)
+        .onChange(of: model.session?.id) { _, _ in selectedWordIndex = nil }
         .alert("Voice Coach", isPresented: errorBinding) {
             Button("OK", role: .cancel) { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
@@ -135,7 +142,7 @@ struct ContentView: View {
 
     private var stageDescription: String {
         if model.isRecording { return "Speak naturally. Leave a little space between thoughts.\nFinish when you’re ready." }
-        if model.isAnalyzing { return "Measuring pitch, loudness, pauses and voice quality.\nYour results will appear here." }
+        if model.isAnalyzing { return "Transcribing and measuring pitch, loudness, pauses and voice quality.\nEverything stays on this Mac." }
         if model.session != nil { return "Listen back. Notice one thing. Try it a little differently." }
         return "Take 10–30 seconds to speak, listen and discover.\nSmall adjustments start with hearing yourself." 
     }
@@ -201,10 +208,77 @@ struct ContentView: View {
                     .buttonStyle(StudioButtonStyle()).accessibilityLabel("Export recording and report")
                     .help("Export recording.wav and voice-report.json")
             }
+            transcriptPanel(session)
             metricGrid(session.result.metrics)
-            plots(session.result)
+            plots(session)
             reportPanel
         }
+    }
+
+    private func transcriptPanel(_ session: PracticeSession) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                SectionEyebrow(text: "Transcript")
+                Spacer()
+                if let transcription = session.transcription {
+                    Text("\(transcription.words.count) words · local Parakeet")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(Studio.secondary)
+                }
+            }
+
+            if let transcription = session.transcription {
+                Text(transcription.text.isEmpty ? "No speech was recognized." : transcription.text)
+                    .font(.system(size: 19, design: .serif))
+                    .lineSpacing(5)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if !transcription.words.isEmpty {
+                    WordFlowLayout(spacing: 7) {
+                        ForEach(Array(transcription.words.enumerated()), id: \.offset) { index, word in
+                            Button {
+                                selectedWordIndex = selectedWordIndex == index ? nil : index
+                                model.seek(to: word.start)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(word.word).font(.system(size: 12, weight: .medium))
+                                    Text("\(number(word.start, 2))–\(number(word.end, 2))s")
+                                        .font(.system(size: 8, design: .monospaced))
+                                        .foregroundStyle(Studio.secondary)
+                                }
+                                .padding(.horizontal, 10).padding(.vertical, 7)
+                                .background(
+                                    selectedWordIndex == index ? Studio.accent.opacity(0.18) : Studio.surface,
+                                    in: RoundedRectangle(cornerRadius: 9)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 9)
+                                        .stroke(selectedWordIndex == index ? Studio.accent.opacity(0.65) : Studio.line)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(word.word), \(number(word.start, 2)) to \(number(word.end, 2)) seconds")
+                            .accessibilityHint("Highlight this word on the acoustic graphs")
+                        }
+                    }
+                    Text("Select a word to highlight its time region on the graphs.")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Studio.secondary)
+                }
+            } else {
+                Label(
+                    model.transcriptionNotice ?? "Transcription was not available for this recording.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(.system(size: 11))
+                .foregroundStyle(Studio.secondary)
+                .textSelection(.enabled)
+            }
+        }
+        .padding(22)
+        .background(Studio.surface.opacity(0.7), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Studio.line))
     }
 
     private func metricGrid(_ metrics: VoiceMetrics) -> some View {
@@ -221,8 +295,10 @@ struct ContentView: View {
         .padding(.vertical, 8)
     }
 
-    private func plots(_ result: AnalysisResult) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
+    private func plots(_ session: PracticeSession) -> some View {
+        let result = session.result
+        let highlightedRange = selectedWordRange(in: session)
+        return VStack(alignment: .leading, spacing: 18) {
             HStack {
                 SectionEyebrow(text: "Listen closer")
                 Spacer()
@@ -253,6 +329,7 @@ struct ContentView: View {
                         unit: "Hz",
                         playbackTime: model.playbackTime,
                         isPlaying: model.isPlaying,
+                        highlightedRange: highlightedRange,
                         onSeek: { time in model.seek(to: time, autoplay: true) },
                         onScrub: { time in model.seek(to: time, autoplay: false) }
                     )
@@ -265,6 +342,7 @@ struct ContentView: View {
                         unit: "dBFS",
                         playbackTime: model.playbackTime,
                         isPlaying: model.isPlaying,
+                        highlightedRange: highlightedRange,
                         onSeek: { time in model.seek(to: time, autoplay: true) },
                         onScrub: { time in model.seek(to: time, autoplay: false) }
                     )
@@ -285,6 +363,7 @@ struct ContentView: View {
                             ZStack {
                                 SpectrogramView(data: result.spectrogram)
                                     .clipShape(RoundedRectangle(cornerRadius: 4))
+                                TimeRangeHighlight(range: highlightedRange, duration: result.metrics.duration)
                                 InteractiveGraphOverlay(
                                     duration: result.metrics.duration,
                                     playbackTime: model.playbackTime,
@@ -332,6 +411,7 @@ struct ContentView: View {
                     playbackTime: model.playbackTime,
                     isPlaying: model.isPlaying,
                     color: Studio.accent,
+                    highlightedRange: highlightedRange,
                     onSeek: { time in model.seek(to: time, autoplay: true) },
                     onScrub: { time in model.seek(to: time, autoplay: false) }
                 )
@@ -355,8 +435,16 @@ struct ContentView: View {
                 }.buttonStyle(.plain).accessibilityValue(showReport ? "Expanded" : "Collapsed")
                 Text("Ready for your AI coach").font(.system(size: 11)).foregroundStyle(Studio.secondary)
                 Spacer()
-                Button(action: model.copyReport) { Label("Copy JSON", systemImage: "doc.on.doc") }
+                HStack(spacing: 7) {
+                    Button(action: model.copyCompactReport) {
+                        Label("Copy compact", systemImage: "doc.on.doc")
+                    }
                     .buttonStyle(StudioButtonStyle())
+                    Button(action: model.copyReport) {
+                        Label("Copy word-level", systemImage: "list.bullet.rectangle")
+                    }
+                    .buttonStyle(StudioButtonStyle())
+                }
             }
             if showReport {
                 StudioScroll {
@@ -364,7 +452,7 @@ struct ContentView: View {
                         .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(18)
                 }.frame(height: 280)
                     .background(Studio.surface, in: RoundedRectangle(cornerRadius: 12))
-                    .accessibilityLabel("Six-section acoustic analysis report")
+                    .accessibilityLabel("Acoustic analysis, transcription, and word-level report")
             }
         }
     }
@@ -406,6 +494,14 @@ struct ContentView: View {
         let high = ceil(((values.max() ?? 250) + 25) / 25) * 25
         return max(0, low)...max(high, low + 50)
     }
+    private func selectedWordRange(in session: PracticeSession) -> ClosedRange<Double>? {
+        guard let selectedWordIndex,
+              let transcription = session.transcription,
+              transcription.words.indices.contains(selectedWordIndex)
+        else { return nil }
+        let word = transcription.words[selectedWordIndex]
+        return word.start...word.end
+    }
 }
 
 enum AnalysisPlot: String, CaseIterable, Identifiable {
@@ -430,5 +526,63 @@ private struct MetricReadout: View {
             Text(detail).font(.system(size: 10)).foregroundStyle(Studio.secondary).fixedSize(horizontal: false, vertical: true)
         }.frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
+    }
+}
+
+private struct WordFlowLayout: Layout {
+    let spacing: CGFloat
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        layout(proposal: proposal, subviews: subviews).size
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        let result = layout(
+            proposal: ProposedViewSize(width: bounds.width, height: proposal.height),
+            subviews: subviews
+        )
+        for (index, point) in result.points.enumerated() {
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX + point.x, y: bounds.minY + point.y),
+                anchor: .topLeading,
+                proposal: .unspecified
+            )
+        }
+    }
+
+    private func layout(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, points: [CGPoint]) {
+        let maximumWidth = proposal.width ?? .greatestFiniteMagnitude
+        var points: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var lineHeight: CGFloat = 0
+        var usedWidth: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maximumWidth {
+                x = 0
+                y += lineHeight + spacing
+                lineHeight = 0
+            }
+            points.append(CGPoint(x: x, y: y))
+            x += size.width + spacing
+            lineHeight = max(lineHeight, size.height)
+            usedWidth = max(usedWidth, x - spacing)
+        }
+
+        return (
+            CGSize(width: min(maximumWidth, usedWidth), height: y + lineHeight),
+            points
+        )
     }
 }

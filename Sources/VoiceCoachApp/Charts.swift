@@ -212,12 +212,14 @@ struct InteractiveWaveformView: View {
     var playbackTime: Double = 0
     var isPlaying: Bool = false
     var color: Color = Studio.accent
+    var highlightedRange: ClosedRange<Double>? = nil
     var onSeek: ((Double) -> Void)? = nil
     var onScrub: ((Double) -> Void)? = nil
 
     var body: some View {
         ZStack {
             WaveformView(points: points, color: color)
+            TimeRangeHighlight(range: highlightedRange, duration: duration)
             if let onSeek {
                 InteractiveGraphOverlay(
                     duration: duration,
@@ -315,6 +317,7 @@ struct LabeledLineChart: View {
     let unit: String
     var playbackTime: Double = 0
     var isPlaying: Bool = false
+    var highlightedRange: ClosedRange<Double>? = nil
     var onSeek: ((Double) -> Void)? = nil
     var onScrub: ((Double) -> Void)? = nil
 
@@ -336,6 +339,7 @@ struct LabeledLineChart: View {
                         Text("Not enough voiced audio for a contour")
                             .font(.system(size: 12)).foregroundStyle(Studio.secondary)
                     }
+                    TimeRangeHighlight(range: highlightedRange, duration: duration)
                     if let onSeek {
                         InteractiveGraphOverlay(
                             duration: duration,
@@ -365,5 +369,29 @@ struct LabeledLineChart: View {
     private var gridline: some View { Rectangle().fill(Studio.line).frame(height: 1) }
     private func label(_ value: Double) -> String {
         "\(value.formatted(.number.precision(.fractionLength(0...1)))) \(unit)"
+    }
+}
+
+struct TimeRangeHighlight: View {
+    let range: ClosedRange<Double>?
+    let duration: Double
+
+    var body: some View {
+        GeometryReader { geometry in
+            if let range, duration > 0 {
+                let start = max(0, min(range.lowerBound, duration))
+                let end = max(start, min(range.upperBound, duration))
+                let width = CGFloat((end - start) / duration) * geometry.size.width
+                let x = CGFloat(start / duration) * geometry.size.width
+                Rectangle()
+                    .fill(Studio.accent.opacity(0.13))
+                    .overlay(alignment: .leading) { Rectangle().fill(Studio.accent.opacity(0.8)).frame(width: 1) }
+                    .overlay(alignment: .trailing) { Rectangle().fill(Studio.accent.opacity(0.8)).frame(width: 1) }
+                    .frame(width: max(width, 2))
+                    .offset(x: x)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }

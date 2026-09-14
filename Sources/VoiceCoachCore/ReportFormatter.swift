@@ -1,9 +1,27 @@
 import Foundation
 
 public enum ReportFormatter {
+    /// The original compact V1 report: recording-level acoustic data only.
+    /// This intentionally excludes transcription and all word-level payloads.
+    public static func makeCompactReport(session: PracticeSession) -> String {
+        let fullReport = makeReport(session: session)
+        guard let data = fullReport.data(using: .utf8),
+              var report = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        else { return "{}" }
+        report.removeValue(forKey: "transcription")
+        report.removeValue(forKey: "words")
+        return encode(report)
+    }
+
     public static func makeReport(session: PracticeSession) -> String {
         let result = session.result
         let value = result.metrics
+        let transcriptionText: Any
+        if let text = session.transcription?.text {
+            transcriptionText = text
+        } else {
+            transcriptionText = NSNull()
+        }
         let pitchContour = normalizedContour(
             result.pitchContour,
             count: 12,
@@ -61,9 +79,34 @@ public enum ReportFormatter {
             "voice_quality": [
                 "hnr_db": json(value.hnrDB, places: 2),
                 "cpp_db": json(value.cppDB, places: 2)
-            ]
+            ],
+            "transcription": [
+                "text": transcriptionText
+            ],
+            "words": session.words.map { word in
+                [
+                    "word": word.word,
+                    "start_s": rounded(word.start, 2),
+                    "end_s": rounded(word.end, 2),
+                    "duration_ms": rounded(max(0, word.end - word.start) * 1_000, 0),
+                    "pitch": [
+                        "median_hz": json(word.pitch.medianHz, places: 1),
+                        "relative_median_semitones": json(word.pitch.relativeMedianSemitones, places: 2),
+                        "range_semitones": json(word.pitch.rangeSemitones, places: 2),
+                        "start_to_end_semitones": json(word.pitch.startToEndSemitones, places: 2)
+                    ],
+                    "loudness": [
+                        "relative_mean_db": json(word.loudness.relativeMeanDB, places: 2),
+                        "start_to_end_db": json(word.loudness.startToEndDB, places: 2)
+                    ]
+                ] as [String: Any]
+            }
         ]
 
+        return encode(report)
+    }
+
+    private static func encode(_ report: [String: Any]) -> String {
         guard JSONSerialization.isValidJSONObject(report),
               let data = try? JSONSerialization.data(
                 withJSONObject: report,

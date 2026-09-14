@@ -12,8 +12,19 @@ func renderStudioPreviewsIfRequested() {
     do {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let model = AppModel()
-        func render(_ name: String, width: CGFloat = 1120, height: CGFloat = 840, plot: AnalysisPlot = .pitch, expanded: Bool = false) throws {
-            let view = ContentView(initialPlot: plot, reportExpanded: expanded).environmentObject(model)
+        func render(
+            _ name: String,
+            width: CGFloat = 1120,
+            height: CGFloat = 840,
+            plot: AnalysisPlot = .pitch,
+            expanded: Bool = false,
+            selectedWord: Int? = nil
+        ) throws {
+            let view = ContentView(
+                initialPlot: plot,
+                reportExpanded: expanded,
+                initialSelectedWordIndex: selectedWord
+            ).environmentObject(model)
                 .environment(\.studioSnapshot, true)
                 .frame(width: width, height: height)
             let renderer = ImageRenderer(content: view)
@@ -43,11 +54,39 @@ func renderStudioPreviewsIfRequested() {
             return Float(amplitude * (sin(phase) + 0.3 * sin(2 * phase)))
         }
         let result = AudioAnalyzer().analyze(samples: samples, sampleRate: rate)
-        model.session = PracticeSession(audioURL: directory.appendingPathComponent("synthetic.wav"), result: result)
+        let previewTranscription = TranscriptionResult(
+            text: "I want to speak with a little more intention and finish each thought clearly.",
+            words: [
+                TranscriptWord(word: "I", start: 0.20, end: 0.42),
+                TranscriptWord(word: "want", start: 0.44, end: 0.82),
+                TranscriptWord(word: "to", start: 0.84, end: 1.02),
+                TranscriptWord(word: "speak", start: 1.04, end: 1.52),
+                TranscriptWord(word: "with", start: 1.56, end: 1.86),
+                TranscriptWord(word: "a", start: 1.88, end: 2.02),
+                TranscriptWord(word: "little", start: 3.02, end: 3.42),
+                TranscriptWord(word: "more", start: 3.44, end: 3.82),
+                TranscriptWord(word: "intention", start: 3.84, end: 4.60),
+                TranscriptWord(word: "and", start: 4.64, end: 4.88),
+                TranscriptWord(word: "finish", start: 6.04, end: 6.52),
+                TranscriptWord(word: "each", start: 6.55, end: 6.88),
+                TranscriptWord(word: "thought", start: 6.92, end: 7.42),
+                TranscriptWord(word: "clearly.", start: 7.48, end: 8.10)
+            ]
+        )
+        let previewWords = WordAcousticAnalyzer().analyze(
+            transcription: previewTranscription,
+            result: result
+        )
+        model.session = PracticeSession(
+            audioURL: directory.appendingPathComponent("synthetic.wav"),
+            result: result,
+            transcription: previewTranscription,
+            words: previewWords
+        )
         try render("studio-results", height: 1160)
         try render("studio-results-compact", width: 800, height: 1160)
         try render("studio-wide", width: 1600, height: 1160)
-        try render("studio-loudness", height: 1160, plot: .loudness)
+        try render("studio-loudness", height: 1160, plot: .loudness, selectedWord: 2)
         try render("studio-spectrum", height: 1160, plot: .spectrum)
         try render("studio-report", height: 1480, expanded: true)
         model.isPlaying = true

@@ -32,6 +32,93 @@ public struct SpectrogramData: Codable, Sendable, Equatable {
     }
 }
 
+/// Full-resolution analysis frames used for timestamp-aligned calculations.
+/// These stay out of the compact report and are separate from the downsampled UI contours.
+public struct AcousticFrameData: Codable, Sendable, Equatable {
+    public let loudness: [TimePoint]
+    public let pitch: [TimePoint]
+
+    public init(loudness: [TimePoint], pitch: [TimePoint]) {
+        self.loudness = loudness
+        self.pitch = pitch
+    }
+}
+
+public struct TranscriptWord: Codable, Sendable, Equatable {
+    public let word: String
+    public let start: Double
+    public let end: Double
+    public let confidence: Double?
+
+    public init(word: String, start: Double, end: Double, confidence: Double? = nil) {
+        self.word = word
+        self.start = start
+        self.end = end
+        self.confidence = confidence
+    }
+}
+
+public struct TranscriptionResult: Codable, Sendable, Equatable {
+    public let text: String
+    public let words: [TranscriptWord]
+
+    public init(text: String, words: [TranscriptWord]) {
+        self.text = text
+        self.words = words
+    }
+}
+
+public struct WordPitchMetrics: Codable, Sendable, Equatable {
+    public let medianHz: Double?
+    public let relativeMedianSemitones: Double?
+    public let rangeSemitones: Double?
+    public let startToEndSemitones: Double?
+
+    public init(
+        medianHz: Double?,
+        relativeMedianSemitones: Double?,
+        rangeSemitones: Double?,
+        startToEndSemitones: Double?
+    ) {
+        self.medianHz = medianHz
+        self.relativeMedianSemitones = relativeMedianSemitones
+        self.rangeSemitones = rangeSemitones
+        self.startToEndSemitones = startToEndSemitones
+    }
+}
+
+public struct WordLoudnessMetrics: Codable, Sendable, Equatable {
+    public let relativeMeanDB: Double?
+    public let startToEndDB: Double?
+
+    public init(relativeMeanDB: Double?, startToEndDB: Double?) {
+        self.relativeMeanDB = relativeMeanDB
+        self.startToEndDB = startToEndDB
+    }
+}
+
+public struct WordAnalysis: Codable, Sendable, Equatable {
+    public let word: String
+    public let start: Double
+    public let end: Double
+    public let pitch: WordPitchMetrics
+    public let loudness: WordLoudnessMetrics
+
+    public init(
+        word: String,
+        start: Double,
+        end: Double,
+        pitch: WordPitchMetrics,
+        loudness: WordLoudnessMetrics
+    ) {
+        self.word = word
+        self.start = start
+        self.end = end
+        self.pitch = pitch
+        self.loudness = loudness
+    }
+}
+
 public struct VoiceMetrics: Codable, Sendable, Equatable {
     public let duration: Double
     public let activeSpeechDuration: Double
@@ -124,6 +211,7 @@ public struct AnalysisResult: Codable, Sendable, Equatable {
     public let pitchContour: [TimePoint]
     public let waveform: [WaveformPoint]
     public let spectrogram: SpectrogramData
+    public let acousticFrames: AcousticFrameData
 
     public init(
         createdAt: Date = Date(),
@@ -131,7 +219,8 @@ public struct AnalysisResult: Codable, Sendable, Equatable {
         loudnessContour: [TimePoint],
         pitchContour: [TimePoint],
         waveform: [WaveformPoint],
-        spectrogram: SpectrogramData
+        spectrogram: SpectrogramData,
+        acousticFrames: AcousticFrameData? = nil
     ) {
         self.createdAt = createdAt
         self.metrics = metrics
@@ -139,6 +228,10 @@ public struct AnalysisResult: Codable, Sendable, Equatable {
         self.pitchContour = pitchContour
         self.waveform = waveform
         self.spectrogram = spectrogram
+        self.acousticFrames = acousticFrames ?? AcousticFrameData(
+            loudness: loudnessContour,
+            pitch: pitchContour
+        )
     }
 }
 
@@ -147,16 +240,22 @@ public struct PracticeSession: Codable, Sendable, Identifiable, Equatable {
     public let createdAt: Date
     public let audioURL: URL
     public let result: AnalysisResult
+    public let transcription: TranscriptionResult?
+    public let words: [WordAnalysis]
 
     public init(
         id: UUID = UUID(),
         createdAt: Date = Date(),
         audioURL: URL,
-        result: AnalysisResult
+        result: AnalysisResult,
+        transcription: TranscriptionResult? = nil,
+        words: [WordAnalysis] = []
     ) {
         self.id = id
         self.createdAt = createdAt
         self.audioURL = audioURL
         self.result = result
+        self.transcription = transcription
+        self.words = words
     }
 }

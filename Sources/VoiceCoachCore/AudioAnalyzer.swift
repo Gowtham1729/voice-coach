@@ -147,7 +147,8 @@ public struct AudioAnalyzer: Sendable {
             loudnessContour: downsample(points: loudness, limit: 300),
             pitchContour: downsample(points: pitch, limit: 300),
             waveform: waveform(samples: samples, bins: 420),
-            spectrogram: makeSpectrogram(samples: samples, sampleRate: sampleRate)
+            spectrogram: makeSpectrogram(samples: samples, sampleRate: sampleRate),
+            acousticFrames: AcousticFrameData(loudness: loudness, pitch: pitch)
         )
     }
 

@@ -3,6 +3,13 @@ import AVFoundation
 import Foundation
 import VoiceCoachCore
 
+private struct CompletedAnalysis: Sendable {
+    let result: AnalysisResult
+    let transcription: TranscriptionResult?
+    let words: [WordAnalysis]
+    let transcriptionNotice: String?
+}
+
 @MainActor
 final class AppModel: ObservableObject {
     @Published var isRecording = false
@@ -15,6 +22,7 @@ final class AppModel: ObservableObject {
     @Published var session: PracticeSession?
     @Published var errorMessage: String?
     @Published var exportMessage: String?
+    @Published var transcriptionNotice: String?
 
     private let recorder = AudioRecorder()
     private var timer: Timer?
@@ -36,6 +44,11 @@ final class AppModel: ObservableObject {
         return ReportFormatter.makeReport(session: session)
     }
 
+    var compactReport: String {
+        guard let session else { return "" }
+        return ReportFormatter.makeCompactReport(session: session)
+    }
+
     func recordButtonPressed() {
         guard !isAnalyzing, !isRequestingPermission else { return }
         if isRecording {
@@ -46,10 +59,18 @@ final class AppModel: ObservableObject {
     }
 
     func copyReport() {
-        guard !report.isEmpty else { return }
+        copyJSON(report, message: "Word-level voice data copied")
+    }
+
+    func copyCompactReport() {
+        copyJSON(compactReport, message: "Compact voice data copied")
+    }
+
+    private func copyJSON(_ value: String, message: String) {
+        guard !value.isEmpty else { return }
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(report, forType: .string)
-        exportMessage = "Structured voice data copied"
+        NSPasteboard.general.setString(value, forType: .string)
+        exportMessage = message
     }
 
     func playCurrent() {
@@ -179,6 +200,7 @@ final class AppModel: ObservableObject {
             isAnalyzing = false
             errorMessage = nil
             exportMessage = nil
+            transcriptionNotice = nil
             startTimer()
         } catch {
             errorMessage = error.localizedDescription
@@ -201,10 +223,36 @@ final class AppModel: ObservableObject {
         isAnalyzing = true
         Task {
             do {
-                let result = try await Task.detached(priority: .userInitiated) {
-                    try AudioAnalyzer().analyze(url: url)
+                let completed = try await Task.detached(priority: .userInitiated) { () throws -> CompletedAnalysis in
+                    let result = try AudioAnalyzer().analyze(url: url)
+                    do {
+                        let transcription = try NemoSpeechTranscriber().transcribe(url: url)
+                        let words = WordAcousticAnalyzer().analyze(
+                            transcription: transcription,
+                            result: result
+                        )
+                        return CompletedAnalysis(
+                            result: result,
+                            transcription: transcription,
+                            words: words,
+                            transcriptionNotice: nil
+                        )
+                    } catch {
+                        return CompletedAnalysis(
+                            result: result,
+                            transcription: nil,
+                            words: [],
+                            transcriptionNotice: error.localizedDescription
+                        )
+                    }
                 }.value
-                session = PracticeSession(audioURL: url, result: result)
+                session = PracticeSession(
+                    audioURL: url,
+                    result: completed.result,
+                    transcription: completed.transcription,
+                    words: completed.words
+                )
+                transcriptionNotice = completed.transcriptionNotice
             } catch {
                 errorMessage = "Analysis failed: \(error.localizedDescription)"
             }
