@@ -1,52 +1,6 @@
 import SwiftUI
 import VoiceCoachCore
 
-struct SessionsView: View {
-    @EnvironmentObject private var model: AppModel
-    @State private var search = ""
-
-    private var filtered: [CoachingSession] {
-        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return model.sessions }
-        return model.sessions.filter { $0.name.localizedCaseInsensitiveContains(query) || $0.prompt.localizedCaseInsensitiveContains(query) }
-    }
-
-    var body: some View {
-        StudioPage {
-            VStack(alignment: .leading, spacing: 22) {
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 9) {
-                        SectionEyebrow(text: "Your practice library")
-                        Text("Sessions")
-                            .font(.system(size: 43, weight: .regular)).tracking(-1.7)
-                        Text("Every take stays organized, private, and ready to revisit.")
-                            .font(.system(size: 13)).foregroundStyle(Studio.secondary)
-                    }
-                    Spacer()
-                    StudioSearchField(text: $search)
-                    Button { model.navigate(to: .create) } label: { Label("New session", systemImage: "plus") }
-                        .buttonStyle(StudioButtonStyle(prominent: true))
-                }
-                if filtered.isEmpty {
-                    EmptyState(
-                        icon: search.isEmpty ? "tray" : "magnifyingglass",
-                        title: search.isEmpty ? "No sessions yet" : "No matching sessions",
-                        detail: search.isEmpty ? "Create a session to begin building your local practice history." : "Try a different name or prompt.",
-                        actionTitle: search.isEmpty ? "Create a session" : "Clear search"
-                    ) {
-                        if search.isEmpty { model.navigate(to: .create) } else { search = "" }
-                    }
-                } else {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 16)], spacing: 16) {
-                        ForEach(filtered) { session in SessionSummaryCard(session: session) }
-                    }
-                }
-                PrivacyFooter()
-            }
-        }
-    }
-}
-
 struct InsightsView: View {
     @EnvironmentObject private var model: AppModel
 
@@ -54,14 +8,7 @@ struct InsightsView: View {
 
     var body: some View {
         StudioPage {
-            VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 9) {
-                    SectionEyebrow(text: "Your objective trends")
-                    Text("Insights")
-                        .font(.system(size: 43, weight: .regular)).tracking(-1.7)
-                    Text("A quiet overview of your practice history—calculated only from saved takes on this Mac.")
-                        .font(.system(size: 13)).foregroundStyle(Studio.secondary)
-                }
+            VStack(alignment: .leading, spacing: 18) {
                 if takes.isEmpty {
                     EmptyState(icon: "chart.line.uptrend.xyaxis", title: "Record a few takes to see trends", detail: "Insights become more useful as your local practice library grows.", actionTitle: "Start a session") {
                         model.navigate(to: .create)
@@ -75,7 +22,6 @@ struct InsightsView: View {
                     }
                     recentActivity
                 }
-                PrivacyFooter()
             }
         }
     }
@@ -151,22 +97,12 @@ struct InsightsView: View {
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.studioSnapshot) private var snapshot
-    @AppStorage("voiceCoach.showPromptByDefault") private var showPrompt = true
     @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
-    @AppStorage("voiceCoach.keepWindowPrivate") private var privacyReminder = true
 
     var body: some View {
         StudioPage(maxWidth: 980) {
-            VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 9) {
-                    SectionEyebrow(text: "Voice Coach preferences")
-                    Text("Settings").font(.system(size: 43, weight: .regular)).tracking(-1.7)
-                    Text("Control the practice experience and see where your private data lives.")
-                        .font(.system(size: 13)).foregroundStyle(Studio.secondary)
-                }
+            VStack(alignment: .leading, spacing: 16) {
                 settingsSection("Practice", icon: "mic") {
-                    settingToggle("Show the session prompt before the first take", detail: "Keeps the selected prompt visible until you begin recording.", value: $showPrompt)
-                    settingToggle("Show privacy reminders", detail: "Displays on-device notices throughout the app.", value: $privacyReminder)
                     settingToggle("Confirm before removing a session", detail: "Adds a confirmation step in the Sessions library.", value: $confirmDelete)
                 }
                 settingsSection("Local data", icon: "internaldrive") {
@@ -187,7 +123,6 @@ struct SettingsView: View {
                     Text("Waveforms and spectrograms stay available in the interface but are intentionally excluded from copied and exported JSON.")
                         .font(.system(size: 11)).foregroundStyle(Studio.secondary).lineSpacing(4)
                 }
-                PrivacyFooter()
             }
         }
     }

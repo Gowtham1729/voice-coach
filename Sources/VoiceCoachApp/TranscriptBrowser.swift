@@ -65,7 +65,7 @@ struct TranscriptProseView: NSViewRepresentable {
     }
 }
 
-struct ReviewTranscriptPane: View {
+struct TakeTranscriptPane: View {
     let transcription: TranscriptionResult
     let highlightedWordIndex: Int?
     let isPlaying: Bool

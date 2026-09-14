@@ -14,12 +14,12 @@ struct VoiceCoachApplication: App {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
-                .frame(minWidth: 980, minHeight: 700)
+                .frame(minWidth: 1080, minHeight: 700)
                 #if DEBUG
                 .background(PreviewRenderLauncher())
                 #endif
         }
-        .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 1440, height: 900)
+        .windowToolbarStyle(.unifiedCompact)
+        .defaultSize(width: 1280, height: 820)
     }
 }
