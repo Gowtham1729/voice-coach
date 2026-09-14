@@ -10,10 +10,30 @@ struct TakeView: View {
     @State private var selectedPlot: AnalysisPlot = .pitch
     @State private var selectedWordIndex: Int?
     @State private var isGraphCopied = false
+    @State private var isTranscriptCopied = false
 
     var body: some View {
-        StudioPage(maxWidth: 1050, horizontalPadding: 20) {
+        Group {
             if let session = model.selectedSession, let take = model.selectedTake {
+                takeWorkspace(session, take: take)
+            } else {
+                StudioPage(maxWidth: 1050, horizontalPadding: 20) {
+                    EmptyState(
+                        icon: "waveform",
+                        title: "Take not found",
+                        detail: "Choose another session from your local library.",
+                        actionTitle: "View sessions"
+                    ) {
+                        model.navigate(to: AppDestination.sessions)
+                    }
+                }
+            }
+        }
+    }
+
+    private func takeWorkspace(_ session: CoachingSession, take: PracticeSession) -> some View {
+        VStack(spacing: 0) {
+            StudioScroll {
                 VStack(alignment: .leading, spacing: 14) {
                     takeBar(session, take: take)
                     transcriptCard(take)
@@ -22,19 +42,18 @@ struct TakeView: View {
                 .id(take.id)
                 .transition(.opacity.combined(with: .scale(scale: 0.992, anchor: .top)))
                 .animation(takeTransition, value: model.selectedTakeID)
-                .onChange(of: model.selectedTakeID) { _, _ in
-                    selectedWordIndex = nil
-                }
-            } else {
-                EmptyState(
-                    icon: "waveform",
-                    title: "Take not found",
-                    detail: "Choose another session from your local library.",
-                    actionTitle: "View sessions"
-                ) {
-                    model.navigate(to: AppDestination.sessions)
-                }
+                .frame(maxWidth: 1050, alignment: .topLeading)
+                .padding(.horizontal, 20)
+                .padding(.top, 28)
+                .padding(.bottom, 18)
+                .frame(maxWidth: .infinity, alignment: .top)
             }
+            .onChange(of: model.selectedTakeID) { _, _ in
+                selectedWordIndex = nil
+                isTranscriptCopied = false
+            }
+
+            stickyTransport(take)
         }
     }
 
@@ -75,13 +94,16 @@ struct TakeView: View {
 
     private func transcriptCard(_ take: PracticeSession) -> some View {
         let highlightedWordIndex = highlightedWordIndex(in: take)
-        return VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                SectionEyebrow(text: "Transcript")
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                SectionEyebrow(text: "Words")
                 Spacer()
-                Text("\(take.transcription?.words.count ?? 0) words")
-                    .font(.caption)
-                    .foregroundStyle(Studio.secondary)
+                if let transcription = take.transcription {
+                    Text("\(transcription.words.count) words")
+                        .font(.caption)
+                        .foregroundStyle(Studio.secondary)
+                    copyTranscriptButton(transcription.text)
+                }
             }
 
             if let transcription = take.transcription {
@@ -100,15 +122,56 @@ struct TakeView: View {
                     systemImage: "text.badge.xmark",
                     description: Text(model.transcriptionNotice ?? "This take has audio and acoustic measurements, but no transcript.")
                 )
-                .frame(maxWidth: .infinity, minHeight: 360)
+                .frame(maxWidth: .infinity, minHeight: 200)
             }
-
-            Divider()
-            TakePlaybackRow(take: take, spaceShortcut: true)
         }
         .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 555, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 320, alignment: .topLeading)
         .studioCard()
+    }
+
+    private func copyTranscriptButton(_ text: String) -> some View {
+        Button(action: { copyTranscript(text) }) {
+            Label(
+                isTranscriptCopied ? "Copied" : "Copy Transcript",
+                systemImage: isTranscriptCopied ? "checkmark" : "doc.on.doc"
+            )
+        }
+        .buttonStyle(.bordered)
+        .help("Copy the full transcript text")
+        .disabled(text.isEmpty)
+        .task(id: isTranscriptCopied) {
+            guard isTranscriptCopied else { return }
+            try? await Task.sleep(for: .seconds(2))
+            if !Task.isCancelled { isTranscriptCopied = false }
+        }
+    }
+
+    private func stickyTransport(_ take: PracticeSession) -> some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(Studio.line)
+                .frame(height: 1)
+
+            TakePlaybackRow(
+                take: take,
+                large: true,
+                spaceShortcut: true,
+                highlightedRange: selectedRange(take)
+            )
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .frame(maxWidth: 1050)
+            .frame(maxWidth: .infinity)
+        }
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(Studio.surface.opacity(0.72))
+                .ignoresSafeArea(edges: .bottom)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Take timeline")
     }
 
     private func analysisCard(_ take: PracticeSession) -> some View {
@@ -138,23 +201,10 @@ struct TakeView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.985)))
             }
             .animation(plotAnimation, value: selectedPlot)
-            .frame(height: 360)
-
-            Divider()
-
-            AlignedWaveformRow(
-                points: take.result.waveform,
-                duration: take.result.metrics.duration,
-                playbackTime: model.playbackTime,
-                isPlaying: model.isPlaying,
-                highlightedRange: highlightedRange,
-                onSeek: { model.seek(to: $0, autoplay: true) },
-                onScrub: { model.seek(to: $0) }
-            )
-            .frame(height: 54)
+            .frame(height: 380)
         }
         .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 520, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 460, alignment: .topLeading)
         .studioCard()
     }
 
@@ -232,8 +282,8 @@ struct TakeView: View {
 
     private func highlightedWordIndex(in take: PracticeSession) -> Int? {
         guard let words = take.transcription?.words else { return selectedWordIndex }
-        if model.isPlaying {
-            return words.firstIndex { $0.start <= model.playbackTime && model.playbackTime <= $0.end }
+        if let active = words.firstIndex(where: { $0.start <= model.playbackTime && model.playbackTime <= $0.end }) {
+            return active
         }
         return selectedWordIndex
     }
@@ -244,6 +294,14 @@ struct TakeView: View {
 
     private var plotAnimation: Animation? {
         reduceMotion ? nil : .smooth(duration: 0.28, extraBounce: 0)
+    }
+
+    private func copyTranscript(_ text: String) {
+        guard !text.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        isTranscriptCopied = true
+        model.toastMessage = "Transcript copied"
     }
 
     @MainActor

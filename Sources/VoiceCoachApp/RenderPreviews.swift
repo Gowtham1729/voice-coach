@@ -57,7 +57,7 @@ func renderStudioPreviewsIfRequested() {
         try render("08-recording")
 
         // Hang regression: a multi-thousand-word transcript must layout quickly.
-        // Snapshot mode truncates prose; live mode uses AppKit for the full string.
+        // Snapshot mode caps the word grid; live mode scrolls the full set.
         let longWords = (0..<3_000).map { index in
             TranscriptWord(word: "w\(index)", start: Double(index) * 0.1, end: Double(index) * 0.1 + 0.08)
         }
@@ -75,7 +75,7 @@ func renderStudioPreviewsIfRequested() {
                 onSelectWord: { _, _ in }
             )
             .environment(\.studioSnapshot, snapshot)
-            .frame(width: 540, height: 420)
+            .frame(width: 540, height: 280)
             let renderer = ImageRenderer(content: pane)
             renderer.scale = 1
             precondition(renderer.cgImage != nil, "Long transcript pane failed to render (snapshot=\(snapshot))")

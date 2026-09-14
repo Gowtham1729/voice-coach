@@ -1,69 +1,5 @@
-import AppKit
 import SwiftUI
 import VoiceCoachCore
-
-/// AppKit prose that reports only its proposed frame to SwiftUI, so nested
-/// StudioPage scrolling never measures a long transcript through CoreText.
-struct TranscriptProseView: NSViewRepresentable {
-    let text: String
-
-    final class Coordinator {
-        var lastText: String?
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeNSView(context: Context) -> NSScrollView {
-        let scrollView = NSScrollView()
-        scrollView.drawsBackground = false
-        scrollView.borderType = .noBorder
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = false
-        scrollView.autohidesScrollers = true
-        scrollView.scrollerStyle = .overlay
-
-        let textView = NSTextView()
-        textView.isEditable = false
-        textView.isRichText = false
-        textView.isSelectable = true
-        textView.drawsBackground = false
-        textView.backgroundColor = .clear
-        textView.textColor = Self.inkColor
-        textView.insertionPointColor = NSColor(red: 0.69, green: 0.89, blue: 0.77, alpha: 1)
-        textView.font = Self.proseFont
-        textView.textContainerInset = NSSize(width: 0, height: 4)
-        textView.isHorizontallyResizable = false
-        textView.isVerticallyResizable = true
-        textView.autoresizingMask = [.width]
-        textView.textContainer?.widthTracksTextView = true
-        textView.textContainer?.lineFragmentPadding = 0
-        textView.string = text
-        context.coordinator.lastText = text
-        scrollView.documentView = textView
-        return scrollView
-    }
-
-    func updateNSView(_ scrollView: NSScrollView, context: Context) {
-        guard let textView = scrollView.documentView as? NSTextView else { return }
-        if context.coordinator.lastText != text {
-            textView.string = text
-            context.coordinator.lastText = text
-        }
-        textView.textColor = Self.inkColor
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSScrollView, context: Context) -> CGSize? {
-        CGSize(width: proposal.width ?? 500, height: proposal.height ?? 150)
-    }
-
-    private static let inkColor = NSColor(red: 0.92, green: 0.95, blue: 0.92, alpha: 1)
-
-    private static var proseFont: NSFont {
-        let base = NSFont.systemFont(ofSize: 20)
-        guard let serif = base.fontDescriptor.withDesign(.serif) else { return base }
-        return NSFont(descriptor: serif, size: 20) ?? base
-    }
-}
 
 struct TakeTranscriptPane: View {
     let transcription: TranscriptionResult
@@ -74,34 +10,13 @@ struct TakeTranscriptPane: View {
 
     @Environment(\.studioSnapshot) private var snapshot
 
-    private let proseHeight: CGFloat = 150
-    private let paneHeight: CGFloat = 420
+    private let paneHeight: CGFloat = 280
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            prose
-            wordBrowser
-        }
-        .frame(height: paneHeight, alignment: .topLeading)
-        .clipped()
-    }
-
-    @ViewBuilder
-    private var prose: some View {
-        if snapshot {
-            Text(String(transcription.text.prefix(400)))
-                .font(.system(size: 20, weight: .regular, design: .serif))
-                .lineSpacing(5)
-                .lineLimit(6)
-                .frame(maxWidth: .infinity, maxHeight: proseHeight, alignment: .topLeading)
-                .clipped()
-        } else {
-            TranscriptProseView(text: transcription.text)
-                .frame(maxWidth: .infinity)
-                .frame(height: proseHeight)
-                .accessibilityLabel("Transcript")
-                .accessibilityValue(transcription.text)
-        }
+        wordBrowser
+            .frame(height: paneHeight, alignment: .topLeading)
+            .clipped()
+            .accessibilityLabel("Word timings")
     }
 
     @ViewBuilder
