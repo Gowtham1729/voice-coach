@@ -50,6 +50,11 @@ func renderStudioPreviewsIfRequested() {
         try render("studio-loudness", height: 1160, plot: .loudness)
         try render("studio-spectrum", height: 1160, plot: .spectrum)
         try render("studio-report", height: 1480, expanded: true)
+        model.isPlaying = true
+        model.playbackTime = 3.6
+        try render("studio-playback", height: 1160)
+        model.isPlaying = false
+        model.playbackTime = 0
 
         // These transitions must not request the microphone or replace the previous take.
         let previous = model.session

@@ -9,6 +9,7 @@ final class AppModel: ObservableObject {
     @Published var isAnalyzing = false
     @Published var isRequestingPermission = false
     @Published var isPlaying = false
+    @Published var playbackTime: TimeInterval = 0
     @Published var elapsed: TimeInterval = 0
     @Published var liveLevel: Double = -80
     @Published var session: PracticeSession?
@@ -17,11 +18,17 @@ final class AppModel: ObservableObject {
 
     private let recorder = AudioRecorder()
     private var timer: Timer?
+    private var playbackTimer: Timer?
     private var recordingURL: URL?
     private var startedAt: Date?
 
     init() {
-        recorder.onPlaybackFinished = { [weak self] in self?.isPlaying = false }
+        recorder.onPlaybackFinished = { [weak self] in
+            guard let self else { return }
+            self.stopPlaybackTimer()
+            self.isPlaying = false
+            self.playbackTime = 0
+        }
     }
 
     var report: String {
@@ -48,17 +55,67 @@ final class AppModel: ObservableObject {
     func playCurrent() {
         guard !isRecording, !isAnalyzing else { return }
         if isPlaying {
-            recorder.stopPlayback()
-            isPlaying = false
+            pausePlayback()
             return
         }
         guard let url = session?.audioURL else { return }
+        let duration = session?.result.metrics.duration ?? 0
+        let startTime = (playbackTime >= max(duration - 0.05, 0)) ? 0 : playbackTime
         do {
-            try recorder.play(url: url)
+            try recorder.play(url: url, from: startTime)
+            playbackTime = startTime
             isPlaying = true
+            startPlaybackTimer()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func pausePlayback() {
+        recorder.pausePlayback()
+        stopPlaybackTimer()
+        isPlaying = false
+    }
+
+    func stopPlayback() {
+        recorder.stopPlayback()
+        stopPlaybackTimer()
+        isPlaying = false
+        playbackTime = 0
+    }
+
+    func seek(to time: TimeInterval, autoplay: Bool = false) {
+        guard let session, !isRecording, !isAnalyzing else { return }
+        let totalDuration = session.result.metrics.duration
+        let clamped = max(0, min(time, totalDuration))
+        playbackTime = clamped
+
+        if isPlaying {
+            recorder.seek(to: clamped)
+        } else if autoplay {
+            do {
+                try recorder.play(url: session.audioURL, from: clamped)
+                isPlaying = true
+                startPlaybackTimer()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func startPlaybackTimer() {
+        playbackTimer?.invalidate()
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.isPlaying else { return }
+                self.playbackTime = self.recorder.currentTime
+            }
+        }
+    }
+
+    private func stopPlaybackTimer() {
+        playbackTimer?.invalidate()
+        playbackTimer = nil
     }
 
     func exportCurrent() {
