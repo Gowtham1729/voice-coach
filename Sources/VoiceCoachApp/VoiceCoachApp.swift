@@ -19,7 +19,7 @@ struct VoiceCoachApplication: App {
                 .background(PreviewRenderLauncher())
                 #endif
         }
-        .windowToolbarStyle(.unifiedCompact)
+        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1280, height: 820)
     }
 }

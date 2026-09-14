@@ -11,6 +11,13 @@ struct CreateSessionView: View {
     var body: some View {
         StudioPage(maxWidth: 760, horizontalPadding: 24) {
             VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    WorkspaceChromeButtons(includeBack: true)
+                    Text("New Session")
+                        .font(.title2.weight(.semibold))
+                    Spacer()
+                }
+
                 settingsSection("Session", symbol: "folder") {
                     formRow("Name") {
                         if snapshot {

@@ -10,6 +10,7 @@ struct ContentView: View {
             .foregroundStyle(Studio.ink)
             .preferredColorScheme(.dark)
             .tint(Studio.accent)
+            .environment(\.workspaceChrome, workspaceChrome)
             .alert("Voice Coach", isPresented: errorBinding) {
                 Button("OK", role: .cancel) { model.errorMessage = nil }
             } message: {
@@ -21,63 +22,28 @@ struct ContentView: View {
             }
     }
 
-    @ViewBuilder
     private var shell: some View {
-        if snapshot {
-            snapshotShell
-        } else {
-            liveShell
-        }
-    }
-
-    private var liveShell: some View {
-        NavigationStack {
-            HStack(spacing: 0) {
-                SourceListSidebar()
-                    .frame(width: 240)
-                    .frame(maxHeight: .infinity)
-                Divider()
-                destination
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Studio.background)
-            }
-            .navigationTitle(workspaceTitle)
-        }
-        .inspector(isPresented: inspectorBinding) {
-            contextualInspector
-                .inspectorColumnWidth(min: 270, ideal: 300, max: 340)
-        }
-        .toolbar { workspaceToolbar }
-    }
-
-    private var snapshotShell: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Text(workspaceTitle).font(.headline)
-                Spacer()
-                if showsNewSessionButton {
-                    Label("New Session", systemImage: "plus")
-                }
-                if inspectorEligible {
-                    Label("Inspector", systemImage: "sidebar.right")
+        HStack(spacing: 0) {
+            Group {
+                if snapshot {
+                    SnapshotSourceListSidebar()
+                } else {
+                    SourceListSidebar()
                 }
             }
-            .font(.caption)
-            .padding(.horizontal, 14)
-            .frame(height: 48)
-            .background(Studio.sidebar)
+            .frame(width: 240)
 
-            HStack(spacing: 0) {
-                SnapshotSourceListSidebar()
-                    .frame(width: 240)
+            Rectangle().fill(Studio.line).frame(width: 1)
+
+            destination
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Studio.background)
+
+            if showInspector {
                 Rectangle().fill(Studio.line).frame(width: 1)
-                destination
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Studio.background)
-                if inspectorEligible {
-                    Rectangle().fill(Studio.line).frame(width: 1)
-                    contextualInspector.frame(width: 300)
-                }
+                contextualInspector
+                    .frame(width: 300)
+                    .frame(maxHeight: .infinity)
             }
         }
         .background(Studio.background)
@@ -112,56 +78,22 @@ struct ContentView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var workspaceToolbar: some ToolbarContent {
-        if model.destination.isTake, let session = model.selectedSession {
-            ToolbarItem(placement: .navigation) {
-                Button { model.resumeSession(session.id) } label: {
-                    Label("Back to Session", systemImage: "chevron.left")
-                }
-                .help("Return to the session")
-            }
-        } else if model.destination == .create {
-            ToolbarItem(placement: .navigation) {
-                Button { model.navigate(to: AppDestination.studio) } label: {
-                    Label("Back to Studio", systemImage: "chevron.left")
-                }
-            }
-        }
-
-        if showsNewSessionButton {
-            ToolbarItem(placement: .primaryAction) {
-                Button { model.navigate(to: AppDestination.create) } label: {
-                    Label("New Session", systemImage: "plus")
-                }
-                .help("Create a named practice session")
-                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
-            }
-        }
-
-        if inspectorEligible {
-            ToolbarItem(placement: .primaryAction) {
-                Button { inspectorPresented.toggle() } label: {
-                    Label("Inspector", systemImage: "sidebar.right")
-                }
-                .help(inspectorPresented ? "Hide Inspector" : "Show Inspector")
-            }
-        }
+    private var workspaceChrome: WorkspaceChrome {
+        WorkspaceChrome(
+            showsNewSession: showsNewSession,
+            inspectorEligible: inspectorEligible,
+            inspectorPresented: showInspector,
+            onNewSession: { model.navigate(to: AppDestination.create) },
+            onToggleInspector: { inspectorPresented.toggle() },
+            onBack: goBack
+        )
     }
 
-    private var workspaceTitle: String {
-        switch model.destination {
-        case .studio: model.selectedSession?.name ?? "Studio"
-        case .create: "New Session"
-        case .practice: model.selectedSession?.name ?? "Practice"
-        case .take: takeTitle
-        case .sessions: "All Sessions"
-        case .insights: "Insights"
-        case .settings: "Settings"
-        }
+    private var showInspector: Bool {
+        inspectorPresented && inspectorEligible
     }
 
-    private var showsNewSessionButton: Bool {
+    private var showsNewSession: Bool {
         switch model.destination {
         case .studio, .practice, .sessions: true
         case .create, .take, .insights, .settings: false
@@ -179,19 +111,12 @@ struct ContentView: View {
         }
     }
 
-    private var takeTitle: String {
-        guard let session = model.selectedSession,
-              let take = model.selectedTake,
-              let index = session.takes.firstIndex(where: { $0.id == take.id })
-        else { return "Take" }
-        return "Take \(index + 1)"
-    }
-
-    private var inspectorBinding: Binding<Bool> {
-        Binding(
-            get: { inspectorPresented && inspectorEligible },
-            set: { inspectorPresented = $0 }
-        )
+    private func goBack() {
+        if model.destination.isTake, let session = model.selectedSession {
+            model.resumeSession(session.id)
+        } else {
+            model.navigate(to: AppDestination.studio)
+        }
     }
 
     private var toast: some View {
@@ -214,5 +139,81 @@ struct ContentView: View {
 
     private var errorBinding: Binding<Bool> {
         Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })
+    }
+}
+
+struct WorkspaceChrome {
+    var showsNewSession = false
+    var inspectorEligible = false
+    var inspectorPresented = false
+    var onNewSession: () -> Void = {}
+    var onToggleInspector: () -> Void = {}
+    var onBack: () -> Void = {}
+}
+
+private struct WorkspaceChromeKey: EnvironmentKey {
+    nonisolated(unsafe) static let defaultValue = WorkspaceChrome()
+}
+
+extension EnvironmentValues {
+    var workspaceChrome: WorkspaceChrome {
+        get { self[WorkspaceChromeKey.self] }
+        set { self[WorkspaceChromeKey.self] = newValue }
+    }
+}
+
+struct WorkspaceChromeButtons: View {
+    @Environment(\.workspaceChrome) private var chrome
+    @EnvironmentObject private var model: AppModel
+    var includeBack = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if includeBack {
+                chromeButton(
+                    systemImage: "chevron.left",
+                    help: model.destination.isTake ? "Return to the session" : "Return to Studio",
+                    action: chrome.onBack
+                )
+            }
+
+            if chrome.showsNewSession {
+                chromeButton(
+                    systemImage: "plus",
+                    help: "Create a named practice session",
+                    disabled: model.isRecording || model.isAnalyzing || model.isRequestingPermission,
+                    action: chrome.onNewSession
+                )
+            }
+
+            if chrome.inspectorEligible {
+                chromeButton(
+                    systemImage: "sidebar.right",
+                    help: chrome.inspectorPresented ? "Hide Inspector" : "Show Inspector",
+                    active: chrome.inspectorPresented,
+                    action: chrome.onToggleInspector
+                )
+            }
+        }
+    }
+
+    private func chromeButton(
+        systemImage: String,
+        help: String,
+        active: Bool = false,
+        disabled: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(active ? Studio.accent : Studio.secondary)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .disabled(disabled)
+        .opacity(disabled ? 0.4 : 1)
     }
 }
