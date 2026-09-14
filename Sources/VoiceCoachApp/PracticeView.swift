@@ -97,21 +97,7 @@ struct PracticeView: View {
                     details
                     PrivacyFooter()
                 }
-                .confirmationDialog(
-                    "Delete this take?",
-                    isPresented: Binding(
-                        get: { takePendingDelete != nil },
-                        set: { if !$0 { takePendingDelete = nil } }
-                    )
-                ) {
-                    Button("Delete take", role: .destructive) {
-                        if let takePendingDelete { model.deleteTake(takePendingDelete) }
-                        takePendingDelete = nil
-                    }
-                    Button("Cancel", role: .cancel) { takePendingDelete = nil }
-                } message: {
-                    Text("The recording and analysis for this take will be removed from the session.")
-                }
+                .modifier(DeleteTakeDialog(takeID: $takePendingDelete, onDelete: model.deleteTake))
             } else {
                 EmptyState(icon: "exclamationmark.triangle", title: "Session not found", detail: "This session is no longer in your local library.", actionTitle: "Back to studio") {
                     model.navigate(to: AppDestination.studio)
@@ -251,38 +237,36 @@ struct PracticeView: View {
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundStyle(Studio.secondary)
             }
+            let cards = ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, take in
+                takeHistoryCard(take, index: index).id(take.id)
+            }
             if snapshot {
-                HStack(spacing: 10) {
-                    ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, take in
-                        takeHistoryCard(take, index: index)
-                    }
-                }
+                HStack(spacing: 10) { cards }
             } else {
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal, showsIndicators: true) {
-                        HStack(spacing: 10) {
-                            ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, take in
-                                takeHistoryCard(take, index: index)
-                                    .id(take.id)
-                            }
-                        }
-                        .padding(.vertical, 2)
+                        HStack(spacing: 10) { cards }.padding(.vertical, 2)
                     }
                     .frame(height: 52)
-                    .onAppear {
-                        if let selectedTakeID = model.selectedTakeID {
-                            proxy.scrollTo(selectedTakeID, anchor: .center)
-                        }
-                    }
+                    .onAppear { scrollHistory(to: model.selectedTakeID, proxy: proxy) }
                     .onChange(of: model.selectedTakeID) { _, takeID in
-                        guard let takeID else { return }
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            proxy.scrollTo(takeID, anchor: .center)
+                            scrollHistory(to: takeID, proxy: proxy)
                         }
                     }
                 }
             }
         }
+    }
+
+    private func scrollHistory(to takeID: UUID?, proxy: ScrollViewProxy) {
+        guard let takeID else { return }
+        proxy.scrollTo(takeID, anchor: .center)
+    }
+
+    private func requestDelete(_ takeID: UUID) {
+        if confirmBeforeDelete { takePendingDelete = takeID }
+        else { model.deleteTake(takeID) }
     }
 
     private func takeHistoryCard(_ take: PracticeSession, index: Int) -> some View {
@@ -312,10 +296,7 @@ struct PracticeView: View {
             .buttonStyle(.plain)
 
             if !snapshot {
-                Button {
-                    if confirmBeforeDelete { takePendingDelete = take.id }
-                    else { model.deleteTake(take.id) }
-                } label: {
+                Button { requestDelete(take.id) } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(Studio.secondary)
@@ -325,11 +306,9 @@ struct PracticeView: View {
                 .buttonStyle(.plain)
                 .help("Delete Take \(index + 1)")
                 .disabled(model.isRecording || model.isAnalyzing || model.isPlaying)
-                .padding(.trailing, 8)
-            } else {
-                Color.clear.frame(width: 8)
             }
         }
+        .padding(.trailing, 8)
         .background(selected ? Studio.accent.opacity(0.08) : Studio.surface.opacity(0.55), in: RoundedRectangle(cornerRadius: 11))
         .overlay(RoundedRectangle(cornerRadius: 11).stroke(selected ? Studio.accent : Studio.line))
         .frame(minWidth: 220)

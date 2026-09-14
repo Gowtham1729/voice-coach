@@ -186,7 +186,17 @@ struct TakePlaybackRow: View {
 
     var body: some View {
         HStack(spacing: large ? 18 : 11) {
-            playButton
+            Button(action: model.playCurrent) {
+                Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: large ? 18 : 11, weight: .semibold))
+                    .foregroundStyle(Studio.background)
+                    .frame(width: large ? 54 : 32, height: large ? 54 : 32)
+                    .background(Studio.accent, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .help(spaceShortcut ? "Play or pause (Space)" : "Play or pause")
+            .modifier(ConditionalSpaceShortcut(enabled: spaceShortcut))
+
             VStack(spacing: 6) {
                 InteractiveWaveformView(
                     points: take.result.waveform,
@@ -214,31 +224,43 @@ struct TakePlaybackRow: View {
                 .foregroundStyle(Studio.secondary)
         }
     }
+}
+
+private struct ConditionalSpaceShortcut: ViewModifier {
+    let enabled: Bool
 
     @ViewBuilder
-    private var playButton: some View {
-        if spaceShortcut {
-            Button(action: model.playCurrent) {
-                playGlyph
-            }
-            .buttonStyle(.plain)
-            .help("Play or pause (Space)")
-            .keyboardShortcut(.space, modifiers: [])
+    func body(content: Content) -> some View {
+        if enabled {
+            content.keyboardShortcut(.space, modifiers: [])
         } else {
-            Button(action: model.playCurrent) {
-                playGlyph
-            }
-            .buttonStyle(.plain)
-            .help("Play or pause")
+            content
         }
     }
+}
 
-    private var playGlyph: some View {
-        Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
-            .font(.system(size: large ? 18 : 11, weight: .semibold))
-            .foregroundStyle(Studio.background)
-            .frame(width: large ? 54 : 32, height: large ? 54 : 32)
-            .background(Studio.accent, in: Circle())
+struct DeleteTakeDialog: ViewModifier {
+    @Binding var takeID: UUID?
+    var onDelete: (UUID) -> Void
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            "Delete this take?",
+            isPresented: Binding(
+                get: { takeID != nil },
+                set: { if !$0 { takeID = nil } }
+            )
+        ) {
+            Button("Delete take", role: .destructive) {
+                if let takeID {
+                    onDelete(takeID)
+                }
+                takeID = nil
+            }
+            Button("Cancel", role: .cancel) { takeID = nil }
+        } message: {
+            Text("The recording and analysis for this take will be removed from the session.")
+        }
     }
 }
 

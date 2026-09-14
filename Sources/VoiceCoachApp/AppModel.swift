@@ -225,11 +225,7 @@ final class AppModel: ObservableObject {
 
         if selectedTakeID == takeID {
             let remaining = sessions[sessionIndex].takes
-            if remaining.indices.contains(takeIndex) {
-                selectedTakeID = remaining[takeIndex].id
-            } else {
-                selectedTakeID = remaining.last?.id
-            }
+            selectedTakeID = remaining.indices.contains(takeIndex) ? remaining[takeIndex].id : remaining.last?.id
             if case .review = destination {
                 if let selectedTakeID {
                     destination = .review(sessionID, selectedTakeID)
@@ -250,11 +246,9 @@ final class AppModel: ObservableObject {
         try? FileManager.default.removeItem(at: removed.audioURL)
         if reportCache?.takeID == takeID { reportCache = nil }
         if compactReportCache?.takeID == takeID { compactReportCache = nil }
-        toastMessage = remainingTakeToast(count: sessions[sessionIndex].takes.count)
-    }
-
-    private func remainingTakeToast(count: Int) -> String {
-        count == 0 ? "Take removed. Record another when you are ready." : "Take removed"
+        toastMessage = sessions[sessionIndex].takes.isEmpty
+            ? "Take removed. Record another when you are ready."
+            : "Take removed"
     }
 
     func recordButtonPressed() {

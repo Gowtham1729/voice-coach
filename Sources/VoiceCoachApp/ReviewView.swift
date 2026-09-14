@@ -38,24 +38,10 @@ struct ReviewView: View {
                     if comparisonTakeID == nil { comparisonTakeID = model.previousTake?.id }
                 }
                 .onChange(of: model.selectedTakeID) { _, _ in selectedWordIndex = nil }
-                .confirmationDialog(
-                    "Delete this take?",
-                    isPresented: Binding(
-                        get: { takePendingDelete != nil },
-                        set: { if !$0 { takePendingDelete = nil } }
-                    )
-                ) {
-                    Button("Delete take", role: .destructive) {
-                        if let takePendingDelete {
-                            if comparisonTakeID == takePendingDelete { comparisonTakeID = nil }
-                            model.deleteTake(takePendingDelete)
-                        }
-                        takePendingDelete = nil
-                    }
-                    Button("Cancel", role: .cancel) { takePendingDelete = nil }
-                } message: {
-                    Text("The recording and analysis for this take will be removed from the session.")
-                }
+                .modifier(DeleteTakeDialog(takeID: $takePendingDelete) { id in
+                    if comparisonTakeID == id { comparisonTakeID = nil }
+                    model.deleteTake(id)
+                })
             } else {
                 EmptyState(icon: "waveform", title: "Take not found", detail: "Choose another session from your local library.", actionTitle: "View sessions") {
                     model.navigate(to: AppDestination.sessions)
@@ -108,10 +94,7 @@ struct ReviewView: View {
                 }
                 Button { model.selectAdjacentTake(offset: 1) } label: { Image(systemName: "chevron.right") }
                     .buttonStyle(StudioButtonStyle())
-                Button {
-                    if confirmBeforeDelete { takePendingDelete = take.id }
-                    else { model.deleteTake(take.id) }
-                } label: {
+                Button { requestDelete(take.id) } label: {
                     Image(systemName: "trash")
                 }
                 .buttonStyle(StudioButtonStyle(destructive: true))
@@ -315,6 +298,14 @@ struct ReviewView: View {
     private func commitName(_ id: UUID) {
         model.renameSession(id, to: draftName)
         editingName = false
+    }
+
+    private func requestDelete(_ takeID: UUID) {
+        if confirmBeforeDelete { takePendingDelete = takeID }
+        else {
+            if comparisonTakeID == takeID { comparisonTakeID = nil }
+            model.deleteTake(takeID)
+        }
     }
 
     private func comparisonTake(in session: CoachingSession, excluding id: UUID) -> PracticeSession? {
