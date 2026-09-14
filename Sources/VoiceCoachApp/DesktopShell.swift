@@ -42,6 +42,7 @@ struct SnapshotSourceListSidebar: View {
 
 struct SourceListSidebar: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         List {
@@ -59,7 +60,11 @@ struct SourceListSidebar: View {
                         .font(.callout)
                 } else {
                     ForEach(model.sessions.prefix(7)) { session in
-                        Button { model.resumeSession(session.id) } label: {
+                        Button {
+                            withAnimation(StudioMotion.quick(reduceMotion: reduceMotion)) {
+                                model.resumeSession(session.id)
+                            }
+                        } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: session.mode.icon)
                                     .frame(width: 16)
@@ -84,11 +89,7 @@ struct SourceListSidebar: View {
             }
         }
         .listStyle(.sidebar)
-        .scrollContentBackground(.hidden)
-        .background(Studio.sidebar)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            Color.clear.frame(height: 12)
-        }
+        .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: model.destination.navigationSection)
         .safeAreaInset(edge: .bottom) {
             Label("On-device", systemImage: "lock.fill")
                 .font(.caption)
@@ -100,7 +101,11 @@ struct SourceListSidebar: View {
     }
 
     private func navigationRow(_ section: NavigationSection, label: String, symbol: String) -> some View {
-        Button { model.navigate(to: section) } label: {
+        Button {
+            withAnimation(StudioMotion.quick(reduceMotion: reduceMotion)) {
+                model.navigate(to: section)
+            }
+        } label: {
             Label(label, systemImage: symbol)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -143,7 +148,6 @@ struct DesktopStudioWorkspace: View {
             Text(session.updatedAt.formatted(.relative(presentation: .named)))
                 .font(.caption)
                 .foregroundStyle(Studio.secondary)
-            WorkspaceChromeButtons()
         }
     }
 
@@ -165,13 +169,14 @@ struct DesktopStudioWorkspace: View {
                 Button(action: model.importClip) {
                     Label("Import", systemImage: "square.and.arrow.down")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
+                .tint(.primary)
                 .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
 
                 Button(action: model.recordButtonPressed) {
                     Label(recordButtonTitle(session), systemImage: model.isRecording ? "stop.fill" : "record.circle")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .tint(model.isRecording ? .red : Studio.accent)
                 .keyboardShortcut(.space, modifiers: [])
                 .disabled(model.isAnalyzing || model.isRequestingPermission)
@@ -214,6 +219,11 @@ struct DesktopStudioWorkspace: View {
                     Label("No Takes Yet", systemImage: "waveform.badge.plus")
                 } description: {
                     Text("Record or import a take to begin this session.")
+                } actions: {
+                    Button("Record a Take", action: model.recordButtonPressed)
+                        .buttonStyle(.glass)
+                        .tint(.primary)
+                        .disabled(model.isAnalyzing || model.isRequestingPermission)
                 }
                 .frame(maxWidth: .infinity, minHeight: 220)
             } else {
@@ -249,6 +259,7 @@ struct DesktopStudioWorkspace: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .studioHoverLift()
 
                     if take.id != session.takes.first?.id {
                         Divider().padding(.leading, 48)
@@ -260,24 +271,18 @@ struct DesktopStudioWorkspace: View {
     }
 
     private var emptyStudio: some View {
-        VStack(spacing: 18) {
-            HStack {
-                Spacer()
-                WorkspaceChromeButtons()
-            }
-            ContentUnavailableView {
-                Label("Voice Coach Studio", systemImage: "waveform")
-            } description: {
-                Text("Create a session or start a quick recording.")
-            } actions: {
-                HStack {
-                    Button("Quick Record", action: model.startQuickPractice)
-                    Button("New Session") { model.navigate(to: .create) }
-                }
-                .buttonStyle(.borderedProminent)
-            }
-            .frame(maxWidth: .infinity, minHeight: 460)
+        ContentUnavailableView {
+            Label("Voice Coach Studio", systemImage: "waveform")
+        } description: {
+            Text("Create a session or start a quick recording.")
+        } actions: {
+            Button("Quick Record", action: model.startQuickPractice)
+                .buttonStyle(.glassProminent)
+            Button("New Session") { model.navigate(to: .create) }
+                .buttonStyle(.glass)
+                .tint(.primary)
         }
+        .frame(maxWidth: .infinity, minHeight: 460)
     }
 
     private func recordButtonTitle(_ session: CoachingSession) -> String {
@@ -323,7 +328,6 @@ struct DesktopSessionsWorkspace: View {
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 220)
                     }
-                    WorkspaceChromeButtons()
                 }
 
                 if filteredSessions.isEmpty {
@@ -421,11 +425,14 @@ struct DesktopSessionsWorkspace: View {
     @ViewBuilder
     private var emptySessionsView: some View {
         if search.isEmpty {
-            ContentUnavailableView(
-                "No Sessions",
-                systemImage: "tray",
-                description: Text("Create a session to start practicing.")
-            )
+            ContentUnavailableView {
+                Label("No Sessions", systemImage: "tray")
+            } description: {
+                Text("Create a session to start practicing.")
+            } actions: {
+                Button("New Session") { model.navigate(to: .create) }
+                    .buttonStyle(.glassProminent)
+            }
             .frame(maxWidth: .infinity, minHeight: 420)
             .desktopPanel()
         } else {
@@ -485,7 +492,6 @@ struct SessionInspector: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(Studio.inspector)
     }
 
     private func sessionDetail(_ label: String, value: String) -> some View {
@@ -547,35 +553,36 @@ struct TakeInspector: View {
 
                     Divider()
 
-                    Button(action: model.copyAICoachPrompt) {
-                        Label("Copy AI Coach Prompt", systemImage: "doc.on.doc.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    VStack(spacing: 8) {
+                        Button(action: model.copyAICoachPrompt) {
+                            Label("Copy Coach Prompt", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(StudioInspectorButtonStyle(role: .accented))
+                        .help("Copy a prompt with this take’s measurements for an AI coach")
 
-                    Button(action: model.copyReport) {
-                        Label("Copy Raw JSON", systemImage: "curlybraces")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
+                        Button(action: model.exportCurrent) {
+                            Label("Export Audio + JSON", systemImage: "square.and.arrow.up")
+                        }
+                        .buttonStyle(StudioInspectorButtonStyle(role: .neutral))
+                        .help("Export the recording and analysis files")
 
-                    Button(action: model.exportCurrent) {
-                        Label("Export Audio + JSON", systemImage: "square.and.arrow.up")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
+                        HStack(spacing: 8) {
+                            Menu {
+                                Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyReport)
+                            } label: {
+                                Label("More", systemImage: "ellipsis")
+                            }
+                            .menuStyle(.button)
+                            .buttonStyle(StudioInspectorButtonStyle(role: .neutral))
 
-                    Divider()
-
-                    Button("Delete Take", systemImage: "trash", role: .destructive) {
-                        requestDelete(take.id)
+                            Button(action: { requestDelete(take.id) }) {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .buttonStyle(StudioInspectorButtonStyle(role: .destructive))
+                            .disabled(model.isPlaying || model.isAnalyzing)
+                            .help("Delete this take")
+                        }
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
-                    .disabled(model.isPlaying || model.isAnalyzing)
                 }
                 .padding(16)
                 .modifier(DeleteTakeDialog(takeID: $takePendingDelete) { takeID in
@@ -584,7 +591,6 @@ struct TakeInspector: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(Studio.inspector)
     }
 
     private func takeNumber(_ take: PracticeSession, in session: CoachingSession) -> Int {
@@ -606,6 +612,7 @@ struct TakeInspector: View {
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(Color.white)
                     .monospacedDigit()
+                    .contentTransition(.numericText())
                 Text(unit)
                     .font(.caption)
                     .foregroundStyle(Studio.secondary)
@@ -618,6 +625,7 @@ struct TakeInspector: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(Studio.surface, in: RoundedRectangle(cornerRadius: 8))
+        .background(Studio.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .animation(.smooth(duration: 0.22), value: value)
     }
 }

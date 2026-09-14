@@ -20,20 +20,23 @@ struct StudioPage<Content: View>: View {
 struct StudioCard: ViewModifier {
     var cornerRadius: CGFloat = 16
     var emphasized = false
+    @Environment(\.studioSnapshot) private var snapshot
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     func body(content: Content) -> some View {
-        let surfaceOpacity = emphasized ? 1.0 : 0.82
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         let borderColor = emphasized ? Studio.accent.opacity(0.18) : Studio.line
 
         content
-            .background(
-                Studio.surface.opacity(surfaceOpacity),
-                in: RoundedRectangle(cornerRadius: cornerRadius)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(borderColor, lineWidth: 0.5)
-            )
+            .background {
+                if snapshot || reduceTransparency {
+                    shape.fill(Studio.surface.opacity(emphasized ? 1.0 : 0.82))
+                } else {
+                    shape.fill(.regularMaterial)
+                        .overlay { shape.fill(Studio.surface.opacity(emphasized ? 0.55 : 0.38)) }
+                }
+            }
+            .overlay(shape.stroke(borderColor, lineWidth: 0.5))
     }
 }
 
@@ -42,8 +45,45 @@ extension View {
         modifier(StudioCard(cornerRadius: cornerRadius, emphasized: emphasized))
     }
 
+    /// Content-layer panel used by the desktop shell (not Liquid Glass).
     func desktopPanel() -> some View {
-        background(Studio.surface, in: RoundedRectangle(cornerRadius: 10))
+        modifier(DesktopPanel())
+    }
+
+    func studioHoverLift() -> some View {
+        modifier(StudioHoverLift())
+    }
+}
+
+private struct DesktopPanel: ViewModifier {
+    @Environment(\.studioSnapshot) private var snapshot
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        content
+            .background {
+                if snapshot || reduceTransparency {
+                    shape.fill(Studio.surface)
+                } else {
+                    shape.fill(.regularMaterial)
+                        .overlay { shape.fill(Studio.surface.opacity(0.55)) }
+                }
+            }
+    }
+}
+
+struct StudioHoverLift: ViewModifier {
+    @Environment(\.studioSnapshot) private var snapshot
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hovering = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(!snapshot && !reduceMotion && hovering ? 1.01 : 1)
+            .brightness(!snapshot && hovering ? 0.02 : 0)
+            .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: hovering)
+            .onHover { if !snapshot { hovering = $0 } }
     }
 }
 
@@ -79,12 +119,13 @@ struct TakePlaybackRow: View {
         HStack(spacing: large ? 18 : 11) {
             Button(action: model.playCurrent) {
                 Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: large ? 18 : 11, weight: .semibold))
-                    .foregroundStyle(Studio.background)
-                    .frame(width: large ? 54 : 32, height: large ? 54 : 32)
-                    .background(Studio.accent, in: Circle())
+                    .font(.system(size: large ? 16 : 11, weight: .semibold))
+                    .frame(width: large ? 44 : 32, height: large ? 44 : 32)
+                    .contentShape(Circle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .tint(.primary)
             .help(spaceShortcut ? "Play or pause (Space)" : "Play or pause")
             .modifier(ConditionalSpaceShortcut(enabled: spaceShortcut))
 
@@ -168,7 +209,7 @@ struct EmptyState: View {
             Image(systemName: icon).font(.system(size: 34, weight: .light)).foregroundStyle(Studio.accent)
             Text(title).font(.system(size: 22, weight: .medium))
             Text(detail).font(.system(size: 12)).foregroundStyle(Studio.secondary).multilineTextAlignment(.center)
-            Button(actionTitle, action: action).buttonStyle(StudioButtonStyle(prominent: true))
+            Button(actionTitle, action: action).buttonStyle(.glassProminent)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 72)
