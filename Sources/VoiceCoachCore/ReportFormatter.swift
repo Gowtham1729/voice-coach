@@ -24,7 +24,7 @@ public enum ReportFormatter {
         }
         let pitchContour = normalizedContour(
             result.pitchContour,
-            count: 12,
+            count: 24,
             reference: value.medianPitchHz,
             transform: { frequency, median in 12 * log2(frequency / median) }
         )
@@ -33,7 +33,7 @@ public enum ReportFormatter {
         }
         let loudnessContour = normalizedContour(
             activeLoudness,
-            count: 12,
+            count: 24,
             reference: value.meanLoudnessDBFS,
             transform: { loudness, mean in loudness - mean }
         )
@@ -70,15 +70,17 @@ public enum ReportFormatter {
                 "contour_relative_db": loudnessContour
             ],
             "pauses": [
-                "pause_ratio": rounded(value.pauseRatio, 2),
-                "pause_count": value.pauseCount,
-                "mean_pause_ms": rounded(value.meanPauseMs, 0),
-                "median_pause_ms": rounded(value.medianPauseMs, 0),
-                "longest_pause_ms": rounded(value.longestPauseMs, 0)
+                "non_speech_ratio": rounded(value.nonSpeechRatio, 2),
+                "internal_pause_count": value.internalPauseCount,
+                "internal_pause_total_ms": rounded(value.internalPauseTotalMs, 0),
+                "mean_internal_pause_ms": rounded(value.meanInternalPauseMs, 0),
+                "median_internal_pause_ms": rounded(value.medianInternalPauseMs, 0),
+                "longest_internal_pause_ms": rounded(value.longestInternalPauseMs, 0),
+                "leading_silence_ms": rounded(value.leadingSilenceMs, 0),
+                "trailing_silence_ms": rounded(value.trailingSilenceMs, 0)
             ],
             "voice_quality": [
-                "hnr_db": json(value.hnrDB, places: 2),
-                "cpp_db": json(value.cppDB, places: 2)
+                "hnr_db": json(value.hnrDB, places: 2)
             ],
             "transcription": [
                 "text": transcriptionText
@@ -93,17 +95,54 @@ public enum ReportFormatter {
                         "median_hz": json(word.pitch.medianHz, places: 1),
                         "relative_median_semitones": json(word.pitch.relativeMedianSemitones, places: 2),
                         "range_semitones": json(word.pitch.rangeSemitones, places: 2),
-                        "start_to_end_semitones": json(word.pitch.startToEndSemitones, places: 2)
+                        "start_to_end_semitones": json(word.pitch.startToEndSemitones, places: 2),
+                        "valid_pitch_frames": word.pitch.validPitchFrames,
+                        "pitch_coverage": rounded(word.pitch.pitchCoverage, 2)
                     ],
                     "loudness": [
                         "relative_mean_db": json(word.loudness.relativeMeanDB, places: 2),
-                        "start_to_end_db": json(word.loudness.startToEndDB, places: 2)
+                        "start_to_end_db": json(word.loudness.startToEndDB, places: 2),
+                        "active_frame_coverage": rounded(word.loudness.activeFrameCoverage, 2)
                     ]
                 ] as [String: Any]
             }
         ]
 
         return encode(report)
+    }
+
+    /// Generates an aligned frame-by-frame timeline inspection string for debugging acoustic analysis,
+    /// showing time, RMS loudness, VAD activation, pitch estimation, and ASR word boundaries.
+    public static func makeTimelineDebug(session: PracticeSession) -> String {
+        let activeThreshold = min(-32, max(-50, session.result.metrics.noiseFloorDBFS + 8))
+        var lines: [String] = []
+        lines.append(String(format: "%-10@ | %-12@ | %-8@ | %-12@ | %@", "Time (s)", "Loudness", "VAD", "Pitch (Hz)", "ASR Word"))
+        lines.append(String(repeating: "-", count: 64))
+
+        let pitchPoints = session.result.acousticFrames.pitch
+        var pitchIndex = 0
+
+        for frame in session.result.acousticFrames.loudness {
+            let t = frame.time
+            let db = frame.value
+            let vad = db >= activeThreshold ? "ACTIVE" : "SILENCE"
+
+            while pitchIndex < pitchPoints.count && pitchPoints[pitchIndex].time < t - 0.006 {
+                pitchIndex += 1
+            }
+            let pitchStr: String
+            if pitchIndex < pitchPoints.count && abs(pitchPoints[pitchIndex].time - t) <= 0.006 {
+                pitchStr = String(format: "%6.1f Hz", pitchPoints[pitchIndex].value)
+            } else {
+                pitchStr = "    ----   "
+            }
+
+            let word = session.words.first(where: { $0.start <= t && t <= $0.end })?.word ?? ""
+
+            lines.append(String(format: "%10.3f | %8.2f dBFS | %-8@ | %@ | %@", t, db, vad, pitchStr, word))
+        }
+
+        return lines.joined(separator: "\n")
     }
 
     private static func encode(_ report: [String: Any]) -> String {
@@ -123,12 +162,19 @@ public enum ReportFormatter {
         transform: (Double, Double) -> Double
     ) -> [Decimal] {
         guard !points.isEmpty, let reference, reference != 0 else { return [] }
-        let bucketCount = min(count, points.count)
-        return (0..<bucketCount).map { bucket in
-            let start = bucket * points.count / bucketCount
-            let end = max(start + 1, (bucket + 1) * points.count / bucketCount)
-            let representative = median(points[start..<min(end, points.count)].map(\.value))
-            return rounded(transform(representative, reference), 2)
+        if points.count >= count {
+            return (0..<count).map { bucket in
+                let start = bucket * points.count / count
+                let end = max(start + 1, (bucket + 1) * points.count / count)
+                let representative = median(points[start..<min(end, points.count)].map(\.value))
+                return rounded(transform(representative, reference), 2)
+            }
+        } else {
+            return (0..<count).map { bucket in
+                let index = bucket * (points.count - 1) / max(1, count - 1)
+                let representative = points[index].value
+                return rounded(transform(representative, reference), 2)
+            }
         }
     }
 

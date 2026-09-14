@@ -73,27 +73,39 @@ public struct WordPitchMetrics: Codable, Sendable, Equatable {
     public let relativeMedianSemitones: Double?
     public let rangeSemitones: Double?
     public let startToEndSemitones: Double?
+    public let validPitchFrames: Int
+    public let pitchCoverage: Double
 
     public init(
         medianHz: Double?,
         relativeMedianSemitones: Double?,
         rangeSemitones: Double?,
-        startToEndSemitones: Double?
+        startToEndSemitones: Double?,
+        validPitchFrames: Int = 0,
+        pitchCoverage: Double = 0.0
     ) {
         self.medianHz = medianHz
         self.relativeMedianSemitones = relativeMedianSemitones
         self.rangeSemitones = rangeSemitones
         self.startToEndSemitones = startToEndSemitones
+        self.validPitchFrames = validPitchFrames
+        self.pitchCoverage = pitchCoverage
     }
 }
 
 public struct WordLoudnessMetrics: Codable, Sendable, Equatable {
     public let relativeMeanDB: Double?
     public let startToEndDB: Double?
+    public let activeFrameCoverage: Double
 
-    public init(relativeMeanDB: Double?, startToEndDB: Double?) {
+    public init(
+        relativeMeanDB: Double?,
+        startToEndDB: Double?,
+        activeFrameCoverage: Double = 0.0
+    ) {
         self.relativeMeanDB = relativeMeanDB
         self.startToEndDB = startToEndDB
+        self.activeFrameCoverage = activeFrameCoverage
     }
 }
 
@@ -126,11 +138,14 @@ public struct VoiceMetrics: Codable, Sendable, Equatable {
     public let noiseFloorDBFS: Double
     public let snrDB: Double
     public let clippingPercent: Double
-    public let pauseCount: Int
-    public let meanPauseMs: Double
-    public let medianPauseMs: Double
-    public let longestPauseMs: Double
-    public let pauseRatio: Double
+    public let nonSpeechRatio: Double
+    public let internalPauseCount: Int
+    public let internalPauseTotalMs: Double
+    public let meanInternalPauseMs: Double
+    public let medianInternalPauseMs: Double
+    public let longestInternalPauseMs: Double
+    public let leadingSilenceMs: Double
+    public let trailingSilenceMs: Double
     public let meanLoudnessDBFS: Double
     public let loudnessDynamicRangeDB: Double
     public let loudnessStandardDeviationDB: Double
@@ -147,6 +162,12 @@ public struct VoiceMetrics: Codable, Sendable, Equatable {
     public let hnrDB: Double?
     public let cppDB: Double?
 
+    public var pauseCount: Int { internalPauseCount }
+    public var pauseRatio: Double { nonSpeechRatio }
+    public var meanPauseMs: Double { meanInternalPauseMs }
+    public var medianPauseMs: Double { medianInternalPauseMs }
+    public var longestPauseMs: Double { longestInternalPauseMs }
+
     public init(
         duration: Double,
         activeSpeechDuration: Double,
@@ -154,11 +175,14 @@ public struct VoiceMetrics: Codable, Sendable, Equatable {
         noiseFloorDBFS: Double,
         snrDB: Double,
         clippingPercent: Double,
-        pauseCount: Int,
-        meanPauseMs: Double,
-        medianPauseMs: Double,
-        longestPauseMs: Double,
-        pauseRatio: Double,
+        nonSpeechRatio: Double,
+        internalPauseCount: Int,
+        internalPauseTotalMs: Double,
+        meanInternalPauseMs: Double,
+        medianInternalPauseMs: Double,
+        longestInternalPauseMs: Double,
+        leadingSilenceMs: Double,
+        trailingSilenceMs: Double,
         meanLoudnessDBFS: Double,
         loudnessDynamicRangeDB: Double,
         loudnessStandardDeviationDB: Double,
@@ -181,11 +205,14 @@ public struct VoiceMetrics: Codable, Sendable, Equatable {
         self.noiseFloorDBFS = noiseFloorDBFS
         self.snrDB = snrDB
         self.clippingPercent = clippingPercent
-        self.pauseCount = pauseCount
-        self.meanPauseMs = meanPauseMs
-        self.medianPauseMs = medianPauseMs
-        self.longestPauseMs = longestPauseMs
-        self.pauseRatio = pauseRatio
+        self.nonSpeechRatio = nonSpeechRatio
+        self.internalPauseCount = internalPauseCount
+        self.internalPauseTotalMs = internalPauseTotalMs
+        self.meanInternalPauseMs = meanInternalPauseMs
+        self.medianInternalPauseMs = medianInternalPauseMs
+        self.longestInternalPauseMs = longestInternalPauseMs
+        self.leadingSilenceMs = leadingSilenceMs
+        self.trailingSilenceMs = trailingSilenceMs
         self.meanLoudnessDBFS = meanLoudnessDBFS
         self.loudnessDynamicRangeDB = loudnessDynamicRangeDB
         self.loudnessStandardDeviationDB = loudnessStandardDeviationDB

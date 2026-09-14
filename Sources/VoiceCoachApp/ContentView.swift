@@ -290,7 +290,7 @@ struct ContentView: View {
             MetricReadout(title: "Signal to noise", value: number(metrics.snrDB, 1), unit: "dB", detail: "Recording quality", secondary: true)
             MetricReadout(title: "HNR estimate", value: optional(metrics.hnrDB, 1), unit: "dB", detail: "Periodicity proxy", secondary: true)
             MetricReadout(title: "CPP estimate", value: optional(metrics.cppDB, 1), unit: "dB", detail: "Cepstral prominence", secondary: true)
-            MetricReadout(title: "Pauses", value: "\(metrics.pauseCount)", unit: "", detail: "\(number(metrics.pauseRatio * 100, 0))% of recording", secondary: true)
+            MetricReadout(title: "Pauses", value: "\(metrics.internalPauseCount)", unit: "", detail: "\(number(metrics.nonSpeechRatio * 100, 0))% non-speech", secondary: true)
         }
         .padding(.vertical, 8)
     }
@@ -426,7 +426,7 @@ struct ContentView: View {
     private var reportPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 14) {
-                Button { showReport.toggle() } label: {
+                Button { showReport = !showReport } label: {
                     HStack(spacing: 10) {
                         Image(systemName: "chevron.right").rotationEffect(.degrees(showReport ? 90 : 0))
                             .font(.system(size: 9, weight: .semibold))
