@@ -3,132 +3,135 @@ import AppKit
 import SwiftUI
 import VoiceCoachCore
 
-/// Opt-in visual fixtures; never reads the microphone or personal recordings.
+/// Opt-in visual and persistence fixtures; never reads the microphone or personal recordings.
 @MainActor
 func renderStudioPreviewsIfRequested() {
     guard let index = CommandLine.arguments.firstIndex(of: "--render-previews"),
           CommandLine.arguments.indices.contains(index + 1) else { return }
-    let directory = URL(fileURLWithPath: CommandLine.arguments[index + 1], isDirectory: true)
+    let output = URL(fileURLWithPath: CommandLine.arguments[index + 1], isDirectory: true)
+    let fixtureRoot = output.appendingPathComponent("fixture-library", isDirectory: true)
+
     do {
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let model = AppModel()
-        func render(
-            _ name: String,
-            width: CGFloat = 1120,
-            height: CGFloat = 840,
-            plot: AnalysisPlot = .pitch,
-            expanded: Bool = false,
-            selectedWord: Int? = nil
-        ) throws {
-            let view = ContentView(
-                initialPlot: plot,
-                reportExpanded: expanded,
-                initialSelectedWordIndex: selectedWord
-            ).environmentObject(model)
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let sessions = makePreviewSessions(root: fixtureRoot)
+        let store = try SessionStore(rootURL: fixtureRoot)
+        try store.save(sessions)
+
+        let model = AppModel(storageRoot: fixtureRoot)
+        precondition(model.sessions == sessions.sorted { $0.updatedAt > $1.updatedAt })
+        precondition(model.totalTakeCount == sessions.reduce(0) { $0 + $1.takeCount })
+
+        func render(_ name: String, width: CGFloat = 1440, height: CGFloat = 920) throws {
+            let view = ContentView()
+                .environmentObject(model)
                 .environment(\.studioSnapshot, true)
                 .frame(width: width, height: height)
             let renderer = ImageRenderer(content: view)
-            renderer.scale = 2
+            renderer.scale = 1
             guard let image = renderer.cgImage,
-                  let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
-                throw NSError(domain: "StudioPreview", code: 1)
-            }
-            try png.write(to: directory.appendingPathComponent(name + ".png"))
+                  let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+            else { throw NSError(domain: "VoiceCoachPreview", code: 1) }
+            try png.write(to: output.appendingPathComponent(name + ".png"))
         }
-        try render("studio-ready")
-        try render("studio-compact", width: 800, height: 680)
+
+        model.destination = .studio
+        try render("01-studio")
+        model.destination = .create
+        try render("02-create-session")
+        model.resumeSession(model.sessions[0].id)
+        try render("03-practice")
+        if let latest = model.selectedTake {
+            model.review(sessionID: model.sessions[0].id, takeID: latest.id)
+        }
+        try render("04-review", height: 980)
+        model.destination = .sessions
+        try render("05-sessions")
+        model.destination = .insights
+        try render("06-insights")
+        model.destination = .settings
+        try render("07-settings")
+        model.destination = .practice(model.sessions[0].id)
         model.isRecording = true
-        model.liveLevel = -18
+        model.liveLevel = -17
         model.elapsed = 12.4
-        try render("studio-recording")
-        model.isRecording = false
-        model.isAnalyzing = true
-        try render("studio-analyzing")
-        model.isAnalyzing = false
-        let rate = 16_000.0
-        let samples = (0..<Int(rate * 12)).map { index -> Float in
-            let time = Double(index) / rate
-            let phrase = time.truncatingRemainder(dividingBy: 3)
-            let amplitude = phrase > 2.5 ? 0.0001 : (0.18 + 0.1 * sin(time * 3))
-            let phase = 2 * Double.pi * 168 * time + 4 * sin(time * 2)
-            return Float(amplitude * (sin(phase) + 0.3 * sin(2 * phase)))
-        }
-        let result = AudioAnalyzer().analyze(samples: samples, sampleRate: rate)
-        let previewTranscription = TranscriptionResult(
-            text: "I want to speak with a little more intention and finish each thought clearly.",
-            words: [
-                TranscriptWord(word: "I", start: 0.20, end: 0.42),
-                TranscriptWord(word: "want", start: 0.44, end: 0.82),
-                TranscriptWord(word: "to", start: 0.84, end: 1.02),
-                TranscriptWord(word: "speak", start: 1.04, end: 1.52),
-                TranscriptWord(word: "with", start: 1.56, end: 1.86),
-                TranscriptWord(word: "a", start: 1.88, end: 2.02),
-                TranscriptWord(word: "little", start: 3.02, end: 3.42),
-                TranscriptWord(word: "more", start: 3.44, end: 3.82),
-                TranscriptWord(word: "intention", start: 3.84, end: 4.60),
-                TranscriptWord(word: "and", start: 4.64, end: 4.88),
-                TranscriptWord(word: "finish", start: 6.04, end: 6.52),
-                TranscriptWord(word: "each", start: 6.55, end: 6.88),
-                TranscriptWord(word: "thought", start: 6.92, end: 7.42),
-                TranscriptWord(word: "clearly.", start: 7.48, end: 8.10)
-            ]
-        )
-        let previewWords = WordAcousticAnalyzer().analyze(
-            transcription: previewTranscription,
-            result: result
-        )
-        model.session = PracticeSession(
-            audioURL: directory.appendingPathComponent("synthetic.wav"),
-            result: result,
-            transcription: previewTranscription,
-            words: previewWords
-        )
-        try render("studio-results", height: 1160)
-        try render("studio-results-compact", width: 800, height: 1160)
-        try render("studio-wide", width: 1600, height: 1160)
-        try render("studio-loudness", height: 1160, plot: .loudness, selectedWord: 2)
-        try render("studio-spectrum", height: 1160, plot: .spectrum)
+        try render("08-recording")
 
-        func renderDiagramSnapshot(_ name: String, plot: AnalysisPlot = .spectrum, selectedWord: Int? = nil) throws {
-            let view = ContentView(initialPlot: plot, initialSelectedWordIndex: selectedWord)
-                .makeDiagramSnapshot(session: model.session!)
-                .environmentObject(model)
-            let renderer = ImageRenderer(content: view)
-            renderer.scale = 2
-            guard let image = renderer.cgImage,
-                  let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
-                throw NSError(domain: "StudioPreview", code: 2)
-            }
-            try png.write(to: directory.appendingPathComponent(name + ".png"))
-        }
-        try renderDiagramSnapshot("copied-diagram-spectrum", plot: .spectrum)
-        try renderDiagramSnapshot("copied-diagram-pitch", plot: .pitch, selectedWord: 2)
-
-        try render("studio-report", height: 1480, expanded: true)
-        model.isPlaying = true
-        model.playbackTime = 3.6
-        try render("studio-playback", height: 1160)
-        model.isPlaying = false
-        model.playbackTime = 0
-
-        // These transitions must not request the microphone or replace the previous take.
-        let previous = model.session
-        model.isAnalyzing = true
-        model.recordButtonPressed()
-        precondition(!model.isRecording && model.session == previous)
-        model.isAnalyzing = false
-        model.isRequestingPermission = true
-        model.recordButtonPressed()
-        precondition(!model.isRecording && model.session == previous)
-        model.isRequestingPermission = false
-        let silence = AudioAnalyzer().analyze(samples: [Float](repeating: 0, count: 16000), sampleRate: rate)
-        model.session = PracticeSession(audioURL: directory.appendingPathComponent("silence.wav"), result: silence)
-        try render("studio-silence", height: 1160)
-        print("Rendered 11 SwiftUI layout previews; busy-state guards passed. Output: \(directory.path)")
+        print("Rendered 8 major-upgrade previews; persistence round-trip passed. Output: \(output.path)")
         exit(0)
     } catch {
         print("Preview rendering failed: \(error)")
         exit(1)
     }
+}
+
+private func makePreviewSessions(root: URL) -> [CoachingSession] {
+    let calendar = Calendar.current
+    let now = Date()
+
+    func take(frequency: Double, duration: Double, text: String, offsetHours: Int) -> PracticeSession {
+        let rate = 16_000.0
+        let samples = (0..<Int(rate * duration)).map { index -> Float in
+            let time = Double(index) / rate
+            let phrase = time.truncatingRemainder(dividingBy: 3.1)
+            let amplitude = phrase > 2.66 ? 0.0002 : (0.18 + 0.07 * sin(time * 2.5))
+            let phase = 2 * Double.pi * frequency * time + 4.5 * sin(time * 1.8)
+            return Float(amplitude * (sin(phase) + 0.26 * sin(2 * phase)))
+        }
+        let result = AudioAnalyzer().analyze(samples: samples, sampleRate: rate)
+        let tokens = text.split(separator: " ")
+        let usable = max(duration - 0.4, 0.1)
+        let wordDuration = usable / Double(max(tokens.count, 1))
+        let transcriptWords = tokens.enumerated().map { index, token in
+            TranscriptWord(
+                word: String(token),
+                start: 0.2 + Double(index) * wordDuration,
+                end: min(duration, 0.2 + Double(index + 1) * wordDuration - 0.03)
+            )
+        }
+        let transcription = TranscriptionResult(text: text, words: transcriptWords)
+        let date = calendar.date(byAdding: .hour, value: offsetHours, to: now) ?? now
+        return PracticeSession(
+            createdAt: date,
+            audioURL: root.appendingPathComponent(UUID().uuidString + ".wav"),
+            result: result,
+            transcription: transcription,
+            words: WordAcousticAnalyzer().analyze(transcription: transcription, result: result)
+        )
+    }
+
+    let interviewTakes = [
+        take(frequency: 145, duration: 10.8, text: "I want to explain my experience clearly and give each idea enough space to land.", offsetHours: -4),
+        take(frequency: 154, duration: 11.3, text: "I can connect my experience to the problem and show the result with a calm steady pace.", offsetHours: -3),
+        take(frequency: 166, duration: 12.4, text: "I want to speak with a little more inflection and let the most important point be heard.", offsetHours: -2)
+    ]
+    let first = CoachingSession(
+        name: "Job Interview Prep",
+        createdAt: calendar.date(byAdding: .day, value: -3, to: now) ?? now,
+        updatedAt: calendar.date(byAdding: .hour, value: -2, to: now) ?? now,
+        mode: .general,
+        prompt: "Tell me about a difficult problem you solved and what changed because of your work.",
+        keepsRecordings: true,
+        takes: interviewTakes
+    )
+    let secondTake = take(frequency: 174, duration: 9.8, text: "Today I will make the recommendation simple direct and easy to remember.", offsetHours: -24)
+    let second = CoachingSession(
+        name: "Product Presentation",
+        createdAt: calendar.date(byAdding: .day, value: -5, to: now) ?? now,
+        updatedAt: calendar.date(byAdding: .day, value: -1, to: now) ?? now,
+        mode: .freeSpeaking,
+        prompt: "Explain the product decision in thirty seconds.",
+        keepsRecordings: true,
+        takes: [secondTake]
+    )
+    let third = CoachingSession(
+        name: "Thoughtful Communication",
+        createdAt: calendar.date(byAdding: .day, value: -8, to: now) ?? now,
+        updatedAt: calendar.date(byAdding: .day, value: -4, to: now) ?? now,
+        mode: .prompt,
+        prompt: "A thoughtful pause gives an idea room to land.",
+        keepsRecordings: true,
+        takes: [take(frequency: 158, duration: 8.6, text: "A thoughtful pause gives the next idea room to land clearly.", offsetHours: -96)]
+    )
+    return [first, second, third]
 }
 #endif

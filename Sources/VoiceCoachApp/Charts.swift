@@ -4,6 +4,20 @@ import AppKit
 import SwiftUI
 import VoiceCoachCore
 
+enum TimelineScale {
+    static func x(for time: Double, duration: Double, width: CGFloat) -> CGFloat {
+        guard duration > 0 else { return 0 }
+        let progress = max(0, min(1, time / duration))
+        return CGFloat(progress) * width
+    }
+
+    static func time(for x: CGFloat, width: CGFloat, duration: Double) -> Double {
+        guard width > 0 else { return 0 }
+        let progress = max(0, min(1, x / width))
+        return Double(progress) * duration
+    }
+}
+
 func contourValue(at time: Double, in points: [TimePoint]) -> Double? {
     guard !points.isEmpty else { return nil }
     var closest: TimePoint?
@@ -113,13 +127,13 @@ struct InteractiveGraphOverlay: View {
                             .onChanged { value in
                                 isDragging = true
                                 let clampedX = max(0, min(value.location.x, width))
-                                let time = (Double(clampedX) / Double(width)) * duration
+                                let time = TimelineScale.time(for: clampedX, width: width, duration: duration)
                                 dragTime = time
                                 onScrub?(time)
                             }
                             .onEnded { value in
                                 let clampedX = max(0, min(value.location.x, width))
-                                let time = (Double(clampedX) / Double(width)) * duration
+                                let time = TimelineScale.time(for: clampedX, width: width, duration: duration)
                                 isDragging = false
                                 dragTime = nil
                                 onSeek(time)
@@ -130,7 +144,7 @@ struct InteractiveGraphOverlay: View {
                         case .active(let location):
                             isHovered = true
                             let clampedX = max(0, min(location.x, width))
-                            hoverTime = (Double(clampedX) / Double(width)) * duration
+                            hoverTime = TimelineScale.time(for: clampedX, width: width, duration: duration)
                             #if os(macOS)
                             NSCursor.pointingHand.set()
                             #endif
@@ -146,7 +160,7 @@ struct InteractiveGraphOverlay: View {
                 // If active or hovered, render the playhead
                 if let targetTime = displayTime {
                     let clampedTime = max(0, min(targetTime, duration))
-                    let x = CGFloat(clampedTime / max(duration, 0.001)) * width
+                    let x = TimelineScale.x(for: clampedTime, duration: duration, width: width)
                     let isCurrentActive = activeTime != nil
                     let label = showBadge ? makeBadgeLabel(for: clampedTime) : nil
 
@@ -184,6 +198,7 @@ struct InteractiveGraphOverlay: View {
 
 struct WaveformView: View {
     let points: [WaveformPoint]
+    let duration: Double
     var color: Color = Studio.accent
 
     var body: some View {
@@ -196,7 +211,10 @@ struct WaveformView: View {
             context.stroke(baseline, with: .color(Studio.line), lineWidth: 1)
             var path = Path()
             for (index, point) in points.enumerated() {
-                let x = CGFloat(index) / CGFloat(max(points.count - 1, 1)) * size.width
+                // Each amplitude bin represents the center of an equal portion of the recording.
+                // Mapping it through TimelineScale keeps it in the exact same time space as the charts.
+                let time = (Double(index) + 0.5) / Double(points.count) * duration
+                let x = TimelineScale.x(for: time, duration: duration, width: size.width)
                 path.move(to: CGPoint(x: x, y: middle - CGFloat(point.maximum) * middle))
                 path.addLine(to: CGPoint(x: x, y: middle - CGFloat(point.minimum) * middle))
             }
@@ -218,7 +236,7 @@ struct InteractiveWaveformView: View {
 
     var body: some View {
         ZStack {
-            WaveformView(points: points, color: color)
+            WaveformView(points: points, duration: duration, color: color)
             TimeRangeHighlight(range: highlightedRange, duration: duration)
             if let onSeek {
                 InteractiveGraphOverlay(
@@ -236,6 +254,41 @@ struct InteractiveWaveformView: View {
     }
 }
 
+/// A waveform row that shares the exact left gutter and time width of `LabeledLineChart`.
+/// Use it directly beneath an analysis chart so playheads line up in screen space.
+struct AlignedWaveformRow: View {
+    let points: [WaveformPoint]
+    let duration: Double
+    var playbackTime: Double = 0
+    var isPlaying = false
+    var highlightedRange: ClosedRange<Double>? = nil
+    var onSeek: ((Double) -> Void)? = nil
+    var onScrub: ((Double) -> Void)? = nil
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(spacing: 3) {
+                Image(systemName: "waveform")
+                    .font(.system(size: 11, weight: .medium))
+                Text(String(format: "%.1fs", duration))
+                    .font(.system(size: 8, design: .monospaced))
+            }
+            .foregroundStyle(Studio.secondary)
+            .frame(width: 55, alignment: .trailing)
+
+            InteractiveWaveformView(
+                points: points,
+                duration: duration,
+                playbackTime: playbackTime,
+                isPlaying: isPlaying,
+                highlightedRange: highlightedRange,
+                onSeek: onSeek,
+                onScrub: onScrub
+            )
+        }
+    }
+}
+
 struct LineChartView: View {
     let points: [TimePoint]
     let color: Color
@@ -248,7 +301,7 @@ struct LineChartView: View {
             var path = Path()
             var started = false
             for point in points {
-                let x = CGFloat(point.time / finalTime) * size.width
+                let x = TimelineScale.x(for: point.time, duration: finalTime, width: size.width)
                 let normalized = (point.value - range.lowerBound) / max(range.upperBound - range.lowerBound, 0.001)
                 let y = size.height - CGFloat(max(0, min(1, normalized))) * size.height
                 if started { path.addLine(to: CGPoint(x: x, y: y)) }
@@ -381,8 +434,9 @@ struct TimeRangeHighlight: View {
             if let range, duration > 0 {
                 let start = max(0, min(range.lowerBound, duration))
                 let end = max(start, min(range.upperBound, duration))
-                let width = CGFloat((end - start) / duration) * geometry.size.width
-                let x = CGFloat(start / duration) * geometry.size.width
+                let x = TimelineScale.x(for: start, duration: duration, width: geometry.size.width)
+                let endX = TimelineScale.x(for: end, duration: duration, width: geometry.size.width)
+                let width = endX - x
                 Rectangle()
                     .fill(Studio.accent.opacity(0.13))
                     .overlay(alignment: .leading) { Rectangle().fill(Studio.accent.opacity(0.8)).frame(width: 1) }

@@ -14,9 +14,9 @@ struct VoiceCoachApplication: App {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
-                .frame(minWidth: 800, minHeight: 680)
+                .frame(minWidth: 980, minHeight: 700)
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 1120, height: 840)
+        .defaultSize(width: 1440, height: 900)
     }
 }
