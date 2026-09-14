@@ -269,29 +269,63 @@ struct ContentView: View {
                         onScrub: { time in model.seek(to: time, autoplay: false) }
                     )
                 case .spectrum:
-                    VStack(spacing: 9) {
-                        HStack { Text("Up to \(Int(min(8000, result.metrics.sampleRateHz / 2))) Hz"); Spacer(); Text("Brighter = stronger") }
-                            .font(.system(size: 9, design: .monospaced)).foregroundStyle(Studio.secondary)
-                        ZStack {
-                            SpectrogramView(data: result.spectrogram).frame(height: 122).clipShape(RoundedRectangle(cornerRadius: 5))
-                            InteractiveGraphOverlay(
-                                duration: result.metrics.duration,
-                                playbackTime: model.playbackTime,
-                                isPlaying: model.isPlaying,
-                                points: nil,
-                                unit: nil,
-                                onSeek: { time in model.seek(to: time, autoplay: true) },
-                                onScrub: { time in model.seek(to: time, autoplay: false) }
-                            )
+                    VStack(spacing: 10) {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .trailing) {
+                                Text("\(Int(min(8000, result.metrics.sampleRateHz / 2))) Hz")
+                                Spacer()
+                                Text("\(Int(min(4000, result.metrics.sampleRateHz / 4))) Hz")
+                                Spacer()
+                                Text("0 Hz")
+                            }
+                            .frame(width: 55, alignment: .trailing)
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(Studio.secondary)
+
+                            ZStack {
+                                SpectrogramView(data: result.spectrogram)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                InteractiveGraphOverlay(
+                                    duration: result.metrics.duration,
+                                    playbackTime: model.playbackTime,
+                                    isPlaying: model.isPlaying,
+                                    points: nil,
+                                    unit: nil,
+                                    onSeek: { time in model.seek(to: time, autoplay: true) },
+                                    onScrub: { time in model.seek(to: time, autoplay: false) }
+                                )
+                            }
                         }
-                        HStack { Text("0 Hz · 0s"); Spacer(); Text("\(number(result.metrics.duration, 1))s") }
-                            .font(.system(size: 9, design: .monospaced)).foregroundStyle(Studio.secondary)
+                        HStack {
+                            Text("0s")
+                            Spacer()
+                            Text(String(format: "%.1fs", result.metrics.duration / 2))
+                            Spacer()
+                            Text(String(format: "%.1fs", result.metrics.duration))
+                        }
+                        .padding(.leading, 67)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(Studio.secondary)
                     }
                 }
             }.frame(height: 164)
             Rectangle().fill(Studio.line).frame(height: 1)
-            HStack(spacing: 18) {
-                Image(systemName: "waveform").foregroundStyle(Studio.secondary)
+            HStack(spacing: 12) {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Image(systemName: "waveform").font(.system(size: 13, weight: .medium))
+                    if model.isPlaying || model.playbackTime > 0.05 {
+                        Text(String(format: "%.1fs", model.playbackTime))
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(Studio.accent)
+                    } else {
+                        Text(String(format: "%.1fs", result.metrics.duration))
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(Studio.secondary)
+                    }
+                }
+                .frame(width: 55, alignment: .trailing)
+                .foregroundStyle(Studio.secondary)
+
                 InteractiveWaveformView(
                     points: result.waveform,
                     duration: result.metrics.duration,
@@ -300,11 +334,8 @@ struct ContentView: View {
                     color: Studio.accent,
                     onSeek: { time in model.seek(to: time, autoplay: true) },
                     onScrub: { time in model.seek(to: time, autoplay: false) }
-                ).frame(height: 38)
-                Text(playbackDurationLabel(current: model.playbackTime, total: result.metrics.duration))
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(Studio.secondary)
-                    .monospacedDigit()
+                )
+                .frame(height: 38)
             }
         }
         .padding(22)
