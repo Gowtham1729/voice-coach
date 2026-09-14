@@ -73,6 +73,7 @@ struct TakePlaybackRow: View {
     let take: PracticeSession
     var large = false
     var spaceShortcut = false
+    var highlightedRange: ClosedRange<Double>? = nil
 
     var body: some View {
         HStack(spacing: large ? 18 : 11) {
@@ -93,7 +94,7 @@ struct TakePlaybackRow: View {
                     duration: take.result.metrics.duration,
                     playbackTime: model.playbackTime,
                     isPlaying: model.isPlaying,
-                    highlightedRange: nil,
+                    highlightedRange: highlightedRange,
                     onSeek: { model.seek(to: $0, autoplay: true) },
                     onScrub: { model.seek(to: $0) }
                 )
@@ -108,6 +109,7 @@ struct TakePlaybackRow: View {
                     .foregroundStyle(Studio.secondary)
                 }
             }
+            .frame(maxWidth: .infinity)
             Text(spaceShortcut ? "SPACE" : "1×")
                 .font(.system(size: spaceShortcut ? 9 : 10, design: .monospaced))
                 .tracking(spaceShortcut ? 1.2 : 0)
