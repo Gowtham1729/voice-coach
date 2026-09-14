@@ -245,14 +245,45 @@ struct ContentView: View {
             Group {
                 switch selectedPlot {
                 case .pitch:
-                    LabeledLineChart(points: result.pitchContour, color: Studio.accent, range: pitchBounds(result), duration: result.metrics.duration, unit: "Hz")
+                    LabeledLineChart(
+                        points: result.pitchContour,
+                        color: Studio.accent,
+                        range: pitchBounds(result),
+                        duration: result.metrics.duration,
+                        unit: "Hz",
+                        playbackTime: model.playbackTime,
+                        isPlaying: model.isPlaying,
+                        onSeek: { time in model.seek(to: time, autoplay: true) },
+                        onScrub: { time in model.seek(to: time, autoplay: false) }
+                    )
                 case .loudness:
-                    LabeledLineChart(points: result.loudnessContour, color: Studio.accent, range: -60...0, duration: result.metrics.duration, unit: "dBFS")
+                    LabeledLineChart(
+                        points: result.loudnessContour,
+                        color: Studio.accent,
+                        range: -60...0,
+                        duration: result.metrics.duration,
+                        unit: "dBFS",
+                        playbackTime: model.playbackTime,
+                        isPlaying: model.isPlaying,
+                        onSeek: { time in model.seek(to: time, autoplay: true) },
+                        onScrub: { time in model.seek(to: time, autoplay: false) }
+                    )
                 case .spectrum:
                     VStack(spacing: 9) {
                         HStack { Text("Up to \(Int(min(8000, result.metrics.sampleRateHz / 2))) Hz"); Spacer(); Text("Brighter = stronger") }
                             .font(.system(size: 9, design: .monospaced)).foregroundStyle(Studio.secondary)
-                        SpectrogramView(data: result.spectrogram).frame(height: 122).clipShape(RoundedRectangle(cornerRadius: 5))
+                        ZStack {
+                            SpectrogramView(data: result.spectrogram).frame(height: 122).clipShape(RoundedRectangle(cornerRadius: 5))
+                            InteractiveGraphOverlay(
+                                duration: result.metrics.duration,
+                                playbackTime: model.playbackTime,
+                                isPlaying: model.isPlaying,
+                                points: nil,
+                                unit: nil,
+                                onSeek: { time in model.seek(to: time, autoplay: true) },
+                                onScrub: { time in model.seek(to: time, autoplay: false) }
+                            )
+                        }
                         HStack { Text("0 Hz · 0s"); Spacer(); Text("\(number(result.metrics.duration, 1))s") }
                             .font(.system(size: 9, design: .monospaced)).foregroundStyle(Studio.secondary)
                     }
@@ -261,8 +292,19 @@ struct ContentView: View {
             Rectangle().fill(Studio.line).frame(height: 1)
             HStack(spacing: 18) {
                 Image(systemName: "waveform").foregroundStyle(Studio.secondary)
-                WaveformView(points: result.waveform, color: Studio.accent).frame(height: 38)
-                Text("\(number(result.metrics.duration, 1))s").font(.system(size: 10, design: .monospaced)).foregroundStyle(Studio.secondary)
+                InteractiveWaveformView(
+                    points: result.waveform,
+                    duration: result.metrics.duration,
+                    playbackTime: model.playbackTime,
+                    isPlaying: model.isPlaying,
+                    color: Studio.accent,
+                    onSeek: { time in model.seek(to: time, autoplay: true) },
+                    onScrub: { time in model.seek(to: time, autoplay: false) }
+                ).frame(height: 38)
+                Text(playbackDurationLabel(current: model.playbackTime, total: result.metrics.duration))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(Studio.secondary)
+                    .monospacedDigit()
             }
         }
         .padding(22)
@@ -312,6 +354,13 @@ struct ContentView: View {
     }
     private func duration(_ seconds: TimeInterval) -> String {
         String(format: "%02d:%04.1f", Int(seconds) / 60, seconds.truncatingRemainder(dividingBy: 60))
+    }
+    private func playbackDurationLabel(current: Double, total: Double) -> String {
+        if model.isPlaying || current > 0.05 {
+            return "\(number(current, 1))s / \(number(total, 1))s"
+        } else {
+            return "\(number(total, 1))s"
+        }
     }
     private func number(_ value: Double, _ decimals: Int) -> String { value.formatted(.number.precision(.fractionLength(decimals))) }
     private func optional(_ value: Double?, _ decimals: Int) -> String { value.map { number($0, decimals) } ?? "—" }
