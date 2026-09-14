@@ -112,11 +112,19 @@ struct ReviewTranscriptPane: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .clipped()
         } else {
-            ScrollView {
-                wordGrid(entries: words)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    wordGrid(entries: words)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onChange(of: highlightedWordIndex) { _, index in
+                    guard let index, isPlaying else { return }
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
+                        proxy.scrollTo(index, anchor: .center)
+                    }
+                }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -130,6 +138,7 @@ struct ReviewTranscriptPane: View {
                     reduceMotion: reduceMotion,
                     action: { onSelectWord(index, word) }
                 )
+                .id(index)
             }
         }
     }

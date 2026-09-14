@@ -182,17 +182,11 @@ struct TakePlaybackRow: View {
     @EnvironmentObject private var model: AppModel
     let take: PracticeSession
     var large = false
+    var spaceShortcut = false
 
     var body: some View {
         HStack(spacing: large ? 18 : 11) {
-            Button(action: model.playCurrent) {
-                Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: large ? 18 : 11, weight: .semibold))
-                    .foregroundStyle(Studio.background)
-                    .frame(width: large ? 54 : 32, height: large ? 54 : 32)
-                    .background(Studio.accent, in: Circle())
-            }
-            .buttonStyle(.plain)
+            playButton
             VStack(spacing: 6) {
                 InteractiveWaveformView(
                     points: take.result.waveform,
@@ -214,8 +208,37 @@ struct TakePlaybackRow: View {
                     .foregroundStyle(Studio.secondary)
                 }
             }
-            Text("1×").font(.system(size: 10, design: .monospaced)).foregroundStyle(Studio.secondary)
+            Text(spaceShortcut ? "SPACE" : "1×")
+                .font(.system(size: spaceShortcut ? 9 : 10, design: .monospaced))
+                .tracking(spaceShortcut ? 1.2 : 0)
+                .foregroundStyle(Studio.secondary)
         }
+    }
+
+    @ViewBuilder
+    private var playButton: some View {
+        if spaceShortcut {
+            Button(action: model.playCurrent) {
+                playGlyph
+            }
+            .buttonStyle(.plain)
+            .help("Play or pause (Space)")
+            .keyboardShortcut(.space, modifiers: [])
+        } else {
+            Button(action: model.playCurrent) {
+                playGlyph
+            }
+            .buttonStyle(.plain)
+            .help("Play or pause")
+        }
+    }
+
+    private var playGlyph: some View {
+        Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
+            .font(.system(size: large ? 18 : 11, weight: .semibold))
+            .foregroundStyle(Studio.background)
+            .frame(width: large ? 54 : 32, height: large ? 54 : 32)
+            .background(Studio.accent, in: Circle())
     }
 }
 

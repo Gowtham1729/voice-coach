@@ -14,6 +14,8 @@ struct ReviewView: View {
     @State private var draftName = ""
     @State private var reportExpanded = false
     @State private var isGraphCopied = false
+    @State private var takePendingDelete: UUID?
+    @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
 
     var body: some View {
         StudioPage(maxWidth: 1560) {
@@ -36,6 +38,24 @@ struct ReviewView: View {
                     if comparisonTakeID == nil { comparisonTakeID = model.previousTake?.id }
                 }
                 .onChange(of: model.selectedTakeID) { _, _ in selectedWordIndex = nil }
+                .confirmationDialog(
+                    "Delete this take?",
+                    isPresented: Binding(
+                        get: { takePendingDelete != nil },
+                        set: { if !$0 { takePendingDelete = nil } }
+                    )
+                ) {
+                    Button("Delete take", role: .destructive) {
+                        if let takePendingDelete {
+                            if comparisonTakeID == takePendingDelete { comparisonTakeID = nil }
+                            model.deleteTake(takePendingDelete)
+                        }
+                        takePendingDelete = nil
+                    }
+                    Button("Cancel", role: .cancel) { takePendingDelete = nil }
+                } message: {
+                    Text("The recording and analysis for this take will be removed from the session.")
+                }
             } else {
                 EmptyState(icon: "waveform", title: "Take not found", detail: "Choose another session from your local library.", actionTitle: "View sessions") {
                     model.navigate(to: AppDestination.sessions)
@@ -88,6 +108,15 @@ struct ReviewView: View {
                 }
                 Button { model.selectAdjacentTake(offset: 1) } label: { Image(systemName: "chevron.right") }
                     .buttonStyle(StudioButtonStyle())
+                Button {
+                    if confirmBeforeDelete { takePendingDelete = take.id }
+                    else { model.deleteTake(take.id) }
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(StudioButtonStyle(destructive: true))
+                .help("Delete this take")
+                .disabled(model.isPlaying || model.isAnalyzing)
                 if session.takeCount > 1 {
                     if snapshot {
                         Text(comparisonLabel(session))
@@ -134,7 +163,7 @@ struct ReviewView: View {
             }
             Spacer(minLength: 8)
             Rectangle().fill(Studio.line).frame(height: 1)
-            TakePlaybackRow(take: take)
+            TakePlaybackRow(take: take, spaceShortcut: true)
         }
         .padding(22)
         .frame(minHeight: 590, alignment: .topLeading)
