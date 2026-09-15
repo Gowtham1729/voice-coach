@@ -6,9 +6,9 @@ A local-first macOS voice practice studio for **macOS 26+**. Create sessions, re
 
 Prebuilt app (ad-hoc signed):
 
-**[Voice Coach 3.1.0 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.1.0)**
+**[Voice Coach 3.2.0 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.2.0)**
 
-Download `Voice-Coach-3.1.0-macOS.zip`, unzip, and move **Voice Coach.app** to Applications. If Gatekeeper blocks the first launch, right-click the app → **Open**. For word-level transcripts, open **Settings → Transcription** once and download the on-device Parakeet model (~714 MB).
+Download `Voice-Coach-3.2.0-macOS.zip`, unzip, and move **Voice Coach.app** to Applications. If Gatekeeper blocks the first launch, right-click the app → **Open**. For word-level transcripts, open **Settings → Transcription** once and download the on-device Parakeet model (~714 MB).
 
 ## What you can do
 
