@@ -27,24 +27,54 @@ struct ContentView: View {
     }
 
     private var shell: some View {
-        NavigationSplitView {
-            sidebarColumn
-                .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
-        } detail: {
-            destination
-                .id(destinationIdentity)
-                .transition(destinationTransition)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Studio.background)
-                .toolbar { workspaceToolbar }
-                .inspector(isPresented: inspectorBinding) {
-                    contextualInspector
-                        .inspectorColumnWidth(min: 260, ideal: 300, max: 380)
+        Group {
+            if snapshot {
+                // ImageRenderer cannot composite NavigationSplitView / inspector glass.
+                // Flatten to an opaque three-column layout for docs and layout proofs only.
+                snapshotShell
+            } else {
+                NavigationSplitView {
+                    sidebarColumn
+                        .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
+                } detail: {
+                    destination
+                        .id(destinationIdentity)
+                        .transition(destinationTransition)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Studio.background)
+                        .toolbar { workspaceToolbar }
+                        .inspector(isPresented: inspectorBinding) {
+                            contextualInspector
+                                .inspectorColumnWidth(min: 260, ideal: 300, max: 380)
+                        }
                 }
+                .navigationSplitViewStyle(.balanced)
+                .animation(StudioMotion.page(reduceMotion: reduceMotion), value: destinationIdentity)
+                .animation(StudioMotion.page(reduceMotion: reduceMotion), value: showInspector)
+            }
         }
-        .navigationSplitViewStyle(.balanced)
-        .animation(StudioMotion.page(reduceMotion: reduceMotion), value: destinationIdentity)
-        .animation(StudioMotion.page(reduceMotion: reduceMotion), value: showInspector)
+    }
+
+    private var snapshotShell: some View {
+        HStack(spacing: 0) {
+            sidebarColumn
+                .frame(width: 240)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .background(Studio.sidebar)
+
+            destination
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .background(Studio.background)
+
+            if showInspector {
+                contextualInspector
+                    .frame(width: 300)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .background(Studio.inspector)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Studio.background)
     }
 
     @ViewBuilder

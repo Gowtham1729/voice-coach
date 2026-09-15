@@ -114,7 +114,9 @@ struct SettingsView: View {
                                 .font(.system(size: 9)).foregroundStyle(Studio.secondary)
                         }
                         Spacer()
-                        Button("Show in Finder", action: model.revealStorage).buttonStyle(.glass).tint(.primary)
+                        Button("Show in Finder", action: model.revealStorage)
+                            .tint(.primary)
+                            .studioGlassButton()
                     }
                 }
                 settingsSection("About the measurements", icon: "info.circle") {

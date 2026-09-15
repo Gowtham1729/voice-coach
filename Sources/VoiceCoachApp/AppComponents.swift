@@ -123,9 +123,9 @@ struct TakePlaybackRow: View {
                     .frame(width: large ? 44 : 32, height: large ? 44 : 32)
                     .contentShape(Circle())
             }
-            .buttonStyle(.glass)
             .buttonBorderShape(.circle)
             .tint(.primary)
+            .studioGlassButton()
             .help(spaceShortcut ? "Play or pause (Space)" : "Play or pause")
             .modifier(ConditionalSpaceShortcut(enabled: spaceShortcut))
 
@@ -209,7 +209,7 @@ struct EmptyState: View {
             Image(systemName: icon).font(.system(size: 34, weight: .light)).foregroundStyle(Studio.accent)
             Text(title).font(.system(size: 22, weight: .medium))
             Text(detail).font(.system(size: 12)).foregroundStyle(Studio.secondary).multilineTextAlignment(.center)
-            Button(actionTitle, action: action).buttonStyle(.glassProminent)
+            Button(actionTitle, action: action).studioGlassButton(prominent: true)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 72)

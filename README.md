@@ -1,107 +1,104 @@
-# Voice Coach 3
+# Voice Coach
 
-A local-first macOS voice practice studio. Create focused sessions, record multiple takes, inspect objective acoustic measurements, and build a private practice history that persists between launches.
+A local-first macOS voice practice studio for **macOS 26+**. Create sessions, record or import takes, inspect acoustic measurements and on-device transcripts, and keep a private practice library on your Mac.
 
-## Session workflow
+## Download
 
-- Create named sessions for general practice, reading a prompt, or free speaking.
-- Record multiple takes or import an audio/video clip inside one session and move between them without losing earlier work.
-- Resume recent sessions from Studio or search the full Sessions library.
-- Open any take from its session to inspect the transcript, playback, and acoustic analysis together.
-- Inspect aggregate practice activity and objective trends in Insights.
-- Keep every recording, or configure a session to retain only its newest take.
-- Rename and delete sessions; deleting a session also removes its dedicated recording folder.
+Prebuilt app (ad-hoc signed):
 
-The session index, full acoustic analysis, transcripts, word timing, and recordings are stored under `~/Library/Application Support/VoiceCoach`. The index is written atomically and restored when the app launches.
+**[Voice Coach 3.1.0 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.1.0)**
+
+Download `Voice-Coach-3.1.0-macOS.zip`, unzip, and move **Voice Coach.app** to Applications. If Gatekeeper blocks the first launch, right-click the app → **Open**.
+
+## What you can do
+
+- Create named sessions for general practice, reading a prompt, or free speaking — or jump in with **Quick Record**
+- Record takes (Space) or import audio/video; imports are normalized to a local WAV before analysis
+- Keep every take in a session, or only the newest one
+- Open a take to review word-level transcript chips, pitch / loudness / spectrum plots, and a sticky playback timeline
+- Search the full session library, resume from Recents, and scan aggregate trends in Insights
+- Copy transcript text, copy an analysis PNG, copy a coach prompt, or export audio + JSON — all on-device
+
+Nothing is uploaded. Recordings, analysis, and transcripts stay under `~/Library/Application Support/VoiceCoach`.
+
+## Screenshots
+
+Fixture layouts of the current studio shell (synthetic audio only — no personal recordings). Offscreen proofs flatten Liquid Glass into opaque materials; the running app on macOS 26+ uses native glass for chrome and controls.
+
+| Studio | Create a session |
+| --- | --- |
+| ![Studio](docs/screenshots/studio.png) | ![Create a session](docs/screenshots/create-session.png) |
+
+| Session | Take |
+| --- | --- |
+| ![Session workspace](docs/screenshots/practice.png) | ![Take review](docs/screenshots/take.png) |
+
+| Sessions | Insights |
+| --- | --- |
+| ![Sessions library](docs/screenshots/sessions.png) | ![Insights](docs/screenshots/insights.png) |
+
+| Settings | Recording |
+| --- | --- |
+| ![Settings](docs/screenshots/settings.png) | ![Recording](docs/screenshots/recording.png) |
+
+## Studio shell
+
+The app uses a fixed sidebar (**Studio**, **All Sessions**, **Insights**, **Settings**, plus **Recents**), a focused workspace, and a contextual inspector. Primary chrome adopts Liquid Glass on macOS 26+; content panels stay on standard materials. Reduce Transparency falls back to opaque surfaces; Reduce Motion softens page and graph transitions.
+
+On a take: tap a transcript word to seek, scrub the sticky waveform timeline (Space to play/pause), and switch Pitch / Loudness / Spectrum. Soft transcription failures still keep the take and acoustic analysis.
 
 ## What it measures
 
+Acoustic coaching signals (not medical measurements — they cannot prove diaphragm use or diagnose a voice condition):
+
 - duration, active speech, and pause ratio
-- recording noise floor, SNR, sample rate, and clipping percentage
-- median pitch, pitch range, pitch variation, and frame-to-frame pitch instability
-- pitch range/deviation in semitones and a 12-value normalized pitch contour
-- mean loudness, dynamic range, deviation, and phrase-ending loudness decay
-- pause count plus mean, median, and longest pause durations
-- HNR and cepstral peak prominence estimates
-- a 12-value relative loudness contour
-- waveform, pitch/loudness graphs, and spectrogram in the app UI only
-- local NVIDIA Parakeet transcription with word start/end timestamps
-- timestamp-aligned pitch and loudness measurements for each recognized word
+- noise floor, SNR, sample rate, and clipping
+- median pitch, pitch range / variation / instability (semitones), and a **24**-value pitch contour
+- mean loudness, dynamic range, deviation, phrase-ending decay, and a **24**-value loudness contour
+- pause count plus mean, median, and longest pause
+- HNR (and related voice-quality estimates used in the UI)
+- local NVIDIA Parakeet transcription with word timestamps and per-word pitch / loudness
+- waveform and spectrogram in the app UI only (not in exported JSON)
 
-These are acoustic coaching signals, not medical measurements. They cannot prove diaphragm use or diagnose a voice condition.
+## Run from source
 
-## Run during development
-
-Install the native local transcription runtime and download Parakeet once:
+Optional on-device transcription (one-time ~714 MB model download; Apple Silicon Metal runtime):
 
 ```sh
 ./scripts/setup-transcription.sh
 ```
 
-This uses NVIDIA's official NeMo-Speech.cpp Metal runtime on Apple Silicon and
-downloads `nvidia/parakeet-tdt-0.6b-v3` to the NeMo Speech model cache. The
-one-time setup needs an internet connection; transcription itself is local and
-does not send recordings to a cloud service. The model is roughly 714 MB in its
-Q8 GGUF form. Voice Coach also honors `VOICE_COACH_NEMO_SPEECH_PATH` when the
-runtime is installed in a custom location.
-
-Then run the app:
+Honor a custom binary with `VOICE_COACH_NEMO_SPEECH_PATH` if needed. Acoustic analysis works without transcription.
 
 ```sh
 swift run VoiceCoachApp
 ```
 
-## Build a double-clickable Mac app
+Double-clickable app bundle:
 
 ```sh
 ./scripts/build-app.sh
 open "build/Voice Coach.app"
 ```
 
-The exported session contains the locally analyzed audio file and `voice-report.json`. In the app you can copy either the original compact six-section V1 JSON or the expanded report, which preserves those six sections and adds `transcription` and `words`. Each word contains its timestamps plus aligned pitch/loudness summaries. Dense acoustic frames, waveform data, and spectrogram data are not exported. You can import an audio or video file; Voice Coach normalizes its audio to a local WAV before analysis and transcription. Nothing is uploaded. The first recording asks for microphone access. Recordings are stored in the app's Application Support folder and are never uploaded automatically.
-
-If macOS reports that the Xcode license has not been accepted, open Terminal once and run `sudo xcodebuild -license`, review it, and accept it yourself.
-
-## Analysis self-test
+Analysis contract suite:
 
 ```sh
 swift run VoiceCoachSelfTest
 ```
 
-## Version 3 studio
-
-The interface uses an ink-and-mint palette with a fixed source list, a focused session workspace, a complete per-take screen, searchable Sessions, Insights, and Settings. Record with Space, listen back, and switch between pitch, loudness, and spectrum. Selecting a transcript word highlights its time region across the active graph and waveform. The previous successful take stays available if a subsequent recording fails.
-
-The shell uses SwiftUI `NavigationSplitView`, system inspector, and toolbar chrome on **macOS 26+** so the sidebar, inspector, and toolbar adopt Liquid Glass automatically. Primary actions use `.glass` / `.glassProminent`; the analysis plot control uses the system segmented picker. Content panels stay on standard materials (not glass). Reduce Transparency falls back to opaque surfaces; Reduce Motion disables Take, destination, and graph-selection transitions. A matching app icon is included.
-
-The content/control separation follows [Apple's Materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials), [Adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass), and [Landmarks](https://developer.apple.com/documentation/swiftui/landmarks-building-an-app-with-liquid-glass).
-
-## Screenshots
-
-These fixture-based screenshots show the current major flows without including personal recordings or transcripts.
-
-| Studio | Create a session |
-| --- | --- |
-| ![Studio dashboard](docs/screenshots/studio.png) | ![Create a session](docs/screenshots/create-session.png) |
-
-| Session | Take |
-| --- | --- |
-| ![Session workspace](docs/screenshots/practice.png) | ![Take screen](docs/screenshots/review.png) |
-
-| Sessions | Insights |
-| --- | --- |
-| ![Sessions library](docs/screenshots/sessions.png) | ![Insights](docs/screenshots/insights.png) |
-
-| Settings | Recording state |
-| --- | --- |
-| ![Settings](docs/screenshots/settings.png) | ![Recording state](docs/screenshots/recording.png) |
-
-### Visual checks
+Layout proofs (eight screens + persistence round-trip, synthetic audio only):
 
 ```sh
 ./scripts/render-previews.sh
 ```
 
-This runs the acoustic/report self-test and generates eight major-screen layout proofs in `build/previews` using synthetic audio only. It also saves and reloads a synthetic session library to verify the persistence round-trip. Preview mode is debug-only and never opens the microphone or reads personal recordings. The offscreen renderer flattens native scrolling and glass into opaque layout representations; these images verify content, spacing and chart states, not live glass refraction, window scrolling or microphone/playback behavior. The shipped app uses native scrolling and Liquid Glass.
+If macOS reports that the Xcode license is not accepted, run `sudo xcodebuild -license` once in Terminal and accept it yourself.
 
-For an interactive check, open `build/Voice Coach.app`, create a session, record two 10–30 second takes, open each Take screen, listen back, switch all three chart views, copy JSON, export the WAV/report pair, and relaunch the app to confirm the session returns. Verify keyboard focus, resizing, and the macOS accessibility appearance settings. A live microphone/playback check remains necessary on the running app.
+## Export
+
+From a take’s inspector you can export the recording with `voice-report.json` (expanded report via `ReportFormatter.makeReport`), including transcription and per-word pitch / loudness. Dense acoustic frames, waveform, and spectrogram stay in the app library and are not part of the export. Copied coach prompts and raw JSON use the same on-device analysis.
+
+## Privacy
+
+Microphone access is requested only when you record. Analysis and optional Parakeet transcription run locally. The session index is written atomically; deleting a session removes its recording folder.

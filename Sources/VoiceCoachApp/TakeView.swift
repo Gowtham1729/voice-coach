@@ -159,10 +159,14 @@ struct TakeView: View {
             .frame(maxWidth: .infinity)
         }
         .background {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .overlay(Studio.surface.opacity(0.72))
-                .ignoresSafeArea(edges: .bottom)
+            if snapshot {
+                Studio.surface
+            } else {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .overlay(Studio.surface.opacity(0.72))
+                    .ignoresSafeArea(edges: .bottom)
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Take timeline")

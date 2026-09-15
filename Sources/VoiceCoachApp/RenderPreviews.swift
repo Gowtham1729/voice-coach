@@ -35,6 +35,7 @@ func renderStudioPreviewsIfRequested() {
         }
 
         model.destination = .studio
+        model.selectedSessionID = nil
         try render("01-studio")
         model.destination = .create
         try render("02-create-session")

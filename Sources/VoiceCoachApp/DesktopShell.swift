@@ -169,15 +169,15 @@ struct DesktopStudioWorkspace: View {
                 Button(action: model.importClip) {
                     Label("Import", systemImage: "square.and.arrow.down")
                 }
-                .buttonStyle(.glass)
                 .tint(.primary)
+                .studioGlassButton()
                 .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
 
                 Button(action: model.recordButtonPressed) {
                     Label(recordButtonTitle(session), systemImage: model.isRecording ? "stop.fill" : "record.circle")
                 }
-                .buttonStyle(.glassProminent)
                 .tint(model.isRecording ? .red : Studio.accent)
+                .studioGlassButton(prominent: true)
                 .keyboardShortcut(.space, modifiers: [])
                 .disabled(model.isAnalyzing || model.isRequestingPermission)
             }
@@ -221,8 +221,8 @@ struct DesktopStudioWorkspace: View {
                     Text("Record or import a take to begin this session.")
                 } actions: {
                     Button("Record a Take", action: model.recordButtonPressed)
-                        .buttonStyle(.glass)
                         .tint(.primary)
+                        .studioGlassButton()
                         .disabled(model.isAnalyzing || model.isRequestingPermission)
                 }
                 .frame(maxWidth: .infinity, minHeight: 220)
@@ -277,10 +277,10 @@ struct DesktopStudioWorkspace: View {
             Text("Create a session or start a quick recording.")
         } actions: {
             Button("Quick Record", action: model.startQuickPractice)
-                .buttonStyle(.glassProminent)
+                .studioGlassButton(prominent: true)
             Button("New Session") { model.navigate(to: .create) }
-                .buttonStyle(.glass)
                 .tint(.primary)
+                .studioGlassButton()
         }
         .frame(maxWidth: .infinity, minHeight: 460)
     }
@@ -432,7 +432,7 @@ struct DesktopSessionsWorkspace: View {
                 Text("Create a session to start practicing.")
             } actions: {
                 Button("New Session") { model.navigate(to: .create) }
-                    .buttonStyle(.glassProminent)
+                    .studioGlassButton(prominent: true)
             }
             .frame(maxWidth: .infinity, minHeight: 420)
             .desktopPanel()

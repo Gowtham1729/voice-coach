@@ -109,15 +109,15 @@ struct CreateSessionView: View {
                 HStack {
                     Spacer()
                     Button("Cancel") { model.navigate(to: AppDestination.studio) }
-                        .buttonStyle(.glass)
                         .tint(.primary)
                         .keyboardShortcut(.cancelAction)
+                        .studioGlassButton()
                     Button("Create Session") {
                         model.createSession(name: name, mode: mode, prompt: prompt, keepsRecordings: keepsRecordings)
                     }
-                    .buttonStyle(.glassProminent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .studioGlassButton(prominent: true)
                 }
 
                 Text("Recordings and analysis stay on this Mac. Voice Coach measurements are not a medical assessment.")

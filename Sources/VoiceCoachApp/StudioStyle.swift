@@ -48,6 +48,7 @@ struct StudioButtonStyle: ButtonStyle {
     var prominent = false
     var destructive = false
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.studioSnapshot) private var snapshot
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var enabled
 
@@ -65,7 +66,7 @@ struct StudioButtonStyle: ButtonStyle {
             }
             .modifier(ControlGlass(
                 tint: prominent ? tint.opacity(0.35) : (destructive ? tint.opacity(0.22) : nil),
-                opaque: reduceTransparency,
+                opaque: reduceTransparency || snapshot,
                 cornerRadius: 7
             ))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
@@ -77,6 +78,31 @@ struct StudioButtonStyle: ButtonStyle {
     private func buttonOpacity(isPressed: Bool) -> Double {
         guard enabled else { return 0.4 }
         return isPressed ? 0.82 : 1
+    }
+}
+
+/// Prefer `.studioGlassButton()` over `.glass` / `.glassProminent` so snapshot proofs stay ImageRenderer-safe.
+extension View {
+    @ViewBuilder
+    func studioGlassButton(prominent: Bool = false) -> some View {
+        StudioGlassButtonHost(prominent: prominent, content: self)
+    }
+}
+
+private struct StudioGlassButtonHost<Content: View>: View {
+    var prominent: Bool
+    var content: Content
+    @Environment(\.studioSnapshot) private var snapshot
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        if snapshot || reduceTransparency {
+            content.buttonStyle(StudioButtonStyle(prominent: prominent))
+        } else if prominent {
+            content.buttonStyle(.glassProminent)
+        } else {
+            content.buttonStyle(.glass)
+        }
     }
 }
 
