@@ -206,6 +206,14 @@ do {
     try check(abs(parsed.words[1].start - 0.55) < 0.001 && abs(parsed.words[1].end - 0.94) < 0.001, "NeMo word timestamps were not preserved")
     try check(abs(parsed.words[2].end - 1.3) < 0.001, "NeMo duration fallback was not converted to an end time")
 
+    let unavailableCopy = TranscriptionError.runtimeUnavailable.errorDescription ?? ""
+    try check(unavailableCopy.contains("Settings"), "Runtime-unavailable copy should point users to Settings")
+    let managed = try TranscriptionSetupService.managedExecutableURL()
+    try check(managed.path.contains("/VoiceCoach/Transcription/NeMoSpeech/bin/nemo-speech"), "Managed runtime path drifted")
+    let modelCache = try TranscriptionSetupService.modelRepositoryCacheURL()
+    try check(modelCache.path.contains("/NeMoSpeech/models/\(NemoSpeechTranscriber.defaultModel)"), "Model cache path drifted")
+    _ = TranscriptionSetupService.currentStatus()
+
     let fading = (0..<Int(sampleRate * duration)).map { index -> Float in
         let progress = Double(index) / Double(Int(sampleRate * duration) - 1)
         let amplitude = 0.7 - 0.5 * progress

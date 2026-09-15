@@ -136,6 +136,10 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Transcription") {
+                transcriptionSettings
+            }
+
             Section("Privacy and Measurements") {
                 Text("Recordings, transcripts, and analysis stay on this Mac. Voice-quality values are acoustic coaching signals, not medical measurements or diagnoses.")
                     .foregroundStyle(.secondary)
@@ -144,7 +148,8 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 560, height: 480)
+        .frame(width: 560, height: 620)
+        .onAppear { model.refreshTranscriptionSetupStatus() }
     }
 
     private var snapshotSettings: some View {
@@ -176,6 +181,15 @@ struct SettingsView: View {
                     .truncationMode(.middle)
             }
 
+            snapshotSection("Transcription", symbol: "text.bubble") {
+                Text(statusTitle(for: model.transcriptionSetupStatus))
+                    .font(.body.weight(.medium))
+                Text(statusDetail(for: model.transcriptionSetupStatus))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             snapshotSection("Privacy and Measurements", symbol: "hand.raised") {
                 Text("Recordings, transcripts, and analysis stay on this Mac. Acoustic coaching signals are not medical measurements.")
                     .font(.caption)
@@ -186,6 +200,82 @@ struct SettingsView: View {
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Studio.background)
+        .onAppear { model.refreshTranscriptionSetupStatus() }
+    }
+
+    @ViewBuilder
+    private var transcriptionSettings: some View {
+        let status = model.transcriptionSetupStatus
+        let busy = status.isBusy || model.isRecording || model.isAnalyzing
+
+        Text("Optional on-device transcripts use NVIDIA Parakeet through NeMo-Speech.cpp. Voice Coach downloads the runtime and model to this Mac; recordings are never uploaded.")
+            .foregroundStyle(.secondary)
+
+        LabeledContent("Status") {
+            Text(statusTitle(for: status))
+                .foregroundStyle(.secondary)
+        }
+        Text(statusDetail(for: status))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+
+        if case .installing(let phase) = status {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text(phase.userFacingLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        transcriptionActions(status: status, busy: busy)
+    }
+
+    @ViewBuilder
+    private func transcriptionActions(status: TranscriptionSetupStatus, busy: Bool) -> some View {
+        switch status {
+        case .ready:
+            HStack {
+                Spacer()
+                Button("Check for updates", action: model.startTranscriptionSetup)
+                    .disabled(busy)
+                Button("Show in Finder", systemImage: "folder", action: model.revealTranscriptionInstall)
+            }
+        case .unsupported:
+            EmptyView()
+        case .missing, .failed, .installing:
+            HStack {
+                Spacer()
+                Button(status.isBusy ? "Downloading…" : "Download transcription (~714 MB)") {
+                    model.startTranscriptionSetup()
+                }
+                .disabled(busy)
+            }
+        }
+    }
+
+    private func statusTitle(for status: TranscriptionSetupStatus) -> String {
+        switch status {
+        case .ready: "Ready"
+        case .missing: "Not installed"
+        case .installing: "Installing"
+        case .failed: "Needs attention"
+        case .unsupported: "Unavailable"
+        }
+    }
+
+    private func statusDetail(for status: TranscriptionSetupStatus) -> String {
+        switch status {
+        case .ready(_, let modelID):
+            "\(modelID) · local only"
+        case .missing:
+            "Acoustic analysis works without this. Download once to enable word-level transcripts."
+        case .installing(let phase):
+            phase.userFacingLabel
+        case .failed(let message), .unsupported(let message):
+            message
+        }
     }
 
     private func snapshotSection<Content: View>(

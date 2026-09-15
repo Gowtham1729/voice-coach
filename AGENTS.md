@@ -35,7 +35,7 @@ swift run VoiceCoachApp
 # SelfTest + 8 DEBUG layout PNGs in build/previews (synthetic audio only)
 ./scripts/render-previews.sh
 
-# One-time local ASR (~714 MB model download; needs network once)
+# One-time local ASR (~714 MB). Prefer Settings → Transcription in the app for end users.
 ./scripts/setup-transcription.sh
 ```
 

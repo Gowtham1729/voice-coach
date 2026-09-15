@@ -9,7 +9,7 @@ public enum TranscriptionError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .runtimeUnavailable:
-            return "Local transcription needs NVIDIA NeMo-Speech.cpp. Run scripts/setup-transcription.sh once, then reopen Voice Coach."
+            return "Local transcription is not installed yet. Open Settings → Transcription to download the on-device Parakeet model (~714 MB)."
         case .launchFailed(let detail):
             return "Could not start local transcription: \(detail)"
         case .recognitionFailed(let detail):
@@ -103,17 +103,22 @@ public struct NemoSpeechTranscriber: Sendable {
 
     public static func findExecutable(
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        bundle: Bundle = .main
+        bundle: Bundle = .main,
+        fileManager: FileManager = .default
     ) -> URL? {
         var candidates: [String] = []
         if let override = environment["VOICE_COACH_NEMO_SPEECH_PATH"], !override.isEmpty {
             candidates.append(override)
+        }
+        if let managed = try? TranscriptionSetupService.managedExecutableURL(fileManager: fileManager) {
+            candidates.append(managed.path)
         }
         if let resourceURL = bundle.resourceURL {
             candidates.append(resourceURL.appendingPathComponent("nemo-speech").path)
         }
         candidates += [
             NSString(string: "~/.local/bin/nemo-speech").expandingTildeInPath,
+            NSString(string: "~/Library/Application Support/NeMoSpeech/bin/nemo-speech").expandingTildeInPath,
             "/opt/homebrew/bin/nemo-speech",
             "/usr/local/bin/nemo-speech"
         ]
@@ -125,7 +130,7 @@ public struct NemoSpeechTranscriber: Sendable {
 
         return candidates
             .map { URL(fileURLWithPath: $0) }
-            .first { FileManager.default.isExecutableFile(atPath: $0.path) }
+            .first { fileManager.isExecutableFile(atPath: $0.path) }
     }
 
     public static func parseOutput(_ data: Data) throws -> TranscriptionResult {
