@@ -413,6 +413,7 @@ struct DesktopSessionsWorkspace: View {
                         .frame(width: 28, height: 24)
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
                 .frame(width: 28)
             }
         }
