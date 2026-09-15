@@ -96,7 +96,6 @@ final class AppModel: ObservableObject {
         case .studio: navigate(to: AppDestination.studio)
         case .sessions: navigate(to: AppDestination.sessions)
         case .insights: navigate(to: AppDestination.insights)
-        case .settings: navigate(to: AppDestination.settings)
         }
     }
 

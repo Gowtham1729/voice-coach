@@ -366,7 +366,6 @@ struct TakeView: View {
         .frame(width: 980)
         .background(Studio.surface, in: RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).stroke(Studio.line))
-        .preferredColorScheme(.dark)
         .environment(\.studioSnapshot, true)
     }
 

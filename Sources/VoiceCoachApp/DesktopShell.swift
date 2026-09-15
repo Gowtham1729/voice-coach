@@ -10,7 +10,6 @@ struct SnapshotSourceListSidebar: View {
             snapshotRow("Studio", symbol: "waveform", selected: model.destination.navigationSection == .studio)
             snapshotRow("All Sessions", symbol: "rectangle.stack", selected: model.destination.navigationSection == .sessions)
             snapshotRow("Insights", symbol: "chart.xyaxis.line", selected: model.destination.navigationSection == .insights)
-            snapshotRow("Settings", symbol: "gearshape", selected: model.destination.navigationSection == .settings)
             Text("RECENTS")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(Studio.secondary)
@@ -42,15 +41,14 @@ struct SnapshotSourceListSidebar: View {
 
 struct SourceListSidebar: View {
     @EnvironmentObject private var model: AppModel
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        List {
+        List(selection: selection) {
             Section {
-                navigationRow(.studio, label: "Studio", symbol: "waveform")
-                navigationRow(.sessions, label: "All Sessions", symbol: "rectangle.stack")
-                navigationRow(.insights, label: "Insights", symbol: "chart.xyaxis.line")
-                navigationRow(.settings, label: "Settings", symbol: "gearshape")
+                ForEach(NavigationSection.allCases) { section in
+                    Label(section.title, systemImage: section.symbol)
+                        .tag(SidebarSelection.section(section))
+                }
             }
 
             Section("Recents") {
@@ -60,67 +58,75 @@ struct SourceListSidebar: View {
                         .font(.callout)
                 } else {
                     ForEach(model.sessions.prefix(7)) { session in
-                        Button {
-                            withAnimation(StudioMotion.quick(reduceMotion: reduceMotion)) {
-                                model.resumeSession(session.id)
+                        HStack(spacing: 8) {
+                            Image(systemName: session.mode.icon)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 16)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(session.name)
+                                    .lineLimit(1)
+                                Text(recentSubtitle(session))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: session.mode.icon)
-                                    .frame(width: 16)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(session.name)
-                                        .lineLimit(1)
-                                    Text(recentSubtitle(session))
-                                        .font(.caption2)
-                                        .foregroundStyle(Studio.secondary)
-                                }
-                                Spacer(minLength: 0)
-                            }
-                            .contentShape(Rectangle())
+                            Spacer(minLength: 0)
                         }
-                        .buttonStyle(.plain)
-                        .listRowBackground(
-                            model.selectedSessionID == session.id && model.destination.navigationSection == .studio
-                            ? Studio.accent.opacity(0.14) : Color.clear
-                        )
+                        .tag(SidebarSelection.session(session.id))
                     }
                 }
             }
         }
         .listStyle(.sidebar)
-        .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: model.destination.navigationSection)
+        .disabled(model.isRecording)
         .safeAreaInset(edge: .bottom) {
-            Label("On-device", systemImage: "lock.fill")
-                .font(.caption)
-                .foregroundStyle(Studio.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                Label("On-device", systemImage: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                SettingsLink {
+                    Label("Settings", systemImage: "gearshape")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .help("Voice Coach Settings")
+            }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
         }
     }
 
-    private func navigationRow(_ section: NavigationSection, label: String, symbol: String) -> some View {
-        Button {
-            withAnimation(StudioMotion.quick(reduceMotion: reduceMotion)) {
-                model.navigate(to: section)
+    private var selection: Binding<SidebarSelection?> {
+        Binding(
+            get: {
+                switch model.destination {
+                case .practice(let sessionID), .take(let sessionID, _):
+                    return .session(sessionID)
+                case .studio, .create, .sessions, .insights:
+                    return .section(model.destination.navigationSection)
+                }
+            },
+            set: { selection in
+                guard !model.isRecording, let selection else { return }
+                Task { @MainActor in
+                    switch selection {
+                    case .section(let section): model.navigate(to: section)
+                    case .session(let sessionID): model.resumeSession(sessionID)
+                    }
+                }
             }
-        } label: {
-            Label(label, systemImage: symbol)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(model.isRecording)
-        .listRowBackground(
-            model.destination.navigationSection == section
-            ? Studio.accent.opacity(0.14) : Color.clear
         )
     }
 
     private func recentSubtitle(_ session: CoachingSession) -> String {
         "\(takeCountLabel(for: session)) · \(session.updatedAt.formatted(.relative(presentation: .named)))"
     }
+}
+
+private enum SidebarSelection: Hashable {
+    case section(NavigationSection)
+    case session(UUID)
 }
 
 struct DesktopStudioWorkspace: View {
@@ -299,6 +305,8 @@ struct DesktopSessionsWorkspace: View {
     @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
     @State private var search = ""
     @State private var deleteCandidate: CoachingSession?
+    @State private var renameCandidate: CoachingSession?
+    @State private var renameText = ""
 
     private var filteredSessions: [CoachingSession] {
         let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -316,18 +324,6 @@ struct DesktopSessionsWorkspace: View {
                         .font(.caption)
                         .foregroundStyle(Studio.secondary)
                     Spacer()
-                    if snapshot {
-                        Label("Search Sessions", systemImage: "magnifyingglass")
-                            .font(.caption)
-                            .foregroundStyle(Studio.secondary)
-                            .padding(.horizontal, 9)
-                            .frame(width: 220, height: 28, alignment: .leading)
-                            .background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
-                    } else {
-                        TextField("Search Sessions", text: $search)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 220)
-                    }
                 }
 
                 if filteredSessions.isEmpty {
@@ -357,11 +353,25 @@ struct DesktopSessionsWorkspace: View {
                 }
             }
         }
+        .searchable(text: $search, prompt: "Search Sessions")
         .alert("Delete session?", isPresented: deleteAlertBinding, presenting: deleteCandidate) { session in
             Button("Delete", role: .destructive) { model.deleteSession(session.id) }
             Button("Cancel", role: .cancel) {}
         } message: { session in
             Text("“\(session.name)” and its local recordings will be removed.")
+        }
+        .alert("Rename Session", isPresented: renameAlertBinding) {
+            TextField("Session name", text: $renameText)
+            Button("Cancel", role: .cancel) { renameCandidate = nil }
+            Button("Rename") {
+                if let renameCandidate {
+                    model.renameSession(renameCandidate.id, to: renameText)
+                }
+                renameCandidate = nil
+            }
+            .disabled(renameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } message: {
+            Text("Choose a name that will be easy to find in your practice library.")
         }
     }
 
@@ -403,6 +413,7 @@ struct DesktopSessionsWorkspace: View {
                     if session.latestTake != nil {
                         Button("Open Latest Take", systemImage: "waveform.and.mic") { model.openTake(sessionID: session.id) }
                     }
+                    Button("Rename…", systemImage: "pencil") { requestRename(session) }
                     Divider()
                     Button("Delete", systemImage: "trash", role: .destructive) {
                         if confirmBeforeDelete { deleteCandidate = session }
@@ -452,6 +463,18 @@ struct DesktopSessionsWorkspace: View {
             get: { deleteCandidate != nil },
             set: { if !$0 { deleteCandidate = nil } }
         )
+    }
+
+    private var renameAlertBinding: Binding<Bool> {
+        Binding(
+            get: { renameCandidate != nil },
+            set: { if !$0 { renameCandidate = nil } }
+        )
+    }
+
+    private func requestRename(_ session: CoachingSession) {
+        renameText = session.name
+        renameCandidate = session
     }
 }
 
@@ -557,14 +580,18 @@ struct TakeInspector: View {
                     VStack(spacing: 8) {
                         Button(action: model.copyAICoachPrompt) {
                             Label("Copy Coach Prompt", systemImage: "doc.on.doc")
+                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(StudioInspectorButtonStyle(role: .accented))
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.regular)
                         .help("Copy a prompt with this take’s measurements for an AI coach")
 
                         Button(action: model.exportCurrent) {
                             Label("Export Audio + JSON", systemImage: "square.and.arrow.up")
+                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(StudioInspectorButtonStyle(role: .neutral))
+                        .buttonStyle(.bordered)
+                        .controlSize(.regular)
                         .help("Export the recording and analysis files")
 
                         HStack(spacing: 8) {
@@ -572,14 +599,17 @@ struct TakeInspector: View {
                                 Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyReport)
                             } label: {
                                 Label("More", systemImage: "ellipsis")
+                                    .frame(maxWidth: .infinity)
                             }
                             .menuStyle(.button)
-                            .buttonStyle(StudioInspectorButtonStyle(role: .neutral))
+                            .buttonStyle(.bordered)
 
                             Button(action: { requestDelete(take.id) }) {
                                 Label("Delete", systemImage: "trash")
+                                    .frame(maxWidth: .infinity)
                             }
-                            .buttonStyle(StudioInspectorButtonStyle(role: .destructive))
+                            .buttonStyle(.bordered)
+                            .tint(.red)
                             .disabled(model.isPlaying || model.isAnalyzing)
                             .help("Delete this take")
                         }
@@ -611,7 +641,7 @@ struct TakeInspector: View {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(value)
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(.primary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text(unit)

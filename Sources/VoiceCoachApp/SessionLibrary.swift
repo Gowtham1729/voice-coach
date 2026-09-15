@@ -75,14 +75,12 @@ enum AppDestination: Equatable {
     case take(UUID, UUID)
     case sessions
     case insights
-    case settings
 
     var navigationSection: NavigationSection {
         switch self {
         case .studio, .create, .practice, .take: .studio
         case .sessions: .sessions
         case .insights: .insights
-        case .settings: .settings
         }
     }
 
@@ -96,9 +94,20 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case studio = "Studio"
     case sessions = "Sessions"
     case insights = "Insights"
-    case settings = "Settings"
 
     var id: Self { self }
+
+    var title: String {
+        self == .sessions ? "All Sessions" : rawValue
+    }
+
+    var symbol: String {
+        switch self {
+        case .studio: "waveform"
+        case .sessions: "rectangle.stack"
+        case .insights: "chart.xyaxis.line"
+        }
+    }
 }
 
 private struct SessionLibraryDocument: Codable {

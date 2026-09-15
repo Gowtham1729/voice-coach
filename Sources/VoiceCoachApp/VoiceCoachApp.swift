@@ -11,15 +11,60 @@ struct VoiceCoachApplication: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup("Voice Coach") {
             ContentView()
                 .environmentObject(model)
-                .frame(minWidth: 1080, minHeight: 700)
+                .frame(minWidth: 920, minHeight: 640)
                 #if DEBUG
                 .background(PreviewRenderLauncher())
                 #endif
         }
-        .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 1280, height: 820)
+        .defaultSize(width: 1240, height: 800)
+        .commands {
+            VoiceCoachCommands(model: model)
+        }
+
+        Settings {
+            SettingsView()
+                .environmentObject(model)
+        }
+    }
+}
+
+private struct VoiceCoachCommands: Commands {
+    @ObservedObject var model: AppModel
+
+    var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("New Session") { model.navigate(to: .create) }
+                .keyboardShortcut("n", modifiers: .command)
+                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+
+            Button("Quick Recording") { model.startQuickPractice() }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+        }
+
+        CommandGroup(after: .importExport) {
+            Button("Import Recording…") { model.importClip() }
+                .keyboardShortcut("i", modifiers: [.command, .shift])
+                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+
+            Button("Export Current Take…") { model.exportCurrent() }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(model.selectedTake == nil || model.isRecording || model.isAnalyzing)
+        }
+
+        CommandMenu("Navigate") {
+            navigationButton("Studio", section: .studio, shortcut: "1")
+            navigationButton("All Sessions", section: .sessions, shortcut: "2")
+            navigationButton("Insights", section: .insights, shortcut: "3")
+        }
+    }
+
+    private func navigationButton(_ title: String, section: NavigationSection, shortcut: KeyEquivalent) -> some View {
+        Button(title) { model.navigate(to: section) }
+            .keyboardShortcut(shortcut, modifiers: .command)
+            .disabled(model.isRecording)
     }
 }

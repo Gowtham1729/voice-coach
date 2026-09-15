@@ -33,7 +33,7 @@ struct StudioCard: ViewModifier {
                     shape.fill(Studio.surface.opacity(emphasized ? 1.0 : 0.82))
                 } else {
                     shape.fill(.regularMaterial)
-                        .overlay { shape.fill(Studio.surface.opacity(emphasized ? 0.55 : 0.38)) }
+                        .overlay { shape.fill(Studio.surface.opacity(emphasized ? 0.30 : 0.16)) }
                 }
             }
             .overlay(shape.stroke(borderColor, lineWidth: 0.5))
@@ -67,7 +67,7 @@ private struct DesktopPanel: ViewModifier {
                     shape.fill(Studio.surface)
                 } else {
                     shape.fill(.regularMaterial)
-                        .overlay { shape.fill(Studio.surface.opacity(0.55)) }
+                        .overlay { shape.fill(Studio.surface.opacity(0.16)) }
                 }
             }
     }

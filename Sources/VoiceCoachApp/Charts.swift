@@ -349,7 +349,7 @@ struct LiveMeterView: View {
         GeometryReader { geometry in
             let normalized = max(0, min(1, (level + 60) / 60))
             Capsule()
-                .fill(Color.white.opacity(0.12))
+                .fill(Color.primary.opacity(0.12))
                 .overlay(alignment: .leading) {
                     Capsule()
                         .fill(level > -3 ? Color.orange : Studio.accent)

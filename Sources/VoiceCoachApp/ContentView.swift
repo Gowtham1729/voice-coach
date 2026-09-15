@@ -5,18 +5,20 @@ struct ContentView: View {
     @Environment(\.studioSnapshot) private var snapshot
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @State private var inspectorPresented = true
+    @SceneStorage("voiceCoach.inspectorPresented") private var inspectorPresented = true
 
     var body: some View {
         shell
-            .foregroundStyle(Studio.ink)
-            .preferredColorScheme(.dark)
-            // Charts and selection washes use accent; glass secondary controls opt out via .tint(.primary).
             .tint(Studio.accent)
             .alert("Voice Coach", isPresented: errorBinding) {
                 Button("OK", role: .cancel) { model.errorMessage = nil }
             } message: {
                 Text(model.errorMessage ?? "")
+            }
+            .sheet(isPresented: createSessionBinding) {
+                CreateSessionView()
+                    .environmentObject(model)
+                    .frame(width: 640, height: 650)
             }
             .overlay(alignment: .bottom) { toast }
             .onChange(of: model.destination) { _, _ in
@@ -41,7 +43,7 @@ struct ContentView: View {
                         .id(destinationIdentity)
                         .transition(destinationTransition)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Studio.background)
+                        .navigationTitle(windowTitle)
                         .toolbar { workspaceToolbar }
                         .inspector(isPresented: inspectorBinding) {
                             contextualInspector
@@ -92,7 +94,7 @@ struct ContentView: View {
         case .studio:
             DesktopStudioWorkspace()
         case .create:
-            CreateSessionView()
+            DesktopStudioWorkspace()
         case .practice:
             PracticeView()
         case .take:
@@ -101,8 +103,6 @@ struct ContentView: View {
             DesktopSessionsWorkspace()
         case .insights:
             InsightsView()
-        case .settings:
-            SettingsView()
         }
     }
 
@@ -129,7 +129,7 @@ struct ContentView: View {
         ToolbarSpacer(.flexible)
 
         if showsNewSession {
-            ToolbarItem {
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     model.navigate(to: AppDestination.create)
                 } label: {
@@ -172,14 +172,14 @@ struct ContentView: View {
     private var showsNewSession: Bool {
         switch model.destination {
         case .studio, .practice, .sessions: true
-        case .create, .take, .insights, .settings: false
+        case .create, .take, .insights: false
         }
     }
 
     private var showsBackButton: Bool {
         switch model.destination {
-        case .create, .take: true
-        case .studio, .practice, .sessions, .insights, .settings: false
+        case .take: true
+        case .studio, .create, .practice, .sessions, .insights: false
         }
     }
 
@@ -193,7 +193,7 @@ struct ContentView: View {
             model.selectedSession != nil
         case .take:
             model.selectedTake != nil
-        case .create, .sessions, .insights, .settings:
+        case .create, .sessions, .insights:
             false
         }
     }
@@ -201,12 +201,22 @@ struct ContentView: View {
     private var destinationIdentity: String {
         switch model.destination {
         case .studio: "studio"
-        case .create: "create"
+        case .create: "studio"
         case .practice(let id): "practice-\(id)"
         case .take(let session, let take): "take-\(session)-\(take)"
         case .sessions: "sessions"
         case .insights: "insights"
-        case .settings: "settings"
+        }
+    }
+
+    private var windowTitle: String {
+        switch model.destination {
+        case .studio: "Studio"
+        case .create: "Studio"
+        case .practice: model.selectedSession?.name ?? "Practice"
+        case .take: model.selectedSession.map { "\($0.name) — Take" } ?? "Take"
+        case .sessions: "All Sessions"
+        case .insights: "Insights"
         }
     }
 
@@ -224,6 +234,20 @@ struct ContentView: View {
         } else {
             model.navigate(to: AppDestination.studio)
         }
+    }
+
+    private var createSessionBinding: Binding<Bool> {
+        Binding(
+            get: {
+                if case .create = model.destination { return true }
+                return false
+            },
+            set: { isPresented in
+                if !isPresented, case .create = model.destination {
+                    model.navigate(to: AppDestination.studio)
+                }
+            }
+        )
     }
 
     private var toast: some View {
