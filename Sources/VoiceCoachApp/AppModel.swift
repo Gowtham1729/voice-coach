@@ -464,6 +464,7 @@ final class AppModel: ObservableObject {
             try? FileManager.default.removeItem(at: url)
         }
         toastMessage = "\(take.takeSource.title) saved on this Mac"
+        destination = .take(selectedSessionID, take.id)
     }
 
     private func sortSessions() { sessions.sort { $0.updatedAt > $1.updatedAt } }
