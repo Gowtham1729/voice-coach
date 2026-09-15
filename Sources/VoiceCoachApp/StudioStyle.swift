@@ -20,14 +20,14 @@ struct StudioScroll<Content: View>: View {
 }
 
 enum Studio {
-    static let background = Color(red: 11 / 255, green: 15 / 255, blue: 16 / 255)
-    static let sidebar = Color(red: 15 / 255, green: 20 / 255, blue: 24 / 255)
-    static let inspector = Color(red: 13 / 255, green: 18 / 255, blue: 22 / 255)
-    static let surface = Color(red: 22 / 255, green: 27 / 255, blue: 34 / 255)
-    static let ink = Color.white
-    static let secondary = Color(red: 148 / 255, green: 163 / 255, blue: 184 / 255)
-    static let accent = Color(red: 0.69, green: 0.89, blue: 0.77)
-    static let line = Color.white.opacity(0.08)
+    static let background = Color(nsColor: .windowBackgroundColor)
+    static let sidebar = Color(nsColor: .underPageBackgroundColor)
+    static let inspector = Color(nsColor: .windowBackgroundColor)
+    static let surface = Color(nsColor: .controlBackgroundColor)
+    static let ink = Color.primary
+    static let secondary = Color.secondary
+    static let accent = Color.accentColor
+    static let line = Color.primary.opacity(0.10)
 }
 
 enum StudioMotion {
@@ -102,67 +102,6 @@ private struct StudioGlassButtonHost<Content: View>: View {
             content.buttonStyle(.glassProminent)
         } else {
             content.buttonStyle(.glass)
-        }
-    }
-}
-
-/// Quiet bordered control for inspector stacks — continuous rect, translucent, not capsule candy.
-struct StudioInspectorButtonStyle: ButtonStyle {
-    enum Role { case neutral, accented, destructive }
-
-    var role: Role = .neutral
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.studioSnapshot) private var snapshot
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.isEnabled) private var enabled
-
-    private static let destructiveTint = Color(red: 0.96, green: 0.48, blue: 0.39)
-    private static let destructiveForeground = Color(red: 0.96, green: 0.55, blue: 0.50)
-
-    func makeBody(configuration: Configuration) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
-        configuration.label
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(foreground)
-            .frame(maxWidth: .infinity, minHeight: 30)
-            .padding(.horizontal, 10)
-            .background {
-                if snapshot || reduceTransparency {
-                    shape.fill(Studio.surface.opacity(role == .accented ? 0.95 : 0.72))
-                } else {
-                    shape.fill(.regularMaterial)
-                        .overlay { shape.fill(fillWash) }
-                }
-            }
-            .overlay {
-                shape.strokeBorder(strokeColor, lineWidth: 0.5)
-            }
-            .opacity(enabled ? (configuration.isPressed ? 0.78 : 1) : 0.4)
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-            .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: configuration.isPressed)
-            .contentShape(shape)
-    }
-
-    private var fillWash: Color {
-        switch role {
-        case .accented: Studio.accent.opacity(0.10)
-        case .neutral, .destructive: Studio.surface.opacity(0.28)
-        }
-    }
-
-    private var foreground: Color {
-        switch role {
-        case .neutral: Studio.ink.opacity(0.92)
-        case .accented: Studio.accent
-        case .destructive: Self.destructiveForeground
-        }
-    }
-
-    private var strokeColor: Color {
-        switch role {
-        case .neutral: Studio.line
-        case .accented: Studio.accent.opacity(0.35)
-        case .destructive: Self.destructiveTint.opacity(0.4)
         }
     }
 }

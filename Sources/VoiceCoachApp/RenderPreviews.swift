@@ -34,11 +34,38 @@ func renderStudioPreviewsIfRequested() {
             try png.write(to: output.appendingPathComponent(name + ".png"))
         }
 
+        func renderSettings(_ name: String, width: CGFloat = 620, height: CGFloat = 480) throws {
+            let view = SettingsView()
+                .environmentObject(model)
+                .environment(\.studioSnapshot, true)
+                .frame(width: width, height: height)
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 1
+            guard let image = renderer.cgImage,
+                  let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+            else { throw NSError(domain: "VoiceCoachPreview", code: 2) }
+            try png.write(to: output.appendingPathComponent(name + ".png"))
+        }
+
+        func renderCreateSession(_ name: String, width: CGFloat = 720, height: CGFloat = 760) throws {
+            let view = CreateSessionView()
+                .environmentObject(model)
+                .environment(\.studioSnapshot, true)
+                .frame(width: width, height: height)
+                .background(Studio.background)
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 1
+            guard let image = renderer.cgImage,
+                  let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+            else { throw NSError(domain: "VoiceCoachPreview", code: 3) }
+            try png.write(to: output.appendingPathComponent(name + ".png"))
+        }
+
         model.destination = .studio
         model.selectedSessionID = nil
         try render("01-studio")
         model.destination = .create
-        try render("02-create-session")
+        try renderCreateSession("02-create-session")
         model.resumeSession(model.sessions[0].id)
         try render("03-practice")
         if let latest = model.selectedTake {
@@ -49,8 +76,7 @@ func renderStudioPreviewsIfRequested() {
         try render("05-sessions")
         model.destination = .insights
         try render("06-insights")
-        model.destination = .settings
-        try render("07-settings")
+        try renderSettings("07-settings")
         model.destination = .practice(model.sessions[0].id)
         model.isRecording = true
         model.liveLevel = -17
