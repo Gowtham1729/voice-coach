@@ -26,6 +26,7 @@ final class AppModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var toastMessage: String?
     @Published var transcriptionNotice: String?
+    @Published var transcriptionSetupStatus: TranscriptionSetupStatus = .missing
 
     private let recorder = AudioRecorder()
     private let store: SessionStore
@@ -34,6 +35,7 @@ final class AppModel: ObservableObject {
     private var recordingURL: URL?
     private var recordingTakeID: UUID?
     private var startedAt: Date?
+    private var transcriptionSetupTask: Task<Void, Never>?
 
     init(storageRoot: URL? = nil, loadPersistedData: Bool = true) {
         do {
@@ -48,6 +50,8 @@ final class AppModel: ObservableObject {
             self.isPlaying = false
             self.playbackTime = 0
         }
+
+        refreshTranscriptionSetupStatus()
 
         guard loadPersistedData else { return }
         do {
@@ -359,6 +363,55 @@ final class AppModel: ObservableObject {
     }
 
     func revealStorage() { NSWorkspace.shared.activateFileViewerSelecting([storageLocation]) }
+
+    func refreshTranscriptionSetupStatus() {
+        guard !transcriptionSetupStatus.isBusy else { return }
+        transcriptionSetupStatus = TranscriptionSetupService.currentStatus()
+    }
+
+    func startTranscriptionSetup() {
+        guard !transcriptionSetupStatus.isBusy else { return }
+        guard !isRecording, !isAnalyzing else {
+            errorMessage = "Finish recording or analysis before downloading transcription."
+            return
+        }
+
+        transcriptionSetupTask?.cancel()
+        transcriptionSetupStatus = .installing(.preparing)
+        transcriptionSetupTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await TranscriptionSetupService().installOrUpdate { phase in
+                    Task { @MainActor in
+                        self.transcriptionSetupStatus = .installing(phase)
+                    }
+                }
+                guard !Task.isCancelled else { return }
+                transcriptionSetupStatus = TranscriptionSetupService.currentStatus()
+                if transcriptionSetupStatus.isReady {
+                    toastMessage = "On-device transcription is ready"
+                }
+            } catch is CancellationError {
+                refreshTranscriptionSetupStatus()
+            } catch {
+                transcriptionSetupStatus = .failed(error.localizedDescription)
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func revealTranscriptionInstall() {
+        if let managed = try? TranscriptionSetupService.managedRuntimePrefixURL(),
+           FileManager.default.fileExists(atPath: managed.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([managed])
+            return
+        }
+        if case .ready(let path, _) = transcriptionSetupStatus {
+            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+            return
+        }
+        NSWorkspace.shared.activateFileViewerSelecting([storageLocation])
+    }
 
     private func requestPermissionAndRecord() {
         guard ensureActiveSession() else { return }

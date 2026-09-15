@@ -8,7 +8,7 @@ Prebuilt app (ad-hoc signed):
 
 **[Voice Coach 3.1.0 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.1.0)**
 
-Download `Voice-Coach-3.1.0-macOS.zip`, unzip, and move **Voice Coach.app** to Applications. If Gatekeeper blocks the first launch, right-click the app → **Open**.
+Download `Voice-Coach-3.1.0-macOS.zip`, unzip, and move **Voice Coach.app** to Applications. If Gatekeeper blocks the first launch, right-click the app → **Open**. For word-level transcripts, open **Settings → Transcription** once and download the on-device Parakeet model (~714 MB).
 
 ## What you can do
 
@@ -62,13 +62,15 @@ Acoustic coaching signals (not medical measurements — they cannot prove diaphr
 
 ## Run from source
 
-Optional on-device transcription (one-time ~714 MB model download; Apple Silicon Metal runtime):
+Optional on-device transcription (Apple Silicon): in the app open **Settings → Transcription → Download transcription (~714 MB)**. That installs the NVIDIA NeMo-Speech runtime under Voice Coach’s Application Support folder and pulls Parakeet locally. Acoustic analysis works without it.
+
+Developer alternate (same runtime/model):
 
 ```sh
 ./scripts/setup-transcription.sh
 ```
 
-Honor a custom binary with `VOICE_COACH_NEMO_SPEECH_PATH` if needed. Acoustic analysis works without transcription.
+Honor a custom binary with `VOICE_COACH_NEMO_SPEECH_PATH` if needed.
 
 ```sh
 swift run VoiceCoachApp
