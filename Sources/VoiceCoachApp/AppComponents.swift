@@ -114,20 +114,34 @@ struct TakePlaybackRow: View {
     var large = false
     var spaceShortcut = false
     var highlightedRange: ClosedRange<Double>? = nil
+    var canStepPreviousWord = false
+    var canStepNextWord = false
+    var onPreviousWord: (() -> Void)? = nil
+    var onNextWord: (() -> Void)? = nil
+    var onSeek: ((Double) -> Void)? = nil
+    var onScrub: ((Double) -> Void)? = nil
 
     var body: some View {
         HStack(spacing: large ? 18 : 11) {
-            Button(action: model.playCurrent) {
-                Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: large ? 16 : 11, weight: .semibold))
-                    .frame(width: large ? 44 : 32, height: large ? 44 : 32)
-                    .contentShape(Circle())
+            if let onPreviousWord {
+                wordStepButton(
+                    systemImage: "chevron.backward",
+                    help: "Previous word (←)",
+                    active: canStepPreviousWord,
+                    action: onPreviousWord
+                )
             }
-            .buttonBorderShape(.circle)
-            .tint(.primary)
-            .studioGlassButton()
-            .help(spaceShortcut ? "Play or pause (Space)" : "Play or pause")
-            .modifier(ConditionalSpaceShortcut(enabled: spaceShortcut))
+
+            playButton
+
+            if let onNextWord {
+                wordStepButton(
+                    systemImage: "chevron.forward",
+                    help: "Next word (→)",
+                    active: canStepNextWord,
+                    action: onNextWord
+                )
+            }
 
             VStack(spacing: 6) {
                 InteractiveWaveformView(
@@ -136,8 +150,8 @@ struct TakePlaybackRow: View {
                     playbackTime: model.playbackTime,
                     isPlaying: model.isPlaying,
                     highlightedRange: highlightedRange,
-                    onSeek: { model.seek(to: $0, autoplay: true) },
-                    onScrub: { model.seek(to: $0) }
+                    onSeek: { time in (onSeek ?? { model.seek(to: $0, autoplay: true) })(time) },
+                    onScrub: { time in (onScrub ?? { model.seek(to: $0) })(time) }
                 )
                 .frame(height: large ? 48 : 30)
                 if large {
@@ -151,21 +165,70 @@ struct TakePlaybackRow: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            Text(spaceShortcut ? "SPACE" : "1×")
-                .font(.system(size: spaceShortcut ? 9 : 10, design: .monospaced))
-                .tracking(spaceShortcut ? 1.2 : 0)
+
+            shortcutHint(wordShortcuts: onPreviousWord != nil || onNextWord != nil)
+        }
+    }
+
+    private var playButton: some View {
+        Button(action: model.playCurrent) {
+            Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
+                .font(.system(size: large ? 16 : 11, weight: .semibold))
+                .frame(width: large ? 44 : 32, height: large ? 44 : 32)
+                .contentShape(Circle())
+        }
+        .buttonBorderShape(.circle)
+        .tint(.primary)
+        .studioGlassButton()
+        .help(spaceShortcut ? "Play or pause (Space)" : "Play or pause")
+        .modifier(ConditionalKeyboardShortcut(enabled: spaceShortcut, key: .space))
+    }
+
+    @ViewBuilder
+    private func shortcutHint(wordShortcuts: Bool) -> some View {
+        if spaceShortcut || wordShortcuts {
+            HStack(spacing: 6) {
+                if wordShortcuts { Text("← →") }
+                if spaceShortcut { Text("SPACE") }
+            }
+            .font(.system(size: 9, design: .monospaced))
+            .tracking(1.2)
+            .foregroundStyle(Studio.secondary)
+        } else {
+            Text("1×")
+                .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(Studio.secondary)
         }
     }
+
+    private func wordStepButton(
+        systemImage: String,
+        help: String,
+        active: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: large ? 13 : 10, weight: .semibold))
+                .frame(width: large ? 36 : 28, height: large ? 36 : 28)
+                .contentShape(Circle())
+        }
+        .buttonBorderShape(.circle)
+        .tint(.primary)
+        .studioGlassButton()
+        .help(help)
+        .opacity(active ? 1 : 0.38)
+    }
 }
 
-private struct ConditionalSpaceShortcut: ViewModifier {
+private struct ConditionalKeyboardShortcut: ViewModifier {
     let enabled: Bool
+    let key: KeyEquivalent
 
     @ViewBuilder
     func body(content: Content) -> some View {
         if enabled {
-            content.keyboardShortcut(.space, modifiers: [])
+            content.keyboardShortcut(key, modifiers: [])
         } else {
             content
         }
