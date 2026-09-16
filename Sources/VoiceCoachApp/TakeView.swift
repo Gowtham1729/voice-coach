@@ -10,6 +10,7 @@ struct TakeView: View {
     @State private var selectedWordIndex: Int?
     @State private var isGraphCopied = false
     @State private var isTranscriptCopied = false
+    @State private var isHandlingWordStep = false
 
     var body: some View {
         Group {
@@ -58,6 +59,7 @@ struct TakeView: View {
 
             stickyTransport(take)
         }
+        .background(wordStepShortcuts(for: take))
     }
 
     private func takeBar(_ session: CoachingSession, take: PracticeSession) -> some View {
@@ -160,7 +162,15 @@ struct TakeView: View {
                 canStepPreviousWord: canStepWord(in: take, by: -1),
                 canStepNextWord: canStepWord(in: take, by: 1),
                 onPreviousWord: hasWords ? { stepWord(in: take, by: -1) } : nil,
-                onNextWord: hasWords ? { stepWord(in: take, by: 1) } : nil
+                onNextWord: hasWords ? { stepWord(in: take, by: 1) } : nil,
+                onSeek: { time in
+                    selectedWordIndex = nil
+                    model.seek(to: time, autoplay: true)
+                },
+                onScrub: { time in
+                    selectedWordIndex = nil
+                    model.seek(to: time)
+                }
             )
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
@@ -246,8 +256,14 @@ struct TakeView: View {
         let result = take.result
         let playbackTime = interactive ? model.playbackTime : 0
         let isPlaying = interactive && model.isPlaying
-        let onSeek: ((Double) -> Void)? = interactive ? { model.seek(to: $0, autoplay: true) } : nil
-        let onScrub: ((Double) -> Void)? = interactive ? { model.seek(to: $0) } : nil
+        let onSeek: ((Double) -> Void)? = interactive ? { time in
+            selectedWordIndex = nil
+            model.seek(to: time, autoplay: true)
+        } : nil
+        let onScrub: ((Double) -> Void)? = interactive ? { time in
+            selectedWordIndex = nil
+            model.seek(to: time)
+        } : nil
 
         switch selectedPlot {
         case .pitch:
@@ -286,8 +302,14 @@ struct TakeView: View {
                         duration: result.metrics.duration,
                         playbackTime: model.playbackTime,
                         isPlaying: model.isPlaying,
-                        onSeek: { model.seek(to: $0, autoplay: true) },
-                        onScrub: { model.seek(to: $0) }
+                        onSeek: { time in
+                            selectedWordIndex = nil
+                            model.seek(to: time, autoplay: true)
+                        },
+                        onScrub: { time in
+                            selectedWordIndex = nil
+                            model.seek(to: time)
+                        }
                     )
                 }
             }
@@ -309,17 +331,89 @@ struct TakeView: View {
     private func highlightedWordIndex(in take: PracticeSession) -> Int? {
         guard let words = take.transcription?.words, !words.isEmpty else { return selectedWordIndex }
 
-        if let active = words.firstIndex(where: { $0.start <= model.playbackTime && model.playbackTime <= $0.end }) {
-            return active
-        }
-
-        // Word timings usually leave short gaps. While playing, keep the last word that
-        // has started so highlight does not snap back to a prior manual selection.
+        // While playing, follow the playhead so highlight keeps moving after a seek.
         if model.isPlaying {
-            return words.lastIndex(where: { $0.start <= model.playbackTime })
+            return wordIndexAtPlayhead(words: words, time: model.playbackTime)
         }
 
-        return selectedWordIndex
+        if let selectedWordIndex, words.indices.contains(selectedWordIndex) {
+            return selectedWordIndex
+        }
+
+        return wordIndexAtPlayhead(words: words, time: model.playbackTime)
+    }
+
+    private func canStepWord(in take: PracticeSession, by delta: Int) -> Bool {
+        guard let words = take.transcription?.words, !words.isEmpty else { return false }
+        return steppedWordIndex(words: words, by: delta) != nil
+    }
+
+    private func stepWord(in take: PracticeSession, by delta: Int) {
+        // SwiftUI arrow keyboardShortcuts can deliver the same keypress twice in one turn.
+        guard !isHandlingWordStep else { return }
+        isHandlingWordStep = true
+        defer { Task { @MainActor in isHandlingWordStep = false } }
+
+        guard let words = take.transcription?.words, !words.isEmpty,
+              let target = steppedWordIndex(words: words, by: delta)
+        else { return }
+
+        selectedWordIndex = target
+        model.seek(to: words[target].start)
+    }
+
+    private func steppedWordIndex(words: [TranscriptWord], by delta: Int) -> Int? {
+        let current = wordIndexForStepping(words: words)
+        let target: Int
+        if let current {
+            target = current + delta
+        } else if delta > 0 {
+            target = 0
+        } else {
+            return nil
+        }
+        return words.indices.contains(target) ? target : nil
+    }
+
+    /// Prefer the locked selection so rapid ←/→ stay one word at a time; once
+    /// playback leaves that word, fall back to the live playhead.
+    private func wordIndexForStepping(words: [TranscriptWord]) -> Int? {
+        if let selectedWordIndex, words.indices.contains(selectedWordIndex) {
+            let word = words[selectedWordIndex]
+            if !model.isPlaying || model.playbackTime <= word.end + 0.02 {
+                return selectedWordIndex
+            }
+        }
+        return wordIndexAtPlayhead(words: words, time: model.playbackTime)
+    }
+
+    /// Half-open [start, end) avoids double-counting when adjacent words share a boundary.
+    private func wordIndexAtPlayhead(words: [TranscriptWord], time: TimeInterval) -> Int? {
+        if let index = words.firstIndex(where: { $0.start <= time && time < $0.end }) {
+            return index
+        }
+        if let last = words.indices.last,
+           words[last].start <= time,
+           time <= words[last].end {
+            return last
+        }
+        return words.lastIndex(where: { $0.start <= time })
+    }
+
+    @ViewBuilder
+    private func wordStepShortcuts(for take: PracticeSession) -> some View {
+        let hasWords = !(take.transcription?.words.isEmpty ?? true)
+        if hasWords {
+            ZStack {
+                Button("Previous word") { stepWord(in: take, by: -1) }
+                    .keyboardShortcut(.leftArrow, modifiers: [])
+                Button("Next word") { stepWord(in: take, by: 1) }
+                    .keyboardShortcut(.rightArrow, modifiers: [])
+            }
+            .opacity(0)
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
+        }
     }
 
     private func canStepWord(in take: PracticeSession, by delta: Int) -> Bool {

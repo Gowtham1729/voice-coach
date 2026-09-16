@@ -118,6 +118,8 @@ struct TakePlaybackRow: View {
     var canStepNextWord = false
     var onPreviousWord: (() -> Void)? = nil
     var onNextWord: (() -> Void)? = nil
+    var onSeek: ((Double) -> Void)? = nil
+    var onScrub: ((Double) -> Void)? = nil
 
     var body: some View {
         HStack(spacing: large ? 18 : 11) {
@@ -150,8 +152,8 @@ struct TakePlaybackRow: View {
                     playbackTime: model.playbackTime,
                     isPlaying: model.isPlaying,
                     highlightedRange: highlightedRange,
-                    onSeek: { model.seek(to: $0, autoplay: true) },
-                    onScrub: { model.seek(to: $0) }
+                    onSeek: { time in (onSeek ?? { model.seek(to: $0, autoplay: true) })(time) },
+                    onScrub: { time in (onScrub ?? { model.seek(to: $0) })(time) }
                 )
                 .frame(height: large ? 48 : 30)
                 if large {
