@@ -51,6 +51,10 @@ struct TakeView: View {
                 selectedWordIndex = nil
                 isTranscriptCopied = false
             }
+            .onChange(of: model.isPlaying) { _, playing in
+                // Manual selection only anchors seek; once playback runs, follow the timeline.
+                if playing { selectedWordIndex = nil }
+            }
 
             stickyTransport(take)
         }
@@ -298,10 +302,18 @@ struct TakeView: View {
     }
 
     private func highlightedWordIndex(in take: PracticeSession) -> Int? {
-        guard let words = take.transcription?.words else { return selectedWordIndex }
+        guard let words = take.transcription?.words, !words.isEmpty else { return selectedWordIndex }
+
         if let active = words.firstIndex(where: { $0.start <= model.playbackTime && model.playbackTime <= $0.end }) {
             return active
         }
+
+        // Word timings usually leave short gaps. While playing, keep the last word that
+        // has started so highlight does not snap back to a prior manual selection.
+        if model.isPlaying {
+            return words.lastIndex(where: { $0.start <= model.playbackTime })
+        }
+
         return selectedWordIndex
     }
 
