@@ -2,6 +2,9 @@ import Foundation
 
 public enum TranscriptionError: LocalizedError, Sendable {
     case runtimeUnavailable
+    case systemUnavailable(String)
+    case systemLocaleUnsupported(String)
+    case systemAssetsUnavailable(String)
     case launchFailed(String)
     case recognitionFailed(String)
     case invalidOutput
@@ -9,7 +12,13 @@ public enum TranscriptionError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .runtimeUnavailable:
-            return "Local transcription is not installed yet. Open Settings → Transcription to download the on-device Parakeet model (~714 MB)."
+            return "Parakeet transcription is not installed yet. Open Settings → Transcription to download the optional on-device Parakeet model (~714 MB), or use System transcription."
+        case .systemUnavailable(let detail):
+            return "System transcription is unavailable. \(detail)"
+        case .systemLocaleUnsupported(let identifier):
+            return "System transcription does not support \(identifier). Choose another language in System Settings, or install Parakeet in Settings → Transcription."
+        case .systemAssetsUnavailable(let detail):
+            return "System speech model is not ready. \(detail)"
         case .launchFailed(let detail):
             return "Could not start local transcription: \(detail)"
         case .recognitionFailed(let detail):

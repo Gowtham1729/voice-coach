@@ -127,6 +127,7 @@ struct TakePlaybackRow: View {
                 wordStepButton(
                     systemImage: "chevron.backward",
                     help: "Previous word (←)",
+                    shortcut: .leftArrow,
                     active: canStepPreviousWord,
                     action: onPreviousWord
                 )
@@ -138,6 +139,7 @@ struct TakePlaybackRow: View {
                 wordStepButton(
                     systemImage: "chevron.forward",
                     help: "Next word (→)",
+                    shortcut: .rightArrow,
                     active: canStepNextWord,
                     action: onNextWord
                 )
@@ -204,6 +206,7 @@ struct TakePlaybackRow: View {
     private func wordStepButton(
         systemImage: String,
         help: String,
+        shortcut: KeyEquivalent,
         active: Bool,
         action: @escaping () -> Void
     ) -> some View {
@@ -218,6 +221,7 @@ struct TakePlaybackRow: View {
         .studioGlassButton()
         .help(help)
         .opacity(active ? 1 : 0.38)
+        .keyboardShortcut(shortcut, modifiers: [])
     }
 }
 

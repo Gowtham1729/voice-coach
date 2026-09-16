@@ -32,6 +32,29 @@ public enum TranscriptionSetupStatus: Sendable, Equatable {
         if case .installing = self { return true }
         return false
     }
+
+    public var title: String {
+        switch self {
+        case .ready: "Ready"
+        case .missing: "Not installed"
+        case .installing: "Installing"
+        case .failed: "Needs attention"
+        case .unsupported: "Unavailable"
+        }
+    }
+
+    public var detail: String {
+        switch self {
+        case .ready(_, let modelID):
+            "\(modelID) · local only · optional"
+        case .missing:
+            "Optional fallback. Acoustic analysis and System transcription work without this."
+        case .installing(let phase):
+            phase.userFacingLabel
+        case .failed(let message), .unsupported(let message):
+            message
+        }
+    }
 }
 
 public enum TranscriptionSetupError: LocalizedError, Sendable {
