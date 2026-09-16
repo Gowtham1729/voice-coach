@@ -146,7 +146,8 @@ struct TakeView: View {
     }
 
     private func stickyTransport(_ take: PracticeSession) -> some View {
-        VStack(spacing: 0) {
+        let hasWords = !(take.transcription?.words.isEmpty ?? true)
+        return VStack(spacing: 0) {
             Rectangle()
                 .fill(Studio.line)
                 .frame(height: 1)
@@ -155,7 +156,11 @@ struct TakeView: View {
                 take: take,
                 large: true,
                 spaceShortcut: true,
-                highlightedRange: selectedRange(take)
+                highlightedRange: selectedRange(take),
+                canStepPreviousWord: canStepWord(in: take, by: -1),
+                canStepNextWord: canStepWord(in: take, by: 1),
+                onPreviousWord: hasWords ? { stepWord(in: take, by: -1) } : nil,
+                onNextWord: hasWords ? { stepWord(in: take, by: 1) } : nil
             )
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
@@ -315,6 +320,36 @@ struct TakeView: View {
         }
 
         return selectedWordIndex
+    }
+
+    private func canStepWord(in take: PracticeSession, by delta: Int) -> Bool {
+        guard let words = take.transcription?.words, !words.isEmpty else { return false }
+        return steppedWordIndex(in: take, words: words, by: delta) != nil
+    }
+
+    private func stepWord(in take: PracticeSession, by delta: Int) {
+        guard let words = take.transcription?.words, !words.isEmpty,
+              let target = steppedWordIndex(in: take, words: words, by: delta)
+        else { return }
+        selectedWordIndex = target
+        model.seek(to: words[target].start)
+    }
+
+    private func steppedWordIndex(in take: PracticeSession, words: [TranscriptWord], by delta: Int) -> Int? {
+        if let current = highlightedWordIndex(in: take) {
+            let target = current + delta
+            return words.indices.contains(target) ? target : nil
+        }
+
+        // Paused in a gap (or past the end): ← returns to the last started word, → advances.
+        if let previous = words.lastIndex(where: { $0.start <= model.playbackTime }) {
+            if delta < 0 { return previous }
+            let next = previous + 1
+            return words.indices.contains(next) ? next : nil
+        }
+
+        // Playhead is before the first word.
+        return delta > 0 ? 0 : nil
     }
 
     private var quickMotion: Animation? {

@@ -141,15 +141,18 @@ struct SettingsView: View {
             }
 
             Section("Privacy and Measurements") {
-                Text("Recordings, transcripts, and analysis stay on this Mac. Voice-quality values are acoustic coaching signals, not medical measurements or diagnoses.")
+                Text("Recordings, transcripts, and analysis stay on this Mac. System transcription uses Apple’s on-device SpeechAnalyzer; optional Parakeet also runs locally. Voice-quality values are acoustic coaching signals, not medical measurements or diagnoses.")
                     .foregroundStyle(.secondary)
                 Text("Waveforms and spectrograms remain available in the app but are intentionally excluded from copied and exported JSON.")
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
-        .frame(width: 560, height: 620)
-        .onAppear { model.refreshTranscriptionSetupStatus() }
+        .frame(width: 560, height: 720)
+        .onAppear {
+            model.refreshTranscriptionSetupStatus()
+            model.refreshSystemTranscriptionStatus()
+        }
     }
 
     private var snapshotSettings: some View {
@@ -182,12 +185,14 @@ struct SettingsView: View {
             }
 
             snapshotSection("Transcription", symbol: "text.bubble") {
-                Text(statusTitle(for: model.transcriptionSetupStatus))
+                Text(model.transcriptionEngine.title)
                     .font(.body.weight(.medium))
-                Text(statusDetail(for: model.transcriptionSetupStatus))
+                Text("System · \(model.systemTranscriptionStatus.title)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text("Parakeet · \(model.transcriptionSetupStatus.title)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             snapshotSection("Privacy and Measurements", symbol: "hand.raised") {
@@ -200,27 +205,80 @@ struct SettingsView: View {
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Studio.background)
-        .onAppear { model.refreshTranscriptionSetupStatus() }
+        .onAppear {
+            model.refreshTranscriptionSetupStatus()
+            model.refreshSystemTranscriptionStatus()
+        }
     }
 
     @ViewBuilder
     private var transcriptionSettings: some View {
-        let status = model.transcriptionSetupStatus
-        let busy = status.isBusy || model.isRecording || model.isAnalyzing
+        let systemStatus = model.systemTranscriptionStatus
+        let parakeetStatus = model.transcriptionSetupStatus
+        let busy = systemStatus.isBusy
+            || parakeetStatus.isBusy
+            || model.isRecording
+            || model.isAnalyzing
 
-        Text("Optional on-device transcripts use NVIDIA Parakeet through NeMo-Speech.cpp. Voice Coach downloads the runtime and model to this Mac; recordings are never uploaded.")
+        Text("Voice Coach prefers Apple’s on-device SpeechAnalyzer. Install Parakeet only if you want that optional engine.")
             .foregroundStyle(.secondary)
 
-        LabeledContent("Status") {
-            Text(statusTitle(for: status))
+        Picker("Engine", selection: Binding(
+            get: { model.transcriptionEngine },
+            set: { model.setTranscriptionEngine($0) }
+        )) {
+            ForEach(TranscriptionEnginePreference.allCases, id: \.self) { engine in
+                Text(engine.title).tag(engine)
+            }
+        }
+        .pickerStyle(.segmented)
+        .disabled(busy)
+
+        Text(model.transcriptionEngine.detail)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
+        LabeledContent("System") {
+            Text(systemStatus.title)
                 .foregroundStyle(.secondary)
         }
-        Text(statusDetail(for: status))
+        Text(systemStatus.detail)
             .font(.caption)
             .foregroundStyle(.secondary)
             .textSelection(.enabled)
 
-        if case .installing(let phase) = status {
+        if case .downloading = systemStatus {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Downloading Apple speech model…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        if case .needsDownload = systemStatus {
+            HStack {
+                Spacer()
+                Button("Download system speech model") {
+                    model.ensureSystemTranscriptionAssets()
+                }
+                .disabled(busy)
+            }
+        }
+
+        Divider().padding(.vertical, 4)
+
+        LabeledContent("Parakeet") {
+            Text(parakeetStatus.title)
+                .foregroundStyle(.secondary)
+        }
+        Text(parakeetStatus.detail)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+
+        if case .installing(let phase) = parakeetStatus {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
                 Text(phase.userFacingLabel)
@@ -229,16 +287,16 @@ struct SettingsView: View {
             }
         }
 
-        transcriptionActions(status: status, busy: busy)
+        parakeetActions(status: parakeetStatus, busy: busy)
     }
 
     @ViewBuilder
-    private func transcriptionActions(status: TranscriptionSetupStatus, busy: Bool) -> some View {
+    private func parakeetActions(status: TranscriptionSetupStatus, busy: Bool) -> some View {
         switch status {
         case .ready:
             HStack {
                 Spacer()
-                Button("Check for updates", action: model.startTranscriptionSetup)
+                Button("Check Parakeet for updates", action: model.startTranscriptionSetup)
                     .disabled(busy)
                 Button("Show in Finder", systemImage: "folder", action: model.revealTranscriptionInstall)
             }
@@ -247,34 +305,11 @@ struct SettingsView: View {
         case .missing, .failed, .installing:
             HStack {
                 Spacer()
-                Button(status.isBusy ? "Downloading…" : "Download transcription (~714 MB)") {
+                Button(status.isBusy ? "Downloading…" : "Download Parakeet (~714 MB)") {
                     model.startTranscriptionSetup()
                 }
                 .disabled(busy)
             }
-        }
-    }
-
-    private func statusTitle(for status: TranscriptionSetupStatus) -> String {
-        switch status {
-        case .ready: "Ready"
-        case .missing: "Not installed"
-        case .installing: "Installing"
-        case .failed: "Needs attention"
-        case .unsupported: "Unavailable"
-        }
-    }
-
-    private func statusDetail(for status: TranscriptionSetupStatus) -> String {
-        switch status {
-        case .ready(_, let modelID):
-            "\(modelID) · local only"
-        case .missing:
-            "Acoustic analysis works without this. Download once to enable word-level transcripts."
-        case .installing(let phase):
-            phase.userFacingLabel
-        case .failed(let message), .unsupported(let message):
-            message
         }
     }
 

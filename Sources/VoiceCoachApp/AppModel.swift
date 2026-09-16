@@ -3,13 +3,6 @@ import AVFoundation
 import Foundation
 import VoiceCoachCore
 
-private struct CompletedAnalysis: Sendable {
-    let result: AnalysisResult
-    let transcription: TranscriptionResult?
-    let words: [WordAnalysis]
-    let transcriptionNotice: String?
-}
-
 @MainActor
 final class AppModel: ObservableObject {
     @Published var destination: AppDestination = .studio
@@ -27,6 +20,8 @@ final class AppModel: ObservableObject {
     @Published var toastMessage: String?
     @Published var transcriptionNotice: String?
     @Published var transcriptionSetupStatus: TranscriptionSetupStatus = .missing
+    @Published var systemTranscriptionStatus: SystemTranscriptionStatus = .unavailable("Checking system speech…")
+    @Published var transcriptionEngine: TranscriptionEnginePreference = .load()
 
     private let recorder = AudioRecorder()
     private let store: SessionStore
@@ -36,6 +31,8 @@ final class AppModel: ObservableObject {
     private var recordingTakeID: UUID?
     private var startedAt: Date?
     private var transcriptionSetupTask: Task<Void, Never>?
+    private var systemTranscriptionStatusTask: Task<Void, Never>?
+    private var systemAssetInstallTask: Task<Void, Never>?
 
     init(storageRoot: URL? = nil, loadPersistedData: Bool = true) {
         do {
@@ -52,6 +49,7 @@ final class AppModel: ObservableObject {
         }
 
         refreshTranscriptionSetupStatus()
+        refreshSystemTranscriptionStatus()
 
         guard loadPersistedData else { return }
         do {
@@ -369,6 +367,60 @@ final class AppModel: ObservableObject {
         transcriptionSetupStatus = TranscriptionSetupService.currentStatus()
     }
 
+    func refreshSystemTranscriptionStatus() {
+        guard !systemTranscriptionStatus.isBusy else { return }
+        systemTranscriptionStatusTask?.cancel()
+        systemTranscriptionStatusTask = Task { @MainActor [weak self] in
+            let status = await AppleSpeechTranscriber.currentStatus()
+            guard !Task.isCancelled else { return }
+            self?.systemTranscriptionStatus = status
+        }
+    }
+
+    func setTranscriptionEngine(_ engine: TranscriptionEnginePreference) {
+        transcriptionEngine = engine
+        engine.save()
+        toastMessage = "Transcription engine set to \(engine.title)"
+    }
+
+    func ensureSystemTranscriptionAssets() {
+        guard !systemTranscriptionStatus.isBusy else { return }
+        guard !isRecording, !isAnalyzing else {
+            errorMessage = "Finish recording or analysis before downloading speech models."
+            return
+        }
+        if case .ready = systemTranscriptionStatus {
+            toastMessage = "System transcription is already ready"
+            return
+        }
+
+        let locale: String
+        if case .needsDownload(let identifier) = systemTranscriptionStatus {
+            locale = identifier
+        } else {
+            locale = Locale.current.identifier
+        }
+
+        systemAssetInstallTask?.cancel()
+        systemTranscriptionStatus = .downloading(localeIdentifier: locale)
+        systemAssetInstallTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                try await AppleSpeechTranscriber.ensureAssets()
+                guard !Task.isCancelled else { return }
+                systemTranscriptionStatus = await AppleSpeechTranscriber.currentStatus()
+                if systemTranscriptionStatus.isReady {
+                    toastMessage = "System transcription is ready"
+                }
+            } catch is CancellationError {
+                refreshSystemTranscriptionStatus()
+            } catch {
+                systemTranscriptionStatus = .unavailable(error.localizedDescription)
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     func startTranscriptionSetup() {
         guard !transcriptionSetupStatus.isBusy else { return }
         guard !isRecording, !isAnalyzing else {
@@ -389,7 +441,7 @@ final class AppModel: ObservableObject {
                 guard !Task.isCancelled else { return }
                 transcriptionSetupStatus = TranscriptionSetupService.currentStatus()
                 if transcriptionSetupStatus.isReady {
-                    toastMessage = "On-device transcription is ready"
+                    toastMessage = "Parakeet transcription is ready"
                 }
             } catch is CancellationError {
                 refreshTranscriptionSetupStatus()
@@ -473,21 +525,42 @@ final class AppModel: ObservableObject {
 
     private func analyze(url: URL, takeID: UUID, source: TakeSource = .recorded) {
         isAnalyzing = true
+        let preferredEngine = transcriptionEngine
         Task {
             do {
-                let completed = try await Task.detached(priority: .userInitiated) { () throws -> CompletedAnalysis in
-                    let result = try AudioAnalyzer().analyze(url: url)
-                    do {
-                        let transcription = try NemoSpeechTranscriber().transcribe(url: url)
-                        return CompletedAnalysis(result: result, transcription: transcription, words: WordAcousticAnalyzer().analyze(transcription: transcription, result: result), transcriptionNotice: nil)
-                    } catch {
-                        return CompletedAnalysis(result: result, transcription: nil, words: [], transcriptionNotice: error.localizedDescription)
-                    }
+                let acoustic = try await Task.detached(priority: .userInitiated) {
+                    try AudioAnalyzer().analyze(url: url)
                 }.value
-                let take = PracticeSession(id: takeID, audioURL: url, source: source, result: completed.result, transcription: completed.transcription, words: completed.words)
+
+                var transcription: TranscriptionResult?
+                var words: [WordAnalysis] = []
+                var notice: String?
+                do {
+                    let outcome = try await TranscriptionService(preferredEngine: preferredEngine)
+                        .transcribe(url: url)
+                    transcription = outcome.result
+                    words = WordAcousticAnalyzer().analyze(
+                        transcription: outcome.result,
+                        result: acoustic
+                    )
+                    notice = outcome.notice
+                } catch {
+                    notice = error.localizedDescription
+                }
+
+                let take = PracticeSession(
+                    id: takeID,
+                    audioURL: url,
+                    source: source,
+                    result: acoustic,
+                    transcription: transcription,
+                    words: words
+                )
                 append(take)
-                transcriptionNotice = completed.transcriptionNotice
-            } catch { errorMessage = "Analysis failed: \(error.localizedDescription)" }
+                transcriptionNotice = notice
+            } catch {
+                errorMessage = "Analysis failed: \(error.localizedDescription)"
+            }
             isAnalyzing = false
             recordingURL = nil
             recordingTakeID = nil

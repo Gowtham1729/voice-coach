@@ -208,6 +208,14 @@ do {
 
     let unavailableCopy = TranscriptionError.runtimeUnavailable.errorDescription ?? ""
     try check(unavailableCopy.contains("Settings"), "Runtime-unavailable copy should point users to Settings")
+    try check(TranscriptionEnginePreference.default == .system, "Default transcription engine should be System")
+    try check(TranscriptionEnginePreference.system.title.contains("Apple"), "System engine title drifted")
+    #if canImport(Speech)
+    let appleAvailable = await AppleSpeechTranscriber.isAvailable()
+    print("Apple SpeechTranscriber available: \(appleAvailable)")
+    let systemStatus = await AppleSpeechTranscriber.currentStatus()
+    print("Apple system transcription status: \(systemStatus)")
+    #endif
     let managed = try TranscriptionSetupService.managedExecutableURL()
     try check(managed.path.contains("/VoiceCoach/Transcription/NeMoSpeech/bin/nemo-speech"), "Managed runtime path drifted")
     let modelCache = try TranscriptionSetupService.modelRepositoryCacheURL()
@@ -464,6 +472,33 @@ do {
             audioURL: audioURL,
             result: liveResult,
             transcription: liveTranscription,
+            words: liveWords
+        )
+        if CommandLine.arguments.contains("--timeline") {
+            print(ReportFormatter.makeTimelineDebug(session: liveSession))
+        }
+        print(ReportFormatter.makeReport(session: liveSession))
+    }
+
+    if let argumentIndex = CommandLine.arguments.firstIndex(of: "--transcribe-system"),
+       CommandLine.arguments.indices.contains(argumentIndex + 1) {
+        let audioURL = URL(fileURLWithPath: CommandLine.arguments[argumentIndex + 1])
+        let liveResult = try AudioAnalyzer().analyze(url: audioURL)
+        let outcome = try await TranscriptionService(preferredEngine: .system).transcribe(url: audioURL)
+        let liveWords = WordAcousticAnalyzer().analyze(
+            transcription: outcome.result,
+            result: liveResult
+        )
+        try check(!outcome.result.text.isEmpty, "Live Apple speech smoke test returned an empty transcript")
+        try check(!liveWords.isEmpty, "Live Apple speech smoke test returned no timestamped words")
+        print("Apple engine used: \(outcome.engine.rawValue)")
+        if let notice = outcome.notice {
+            print("Notice: \(notice)")
+        }
+        let liveSession = PracticeSession(
+            audioURL: audioURL,
+            result: liveResult,
+            transcription: outcome.result,
             words: liveWords
         )
         if CommandLine.arguments.contains("--timeline") {

@@ -34,7 +34,7 @@ struct TakeTranscriptPane: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onChange(of: highlightedWordIndex) { _, index in
-                    guard let index, isPlaying else { return }
+                    guard let index else { return }
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
                         proxy.scrollTo(index, anchor: .center)
                     }

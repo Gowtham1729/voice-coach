@@ -76,6 +76,8 @@ func renderStudioPreviewsIfRequested() {
         try render("05-sessions")
         model.destination = .insights
         try render("06-insights")
+        model.transcriptionEngine = .system
+        model.systemTranscriptionStatus = .ready(localeIdentifier: "en_US")
         try renderSettings("07-settings")
         model.destination = .practice(model.sessions[0].id)
         model.isRecording = true
