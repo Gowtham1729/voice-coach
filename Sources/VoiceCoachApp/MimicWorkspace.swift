@@ -299,29 +299,11 @@ struct MimicInspector: View {
                         .font(.caption).foregroundStyle(Studio.secondary)
                     Divider()
                     if model.mimicShowingResult, let take = model.selectedTake {
-                        let comparison = MimicComparison.compare(reference: reference.take, attempt: take)
-                        if let index = model.mimicSelectedWord, comparison.pairs.indices.contains(index) {
-                            let pair = comparison.pairs[index]
-                            Text(pair.word).font(.title3.weight(.semibold))
-                            Text("Reference: \(Int((pair.reference.end - pair.reference.start) * 1_000)) ms")
-                            Text("You: \(Int((pair.attempt.end - pair.attempt.start) * 1_000)) ms")
-                            if index > 0 {
-                                let previous = comparison.pairs[index - 1]
-                                if previous.referenceIndex + 1 == pair.referenceIndex && previous.attemptIndex + 1 == pair.attemptIndex {
-                                    Text("Pause before: \(Int(max(0, pair.reference.start - previous.reference.end) * 1_000)) / \(Int(max(0, pair.attempt.start - previous.attempt.end) * 1_000)) ms")
-                                        .font(.caption)
-                                }
-                            }
-                            if let a = pair.referenceEnergy, let b = pair.attemptEnergy {
-                                Text("Relative energy: \(a.formatted(.number.precision(.fractionLength(1)))) / \(b.formatted(.number.precision(.fractionLength(1)))) dB")
-                                    .font(.caption)
-                            }
-                        } else {
-                            Text("Take \((session.takes.firstIndex(where: { $0.id == take.id }) ?? 0) + 1)")
-                                .font(.title3.weight(.semibold))
-                            Text("Select a matched word to inspect its timing and acoustic measurements.")
-                                .font(.callout).foregroundStyle(Studio.secondary)
-                        }
+                        let takeNumber = (session.takes.firstIndex(where: { $0.id == take.id }) ?? 0) + 1
+                        Text("Take \(takeNumber)")
+                            .font(.title3.weight(.semibold))
+                        Text("Listen to both versions, then try again when you are ready.")
+                            .font(.callout).foregroundStyle(Studio.secondary)
                         Divider()
                         Button("Try Again") { model.startMimicPractice() }
                             .studioGlassButton(prominent: true)

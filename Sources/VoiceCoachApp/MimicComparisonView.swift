@@ -29,23 +29,6 @@ struct MimicComparisonView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 16) {
-                SectionEyebrow(text: model.mimicSelectedWord == nil ? "Timing focus for this take" : "Selected word")
-                if let index = model.mimicSelectedWord, comparison.pairs.indices.contains(index) {
-                    Text(selectedWordSummary(at: index))
-                        .font(.title3.weight(.semibold))
-                } else if let observation = comparison.observation {
-                    Text(observation.text)
-                        .font(.title3.weight(.semibold))
-                    Text("The largest detected pause difference is shown first. If none qualifies, a word-duration difference is shown. Select any word to inspect it.")
-                        .font(.caption)
-                        .foregroundStyle(Studio.secondary)
-                } else {
-                    Text(comparison.correspondenceReliable
-                         ? "Listen to both versions and choose what to practise next."
-                         : "Word comparison is unavailable for this take. You can still listen and retry.")
-                        .font(.title3.weight(.semibold))
-                }
-                Divider()
                 SectionEyebrow(text: "Words")
                 transcriptRow("Reference", transcription: reference.transcription, color: .cyan, source: .reference)
                 transcriptRow("You", transcription: attempt.transcription, color: Studio.accent, source: .attempt)
@@ -90,7 +73,6 @@ struct MimicComparisonView: View {
                         }
                         .frame(height: chartHeight)
                     }
-                    if metric == .timing { timingDetail }
                     HStack(spacing: 14) {
                         Label("Reference", systemImage: "minus")
                             .foregroundStyle(.cyan)
@@ -128,9 +110,8 @@ struct MimicComparisonView: View {
             guard followPlayback, model.isPlaying, let x = playbackX else { return }
             centerChart(on: x, viewportWidth: viewportWidth, animated: false)
         }
-        .onChange(of: metric) { _, next in
-            let index = model.mimicSelectedWord ?? (next == .timing ? focusIndex : 0)
-            centerChart(onWord: index, viewportWidth: viewportWidth)
+        .onChange(of: metric) { _, _ in
+            centerChart(onWord: model.mimicSelectedWord ?? 0, viewportWidth: viewportWidth)
         }
         .onChange(of: model.mimicSelectedWord) { _, index in
             guard let index else { return }
@@ -142,7 +123,7 @@ struct MimicComparisonView: View {
         }
         .onAppear {
             guard metric == .timing else { return }
-            centerChart(onWord: model.mimicSelectedWord ?? focusIndex, viewportWidth: viewportWidth)
+            centerChart(onWord: model.mimicSelectedWord ?? 0, viewportWidth: viewportWidth)
         }
         .overlay(alignment: .topLeading) {
             if followPlayback,
@@ -249,13 +230,6 @@ struct MimicComparisonView: View {
         return CGFloat(index) * cell + inset + playbackPositionInWord * spokenWidth
     }
 
-    private var focusIndex: Int {
-        guard let end = comparison.observation?.referenceRange.upperBound else { return 0 }
-        return comparison.pairs.indices.min(by: {
-            abs(comparison.pairs[$0].reference.end - end) < abs(comparison.pairs[$1].reference.end - end)
-        }) ?? 0
-    }
-
     private func jump(to index: Int, source: MimicPlaybackSource) {
         guard comparison.pairs.indices.contains(index) else { return }
         model.mimicSelectedWord = index
@@ -292,17 +266,6 @@ struct MimicComparisonView: View {
     private func activeTranscriptIndex(in transcription: TranscriptionResult, source: MimicPlaybackSource) -> Int? {
         guard model.isPlaying, model.mimicPlaybackSource == source else { return nil }
         return transcription.words.firstIndex(where: { model.playbackTime >= $0.start && model.playbackTime < $0.end })
-    }
-
-    private func selectedWordSummary(at index: Int) -> String {
-        let pair = comparison.pairs[index]
-        let referenceMs = Int(((pair.reference.end - pair.reference.start) * 1_000).rounded())
-        let attemptMs = Int(((pair.attempt.end - pair.attempt.start) * 1_000).rounded())
-        let gap = pauseDifference(at: index)
-        if abs(gap) >= 0.12 {
-            return "Before “\(pair.word)”: reference pause \(Int((pause(before: index, source: .reference) * 1_000).rounded())) ms; yours \(Int((pause(before: index, source: .attempt) * 1_000).rounded())) ms."
-        }
-        return "“\(pair.word)”: reference \(referenceMs) ms; yours \(attemptMs) ms."
     }
 
     private var wordPicker: some View {
@@ -416,7 +379,9 @@ struct MimicComparisonView: View {
 
     private var timingLanes: some View {
         let pairs = comparison.pairs
-        let selected = model.isPlaying ? (followedWordIndex ?? model.mimicSelectedWord ?? focusIndex) : (model.mimicSelectedWord ?? focusIndex)
+        let selected = model.isPlaying
+            ? (followedWordIndex ?? model.mimicSelectedWord ?? 0)
+            : (model.mimicSelectedWord ?? 0)
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(pairs.indices, id: \.self) { index in
@@ -453,26 +418,6 @@ struct MimicComparisonView: View {
                 }
             }
             .padding(.vertical, 8)
-        }
-    }
-
-    private var timingDetail: some View {
-        let index = model.isPlaying ? (followedWordIndex ?? model.mimicSelectedWord ?? focusIndex) : (model.mimicSelectedWord ?? focusIndex)
-        return Group {
-            if comparison.pairs.indices.contains(index) {
-                let pair = comparison.pairs[index]
-                HStack(spacing: 12) {
-                    Text(pair.word).fontWeight(.semibold)
-                    Text("Word: \(Int((pair.reference.end - pair.reference.start) * 1_000)) / \(Int((pair.attempt.end - pair.attempt.start) * 1_000)) ms")
-                    if index > 0, pair.referenceIndex == comparison.pairs[index - 1].referenceIndex + 1,
-                       pair.attemptIndex == comparison.pairs[index - 1].attemptIndex + 1 {
-                        Text("Pause before: \(Int(pause(before: index, source: .reference) * 1_000)) / \(Int(pause(before: index, source: .attempt) * 1_000)) ms")
-                    }
-                    Spacer(minLength: 0)
-                }
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(Studio.secondary)
-            }
         }
     }
 

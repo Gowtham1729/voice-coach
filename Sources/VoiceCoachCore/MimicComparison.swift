@@ -10,35 +10,18 @@ public struct MimicWordPair: Sendable, Equatable {
     public let attemptPitch: Double?
     public let referenceEnergy: Double?
     public let attemptEnergy: Double?
-
-    public var durationDifferenceMs: Double {
-        ((attempt.end - attempt.start) - (reference.end - reference.start)) * 1_000
-    }
-}
-
-public struct MimicObservation: Sendable, Equatable {
-    public let text: String
-    public let referenceRange: ClosedRange<Double>
-    public let attemptRange: ClosedRange<Double>
-
-    public init(text: String, referenceRange: ClosedRange<Double>, attemptRange: ClosedRange<Double>) {
-        self.text = text
-        self.referenceRange = referenceRange
-        self.attemptRange = attemptRange
-    }
 }
 
 public struct MimicComparison: Sendable, Equatable {
     public let pairs: [MimicWordPair]
     public let correspondenceReliable: Bool
-    public let observation: MimicObservation?
 
     public static func compare(reference: PracticeSession, attempt: PracticeSession) -> Self {
         guard let referenceWords = reference.transcription?.words,
               let attemptWords = attempt.transcription?.words,
               !referenceWords.isEmpty, !attemptWords.isEmpty,
               referenceWords.count <= 160, attemptWords.count <= 160
-        else { return .init(pairs: [], correspondenceReliable: false, observation: nil) }
+        else { return .init(pairs: [], correspondenceReliable: false) }
 
         let left = referenceWords.map { normalized($0.word) }
         let right = attemptWords.map { normalized($0.word) }
@@ -78,49 +61,12 @@ public struct MimicComparison: Sendable, Equatable {
                 attemptEnergy: attempt.words.indices.contains(b) ? attempt.words[b].loudness.relativeMeanDB : nil
             )
         }
-        guard reliable, attempt.result.metrics.clippingPercent < 3,
-              reference.result.metrics.clippingPercent < 3,
-              attempt.result.metrics.snrDB >= 6,
-              reference.result.metrics.snrDB >= 6
-        else { return .init(pairs: pairs, correspondenceReliable: false, observation: nil) }
-
-        // Only matched adjacent words support a specific pause comparison.
-        var largestPause: (difference: Double, observation: MimicObservation)?
-        for (previous, next) in zip(pairs, pairs.dropFirst()) {
-            guard next.referenceIndex == previous.referenceIndex + 1,
-                  next.attemptIndex == previous.attemptIndex + 1 else { continue }
-            let refGap = max(0, next.reference.start - previous.reference.end)
-            let ownGap = max(0, next.attempt.start - previous.attempt.end)
-            let difference = ownGap - refGap
-            guard abs(difference) >= 0.12 else { continue }
-            let qualifier = difference > 0 ? "longer" : "shorter"
-            let text = "Your pause before “\(next.word)” was \(Int((abs(difference) * 1_000).rounded())) ms \(qualifier)."
-            let observation = MimicObservation(
-                text: text,
-                referenceRange: previous.reference.start...next.reference.end,
-                attemptRange: previous.attempt.start...next.attempt.end
-            )
-            if abs(difference) > abs(largestPause?.difference ?? 0) {
-                largestPause = (difference, observation)
-            }
-        }
-        if let largestPause {
-            return .init(pairs: pairs, correspondenceReliable: true, observation: largestPause.observation)
-        }
-
-        if let mostDifferent = pairs.max(by: { abs($0.durationDifferenceMs) < abs($1.durationDifferenceMs) }),
-           abs(mostDifferent.durationDifferenceMs) >= 130 {
-            let qualifier = mostDifferent.durationDifferenceMs > 0 ? "longer" : "shorter"
-            return .init(
-                pairs: pairs, correspondenceReliable: true,
-                observation: MimicObservation(
-                    text: "Your “\(mostDifferent.word)” was \(Int(abs(mostDifferent.durationDifferenceMs).rounded())) ms \(qualifier).",
-                    referenceRange: mostDifferent.reference.start...mostDifferent.reference.end,
-                    attemptRange: mostDifferent.attempt.start...mostDifferent.attempt.end
-                )
-            )
-        }
-        return .init(pairs: pairs, correspondenceReliable: true, observation: nil)
+        let correspondenceReliable = reliable
+            && attempt.result.metrics.clippingPercent < 3
+            && reference.result.metrics.clippingPercent < 3
+            && attempt.result.metrics.snrDB >= 6
+            && reference.result.metrics.snrDB >= 6
+        return .init(pairs: pairs, correspondenceReliable: correspondenceReliable)
     }
 
     private static func normalized(_ word: String) -> String {
