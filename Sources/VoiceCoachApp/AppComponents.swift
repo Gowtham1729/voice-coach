@@ -243,30 +243,6 @@ extension TakePlaybackRow where Trailing == EmptyView {
     }
 }
 
-private enum MimicCompareListenMode: String, CaseIterable, Identifiable {
-    case reference
-    case you
-    case difference
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .reference: "Reference"
-        case .you: "You"
-        case .difference: "Diff"
-        }
-    }
-
-    var help: String {
-        switch self {
-        case .reference: "Play reference"
-        case .you: "Play your take"
-        case .difference: "Play reference then your take"
-        }
-    }
-}
-
 struct MimicComparePlaybackRow: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.studioSnapshot) private var snapshot
@@ -280,11 +256,6 @@ struct MimicComparePlaybackRow: View {
 
     private var waveformColor: Color {
         model.mimicPlaybackSource == .reference ? .cyan : Studio.accent
-    }
-
-    private var listenMode: MimicCompareListenMode {
-        if model.mimicHearingDifference { return .difference }
-        return model.mimicPlaybackSource == .reference ? .reference : .you
     }
 
     private var highlightedRange: ClosedRange<Double>? {
@@ -312,7 +283,7 @@ struct MimicComparePlaybackRow: View {
             onScrub: { time in model.playbackTime = time }
         ) {
             listenModeControl
-                .frame(width: 210)
+                .frame(width: 140)
         }
         .id("\(activeTake.id)-\(model.mimicPlaybackSource)")
         .accessibilityElement(children: .contain)
@@ -321,8 +292,8 @@ struct MimicComparePlaybackRow: View {
 
     private var listenModeControl: some View {
         HStack(spacing: 0) {
-            ForEach(MimicCompareListenMode.allCases) { mode in
-                listenModeChip(mode)
+            ForEach(MimicPlaybackSource.allCases) { source in
+                listenModeChip(source)
             }
         }
         .padding(3)
@@ -331,9 +302,9 @@ struct MimicComparePlaybackRow: View {
     }
 
     @ViewBuilder
-    private func listenModeChip(_ mode: MimicCompareListenMode) -> some View {
-        let selected = listenMode == mode
-        let label = Text(mode.title)
+    private func listenModeChip(_ source: MimicPlaybackSource) -> some View {
+        let selected = model.mimicPlaybackSource == source
+        let label = Text(source.title)
             .font(.caption.weight(selected ? .semibold : .regular))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
@@ -344,37 +315,21 @@ struct MimicComparePlaybackRow: View {
                 .foregroundStyle(selected ? Studio.ink : Studio.secondary)
                 .background(selected ? Studio.accent.opacity(0.18) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
         } else {
-            Button { selectListenMode(mode) } label: { label }
+            Button { selectListenMode(source) } label: { label }
                 .buttonStyle(.plain)
                 .foregroundStyle(selected ? Studio.ink : Studio.secondary)
                 .background(selected ? Studio.accent.opacity(0.18) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
-                .help(mode.help)
+                .help(source.help)
         }
     }
 
-    private func selectListenMode(_ mode: MimicCompareListenMode) {
-        switch mode {
+    private func selectListenMode(_ source: MimicPlaybackSource) {
+        switch source {
         case .reference:
             model.playMimicReference()
-        case .you:
+        case .attempt:
             model.playMimicAttempt()
-        case .difference:
-            playDifference()
         }
-    }
-
-    private func playDifference() {
-        let selected = model.mimicSelectedWord.flatMap {
-            comparison.pairs.indices.contains($0) ? comparison.pairs[$0] : nil
-        }
-        let observation = selected.map {
-            MimicObservation(
-                text: "",
-                referenceRange: $0.reference.start...$0.reference.end,
-                attemptRange: $0.attempt.start...$0.attempt.end
-            )
-        } ?? comparison.observation
-        model.playMimicDifference(observation)
     }
 
     private func canStepWord(by delta: Int) -> Bool {

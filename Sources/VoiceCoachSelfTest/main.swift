@@ -163,13 +163,12 @@ do {
     let mimicAttempt = mimicTake(attemptWords)
     let comparison = MimicComparison.compare(reference: mimicReference, attempt: mimicAttempt)
     try check(comparison.correspondenceReliable && comparison.pairs.count == 3, "Mimic word alignment failed (pairs \(comparison.pairs.count), SNR \(mimicResult.metrics.snrDB), clipping \(mimicResult.metrics.clippingPercent))")
-    try check(comparison.observation?.text.contains("380 ms longer") == true, "Mimic pause observation was inaccurate")
     let mismatched = mimicTake([
         TranscriptWord(word: "unrelated", start: 0.1, end: 0.3),
         TranscriptWord(word: "phrasing", start: 0.4, end: 0.6)
     ])
     let uncertain = MimicComparison.compare(reference: mimicReference, attempt: mismatched)
-    try check(!uncertain.correspondenceReliable && uncertain.observation == nil, "Mimic inferred a difference from mismatched wording")
+    try check(!uncertain.correspondenceReliable, "Mimic inferred reliable correspondence from mismatched wording")
     let legacyRoundTrip = try JSONDecoder().decode(PracticeSession.self, from: JSONEncoder().encode(session))
     try check(legacyRoundTrip.takeSource == .recorded, "Saved recordings without a source were not treated as microphone takes")
     let importedSession = PracticeSession(
