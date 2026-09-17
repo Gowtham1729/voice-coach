@@ -6,8 +6,13 @@ struct CreateSessionView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var name = "Morning Practice"
     @State private var mode: PracticeMode = .general
-    @State private var prompt = ""
     @State private var keepsRecordings = true
+    @State private var excerptStart = 0.0
+    @State private var excerptEnd = 0.0
+
+    init(initialMode: PracticeMode = .general) {
+        _mode = State(initialValue: initialMode)
+    }
 
     var body: some View {
         StudioPage(maxWidth: 760, horizontalPadding: 24) {
@@ -49,7 +54,7 @@ struct CreateSessionView: View {
                                 }
                             }
                             .labelsHidden()
-                            .pickerStyle(.segmented)
+                            .pickerStyle(.menu)
                             .frame(maxWidth: 420)
                             .animation(StudioMotion.spring(reduceMotion: reduceMotion), value: mode)
                         }
@@ -61,47 +66,28 @@ struct CreateSessionView: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
 
-                settingsSection("Prompt", symbol: "text.quote") {
-                    Text("Optional topic or passage")
-                        .font(.caption)
-                        .foregroundStyle(Studio.secondary)
-                    if snapshot {
-                        snapshotField(prompt.isEmpty ? "Add a topic or short passage…" : prompt, height: 96)
-                    } else {
-                        TextEditor(text: $prompt)
-                            .font(.body)
-                            .scrollContentBackground(.hidden)
-                            .padding(8)
-                            .frame(height: 96)
-                            .background(Studio.background, in: RoundedRectangle(cornerRadius: 7))
-                            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Studio.line, lineWidth: 0.5))
-                    }
-                    HStack {
-                        Text("Leave blank for open practice.")
-                        Spacer()
-                        Text("\(prompt.count)/500")
-                            .monospacedDigit()
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(Studio.secondary)
+                if mode == .mimic {
+                    MimicReferencePicker(start: $excerptStart, end: $excerptEnd)
                 }
 
-                settingsSection("Local Storage", symbol: "internaldrive") {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Save every take")
-                                .font(.body.weight(.medium))
-                            Text(keepsRecordings ? "Keep every recording in this session for comparison." : "Keep only the newest recording in this session.")
-                                .font(.caption)
-                                .foregroundStyle(Studio.secondary)
-                        }
-                        Spacer()
-                        if snapshot {
-                            Capsule().fill(keepsRecordings ? Studio.accent : Studio.line).frame(width: 38, height: 22)
-                        } else {
-                            Toggle("Save every take", isOn: $keepsRecordings)
-                                .labelsHidden()
-                                .toggleStyle(.switch)
+                if mode != .mimic {
+                    settingsSection("Local Storage", symbol: "internaldrive") {
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Save every take")
+                                    .font(.body.weight(.medium))
+                                Text(keepsRecordings ? "Keep every recording in this session for comparison." : "Keep only the newest recording in this session.")
+                                    .font(.caption)
+                                    .foregroundStyle(Studio.secondary)
+                            }
+                            Spacer()
+                            if snapshot {
+                                Capsule().fill(keepsRecordings ? Studio.accent : Studio.line).frame(width: 38, height: 22)
+                            } else {
+                                Toggle("Save every take", isOn: $keepsRecordings)
+                                    .labelsHidden()
+                                    .toggleStyle(.switch)
+                            }
                         }
                     }
                 }
@@ -113,10 +99,15 @@ struct CreateSessionView: View {
                         .keyboardShortcut(.cancelAction)
                         .studioGlassButton()
                     Button("Create Session") {
-                        model.createSession(name: name, mode: mode, prompt: prompt, keepsRecordings: keepsRecordings)
+                        if mode == .mimic {
+                            model.createMimicSession(name: name, start: excerptStart, end: excerptEnd)
+                        } else {
+                            model.createSession(name: name, mode: .general, prompt: "", keepsRecordings: keepsRecordings)
+                        }
                     }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                              || (mode == .mimic && (model.mimicDraft == nil || model.mimicIsPreparing || excerptEnd - excerptStart < 1)))
                     .studioGlassButton(prominent: true)
                 }
 
@@ -124,10 +115,19 @@ struct CreateSessionView: View {
                     .font(.caption)
                     .foregroundStyle(Studio.secondary)
             }
-            .onChange(of: prompt) { _, value in
-                if value.count > 500 { prompt = String(value.prefix(500)) }
+            .onChange(of: model.mimicDraft?.id) { _, _ in
+                loadMimicDraft()
             }
+            .onAppear { if mode == .mimic, excerptEnd == 0 { loadMimicDraft() } }
+            .onDisappear { model.cancelMimicPreparation() }
         }
+    }
+
+    private func loadMimicDraft() {
+        guard let draft = model.mimicDraft else { return }
+        excerptStart = 0
+        excerptEnd = min(draft.duration, 20)
+        if name == "Morning Practice" { name = draft.sourceName }
     }
 
     private func settingsSection<Content: View>(_ title: String, symbol: String, @ViewBuilder content: () -> Content) -> some View {

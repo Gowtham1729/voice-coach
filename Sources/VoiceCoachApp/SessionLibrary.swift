@@ -5,6 +5,11 @@ enum PracticeMode: String, Codable, CaseIterable, Identifiable {
     case general
     case prompt
     case freeSpeaking
+    case mimic
+
+    // Keep legacy cases decodable for existing libraries, but offer only these
+    // two distinct workflows when creating a new session.
+    static var allCases: [PracticeMode] { [.general, .mimic] }
 
     var id: Self { self }
 
@@ -13,6 +18,7 @@ enum PracticeMode: String, Codable, CaseIterable, Identifiable {
         case .general: "General practice"
         case .prompt: "Read a prompt"
         case .freeSpeaking: "Free speaking"
+        case .mimic: "Mimic a reference"
         }
     }
 
@@ -21,6 +27,7 @@ enum PracticeMode: String, Codable, CaseIterable, Identifiable {
         case .general: "Speak freely on any topic. Build consistency and confidence."
         case .prompt: "Read a short prompt aloud. Focus on clarity and delivery."
         case .freeSpeaking: "Speak on a topic of your choice. Develop structure and fluency."
+        case .mimic: "Listen, imitate a short clip, compare, and retry."
         }
     }
 
@@ -29,8 +36,29 @@ enum PracticeMode: String, Codable, CaseIterable, Identifiable {
         case .general: "mic.fill"
         case .prompt: "doc.text.fill"
         case .freeSpeaking: "chart.bar.fill"
+        case .mimic: "waveform.path"
         }
     }
+}
+
+enum MimicStyle: String, Codable, CaseIterable, Identifiable {
+    case listenAndRepeat
+    case speakAlong
+
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .listenAndRepeat: "Listen & Repeat"
+        case .speakAlong: "Speak Along"
+        }
+    }
+}
+
+struct MimicReference: Codable, Equatable {
+    var sourceName: String
+    var take: PracticeSession
+    var sourceStart: Double
+    var sourceEnd: Double
 }
 
 struct CoachingSession: Codable, Identifiable, Equatable {
@@ -42,6 +70,9 @@ struct CoachingSession: Codable, Identifiable, Equatable {
     var prompt: String
     var keepsRecordings: Bool
     var takes: [PracticeSession]
+    var mimicReference: MimicReference?
+    var mimicStyle: MimicStyle?
+    var mimicAttemptStyles: [UUID: MimicStyle]?
 
     init(
         id: UUID = UUID(),
@@ -51,7 +82,10 @@ struct CoachingSession: Codable, Identifiable, Equatable {
         mode: PracticeMode,
         prompt: String,
         keepsRecordings: Bool,
-        takes: [PracticeSession] = []
+        takes: [PracticeSession] = [],
+        mimicReference: MimicReference? = nil,
+        mimicStyle: MimicStyle? = nil,
+        mimicAttemptStyles: [UUID: MimicStyle]? = nil
     ) {
         self.id = id
         self.name = name
@@ -61,6 +95,9 @@ struct CoachingSession: Codable, Identifiable, Equatable {
         self.prompt = prompt
         self.keepsRecordings = keepsRecordings
         self.takes = takes
+        self.mimicReference = mimicReference
+        self.mimicStyle = mimicStyle
+        self.mimicAttemptStyles = mimicAttemptStyles
     }
 
     var latestTake: PracticeSession? { takes.last }
@@ -139,14 +176,23 @@ final class SessionStore {
         guard FileManager.default.fileExists(atPath: libraryURL.path) else { return [] }
         let data = try Data(contentsOf: libraryURL)
         let document = try JSONDecoder().decode(SessionLibraryDocument.self, from: data)
-        guard document.schemaVersion == 1 else {
+        guard document.schemaVersion == 1 || document.schemaVersion == 2 else {
             throw CocoaError(.coderReadCorrupt)
         }
         return document.sessions.sorted { $0.updatedAt > $1.updatedAt }
     }
 
     func save(_ sessions: [CoachingSession]) throws {
-        let document = SessionLibraryDocument(schemaVersion: 1, sessions: sessions)
+        if FileManager.default.fileExists(atPath: libraryURL.path),
+           let existing = try? Data(contentsOf: libraryURL),
+           let prior = try? JSONDecoder().decode(SessionLibraryDocument.self, from: existing),
+           prior.schemaVersion == 1 {
+            let backup = rootURL.appendingPathComponent("session-library-v1-backup.json")
+            if !FileManager.default.fileExists(atPath: backup.path) {
+                try existing.write(to: backup, options: .atomic)
+            }
+        }
+        let document = SessionLibraryDocument(schemaVersion: 2, sessions: sessions)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(document)
@@ -162,6 +208,10 @@ final class SessionStore {
         let normalizedExtension = fileExtension.isEmpty ? "wav" : fileExtension.lowercased()
         return try takeDirectory(sessionID: sessionID)
             .appendingPathComponent("take-\(takeID.uuidString)-imported.\(normalizedExtension)")
+    }
+
+    func referenceURL(sessionID: UUID) throws -> URL {
+        try takeDirectory(sessionID: sessionID).appendingPathComponent("reference.wav")
     }
 
     private func takeDirectory(sessionID: UUID) throws -> URL {

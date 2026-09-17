@@ -18,14 +18,9 @@ struct ContentView: View {
             .sheet(isPresented: createSessionBinding) {
                 CreateSessionView()
                     .environmentObject(model)
-                    .frame(width: 640, height: 650)
+                    .frame(width: 680, height: 720)
             }
             .overlay(alignment: .bottom) { toast }
-            .onChange(of: model.destination) { _, _ in
-                if inspectorEligible {
-                    inspectorPresented = true
-                }
-            }
     }
 
     private var shell: some View {
@@ -39,20 +34,20 @@ struct ContentView: View {
                     sidebarColumn
                         .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
                 } detail: {
-                    destination
-                        .id(destinationIdentity)
-                        .transition(destinationTransition)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .navigationTitle(windowTitle)
-                        .toolbar { workspaceToolbar }
-                        .inspector(isPresented: inspectorBinding) {
+                    HStack(spacing: 0) {
+                        destination
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        if showInspector {
+                            Divider()
                             contextualInspector
-                                .inspectorColumnWidth(min: 260, ideal: 300, max: 380)
+                                .frame(width: 300)
+                                .background(Studio.inspector)
                         }
+                    }
+                    .navigationTitle(windowTitle)
+                    .toolbar { workspaceToolbar }
                 }
                 .navigationSplitViewStyle(.balanced)
-                .animation(StudioMotion.page(reduceMotion: reduceMotion), value: destinationIdentity)
-                .animation(StudioMotion.page(reduceMotion: reduceMotion), value: showInspector)
             }
         }
     }
@@ -92,7 +87,7 @@ struct ContentView: View {
     private var destination: some View {
         switch model.destination {
         case .studio:
-            DesktopStudioWorkspace()
+            PracticeView()
         case .create:
             DesktopStudioWorkspace()
         case .practice:
@@ -110,6 +105,8 @@ struct ContentView: View {
     private var contextualInspector: some View {
         if model.destination.isTake {
             TakeInspector()
+        } else if model.selectedSession?.mode == .mimic {
+            MimicInspector()
         } else {
             SessionInspector()
         }
@@ -155,16 +152,6 @@ struct ContentView: View {
         }
     }
 
-    private var inspectorBinding: Binding<Bool> {
-        Binding(
-            get: { showInspector },
-            set: { newValue in
-                guard inspectorEligible else { return }
-                inspectorPresented = newValue
-            }
-        )
-    }
-
     private var showInspector: Bool {
         inspectorPresented && inspectorEligible
     }
@@ -198,17 +185,6 @@ struct ContentView: View {
         }
     }
 
-    private var destinationIdentity: String {
-        switch model.destination {
-        case .studio: "studio"
-        case .create: "studio"
-        case .practice(let id): "practice-\(id)"
-        case .take(let session, let take): "take-\(session)-\(take)"
-        case .sessions: "sessions"
-        case .insights: "insights"
-        }
-    }
-
     private var windowTitle: String {
         switch model.destination {
         case .studio: "Studio"
@@ -218,14 +194,6 @@ struct ContentView: View {
         case .sessions: "All Sessions"
         case .insights: "Insights"
         }
-    }
-
-    private var destinationTransition: AnyTransition {
-        if reduceMotion { return .opacity }
-        return .asymmetric(
-            insertion: .opacity.combined(with: .offset(y: 8)).combined(with: .scale(scale: 0.995)),
-            removal: .opacity.combined(with: .offset(y: -4))
-        )
     }
 
     private func goBack() {

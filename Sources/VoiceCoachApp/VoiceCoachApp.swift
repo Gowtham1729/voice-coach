@@ -48,7 +48,7 @@ private struct VoiceCoachCommands: Commands {
         CommandGroup(after: .importExport) {
             Button("Import Recording…") { model.importClip() }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
-                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission || model.selectedSession?.mode == .mimic)
 
             Button("Export Current Take…") { model.exportCurrent() }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
@@ -59,6 +59,22 @@ private struct VoiceCoachCommands: Commands {
             navigationButton("Studio", section: .studio, shortcut: "1")
             navigationButton("All Sessions", section: .sessions, shortcut: "2")
             navigationButton("Insights", section: .insights, shortcut: "3")
+        }
+
+        CommandMenu("Practice") {
+            Button(model.mimicPhase == .playingReference ? "Cancel Reference Playback" :
+                   model.isPlaying ? "Pause Mimic Playback" : "Play Mimic Audio") {
+                model.toggleMimicPlayback()
+            }
+            .disabled(!model.isMimicWorkspace || model.isRecording || model.isAnalyzing ||
+                      (model.mimicPhase != .ready && model.mimicPhase != .playingReference))
+
+            Button(model.isRecording ? "Stop Mimic Recording" : "Start Mimic Practice") {
+                model.recordButtonPressed()
+            }
+            .keyboardShortcut("r", modifiers: .command)
+            .disabled(!model.isMimicWorkspace || model.isAnalyzing || model.isRequestingPermission ||
+                      (!model.isRecording && (model.isPlaying || model.mimicPhase != .ready)))
         }
     }
 

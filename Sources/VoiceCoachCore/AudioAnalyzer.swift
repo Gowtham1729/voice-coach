@@ -22,22 +22,26 @@ public struct AudioAnalyzer: Sendable {
     public func analyze(url: URL) throws -> AnalysisResult {
         let file = try AVAudioFile(forReading: url)
         let format = file.processingFormat
-        let frameCount = AVAudioFrameCount(file.length)
-        guard frameCount > 0,
-              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)
+        guard file.length > 0,
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 8_192)
         else { throw AnalysisError.emptyRecording }
 
-        try file.read(into: buffer)
-        guard let channels = buffer.floatChannelData else { throw AnalysisError.unreadableAudio }
-
         let channelCount = Int(format.channelCount)
-        let count = Int(buffer.frameLength)
-        var samples = [Float](repeating: 0, count: count)
-        for channel in 0..<channelCount {
-            for index in 0..<count {
-                samples[index] += channels[channel][index] / Float(channelCount)
+        var samples: [Float] = []
+        samples.reserveCapacity(Int(file.length))
+        while file.framePosition < file.length {
+            try file.read(into: buffer, frameCount: buffer.frameCapacity)
+            guard buffer.frameLength > 0,
+                  let channels = buffer.floatChannelData else { break }
+            for index in 0..<Int(buffer.frameLength) {
+                var value: Float = 0
+                for channel in 0..<channelCount {
+                    value += channels[channel][index] / Float(channelCount)
+                }
+                samples.append(value)
             }
         }
+        guard !samples.isEmpty else { throw AnalysisError.unreadableAudio }
         return analyze(samples: samples, sampleRate: format.sampleRate)
     }
     #endif

@@ -12,6 +12,7 @@ public enum AudioImportError: LocalizedError {
     case noAudioTrack
     case unsupportedMedia
     case exportFailed(String)
+    case invalidExcerpt
 
     public var errorDescription: String? {
         switch self {
@@ -21,6 +22,8 @@ public enum AudioImportError: LocalizedError {
             "Choose an audio or video file that macOS can play."
         case .exportFailed(let detail):
             "Voice Coach could not prepare this clip. \(detail)"
+        case .invalidExcerpt:
+            "Choose an excerpt that is at least one second long and inside the clip."
         }
     }
 }
@@ -86,6 +89,69 @@ public struct AudioImportService {
     }
 
     #if canImport(AVFoundation)
+    public static func trimAudio(from sourceURL: URL, to destinationURL: URL, start: Double, end: Double) throws {
+        let input = try AVAudioFile(forReading: sourceURL)
+        let rate = input.processingFormat.sampleRate
+        let first = AVAudioFramePosition((start * rate).rounded())
+        let last = AVAudioFramePosition((end * rate).rounded())
+        guard first >= 0, last <= input.length, last - first >= AVAudioFramePosition(rate),
+              let chunk = AVAudioPCMBuffer(pcmFormat: input.processingFormat, frameCapacity: 8_192),
+              let excerpt = AVAudioPCMBuffer(pcmFormat: input.processingFormat, frameCapacity: 8_192),
+              let sourceChannels = chunk.floatChannelData,
+              let destinationChannels = excerpt.floatChannelData
+        else {
+            throw AudioImportError.invalidExcerpt
+        }
+        let output = try AVAudioFile(
+            forWriting: destinationURL,
+            settings: input.processingFormat.settings,
+            commonFormat: input.processingFormat.commonFormat,
+            interleaved: input.processingFormat.isInterleaved
+        )
+        var cursor: AVAudioFramePosition = 0
+        var written: AVAudioFramePosition = 0
+        while cursor < last {
+            try input.read(into: chunk, frameCount: chunk.frameCapacity)
+            guard chunk.frameLength > 0 else { break }
+            let from = max(0, first - cursor)
+            let through = min(AVAudioFramePosition(chunk.frameLength), last - cursor)
+            if through > from {
+                let count = Int(through - from)
+                excerpt.frameLength = AVAudioFrameCount(count)
+                for channel in 0..<Int(input.processingFormat.channelCount) {
+                    destinationChannels[channel].update(from: sourceChannels[channel].advanced(by: Int(from)), count: count)
+                }
+                try output.write(from: excerpt)
+                written += AVAudioFramePosition(count)
+            }
+            cursor += AVAudioFramePosition(chunk.frameLength)
+        }
+        guard written == last - first else { throw AudioImportError.invalidExcerpt }
+    }
+
+    public static func waveform(from sourceURL: URL, buckets: Int = 0) throws -> (duration: Double, peaks: [Float]) {
+        let input = try AVAudioFile(forReading: sourceURL)
+        guard input.length > 0, buckets >= 0,
+              let buffer = AVAudioPCMBuffer(pcmFormat: input.processingFormat, frameCapacity: 8_192)
+        else { throw AudioImportError.unsupportedMedia }
+        let duration = Double(input.length) / input.processingFormat.sampleRate
+        let bucketCount = buckets == 0 ? min(24_000, max(300, Int(duration * 16))) : buckets
+        var peaks = [Float](repeating: 0, count: bucketCount)
+        while input.framePosition < input.length {
+            let start = input.framePosition
+            try input.read(into: buffer, frameCount: buffer.frameCapacity)
+            guard let channels = buffer.floatChannelData, buffer.frameLength > 0 else { break }
+            // Bucket a few samples per frame group; the curve is navigation, not analysis.
+            for frame in stride(from: 0, to: Int(buffer.frameLength), by: 24) {
+                let bucket = min(bucketCount - 1, Int(Double(start + AVAudioFramePosition(frame)) / Double(input.length) * Double(bucketCount)))
+                for channel in 0..<Int(input.processingFormat.channelCount) {
+                    peaks[bucket] = max(peaks[bucket], abs(channels[channel][frame]))
+                }
+            }
+        }
+        return (duration, peaks)
+    }
+
     private static func normalizeAudio(from sourceURL: URL, to destinationURL: URL) async throws {
         try await Task.detached(priority: .userInitiated) {
             let input = try AVAudioFile(forReading: sourceURL)

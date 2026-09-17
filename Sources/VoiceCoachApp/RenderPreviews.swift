@@ -15,7 +15,13 @@ func renderStudioPreviewsIfRequested() {
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         let sessions = makePreviewSessions(root: fixtureRoot)
         let store = try SessionStore(rootURL: fixtureRoot)
+        let legacySessions = try JSONSerialization.jsonObject(with: JSONEncoder().encode(sessions.prefix(3).map { $0 }))
+        let legacyData = try JSONSerialization.data(withJSONObject: ["schemaVersion": 1, "sessions": legacySessions])
+        try legacyData.write(to: fixtureRoot.appendingPathComponent("session-library.json"), options: .atomic)
+        let migratedSource = try store.load()
+        precondition(migratedSource.count == 3, "Version 1 library could not be read")
         try store.save(sessions)
+        precondition(FileManager.default.fileExists(atPath: fixtureRoot.appendingPathComponent("session-library-v1-backup.json").path), "Migration backup missing")
 
         let model = AppModel(storageRoot: fixtureRoot)
         precondition(model.sessions == sessions.sorted { $0.updatedAt > $1.updatedAt })
@@ -47,8 +53,8 @@ func renderStudioPreviewsIfRequested() {
             try png.write(to: output.appendingPathComponent(name + ".png"))
         }
 
-        func renderCreateSession(_ name: String, width: CGFloat = 720, height: CGFloat = 760) throws {
-            let view = CreateSessionView()
+        func renderCreateSession(_ name: String, mode: PracticeMode = .general, width: CGFloat = 720, height: CGFloat = 760) throws {
+            let view = CreateSessionView(initialMode: mode)
                 .environmentObject(model)
                 .environment(\.studioSnapshot, true)
                 .frame(width: width, height: height)
@@ -84,6 +90,58 @@ func renderStudioPreviewsIfRequested() {
         model.liveLevel = -17
         model.elapsed = 12.4
         try render("08-recording")
+        model.isRecording = false
+        if let mimic = model.sessions.first(where: { $0.mode == .mimic }) {
+            model.resumeSession(mimic.id)
+            model.mimicShowingResult = false
+            try render("09-mimic-ready")
+            if let attempt = mimic.latestTake {
+                model.selectTake(attempt.id)
+                try render("10-mimic-compare")
+                if let reference = mimic.mimicReference?.take {
+                    let view = MimicComparisonView(reference: reference, attempt: attempt,
+                        comparison: MimicComparison.compare(reference: reference, attempt: attempt), initialMetric: "Timing")
+                        .environmentObject(model)
+                        .environment(\.studioSnapshot, true)
+                        .padding(24)
+                        .frame(width: 1100, height: 640, alignment: .topLeading)
+                        .background(Studio.background)
+                    let renderer = ImageRenderer(content: view)
+                    renderer.scale = 1
+                    guard let image = renderer.cgImage,
+                          let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+                    else { throw NSError(domain: "VoiceCoachPreview", code: 4) }
+                    try png.write(to: output.appendingPathComponent("10b-mimic-timing.png"))
+                }
+            }
+            model.mimicShowingResult = false
+            model.isRecording = true
+            model.mimicPhase = .recording
+            model.elapsed = 4.2
+            try render("11-mimic-recording")
+            model.isRecording = false
+            model.mimicPhase = .ready
+            model.updateMimicStyle(.speakAlong)
+            model.isRecording = true
+            model.mimicPhase = .recording
+            try render("12-mimic-speak-along")
+            model.isRecording = false
+            model.mimicPhase = .ready
+            model.mimicDraft = MimicReferenceDraft(
+                id: UUID(), url: fixtureRoot.appendingPathComponent("preview-only.wav"),
+                sourceName: "Interview excerpt", duration: 8,
+                peaks: (0..<180).map { Float(0.1 + 0.6 * abs(sin(Double($0) / 8))) },
+                source: .importedAudio
+            )
+            try renderCreateSession("13-mimic-setup", mode: .mimic)
+            model.mimicDraft = MimicReferenceDraft(
+                id: UUID(), url: fixtureRoot.appendingPathComponent("preview-only-long.wav"),
+                sourceName: "Long interview", duration: 180,
+                peaks: (0..<2_880).map { Float(0.1 + 0.6 * abs(sin(Double($0) / 8))) },
+                source: .importedAudio
+            )
+            try renderCreateSession("14-mimic-long-setup", mode: .mimic)
+        }
 
         // Hang regression: a multi-thousand-word transcript must layout quickly.
         // Snapshot mode caps the word grid; live mode scrolls the full set.
@@ -113,7 +171,7 @@ func renderStudioPreviewsIfRequested() {
             print("Long transcript pane (snapshot=\(snapshot)): \(elapsed)")
         }
 
-        print("Rendered 8 major-upgrade previews; persistence round-trip passed. Output: \(output.path)")
+        print("Rendered 15 app previews; v1 migration backup and v2 persistence round-trip passed. Output: \(output.path)")
         exit(0)
     } catch {
         print("Preview rendering failed: \(error)")
@@ -141,13 +199,15 @@ private func makePreviewSessions(root: URL) -> [CoachingSession] {
         duration: Double,
         text: String,
         offsetHours: Int,
-        source: TakeSource = .recorded
+        source: TakeSource = .recorded,
+        shortPauses: Bool = false
     ) -> PracticeSession {
         let rate = 16_000.0
         let samples = (0..<Int(rate * duration)).map { index -> Float in
             let time = Double(index) / rate
-            let phrase = time.truncatingRemainder(dividingBy: 3.1)
-            let amplitude = phrase > 2.66 ? 0.0002 : (0.18 + 0.07 * sin(time * 2.5))
+        let phrase = time.truncatingRemainder(dividingBy: shortPauses ? 1.1 : 3.1)
+        let pauseStart = shortPauses ? 0.75 : 2.66
+        let amplitude = phrase > pauseStart ? 0.0002 : (0.18 + 0.07 * sin(time * 2.5))
             let phase = 2 * Double.pi * frequency * time + 4.5 * sin(time * 1.8)
             return Float(amplitude * (sin(phase) + 0.26 * sin(2 * phase)))
         }
@@ -207,6 +267,18 @@ private func makePreviewSessions(root: URL) -> [CoachingSession] {
         keepsRecordings: true,
         takes: [take(frequency: 158, duration: 8.6, text: "A thoughtful pause gives the next idea room to land clearly.", offsetHours: -96)]
     )
-    return [first, second, third]
+    let script = "I really don't think that's a good idea."
+    let reference = take(frequency: 172, duration: 8.0, text: script, offsetHours: -8, source: .importedAudio, shortPauses: true)
+    let attempt = take(frequency: 161, duration: 8.7, text: script, offsetHours: -7, shortPauses: true)
+    let mimic = CoachingSession(
+        name: "A confident answer",
+        createdAt: calendar.date(byAdding: .day, value: -6, to: now) ?? now,
+        updatedAt: calendar.date(byAdding: .day, value: -6, to: now) ?? now,
+        mode: .mimic, prompt: "", keepsRecordings: true,
+        takes: [attempt],
+        mimicReference: MimicReference(sourceName: "Interview excerpt", take: reference, sourceStart: 0, sourceEnd: 8),
+        mimicStyle: .listenAndRepeat
+    )
+    return [first, second, third, mimic]
 }
 #endif

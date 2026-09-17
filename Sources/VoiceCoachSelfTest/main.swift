@@ -34,6 +34,7 @@ private func verifyAudioImport(samples: [Float], sampleRate: Double) async throw
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent("VoiceCoachImportTest-\(UUID().uuidString)", isDirectory: true)
     let sourceURL = directory.appendingPathComponent("phone-recording.wav")
     let importedURL = directory.appendingPathComponent("prepared.wav")
+    let excerptURL = directory.appendingPathComponent("excerpt.wav")
     defer { try? FileManager.default.removeItem(at: directory) }
 
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -45,6 +46,21 @@ private func verifyAudioImport(samples: [Float], sampleRate: Double) async throw
     try check(AudioImportService.source(for: URL(fileURLWithPath: "/tmp/reference.mov")) == .importedVideo, "Video source was not identified")
     let importedAnalysis = try AudioAnalyzer().analyze(url: importedURL)
     try check(importedAnalysis.metrics.duration > 1, "Prepared import could not be analyzed")
+    let overview = try AudioImportService.waveform(from: importedURL)
+    try check(overview.peaks.count >= 300 && overview.peaks.contains(where: { $0 > 0 }), "Reference waveform preparation failed")
+    let explicitOverview = try AudioImportService.waveform(from: importedURL, buckets: 180)
+    try check(explicitOverview.peaks.count == 180,
+              "Explicit waveform resolution changed")
+    try AudioImportService.trimAudio(from: importedURL, to: excerptURL, start: 0.2, end: 1.4)
+    let excerpt = try AudioAnalyzer().analyze(url: excerptURL)
+    let excerptFile = try AVAudioFile(forReading: excerptURL)
+    let probe = AVAudioPCMBuffer(pcmFormat: excerptFile.processingFormat, frameCapacity: AVAudioFrameCount(excerptFile.length))!
+    try excerptFile.read(into: probe)
+    try check(abs(excerpt.metrics.duration - 1.2) < 0.01, "Reference excerpt was not trimmed precisely (source \(importedAnalysis.metrics.duration)s, file \(excerptFile.length) frames at \(excerptFile.processingFormat.sampleRate) Hz, decoded \(excerpt.metrics.duration)s, buffer \(probe.frameLength), position \(excerptFile.framePosition))")
+    do {
+        try AudioImportService.trimAudio(from: importedURL, to: directory.appendingPathComponent("invalid.wav"), start: 0.7, end: 0.8)
+        throw CheckFailed(message: "Invalid short reference excerpt was accepted")
+    } catch AudioImportError.invalidExcerpt { }
 }
 #endif
 
@@ -119,6 +135,41 @@ do {
         transcription: transcription,
         words: wordAnalyses
     )
+    let referenceWords = [
+        TranscriptWord(word: "Hello,", start: 0.10, end: 0.30),
+        TranscriptWord(word: "this", start: 0.32, end: 0.50),
+        TranscriptWord(word: "voice.", start: 0.52, end: 0.80)
+    ]
+    let attemptWords = [
+        TranscriptWord(word: "hello", start: 0.10, end: 0.30),
+        TranscriptWord(word: "this", start: 0.32, end: 0.50),
+        TranscriptWord(word: "voice", start: 0.90, end: 1.18)
+    ]
+    let phraseSamples = (0..<Int(sampleRate * 1.5)).map { index -> Float in
+        let time = Double(index) / sampleRate
+        let voiced = (0.1..<0.3).contains(time) || (0.32..<0.5).contains(time) || (0.52..<1.2).contains(time)
+        return voiced ? Float(0.3 * sin(2 * .pi * 150 * time)) : 0.0001
+    }
+    let mimicResult = AudioAnalyzer().analyze(samples: phraseSamples, sampleRate: sampleRate)
+    func mimicTake(_ words: [TranscriptWord]) -> PracticeSession {
+        let transcript = TranscriptionResult(text: words.map(\.word).joined(separator: " "), words: words)
+        return PracticeSession(
+            audioURL: URL(fileURLWithPath: "/tmp/mimic-fixture.wav"),
+            result: mimicResult, transcription: transcript,
+            words: WordAcousticAnalyzer().analyze(transcription: transcript, result: mimicResult)
+        )
+    }
+    let mimicReference = mimicTake(referenceWords)
+    let mimicAttempt = mimicTake(attemptWords)
+    let comparison = MimicComparison.compare(reference: mimicReference, attempt: mimicAttempt)
+    try check(comparison.correspondenceReliable && comparison.pairs.count == 3, "Mimic word alignment failed (pairs \(comparison.pairs.count), SNR \(mimicResult.metrics.snrDB), clipping \(mimicResult.metrics.clippingPercent))")
+    try check(comparison.observation?.text.contains("380 ms longer") == true, "Mimic pause observation was inaccurate")
+    let mismatched = mimicTake([
+        TranscriptWord(word: "unrelated", start: 0.1, end: 0.3),
+        TranscriptWord(word: "phrasing", start: 0.4, end: 0.6)
+    ])
+    let uncertain = MimicComparison.compare(reference: mimicReference, attempt: mismatched)
+    try check(!uncertain.correspondenceReliable && uncertain.observation == nil, "Mimic inferred a difference from mismatched wording")
     let legacyRoundTrip = try JSONDecoder().decode(PracticeSession.self, from: JSONEncoder().encode(session))
     try check(legacyRoundTrip.takeSource == .recorded, "Saved recordings without a source were not treated as microphone takes")
     let importedSession = PracticeSession(
