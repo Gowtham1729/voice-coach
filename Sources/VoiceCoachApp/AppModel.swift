@@ -49,6 +49,7 @@ final class AppModel: ObservableObject {
     @Published var mimicPhase: MimicPhase = .ready
     @Published var mimicShowingResult = false
     @Published var mimicPlaybackSource: MimicPlaybackSource = .reference
+    @Published var mimicHearingDifference = false
     @Published var mimicSelectedWord: Int?
     @Published var mimicReferenceVolume: Double = 0.75 {
         didSet {
@@ -394,8 +395,8 @@ final class AppModel: ObservableObject {
         stopPlaybackTimer()
         isPlaying = false
         playbackTime = 0
-        mimicNextSegment = nil
         mimicPlaybackEnd = nil
+        clearMimicDifferenceState()
         if mimicPhase == .playingReference {
             mimicShouldRecordAfterPlayback = false
             mimicPhase = .ready
@@ -967,17 +968,20 @@ final class AppModel: ObservableObject {
     func playMimicReference(range: ClosedRange<Double>? = nil) {
         guard let reference = selectedSession?.mimicReference, !isRecording else { return }
         let bounds = range ?? 0...reference.take.result.metrics.duration
+        clearMimicDifferenceState()
         playMimicSegment(url: reference.take.audioURL, source: .reference, start: bounds.lowerBound, end: bounds.upperBound)
     }
 
     func playMimicDraft(start: Double, end: Double) {
         guard let mimicDraft, !mimicIsPreparing else { return }
+        clearMimicDifferenceState()
         playMimicSegment(url: mimicDraft.url, source: .reference, start: start, end: end)
     }
 
     func playMimicAttempt(range: ClosedRange<Double>? = nil) {
         guard let take = selectedTake, !isRecording else { return }
         let bounds = range ?? 0...take.result.metrics.duration
+        clearMimicDifferenceState()
         playMimicSegment(url: take.audioURL, source: .attempt, start: bounds.lowerBound, end: bounds.upperBound)
     }
 
@@ -988,7 +992,7 @@ final class AppModel: ObservableObject {
         let duration = take.result.metrics.duration
         guard duration > 0 else { return }
         let start = min(max(0, time), max(0, duration - 0.05))
-        mimicNextSegment = nil
+        clearMimicDifferenceState()
         playMimicSegment(url: take.audioURL, source: source, start: start, end: duration)
     }
 
@@ -998,6 +1002,7 @@ final class AppModel: ObservableObject {
         let ref = observation?.referenceRange ?? 0...reference.take.result.metrics.duration
         let own = observation?.attemptRange ?? 0...take.result.metrics.duration
         mimicNextSegment = (take.audioURL, own.lowerBound, own.upperBound)
+        mimicHearingDifference = true
         playMimicSegment(url: reference.take.audioURL, source: .reference, start: ref.lowerBound, end: ref.upperBound)
     }
 
@@ -1065,11 +1070,16 @@ final class AppModel: ObservableObject {
             playbackTime = start
             startPlaybackTimer()
         } catch {
-            mimicNextSegment = nil
+            clearMimicDifferenceState()
             mimicShouldRecordAfterPlayback = false
             mimicPhase = .ready
             errorMessage = "This clip could not be played: \(error.localizedDescription)"
         }
+    }
+
+    private func clearMimicDifferenceState() {
+        mimicNextSegment = nil
+        mimicHearingDifference = false
     }
 
     private func finishMimicPlayback() {
@@ -1080,7 +1090,10 @@ final class AppModel: ObservableObject {
         if let next = mimicNextSegment {
             mimicNextSegment = nil
             playMimicSegment(url: next.url, source: .attempt, start: next.start, end: next.end)
-        } else if mimicShouldRecordAfterPlayback {
+            return
+        }
+        mimicHearingDifference = false
+        if mimicShouldRecordAfterPlayback {
             mimicShouldRecordAfterPlayback = false
             startMimicCountIn()
         } else if mimicAlong && isRecording {
