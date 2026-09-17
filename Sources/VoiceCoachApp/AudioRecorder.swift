@@ -6,6 +6,7 @@ final class AudioRecorder: NSObject, AVAudioRecorderDelegate, AVAudioPlayerDeleg
     private var recorder: AVAudioRecorder?
     private var player: AVAudioPlayer?
     var onPlaybackFinished: (() -> Void)?
+    var onRecordingInterrupted: (() -> Void)?
 
     var isRecording: Bool { recorder?.isRecording == true }
     var isPlaying: Bool { player?.isPlaying == true }
@@ -14,6 +15,9 @@ final class AudioRecorder: NSObject, AVAudioRecorderDelegate, AVAudioPlayerDeleg
         set { player?.currentTime = newValue }
     }
     var duration: TimeInterval { player?.duration ?? 0 }
+    var playbackVolume: Float = 1 {
+        didSet { player?.volume = playbackVolume }
+    }
 
     func start(url: URL) throws {
         let settings: [String: Any] = [
@@ -52,6 +56,7 @@ final class AudioRecorder: NSObject, AVAudioRecorderDelegate, AVAudioPlayerDeleg
             player?.prepareToPlay()
         }
         guard let player else { throw RecorderError.couldNotPlay }
+        player.volume = playbackVolume
         if time > 0 {
             player.currentTime = min(time, player.duration > 0 ? player.duration : time)
         }
@@ -79,6 +84,22 @@ final class AudioRecorder: NSObject, AVAudioRecorderDelegate, AVAudioPlayerDeleg
 
     nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
         Task { @MainActor [weak self] in self?.onPlaybackFinished?() }
+    }
+
+    nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        Task { @MainActor [weak self] in
+            guard let self, self.recorder === recorder else { return }
+            self.recorder = nil
+            self.onRecordingInterrupted?()
+        }
+    }
+
+    nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+        Task { @MainActor [weak self] in
+            guard let self, self.recorder === recorder else { return }
+            self.recorder = nil
+            self.onRecordingInterrupted?()
+        }
     }
 }
 
