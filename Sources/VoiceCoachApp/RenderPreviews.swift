@@ -40,7 +40,7 @@ func renderStudioPreviewsIfRequested() {
             try png.write(to: output.appendingPathComponent(name + ".png"))
         }
 
-        func renderSettings(_ name: String, width: CGFloat = 620, height: CGFloat = 720) throws {
+        func renderSettings(_ name: String, width: CGFloat = 520, height: CGFloat = 420) throws {
             let view = SettingsView()
                 .environmentObject(model)
                 .environment(\.studioSnapshot, true)

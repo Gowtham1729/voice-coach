@@ -363,16 +363,16 @@ struct TakeView: View {
     }
 
     private func steppedWordIndex(words: [TranscriptWord], by delta: Int) -> Int? {
-        let current = wordIndexForStepping(words: words)
         let target: Int
-        if let current {
+        if let current = wordIndexForStepping(words: words) {
             target = current + delta
         } else if delta > 0 {
             target = 0
         } else {
             return nil
         }
-        return words.indices.contains(target) ? target : nil
+        guard words.indices.contains(target) else { return nil }
+        return target
     }
 
     /// Prefer the locked selection so rapid ←/→ stay one word at a time; once
