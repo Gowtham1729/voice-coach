@@ -62,7 +62,7 @@ struct MimicComparisonView: View {
                             Toggle("Follow", isOn: $followPlayback)
                                 .toggleStyle(.checkbox)
                                 .font(.caption)
-                                .help("Keep the current word visible while audio plays")
+                                .help("Keep the current moment in view while audio plays")
                         }
                         if snapshot {
                             Text(metric.rawValue)
@@ -86,49 +86,7 @@ struct MimicComparisonView: View {
                             .clipped()
                     } else {
                         GeometryReader { geometry in
-                            ScrollView(.horizontal) {
-                                HStack(spacing: 0) {
-                                    Color.clear.frame(width: geometry.size.width / 2)
-                                    chartContents
-                                    Color.clear.frame(width: geometry.size.width / 2)
-                                }
-                            }
-                            .scrollIndicators(.hidden)
-                            .scrollPosition($chartPosition)
-                            .onChange(of: model.playbackTime) { _, _ in
-                                guard followPlayback, model.isPlaying, let x = playbackX else { return }
-                                chartPosition.scrollTo(x: x)
-                            }
-                            .onChange(of: metric) { _, next in
-                                let index = model.mimicSelectedWord ?? (next == .timing ? focusIndex : 0)
-                                chartPosition.scrollTo(x: CGFloat(index) * chartCellWidth)
-                            }
-                            .onChange(of: model.mimicSelectedWord) { _, index in
-                                guard let index else { return }
-                                chartPosition.scrollTo(x: CGFloat(index) * chartCellWidth)
-                            }
-                            .onChange(of: followPlayback) { _, enabled in
-                                if enabled, let x = playbackX { chartPosition.scrollTo(x: x) }
-                            }
-                            .onAppear {
-                                if metric == .timing {
-                                    chartPosition.scrollTo(x: CGFloat(model.mimicSelectedWord ?? focusIndex) * chartCellWidth)
-                                }
-                            }
-                            .overlay(alignment: .top) {
-                                if followPlayback && (model.isPlaying || model.playbackTime > 0) {
-                                    Rectangle()
-                                        .fill(Studio.ink.opacity(0.85))
-                                        .frame(width: 1.5, height: metric == .timing ? 100 : 238)
-                                        .overlay(alignment: .top) {
-                                            Circle()
-                                                .fill(model.mimicPlaybackSource == .reference ? .cyan : Studio.accent)
-                                                .frame(width: 8, height: 8)
-                                        }
-                                        .allowsHitTesting(false)
-                                        .accessibilityHidden(true)
-                                }
-                            }
+                            followableChart(viewportWidth: geometry.size.width)
                         }
                         .frame(height: chartHeight)
                     }
@@ -160,8 +118,93 @@ struct MimicComparisonView: View {
         .frame(minWidth: 590, alignment: .leading)
     }
 
+    private func followableChart(viewportWidth: CGFloat) -> some View {
+        ScrollView(.horizontal) {
+            chartContents
+        }
+        .scrollIndicators(.hidden)
+        .scrollPosition($chartPosition)
+        .onChange(of: model.playbackTime) { _, _ in
+            guard followPlayback, model.isPlaying, let x = playbackX else { return }
+            centerChart(on: x, viewportWidth: viewportWidth, animated: false)
+        }
+        .onChange(of: metric) { _, next in
+            let index = model.mimicSelectedWord ?? (next == .timing ? focusIndex : 0)
+            centerChart(onWord: index, viewportWidth: viewportWidth)
+        }
+        .onChange(of: model.mimicSelectedWord) { _, index in
+            guard let index else { return }
+            centerChart(onWord: index, viewportWidth: viewportWidth)
+        }
+        .onChange(of: followPlayback) { _, enabled in
+            guard enabled, let x = playbackX else { return }
+            centerChart(on: x, viewportWidth: viewportWidth)
+        }
+        .onAppear {
+            guard metric == .timing else { return }
+            centerChart(onWord: model.mimicSelectedWord ?? focusIndex, viewportWidth: viewportWidth)
+        }
+        .overlay(alignment: .topLeading) {
+            if followPlayback,
+               model.isPlaying || model.playbackTime > 0,
+               let x = playbackX {
+                followPlayhead
+                    .offset(x: playheadViewportX(for: x, viewportWidth: viewportWidth))
+            }
+        }
+    }
+
     private var chartHeight: CGFloat { metric == .timing ? 105 : 280 }
     private var chartCellWidth: CGFloat { metric == .timing ? 150 : 74 }
+
+    private var chartContentWidth: CGFloat {
+        let count = CGFloat(comparison.pairs.count)
+        switch metric {
+        case .timing:
+            return max(590, count * 150 - 6)
+        case .pitch, .emphasis:
+            return max(630, count * 74)
+        }
+    }
+
+    /// Centers `contentX` when possible; at the ends, scroll stops and the playhead slides.
+    private func clampedScrollOffset(centering contentX: CGFloat, viewportWidth: CGFloat) -> CGFloat {
+        let maxScroll = max(0, chartContentWidth - viewportWidth)
+        return min(max(0, contentX - viewportWidth / 2), maxScroll)
+    }
+
+    private func centerChart(on contentX: CGFloat, viewportWidth: CGFloat, animated: Bool = true) {
+        let offset = clampedScrollOffset(centering: contentX, viewportWidth: viewportWidth)
+        guard animated else {
+            var transaction = Transaction()
+            transaction.animation = nil
+            withTransaction(transaction) { chartPosition.scrollTo(x: offset) }
+            return
+        }
+        chartPosition.scrollTo(x: offset)
+    }
+
+    private func centerChart(onWord index: Int, viewportWidth: CGFloat) {
+        guard comparison.pairs.indices.contains(index) else { return }
+        centerChart(on: CGFloat(index) * chartCellWidth + chartCellWidth / 2, viewportWidth: viewportWidth)
+    }
+
+    private func playheadViewportX(for contentX: CGFloat, viewportWidth: CGFloat) -> CGFloat {
+        contentX - clampedScrollOffset(centering: contentX, viewportWidth: viewportWidth) - 0.75
+    }
+
+    private var followPlayhead: some View {
+        Rectangle()
+            .fill(Studio.ink.opacity(0.85))
+            .frame(width: 1.5, height: metric == .timing ? 100 : 238)
+            .overlay(alignment: .top) {
+                Circle()
+                    .fill(model.mimicPlaybackSource == .reference ? .cyan : Studio.accent)
+                    .frame(width: 8, height: 8)
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
 
     private var chartCaption: String {
         switch metric {
