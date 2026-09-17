@@ -30,7 +30,6 @@ struct MimicTranscriptText: View {
             part.link = URL(string: "voicecoach-word://select/\(index)")
             if activeIndex == index {
                 part.foregroundColor = activeColor
-                part.font = .body.bold()
             } else {
                 part.foregroundColor = Studio.ink
             }
