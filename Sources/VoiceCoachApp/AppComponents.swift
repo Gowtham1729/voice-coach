@@ -108,18 +108,21 @@ struct MiniSparkline: View {
     }
 }
 
-struct TakePlaybackRow: View {
+struct TakePlaybackRow<Trailing: View>: View {
     @EnvironmentObject private var model: AppModel
     let take: PracticeSession
     var large = false
     var spaceShortcut = false
+    var waveformColor: Color = Studio.accent
     var highlightedRange: ClosedRange<Double>? = nil
     var canStepPreviousWord = false
     var canStepNextWord = false
     var onPreviousWord: (() -> Void)? = nil
     var onNextWord: (() -> Void)? = nil
+    var onPlay: (() -> Void)? = nil
     var onSeek: ((Double) -> Void)? = nil
     var onScrub: ((Double) -> Void)? = nil
+    @ViewBuilder var trailing: () -> Trailing
 
     var body: some View {
         HStack(spacing: large ? 18 : 11) {
@@ -151,6 +154,7 @@ struct TakePlaybackRow: View {
                     duration: take.result.metrics.duration,
                     playbackTime: model.playbackTime,
                     isPlaying: model.isPlaying,
+                    color: waveformColor,
                     highlightedRange: highlightedRange,
                     onSeek: { time in (onSeek ?? { model.seek(to: $0, autoplay: true) })(time) },
                     onScrub: { time in (onScrub ?? { model.seek(to: $0) })(time) }
@@ -168,12 +172,12 @@ struct TakePlaybackRow: View {
             }
             .frame(maxWidth: .infinity)
 
-            shortcutHint(wordShortcuts: onPreviousWord != nil || onNextWord != nil)
+            trailing()
         }
     }
 
     private var playButton: some View {
-        Button(action: model.playCurrent) {
+        Button(action: { (onPlay ?? model.playCurrent)() }) {
             Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
                 .font(.system(size: large ? 16 : 11, weight: .semibold))
                 .frame(width: large ? 44 : 32, height: large ? 44 : 32)
@@ -184,23 +188,6 @@ struct TakePlaybackRow: View {
         .studioGlassButton()
         .help(spaceShortcut ? "Play or pause (Space)" : "Play or pause")
         .modifier(ConditionalKeyboardShortcut(enabled: spaceShortcut, key: .space))
-    }
-
-    @ViewBuilder
-    private func shortcutHint(wordShortcuts: Bool) -> some View {
-        if spaceShortcut || wordShortcuts {
-            HStack(spacing: 6) {
-                if wordShortcuts { Text("← →") }
-                if spaceShortcut { Text("SPACE") }
-            }
-            .font(.system(size: 9, design: .monospaced))
-            .tracking(1.2)
-            .foregroundStyle(Studio.secondary)
-        } else {
-            Text("1×")
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundStyle(Studio.secondary)
-        }
     }
 
     private func wordStepButton(
@@ -222,6 +209,195 @@ struct TakePlaybackRow: View {
         .help(help)
         .opacity(active ? 1 : 0.38)
         .keyboardShortcut(shortcut, modifiers: [])
+    }
+}
+
+extension TakePlaybackRow where Trailing == EmptyView {
+    init(
+        take: PracticeSession,
+        large: Bool = false,
+        spaceShortcut: Bool = false,
+        waveformColor: Color = Studio.accent,
+        highlightedRange: ClosedRange<Double>? = nil,
+        canStepPreviousWord: Bool = false,
+        canStepNextWord: Bool = false,
+        onPreviousWord: (() -> Void)? = nil,
+        onNextWord: (() -> Void)? = nil,
+        onPlay: (() -> Void)? = nil,
+        onSeek: ((Double) -> Void)? = nil,
+        onScrub: ((Double) -> Void)? = nil
+    ) {
+        self.take = take
+        self.large = large
+        self.spaceShortcut = spaceShortcut
+        self.waveformColor = waveformColor
+        self.highlightedRange = highlightedRange
+        self.canStepPreviousWord = canStepPreviousWord
+        self.canStepNextWord = canStepNextWord
+        self.onPreviousWord = onPreviousWord
+        self.onNextWord = onNextWord
+        self.onPlay = onPlay
+        self.onSeek = onSeek
+        self.onScrub = onScrub
+        self.trailing = { EmptyView() }
+    }
+}
+
+private enum MimicCompareListenMode: String, CaseIterable, Identifiable {
+    case reference
+    case you
+    case difference
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .reference: "Reference"
+        case .you: "You"
+        case .difference: "Diff"
+        }
+    }
+
+    var help: String {
+        switch self {
+        case .reference: "Play reference"
+        case .you: "Play your take"
+        case .difference: "Play reference then your take"
+        }
+    }
+}
+
+struct MimicComparePlaybackRow: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.studioSnapshot) private var snapshot
+    let reference: PracticeSession
+    let attempt: PracticeSession
+    let comparison: MimicComparison
+
+    private var activeTake: PracticeSession {
+        model.mimicPlaybackSource == .reference ? reference : attempt
+    }
+
+    private var waveformColor: Color {
+        model.mimicPlaybackSource == .reference ? .cyan : Studio.accent
+    }
+
+    private var listenMode: MimicCompareListenMode {
+        if model.mimicHearingDifference { return .difference }
+        return model.mimicPlaybackSource == .reference ? .reference : .you
+    }
+
+    private var highlightedRange: ClosedRange<Double>? {
+        guard let index = model.mimicSelectedWord, comparison.pairs.indices.contains(index) else { return nil }
+        let pair = comparison.pairs[index]
+        let word = model.mimicPlaybackSource == .reference ? pair.reference : pair.attempt
+        return word.start...word.end
+    }
+
+    private var hasWords: Bool { !comparison.pairs.isEmpty }
+
+    var body: some View {
+        TakePlaybackRow(
+            take: activeTake,
+            large: true,
+            spaceShortcut: true,
+            waveformColor: waveformColor,
+            highlightedRange: highlightedRange,
+            canStepPreviousWord: canStepWord(by: -1),
+            canStepNextWord: canStepWord(by: 1),
+            onPreviousWord: hasWords ? { stepWord(by: -1) } : nil,
+            onNextWord: hasWords ? { stepWord(by: 1) } : nil,
+            onPlay: { model.toggleMimicPlayback() },
+            onSeek: { time in model.seekMimic(source: model.mimicPlaybackSource, to: time) },
+            onScrub: { time in model.playbackTime = time }
+        ) {
+            listenModeControl
+                .frame(width: 210)
+        }
+        .id("\(activeTake.id)-\(model.mimicPlaybackSource)")
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Compare timeline")
+    }
+
+    private var listenModeControl: some View {
+        HStack(spacing: 0) {
+            ForEach(MimicCompareListenMode.allCases) { mode in
+                listenModeChip(mode)
+            }
+        }
+        .padding(3)
+        .background(Studio.surface, in: RoundedRectangle(cornerRadius: 7))
+        .disabled(!snapshot && (model.isAnalyzing || model.mimicPhase != .ready))
+    }
+
+    @ViewBuilder
+    private func listenModeChip(_ mode: MimicCompareListenMode) -> some View {
+        let selected = listenMode == mode
+        let label = Text(mode.title)
+            .font(.caption.weight(selected ? .semibold : .regular))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+
+        if snapshot {
+            label
+                .foregroundStyle(selected ? Studio.ink : Studio.secondary)
+                .background(selected ? Studio.accent.opacity(0.18) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+        } else {
+            Button { selectListenMode(mode) } label: { label }
+                .buttonStyle(.plain)
+                .foregroundStyle(selected ? Studio.ink : Studio.secondary)
+                .background(selected ? Studio.accent.opacity(0.18) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+                .help(mode.help)
+        }
+    }
+
+    private func selectListenMode(_ mode: MimicCompareListenMode) {
+        switch mode {
+        case .reference:
+            model.playMimicReference()
+        case .you:
+            model.playMimicAttempt()
+        case .difference:
+            playDifference()
+        }
+    }
+
+    private func playDifference() {
+        let selected = model.mimicSelectedWord.flatMap {
+            comparison.pairs.indices.contains($0) ? comparison.pairs[$0] : nil
+        }
+        let observation = selected.map {
+            MimicObservation(
+                text: "",
+                referenceRange: $0.reference.start...$0.reference.end,
+                attemptRange: $0.attempt.start...$0.attempt.end
+            )
+        } ?? comparison.observation
+        model.playMimicDifference(observation)
+    }
+
+    private func canStepWord(by delta: Int) -> Bool {
+        guard hasWords else { return false }
+        if let current = model.mimicSelectedWord {
+            return comparison.pairs.indices.contains(current + delta)
+        }
+        return true
+    }
+
+    private func stepWord(by delta: Int) {
+        guard hasWords else { return }
+        let next: Int
+        if let current = model.mimicSelectedWord {
+            next = current + delta
+        } else {
+            next = delta > 0 ? 0 : comparison.pairs.count - 1
+        }
+        guard comparison.pairs.indices.contains(next) else { return }
+        model.mimicSelectedWord = next
+        let pair = comparison.pairs[next]
+        let word = model.mimicPlaybackSource == .reference ? pair.reference : pair.attempt
+        model.seekMimic(source: model.mimicPlaybackSource, to: word.start)
     }
 }
 

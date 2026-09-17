@@ -211,73 +211,73 @@ struct MimicWorkspace: View {
     }
 
     private var transport: some View {
-        VStack(spacing: 7) {
-        if model.mimicShowingResult, let session = model.selectedSession,
-           let reference = session.mimicReference, let attempt = model.selectedTake {
-            let duration = model.mimicPlaybackSource == .reference
-                ? reference.take.result.metrics.duration : attempt.result.metrics.duration
-            HStack(spacing: 10) {
-                Text(model.mimicPlaybackSource == .reference ? "Reference" : "You")
-                    .frame(width: 72, alignment: .leading)
-                ProgressView(value: min(model.playbackTime, duration), total: max(0.001, duration))
-                    .accessibilityLabel("Playback position")
-                Text("\(vcDuration(model.playbackTime)) / \(vcDuration(duration))")
-                    .monospacedDigit()
-                Text("Space: Play/Pause")
-                    .foregroundStyle(Studio.secondary)
-            }
-            .font(.caption)
-            .foregroundStyle(Studio.secondary)
-        }
-        HStack(spacing: 12) {
+        Group {
             if model.mimicShowingResult, let session = model.selectedSession,
                let reference = session.mimicReference, let attempt = model.selectedTake {
-                let comparison = MimicComparison.compare(reference: reference.take, attempt: attempt)
-                Button(model.isPlaying ? "Pause" : "Play") { model.toggleMimicPlayback() }
-                    .keyboardShortcut(.space, modifiers: [])
-                Button("Reference") { model.playMimicReference() }
-                Button("Mine") { model.playMimicAttempt() }
-                Button("Hear Difference") {
-                    let selected = model.mimicSelectedWord.flatMap { comparison.pairs.indices.contains($0) ? comparison.pairs[$0] : nil }
-                    let observation = selected.map {
-                        MimicObservation(text: "", referenceRange: $0.reference.start...$0.reference.end, attemptRange: $0.attempt.start...$0.attempt.end)
-                    } ?? comparison.observation
-                    model.playMimicDifference(observation)
-                }
-                if model.isPlaying { Button("Stop") { model.stopPlayback() } }
-                Spacer()
-                Button("Try Again") { model.startMimicPractice() }
-                    .studioGlassButton(prominent: true)
-                    .disabled(model.isPlaying || model.isAnalyzing)
+                compareTransport(reference: reference.take, attempt: attempt)
             } else {
-                if case .countIn = model.mimicPhase {
-                    Button("Cancel Count-in") { model.cancelMimicCountIn() }
-                } else if model.mimicPhase == .playingReference {
-                    Button("Cancel") { model.stopPlayback() }
-                        .keyboardShortcut(.space, modifiers: [])
-                } else if model.isRecording {
-                    Button("Stop Recording") { model.recordButtonPressed() }
-                        .tint(.red)
-                        .studioGlassButton(prominent: true)
-                } else {
-                    Button("Listen") { model.toggleMimicPlayback() }
-                        .keyboardShortcut(.space, modifiers: [])
-                        .disabled(model.isAnalyzing || model.mimicPhase != .ready || model.hasPendingMimicWork)
-                    Button("Start Practice") { model.startMimicPractice() }
-                        .studioGlassButton(prominent: true)
-                        .disabled(model.isAnalyzing || model.isRequestingPermission || model.isPlaying || model.mimicPhase != .ready || model.hasPendingMimicWork)
-                    if model.selectedSession?.mimicStyle == .listenAndRepeat {
-                        Button("Record Now") { model.startMimicPractice(skipReference: true) }
-                            .disabled(model.isAnalyzing || model.isPlaying || model.hasPendingMimicWork)
-                    }
-                }
-                Spacer()
-                if let session = model.selectedSession, let take = session.latestTake, !model.isRecording {
-                    Button("Review Take \(session.takeCount)") { model.selectTake(take.id) }
-                        .disabled(model.isAnalyzing)
-                }
+                practiceTransport
             }
         }
+    }
+
+    private func compareTransport(reference: PracticeSession, attempt: PracticeSession) -> some View {
+        let comparison = MimicComparison.compare(reference: reference, attempt: attempt)
+        return VStack(spacing: 0) {
+            Rectangle()
+                .fill(Studio.line)
+                .frame(height: 1)
+
+            MimicComparePlaybackRow(
+                reference: reference,
+                attempt: attempt,
+                comparison: comparison
+            )
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .frame(maxWidth: 1050)
+            .frame(maxWidth: .infinity)
+        }
+        .background {
+            if snapshot {
+                Studio.surface
+            } else {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .overlay(Studio.surface.opacity(0.72))
+                    .ignoresSafeArea(edges: .bottom)
+            }
+        }
+    }
+
+    private var practiceTransport: some View {
+        HStack(spacing: 12) {
+            if case .countIn = model.mimicPhase {
+                Button("Cancel Count-in") { model.cancelMimicCountIn() }
+            } else if model.mimicPhase == .playingReference {
+                Button("Cancel") { model.stopPlayback() }
+                    .keyboardShortcut(.space, modifiers: [])
+            } else if model.isRecording {
+                Button("Stop Recording") { model.recordButtonPressed() }
+                    .tint(.red)
+                    .studioGlassButton(prominent: true)
+            } else {
+                Button("Listen") { model.toggleMimicPlayback() }
+                    .keyboardShortcut(.space, modifiers: [])
+                    .disabled(model.isAnalyzing || model.mimicPhase != .ready || model.hasPendingMimicWork)
+                Button("Start Practice") { model.startMimicPractice() }
+                    .studioGlassButton(prominent: true)
+                    .disabled(model.isAnalyzing || model.isRequestingPermission || model.isPlaying || model.mimicPhase != .ready || model.hasPendingMimicWork)
+                if model.selectedSession?.mimicStyle == .listenAndRepeat {
+                    Button("Record Now") { model.startMimicPractice(skipReference: true) }
+                        .disabled(model.isAnalyzing || model.isPlaying || model.hasPendingMimicWork)
+                }
+            }
+            Spacer()
+            if let session = model.selectedSession, let take = session.latestTake, !model.isRecording {
+                Button("Review Take \(session.takeCount)") { model.selectTake(take.id) }
+                    .disabled(model.isAnalyzing)
+            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -323,6 +323,9 @@ struct MimicInspector: View {
                                 .font(.callout).foregroundStyle(Studio.secondary)
                         }
                         Divider()
+                        Button("Try Again") { model.startMimicPractice() }
+                            .studioGlassButton(prominent: true)
+                            .disabled(model.isPlaying || model.isAnalyzing)
                         Button("Open Take Analysis") { model.openTake(sessionID: session.id, takeID: take.id) }
                     } else {
                         Text("Microphone: System Input")
