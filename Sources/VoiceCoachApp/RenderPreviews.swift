@@ -93,10 +93,11 @@ func renderStudioPreviewsIfRequested() {
         model.isRecording = false
         if let mimic = model.sessions.first(where: { $0.mode == .mimic }) {
             model.resumeSession(mimic.id)
-            model.mimicShowingResult = false
+            model.mimicWorkspaceMode = .practice
             try render("09-mimic-ready")
             if let attempt = mimic.latestTake {
                 model.selectTake(attempt.id)
+                model.mimicWorkspaceMode = .compare
                 try render("10-mimic-compare")
                 if let reference = mimic.mimicReference?.take {
                     let view = MimicComparisonView(reference: reference, attempt: attempt,
@@ -113,8 +114,10 @@ func renderStudioPreviewsIfRequested() {
                     else { throw NSError(domain: "VoiceCoachPreview", code: 4) }
                     try png.write(to: output.appendingPathComponent("10b-mimic-timing.png"))
                 }
+                model.mimicWorkspaceMode = .analysis
+                try render("10c-mimic-analysis")
             }
-            model.mimicShowingResult = false
+            model.mimicWorkspaceMode = .practice
             model.isRecording = true
             model.mimicPhase = .recording
             model.elapsed = 4.2

@@ -20,6 +20,30 @@ enum MimicPhase: Equatable {
     case analyzing
 }
 
+enum MimicWorkspaceMode: String, CaseIterable, Identifiable {
+    case practice
+    case compare
+    case analysis
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .practice: "Practice"
+        case .compare: "Compare"
+        case .analysis: "Analysis"
+        }
+    }
+
+    var inspectorTitle: String {
+        switch self {
+        case .practice: "Practice"
+        case .compare: "Comparison"
+        case .analysis: "Analysis"
+        }
+    }
+}
+
 enum MimicPlaybackSource: CaseIterable, Identifiable {
     case reference
     case attempt
@@ -63,7 +87,7 @@ final class AppModel: ObservableObject {
     @Published var mimicDraft: MimicReferenceDraft?
     @Published var mimicIsPreparing = false
     @Published var mimicPhase: MimicPhase = .ready
-    @Published var mimicShowingResult = false
+    @Published var mimicWorkspaceMode: MimicWorkspaceMode = .practice
     @Published var mimicPlaybackSource: MimicPlaybackSource = .reference
     @Published var mimicSelectedWord: Int?
     @Published var mimicReferenceVolume: Double = 0.75 {
@@ -157,6 +181,10 @@ final class AppModel: ObservableObject {
     var hasPendingMimicWork: Bool {
         pendingMimicSessionID == selectedSessionID && (pendingMimicTake != nil || pendingMimicAudio != nil)
     }
+    var showsTakeInspector: Bool {
+        if destination.isTake { return true }
+        return selectedSession?.mode == .mimic && mimicWorkspaceMode == .analysis
+    }
     var totalTakeCount: Int { sessions.reduce(0) { $0 + $1.takeCount } }
     var totalRecordedDuration: Double { sessions.reduce(0) { $0 + $1.totalDuration } }
 
@@ -202,7 +230,9 @@ final class AppModel: ObservableObject {
         selectedSessionID = id
         selectedTakeID = session.latestTake?.id
         navigate(to: .practice(id))
-        if session.mode == .mimic { mimicShowingResult = session.latestTake != nil }
+        if session.mode == .mimic {
+            mimicWorkspaceMode = session.latestTake != nil ? .compare : .practice
+        }
     }
 
     func openTake(sessionID: UUID, takeID: UUID? = nil) {
@@ -211,16 +241,32 @@ final class AppModel: ObservableObject {
         else { return }
         selectedSessionID = sessionID
         selectedTakeID = take.id
-        navigate(to: .take(sessionID, take.id))
+        if session.mode == .mimic {
+            setMimicWorkspaceMode(.analysis)
+            navigate(to: .practice(sessionID))
+        } else {
+            navigate(to: .take(sessionID, take.id))
+        }
     }
 
     func selectTake(_ takeID: UUID) {
         guard let selectedSession, selectedSession.takes.contains(where: { $0.id == takeID }) else { return }
         stopPlayback()
         selectedTakeID = takeID
-        if selectedSession.mode == .mimic { mimicShowingResult = true }
+        if selectedSession.mode == .mimic, mimicWorkspaceMode == .practice {
+            mimicWorkspaceMode = .compare
+        }
         mimicSelectedWord = nil
         if case .take(let sessionID, _) = destination { destination = .take(sessionID, takeID) }
+    }
+
+    /// Switch Mimic Practice / Compare / Analysis while keeping take selection coherent.
+    func setMimicWorkspaceMode(_ mode: MimicWorkspaceMode) {
+        stopPlayback()
+        if mode != .practice, selectedTakeID == nil {
+            selectedTakeID = selectedSession?.latestTake?.id
+        }
+        mimicWorkspaceMode = mode
     }
 
     func renameSession(_ id: UUID, to name: String) {
@@ -301,7 +347,7 @@ final class AppModel: ObservableObject {
 
         try? FileManager.default.removeItem(at: removed.audioURL)
         if reportCache?.takeID == takeID { reportCache = nil }
-        if remainingCount == 0 { mimicShowingResult = false }
+        if remainingCount == 0 { mimicWorkspaceMode = .practice }
         toastMessage = remainingCount == 0
             ? "Take removed. Record another when you are ready."
             : "Take removed"
@@ -740,7 +786,7 @@ final class AppModel: ObservableObject {
         }
         toastMessage = "\(take.takeSource.title) saved on this Mac"
         if sessions[index].mode == .mimic {
-            mimicShowingResult = true
+            mimicWorkspaceMode = .compare
             destination = .practice(selectedSessionID)
         } else {
             destination = .take(selectedSessionID, take.id)
@@ -896,7 +942,7 @@ final class AppModel: ObservableObject {
                     }
                     selectedSessionID = sessionID
                     selectedTakeID = nil
-                    mimicShowingResult = false
+                    mimicWorkspaceMode = .practice
                     destination = .practice(sessionID)
                     cancelMimicPreparation()
                 } catch {
@@ -927,12 +973,12 @@ final class AppModel: ObservableObject {
               mimicPhase == .ready, !hasPendingMimicWork,
               let reference = selectedSession?.mimicReference else { return }
         guard FileManager.default.fileExists(atPath: reference.take.audioURL.path) else {
-            errorMessage = "The reference audio is missing. Its saved attempts are still available in Take Analysis."
+            errorMessage = "The reference audio is missing. Its saved attempts are still available in Analysis."
             return
         }
         let begin: @MainActor () -> Void = { [weak self] in
             guard let self else { return }
-            self.mimicShowingResult = false
+            self.mimicWorkspaceMode = .practice
             if self.selectedSession?.mimicStyle == .speakAlong || skipReference {
                 self.startMimicCountIn()
             } else {
@@ -1034,11 +1080,15 @@ final class AppModel: ObservableObject {
             return
         }
         guard mimicPhase == .ready else { return }
+        if mimicWorkspaceMode == .analysis {
+            playCurrent()
+            return
+        }
         if isPlaying {
             pausePlayback()
             return
         }
-        let source: MimicPlaybackSource = mimicShowingResult ? mimicPlaybackSource : .reference
+        let source: MimicPlaybackSource = mimicWorkspaceMode == .compare ? mimicPlaybackSource : .reference
         let take = source == .reference ? selectedSession?.mimicReference?.take : selectedTake
         guard let take else { return }
         let start = source == mimicPlaybackSource ? playbackTime : 0
