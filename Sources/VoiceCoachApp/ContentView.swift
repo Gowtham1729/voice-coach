@@ -103,7 +103,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var contextualInspector: some View {
-        if model.destination.isTake {
+        if model.showsTakeInspector {
             TakeInspector()
         } else if model.selectedSession?.mode == .mimic {
             MimicInspector()

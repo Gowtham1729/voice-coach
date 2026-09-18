@@ -3,6 +3,9 @@ import SwiftUI
 import VoiceCoachCore
 
 struct TakeView: View {
+    /// When true, Mimic owns take selection chrome; this view supplies content + transport only.
+    var embedded = false
+
     @EnvironmentObject private var model: AppModel
     @Environment(\.studioSnapshot) private var snapshot
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -44,7 +47,7 @@ struct TakeView: View {
                 .animation(quickMotion, value: model.selectedTakeID)
                 .frame(maxWidth: 1050, alignment: .topLeading)
                 .padding(.horizontal, 20)
-                .padding(.top, 28)
+                .padding(.top, embedded ? 8 : 28)
                 .padding(.bottom, 18)
                 .frame(maxWidth: .infinity, alignment: .top)
             }
@@ -73,7 +76,11 @@ struct TakeView: View {
 
             Spacer()
 
-            if snapshot {
+            if embedded {
+                Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
+                    .font(.caption)
+                    .foregroundStyle(Studio.secondary)
+            } else if snapshot {
                 Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
                     .font(.caption)
                     .padding(.horizontal, 10)

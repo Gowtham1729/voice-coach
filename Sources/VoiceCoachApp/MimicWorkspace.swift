@@ -6,13 +6,38 @@ struct MimicWorkspace: View {
     @Environment(\.studioSnapshot) private var snapshot
 
     var body: some View {
+        Group {
+            if model.mimicWorkspaceMode == .analysis, model.selectedTake != nil {
+                analysisLayout
+            } else {
+                practiceCompareLayout
+            }
+        }
+        .background { takeStepShortcuts }
+    }
+
+    private var analysisLayout: some View {
+        VStack(spacing: 0) {
+            if let session = model.selectedSession {
+                heading(session)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 8)
+                    .frame(maxWidth: 1050, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .top)
+            }
+            TakeView(embedded: true)
+        }
+    }
+
+    private var practiceCompareLayout: some View {
         VStack(spacing: 0) {
             StudioScroll {
                 if let session = model.selectedSession, let reference = session.mimicReference {
                     VStack(alignment: .leading, spacing: 18) {
                         heading(session)
                         referenceStrip(reference)
-                        if model.mimicShowingResult, let attempt = model.selectedTake {
+                        if model.mimicWorkspaceMode == .compare, let attempt = model.selectedTake {
                             MimicComparisonView(
                                 reference: reference.take, attempt: attempt,
                                 comparison: MimicComparison.compare(reference: reference.take, attempt: attempt)
@@ -32,18 +57,20 @@ struct MimicWorkspace: View {
             }
             transport
         }
-        .background {
-            if !snapshot {
-                HStack {
-                    Button("Previous Mimic Take") { model.stepMimicTake(by: -1) }
-                        .keyboardShortcut(.leftArrow, modifiers: .option)
-                    Button("Next Mimic Take") { model.stepMimicTake(by: 1) }
-                        .keyboardShortcut(.rightArrow, modifiers: .option)
-                }
-                .opacity(0)
-                .frame(width: 0, height: 0)
-                .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var takeStepShortcuts: some View {
+        if !snapshot {
+            HStack {
+                Button("Previous Mimic Take") { model.stepMimicTake(by: -1) }
+                    .keyboardShortcut(.leftArrow, modifiers: .option)
+                Button("Next Mimic Take") { model.stepMimicTake(by: 1) }
+                    .keyboardShortcut(.rightArrow, modifiers: .option)
             }
+            .opacity(0)
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
         }
     }
 
@@ -58,7 +85,7 @@ struct MimicWorkspace: View {
                         .font(.caption)
                         .padding(7)
                         .background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
-                    Text(model.mimicShowingResult ? "Compare" : "Practice")
+                    Text(model.mimicWorkspaceMode.title)
                         .font(.caption.weight(.semibold))
                         .padding(7)
                         .background(Studio.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
@@ -76,13 +103,17 @@ struct MimicWorkspace: View {
                     .frame(width: 210)
                     .disabled(model.isRecording || model.mimicPhase != .ready)
 
-                    Picker("Workspace", selection: $model.mimicShowingResult) {
-                        Text("Practice").tag(false)
-                        Text("Compare").tag(true)
+                    Picker("Workspace", selection: Binding(
+                        get: { model.mimicWorkspaceMode },
+                        set: { model.setMimicWorkspaceMode($0) }
+                    )) {
+                        ForEach(MimicWorkspaceMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
                     }
                     .labelsHidden()
                     .pickerStyle(.segmented)
-                    .frame(width: 175)
+                    .frame(width: 270)
                     .disabled(model.isRecording || model.mimicPhase != .ready)
                 }
             }
@@ -118,7 +149,7 @@ struct MimicWorkspace: View {
         .desktopPanel()
         .overlay(alignment: .bottomLeading) {
             if !audioAvailable {
-                Text("Reference audio is missing. Previous takes remain available in Take Analysis.")
+                Text("Reference audio is missing. Previous takes remain available in Analysis.")
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .padding(.horizontal, 14)
@@ -212,7 +243,7 @@ struct MimicWorkspace: View {
 
     private var transport: some View {
         Group {
-            if model.mimicShowingResult, let session = model.selectedSession,
+            if model.mimicWorkspaceMode == .compare, let session = model.selectedSession,
                let reference = session.mimicReference, let attempt = model.selectedTake {
                 compareTransport(reference: reference.take, attempt: attempt)
             } else {
@@ -293,12 +324,12 @@ struct MimicInspector: View {
         StudioScroll {
             if let session = model.selectedSession, let reference = session.mimicReference {
                 VStack(alignment: .leading, spacing: 16) {
-                    SectionEyebrow(text: model.mimicShowingResult ? "Comparison" : "Practice")
+                    SectionEyebrow(text: model.mimicWorkspaceMode.inspectorTitle)
                     Text(session.name).font(.headline)
                     Text("Reference · \(vcDuration(reference.take.result.metrics.duration))")
                         .font(.caption).foregroundStyle(Studio.secondary)
                     Divider()
-                    if model.mimicShowingResult, let take = model.selectedTake {
+                    if model.mimicWorkspaceMode == .compare, let take = model.selectedTake {
                         let takeNumber = (session.takes.firstIndex(where: { $0.id == take.id }) ?? 0) + 1
                         Text("Take \(takeNumber)")
                             .font(.title3.weight(.semibold))
@@ -308,7 +339,6 @@ struct MimicInspector: View {
                         Button("Try Again") { model.startMimicPractice() }
                             .studioGlassButton(prominent: true)
                             .disabled(model.isPlaying || model.isAnalyzing)
-                        Button("Open Take Analysis") { model.openTake(sessionID: session.id, takeID: take.id) }
                     } else {
                         Text("Microphone: System Input")
                             .font(.callout)
