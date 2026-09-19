@@ -38,7 +38,7 @@ struct MimicComparisonView: View {
 
             if comparison.correspondenceReliable {
                 VStack(alignment: .leading, spacing: 14) {
-                    HStack {
+                    HStack(spacing: 12) {
                         SectionEyebrow(text: "Analysis")
                         Spacer()
                         if !snapshot {
@@ -56,7 +56,8 @@ struct MimicComparisonView: View {
                             }
                             .pickerStyle(.segmented)
                             .labelsHidden()
-                            .frame(width: 280)
+                            .tint(.primary)
+                            .frame(maxWidth: 280)
                         }
                     }
                     Text(chartCaption)
@@ -73,14 +74,14 @@ struct MimicComparisonView: View {
                         }
                         .frame(height: chartHeight)
                     }
-                    HStack(spacing: 14) {
-                        Label("Reference", systemImage: "minus")
-                            .foregroundStyle(.cyan)
-                        Label("You", systemImage: "minus")
-                            .foregroundStyle(Studio.accent)
+                    if metric != .timing {
+                        HStack(spacing: 14) {
+                            MimicSeriesLegendItem(title: "Reference", color: .cyan, dashed: true)
+                            MimicSeriesLegendItem(title: "You", color: Studio.accent, dashed: false)
+                        }
+                        .font(.caption)
+                        .accessibilityLabel("Dashed cyan: reference. Solid blue: you.")
                     }
-                    .font(.caption)
-                    .accessibilityLabel("Cyan: reference. Blue: you.")
                 }
                 .padding(18)
                 .studioCard()
@@ -463,5 +464,33 @@ struct MimicComparisonView: View {
         guard current.referenceIndex == previous.referenceIndex + 1,
               current.attemptIndex == previous.attemptIndex + 1 else { return 0 }
         return pause(before: index, source: .attempt) - pause(before: index, source: .reference)
+    }
+}
+
+/// Pitch/Emphasis legend swatch that mirrors the chart’s dashed Reference vs solid You strokes.
+private struct MimicSeriesLegendItem: View {
+    let title: String
+    let color: Color
+    let dashed: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Canvas { context, size in
+                var path = Path()
+                let y = size.height / 2
+                path.move(to: CGPoint(x: 0, y: y))
+                path.addLine(to: CGPoint(x: size.width, y: y))
+                context.stroke(
+                    path,
+                    with: .color(color),
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: dashed ? [5, 4] : [])
+                )
+            }
+            .frame(width: 18, height: 8)
+            .accessibilityHidden(true)
+
+            Text(title)
+                .foregroundStyle(color)
+        }
     }
 }

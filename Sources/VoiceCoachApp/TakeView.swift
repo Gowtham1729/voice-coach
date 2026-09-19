@@ -283,6 +283,7 @@ struct TakeView: View {
                 playbackTime: playbackTime,
                 isPlaying: isPlaying,
                 highlightedRange: highlightedRange,
+                maxJumpSemitones: 4,
                 onSeek: onSeek,
                 onScrub: onScrub
             )
