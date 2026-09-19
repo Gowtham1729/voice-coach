@@ -73,17 +73,19 @@ Do not add SPM `testTarget` wiring unless asked — the empty `Tests/VoiceCoachC
 - Exported / copied report in the app uses `ReportFormatter.makeReport` (expanded). `makeCompactReport` exists for V1 contract tests but is **not** wired to a UI control.
 - Contours in JSON are **24** values (`contour_semitones` / `contour_relative_db`). README “12” is stale — trust SelfTest.
 - `cppDB` is computed in analysis and **must stay out** of report JSON (`cpp_db` forbidden). `hnr_db` is the voice-quality export field.
-- Dense `acousticFrames`, waveform, and spectrogram stay in the in-app `AnalysisResult` (and thus in `session-library.json`); they are not part of the exported report.
+- Dense `acousticFrames`, waveform, and spectrogram stay in the in-app `AnalysisResult` (and thus in per-take analysis files); they are not part of the exported report.
 - Word metrics come from `AcousticFrameData` via `WordAcousticAnalyzer`, not from the downsampled UI contours.
 
 ## Persistence facts
 
 Root: `~/Library/Application Support/VoiceCoach/`
 
-- `session-library.json` — schemaVersion **1** only; atomic write; embeds full take analysis (can grow large).
-- `Sessions/<sessionUUID>/take-<takeUUID>.wav` or `…-imported.wav`
-- `keepsRecordings == false` → replace prior takes and delete old WAVs after successful save.
-- Deleting a session removes its folder; deleting a take removes that take’s audio file after index save succeeds.
+- `session-library.json` — schemaVersion **3** thin index (session metadata + take stubs only). Versions 1–2 (fat, embedded analysis) migrate on load; a one-time `session-library-v1-backup.json` / `session-library-v2-backup.json` is kept.
+- `Sessions/<sessionUUID>/take-<takeUUID>.analysis.json` — full `AnalysisResult` + transcript/words for that take (and Mimic reference).
+- `Sessions/<sessionUUID>/take-<takeUUID>.wav` or `…-imported.wav`; Mimic reference audio is `reference.wav`.
+- Metadata edits (rename, Mimic style) rewrite the thin index only; new/changed takes also write their analysis blob.
+- `keepsRecordings == false` → replace prior takes and delete old WAVs/analysis after successful save.
+- Deleting a session removes its folder; deleting a take removes that take’s audio + analysis after index save succeeds.
 - Recording: 48 kHz mono PCM, auto-stop ~90s, discard/analyze gate ~0.6s.
 
 ## Where common work lands

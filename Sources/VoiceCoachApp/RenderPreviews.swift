@@ -13,19 +13,40 @@ func renderStudioPreviewsIfRequested() {
 
     do {
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        if FileManager.default.fileExists(atPath: fixtureRoot.path) {
+            try FileManager.default.removeItem(at: fixtureRoot)
+        }
+        try FileManager.default.createDirectory(at: fixtureRoot, withIntermediateDirectories: true)
+
         let sessions = makePreviewSessions(root: fixtureRoot)
         let store = try SessionStore(rootURL: fixtureRoot)
-        let legacySessions = try JSONSerialization.jsonObject(with: JSONEncoder().encode(sessions.prefix(3).map { $0 }))
+
+        // Fat schema v1 → thin schema v3 migration
+        let legacySessions = try JSONSerialization.jsonObject(with: JSONEncoder().encode(Array(sessions.prefix(3))))
         let legacyData = try JSONSerialization.data(withJSONObject: ["schemaVersion": 1, "sessions": legacySessions])
         try legacyData.write(to: fixtureRoot.appendingPathComponent("session-library.json"), options: .atomic)
         let migratedSource = try store.load()
         precondition(migratedSource.count == 3, "Version 1 library could not be read")
-        try store.save(sessions)
-        precondition(FileManager.default.fileExists(atPath: fixtureRoot.appendingPathComponent("session-library-v1-backup.json").path), "Migration backup missing")
+        precondition(
+            FileManager.default.fileExists(atPath: fixtureRoot.appendingPathComponent("session-library-v1-backup.json").path),
+            "Migration backup missing"
+        )
+
+        try store.save(sessions, analysisTakeIDs: nil)
+        try assertThinLibraryLayout(store: store, sessions: sessions)
 
         let model = AppModel(storageRoot: fixtureRoot)
         precondition(model.sessions == sessions.sorted { $0.updatedAt > $1.updatedAt })
         precondition(model.totalTakeCount == sessions.reduce(0) { $0 + $1.takeCount })
+
+        // Metadata-only save must not rewrite analysis blobs (Mimic style / rename path).
+        let probeSession = model.sessions[0]
+        let probeTake = probeSession.takes[0]
+        let analysisURL = store.analysisURL(sessionID: probeSession.id, takeID: probeTake.id)
+        let beforeAnalysis = try Data(contentsOf: analysisURL)
+        try store.save(model.sessions, analysisTakeIDs: [])
+        let afterAnalysis = try Data(contentsOf: analysisURL)
+        precondition(afterAnalysis == beforeAnalysis, "Metadata save rewrote analysis blob")
 
         func render(_ name: String, width: CGFloat = 1440, height: CGFloat = 920) throws {
             let view = ContentView()
@@ -193,17 +214,50 @@ struct PreviewRenderLauncher: View {
     }
 }
 
+private func assertThinLibraryLayout(store: SessionStore, sessions: [CoachingSession]) throws {
+    let libraryURL = store.rootURL.appendingPathComponent("session-library.json")
+    let data = try Data(contentsOf: libraryURL)
+    let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+    precondition(json?["schemaVersion"] as? Int == SessionStore.currentSchemaVersion, "Expected thin schema v3")
+    let text = String(decoding: data, as: UTF8.self)
+    precondition(!text.contains("acousticFrames"), "Index must not embed acousticFrames")
+    precondition(!text.contains("spectrogram"), "Index must not embed spectrogram")
+    precondition(!text.contains("loudnessContour"), "Index must not embed loudnessContour")
+    precondition(data.count < 200_000, "Thin index unexpectedly large (\(data.count) bytes)")
+
+    for session in sessions {
+        for take in session.takes {
+            let url = store.analysisURL(sessionID: session.id, takeID: take.id)
+            precondition(FileManager.default.fileExists(atPath: url.path), "Missing analysis for take \(take.id)")
+        }
+        if let reference = session.mimicReference?.take {
+            let url = store.analysisURL(sessionID: session.id, takeID: reference.id)
+            precondition(FileManager.default.fileExists(atPath: url.path), "Missing analysis for reference \(reference.id)")
+        }
+    }
+
+    let reloaded = try store.load()
+    precondition(reloaded == sessions.sorted { $0.updatedAt > $1.updatedAt }, "Thin library round-trip mismatch")
+}
+
 private func makePreviewSessions(root: URL) -> [CoachingSession] {
     let calendar = Calendar.current
     let now = Date()
+    let firstID = UUID()
+    let secondID = UUID()
+    let thirdID = UUID()
+    let mimicID = UUID()
 
     func take(
+        sessionID: UUID,
         frequency: Double,
         duration: Double,
         text: String,
         offsetHours: Int,
         source: TakeSource = .recorded,
-        shortPauses: Bool = false
+        shortPauses: Bool = false,
+        takeID: UUID = UUID(),
+        audioFileName: String? = nil
     ) -> PracticeSession {
         let rate = 16_000.0
         let samples = (0..<Int(rate * duration)).map { index -> Float in
@@ -227,9 +281,15 @@ private func makePreviewSessions(root: URL) -> [CoachingSession] {
         }
         let transcription = TranscriptionResult(text: text, words: transcriptWords)
         let date = calendar.date(byAdding: .hour, value: offsetHours, to: now) ?? now
+        let fileName = audioFileName ?? "take-\(takeID.uuidString).wav"
+        let audioURL = root
+            .appendingPathComponent("Sessions", isDirectory: true)
+            .appendingPathComponent(sessionID.uuidString, isDirectory: true)
+            .appendingPathComponent(fileName)
         return PracticeSession(
+            id: takeID,
             createdAt: date,
-            audioURL: root.appendingPathComponent(UUID().uuidString + ".wav"),
+            audioURL: audioURL,
             source: source,
             result: result,
             transcription: transcription,
@@ -238,11 +298,12 @@ private func makePreviewSessions(root: URL) -> [CoachingSession] {
     }
 
     let interviewTakes = [
-        take(frequency: 145, duration: 10.8, text: "I want to explain my experience clearly and give each idea enough space to land.", offsetHours: -4),
-        take(frequency: 154, duration: 11.3, text: "I can connect my experience to the problem and show the result with a calm steady pace.", offsetHours: -3),
-        take(frequency: 166, duration: 12.4, text: "I want to speak with a little more inflection and let the most important point be heard.", offsetHours: -2, source: .importedVideo)
+        take(sessionID: firstID, frequency: 145, duration: 10.8, text: "I want to explain my experience clearly and give each idea enough space to land.", offsetHours: -4),
+        take(sessionID: firstID, frequency: 154, duration: 11.3, text: "I can connect my experience to the problem and show the result with a calm steady pace.", offsetHours: -3),
+        take(sessionID: firstID, frequency: 166, duration: 12.4, text: "I want to speak with a little more inflection and let the most important point be heard.", offsetHours: -2, source: .importedVideo)
     ]
     let first = CoachingSession(
+        id: firstID,
         name: "Job Interview Prep",
         createdAt: calendar.date(byAdding: .day, value: -3, to: now) ?? now,
         updatedAt: calendar.date(byAdding: .hour, value: -2, to: now) ?? now,
@@ -251,8 +312,9 @@ private func makePreviewSessions(root: URL) -> [CoachingSession] {
         keepsRecordings: true,
         takes: interviewTakes
     )
-    let secondTake = take(frequency: 174, duration: 9.8, text: "Today I will make the recommendation simple direct and easy to remember.", offsetHours: -24)
+    let secondTake = take(sessionID: secondID, frequency: 174, duration: 9.8, text: "Today I will make the recommendation simple direct and easy to remember.", offsetHours: -24)
     let second = CoachingSession(
+        id: secondID,
         name: "Product Presentation",
         createdAt: calendar.date(byAdding: .day, value: -5, to: now) ?? now,
         updatedAt: calendar.date(byAdding: .day, value: -1, to: now) ?? now,
@@ -262,18 +324,29 @@ private func makePreviewSessions(root: URL) -> [CoachingSession] {
         takes: [secondTake]
     )
     let third = CoachingSession(
+        id: thirdID,
         name: "Thoughtful Communication",
         createdAt: calendar.date(byAdding: .day, value: -8, to: now) ?? now,
         updatedAt: calendar.date(byAdding: .day, value: -4, to: now) ?? now,
         mode: .prompt,
         prompt: "A thoughtful pause gives an idea room to land.",
         keepsRecordings: true,
-        takes: [take(frequency: 158, duration: 8.6, text: "A thoughtful pause gives the next idea room to land clearly.", offsetHours: -96)]
+        takes: [take(sessionID: thirdID, frequency: 158, duration: 8.6, text: "A thoughtful pause gives the next idea room to land clearly.", offsetHours: -96)]
     )
     let script = "I really don't think that's a good idea."
-    let reference = take(frequency: 172, duration: 8.0, text: script, offsetHours: -8, source: .importedAudio, shortPauses: true)
-    let attempt = take(frequency: 161, duration: 8.7, text: script, offsetHours: -7, shortPauses: true)
+    let reference = take(
+        sessionID: mimicID,
+        frequency: 172,
+        duration: 8.0,
+        text: script,
+        offsetHours: -8,
+        source: .importedAudio,
+        shortPauses: true,
+        audioFileName: "reference.wav"
+    )
+    let attempt = take(sessionID: mimicID, frequency: 161, duration: 8.7, text: script, offsetHours: -7, shortPauses: true)
     let mimic = CoachingSession(
+        id: mimicID,
         name: "A confident answer",
         createdAt: calendar.date(byAdding: .day, value: -6, to: now) ?? now,
         updatedAt: calendar.date(byAdding: .day, value: -6, to: now) ?? now,
