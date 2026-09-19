@@ -107,7 +107,7 @@ struct CreateSessionView: View {
                     }
                     .keyboardShortcut(.defaultAction)
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                              || (mode == .mimic && (model.mimicDraft == nil || model.mimicIsPreparing || excerptEnd - excerptStart < 1)))
+                              || (mode == .mimic && (model.mimicDraft == nil || model.mimicIsPreparing || model.isCapturingMimicReference || excerptEnd - excerptStart < 1)))
                     .studioGlassButton(prominent: true)
                 }
 

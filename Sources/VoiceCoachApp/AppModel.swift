@@ -72,12 +72,15 @@ final class AppModel: ObservableObject {
     @Published var selectedSessionID: UUID?
     @Published var selectedTakeID: UUID?
     @Published var isRecording = false
+    @Published var isCapturingMimicReference = false
     @Published var isAnalyzing = false
     @Published var isRequestingPermission = false
     @Published var isPlaying = false
     @Published var playbackTime: TimeInterval = 0
     @Published var elapsed: TimeInterval = 0
     @Published var liveLevel: Double = -80
+    @Published var mimicReferenceCaptureElapsed: TimeInterval = 0
+    @Published var mimicReferenceCaptureLevel: Double = -80
     @Published var errorMessage: String?
     @Published var toastMessage: String?
     @Published var transcriptionNotice: String?
@@ -102,12 +105,16 @@ final class AppModel: ObservableObject {
     @Published var pendingMimicSessionID: UUID?
 
     private let recorder = AudioRecorder()
+    private let systemAudioCapture = SystemAudioCapture()
     private let store: SessionStore
     private var timer: Timer?
     private var playbackTimer: Timer?
+    private var mimicReferenceCaptureTimer: Timer?
     private var recordingURL: URL?
     private var recordingTakeID: UUID?
     private var startedAt: Date?
+    private var mimicReferenceCaptureURL: URL?
+    private var mimicReferenceCaptureStartedAt: Date?
     private var transcriptionSetupTask: Task<Void, Never>?
     private var systemTranscriptionStatusTask: Task<Void, Never>?
     private var systemAssetInstallTask: Task<Void, Never>?
@@ -132,6 +139,13 @@ final class AppModel: ObservableObject {
             guard let self, self.isRecording else { return }
             self.toastMessage = "Recording interrupted; saving the audio captured so far."
             self.stopRecording()
+        }
+        systemAudioCapture.onCaptureInterrupted = { [weak self] in
+            Task { @MainActor in
+                guard let self, self.isCapturingMimicReference else { return }
+                self.toastMessage = "Mac audio capture interrupted; using what was captured."
+                self.finishMimicReferenceCapture()
+            }
         }
 
         refreshTranscriptionSetupStatus()
@@ -360,7 +374,7 @@ final class AppModel: ObservableObject {
             else { startMimicPractice() }
             return
         }
-        guard !isAnalyzing, !isRequestingPermission else { return }
+        guard !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference else { return }
         isRecording ? stopRecording() : requestPermissionAndRecord()
     }
 
@@ -632,6 +646,7 @@ final class AppModel: ObservableObject {
 
     private func beginRecording() {
         guard let sessionID = selectedSessionID else { return }
+        guard !isRecording, !isCapturingMimicReference else { return }
         if !mimicAlong {
             recorder.stopPlayback()
             isPlaying = false
@@ -699,6 +714,142 @@ final class AppModel: ObservableObject {
             return
         }
         analyze(url: url, takeID: takeID)
+    }
+
+    // MARK: - Mimic reference Mac audio
+
+    func captureMimicReferencePressed() {
+        guard !mimicIsPreparing, !isRecording, !isAnalyzing else { return }
+        if isCapturingMimicReference {
+            finishMimicReferenceCapture()
+            return
+        }
+        beginMimicReferenceCapture()
+    }
+
+    private func beginMimicReferenceCapture() {
+        cancelMimicPreparation()
+
+        let id = UUID()
+        mimicPreparationID = id
+        let staged = FileManager.default.temporaryDirectory
+            .appendingPathComponent("voice-coach-mimic-system-\(id).wav")
+        do {
+            try systemAudioCapture.start(url: staged)
+            mimicReferenceCaptureURL = staged
+            mimicReferenceCaptureStartedAt = Date()
+            mimicReferenceCaptureElapsed = 0
+            mimicReferenceCaptureLevel = -80
+            isCapturingMimicReference = true
+            errorMessage = nil
+            toastMessage = nil
+            startMimicReferenceCaptureTimer()
+        } catch {
+            try? FileManager.default.removeItem(at: staged)
+            mimicPreparationID = nil
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func finishMimicReferenceCapture() {
+        let elapsedCapture = mimicReferenceCaptureElapsed
+        let heardAudio = systemAudioCapture.heardAudio
+        let url = mimicReferenceCaptureURL
+        let id = mimicPreparationID
+
+        systemAudioCapture.stop()
+        stopMimicReferenceCaptureTimer()
+        isCapturingMimicReference = false
+        mimicReferenceCaptureURL = nil
+        mimicReferenceCaptureStartedAt = nil
+
+        guard let url, let id else {
+            clearMimicReferenceCaptureMeters()
+            return
+        }
+
+        if elapsedCapture < 0.6 {
+            failMimicReferenceCapture(
+                url: url,
+                message: "Capture at least one second of Mac audio for the reference."
+            )
+            return
+        }
+        if !heardAudio {
+            failMimicReferenceCapture(
+                url: url,
+                message: SystemAudioCaptureError.permissionOrSilent.localizedDescription
+            )
+            return
+        }
+
+        presentMimicDraft(id: id, url: url, sourceName: "Mac Audio", source: .systemAudio)
+    }
+
+    private func failMimicReferenceCapture(url: URL, message: String) {
+        try? FileManager.default.removeItem(at: url)
+        errorMessage = message
+        clearMimicReferenceCaptureMeters()
+        mimicPreparationID = nil
+    }
+
+    private func clearMimicReferenceCaptureMeters() {
+        mimicReferenceCaptureElapsed = 0
+        mimicReferenceCaptureLevel = -80
+    }
+
+    private func startMimicReferenceCaptureTimer() {
+        stopMimicReferenceCaptureTimer()
+        mimicReferenceCaptureTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.isCapturingMimicReference else { return }
+                self.mimicReferenceCaptureElapsed = Date().timeIntervalSince(self.mimicReferenceCaptureStartedAt ?? Date())
+                self.mimicReferenceCaptureLevel = Double(self.systemAudioCapture.peakLevel())
+                if self.mimicReferenceCaptureElapsed >= 90 {
+                    self.finishMimicReferenceCapture()
+                }
+            }
+        }
+    }
+
+    private func stopMimicReferenceCaptureTimer() {
+        mimicReferenceCaptureTimer?.invalidate()
+        mimicReferenceCaptureTimer = nil
+    }
+
+    /// Shared path for file import and Mac-audio capture → trim-ready draft.
+    private func presentMimicDraft(id: UUID, url: URL, sourceName: String, source: TakeSource) {
+        mimicIsPreparing = true
+        errorMessage = nil
+        Task {
+            do {
+                let overview = try await Task.detached(priority: .userInitiated) {
+                    try AudioImportService.waveform(from: url)
+                }.value
+                guard mimicPreparationID == id else {
+                    try? FileManager.default.removeItem(at: url)
+                    return
+                }
+                mimicDraft = MimicReferenceDraft(
+                    id: id,
+                    url: url,
+                    sourceName: sourceName,
+                    duration: overview.duration,
+                    peaks: overview.peaks,
+                    source: source
+                )
+                mimicIsPreparing = false
+                clearMimicReferenceCaptureMeters()
+            } catch {
+                try? FileManager.default.removeItem(at: url)
+                if mimicPreparationID == id {
+                    mimicIsPreparing = false
+                    mimicPreparationID = nil
+                    clearMimicReferenceCaptureMeters()
+                    errorMessage = "Could not prepare the reference: \(error.localizedDescription)"
+                }
+            }
+        }
     }
 
     private func analyze(url: URL, takeID: UUID, source: TakeSource = .recorded) {
@@ -841,7 +992,7 @@ final class AppModel: ObservableObject {
     }
 
     func chooseMimicReference() {
-        guard !mimicIsPreparing, !isRecording else { return }
+        guard !mimicIsPreparing, !isRecording, !isCapturingMimicReference else { return }
         let panel = NSOpenPanel()
         panel.title = "Choose a voice to mimic"
         panel.message = "Audio stays on this Mac. You can select a short excerpt next."
@@ -859,24 +1010,21 @@ final class AppModel: ObservableObject {
         Task {
             do {
                 try await AudioImportService.prepareAudio(from: sourceURL, to: staged)
-                let overview = try await Task.detached(priority: .userInitiated) {
-                    try AudioImportService.waveform(from: staged)
-                }.value
                 guard mimicPreparationID == id else {
                     try? FileManager.default.removeItem(at: staged)
                     return
                 }
-                mimicDraft = MimicReferenceDraft(
-                    id: id, url: staged,
+                presentMimicDraft(
+                    id: id,
+                    url: staged,
                     sourceName: sourceURL.deletingPathExtension().lastPathComponent,
-                    duration: overview.duration, peaks: overview.peaks,
                     source: AudioImportService.source(for: sourceURL)
                 )
-                mimicIsPreparing = false
             } catch {
                 try? FileManager.default.removeItem(at: staged)
                 if mimicPreparationID == id {
                     mimicIsPreparing = false
+                    mimicPreparationID = nil
                     errorMessage = "Could not prepare the reference: \(error.localizedDescription)"
                 }
             }
@@ -884,6 +1032,17 @@ final class AppModel: ObservableObject {
     }
 
     func cancelMimicPreparation() {
+        if isCapturingMimicReference {
+            systemAudioCapture.stop()
+            stopMimicReferenceCaptureTimer()
+            if let url = mimicReferenceCaptureURL {
+                try? FileManager.default.removeItem(at: url)
+            }
+            isCapturingMimicReference = false
+            mimicReferenceCaptureURL = nil
+            mimicReferenceCaptureStartedAt = nil
+            clearMimicReferenceCaptureMeters()
+        }
         mimicPreparationID = nil
         mimicIsPreparing = false
         stopPlayback()
