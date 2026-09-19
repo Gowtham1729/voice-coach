@@ -4,13 +4,36 @@ public enum ReportFormatter {
     /// The original compact V1 report: recording-level acoustic data only.
     /// This intentionally excludes transcription and all word-level payloads.
     public static func makeCompactReport(session: PracticeSession) -> String {
-        let fullReport = makeReport(session: session)
-        guard let data = fullReport.data(using: .utf8),
-              var report = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
-        else { return "{}" }
-        report.removeValue(forKey: "transcription")
-        report.removeValue(forKey: "words")
-        return encode(report)
+        encode(compactObject(session: session))
+    }
+
+    /// Dual-take Mimic clipboard payload: compact reports, transcripts, and alignment deltas.
+    /// Omits per-word `alignment.words` when correspondence is unreliable.
+    public static func makeMimicCompareReport(
+        reference: PracticeSession,
+        attempt: PracticeSession,
+        practiceStyle: String,
+        comparison: MimicComparison? = nil
+    ) -> String {
+        let aligned = comparison ?? MimicComparison.compare(reference: reference, attempt: attempt)
+        var alignment: [String: Any] = [
+            "reliable": aligned.correspondenceReliable,
+            "status": aligned.status.rawValue,
+            "matched_word_count": aligned.pairs.count
+        ]
+        if aligned.correspondenceReliable {
+            alignment["words"] = aligned.pairs.map(alignmentWordRow)
+        }
+
+        return encode([
+            "schema_version": 1,
+            "practice_style": practiceStyle,
+            "reference": compactObject(session: reference),
+            "attempt": compactObject(session: attempt),
+            "reference_transcript": reference.transcription?.text ?? NSNull(),
+            "attempt_transcript": attempt.transcription?.text ?? NSNull(),
+            "alignment": alignment
+        ])
     }
 
     public static func makeReport(session: PracticeSession) -> String {
@@ -143,6 +166,36 @@ public enum ReportFormatter {
         }
 
         return lines.joined(separator: "\n")
+    }
+
+    private static func alignmentWordRow(_ pair: MimicWordPair) -> [String: Any] {
+        let refDurationMs = max(0, pair.reference.end - pair.reference.start) * 1_000
+        let attemptDurationMs = max(0, pair.attempt.end - pair.attempt.start) * 1_000
+        return [
+            "word": pair.word,
+            "ref_start_s": rounded(pair.reference.start, 2),
+            "attempt_start_s": rounded(pair.attempt.start, 2),
+            "ref_duration_ms": rounded(refDurationMs, 0),
+            "attempt_duration_ms": rounded(attemptDurationMs, 0),
+            "duration_delta_ms": rounded(attemptDurationMs - refDurationMs, 0),
+            "start_delta_ms": rounded((pair.attempt.start - pair.reference.start) * 1_000, 0),
+            "ref_pitch_st": json(pair.referencePitch, places: 2),
+            "attempt_pitch_st": json(pair.attemptPitch, places: 2),
+            "pitch_delta_st": json(difference(pair.attemptPitch, pair.referencePitch), places: 2),
+            "ref_energy_db": json(pair.referenceEnergy, places: 2),
+            "attempt_energy_db": json(pair.attemptEnergy, places: 2),
+            "energy_delta_db": json(difference(pair.attemptEnergy, pair.referenceEnergy), places: 2)
+        ]
+    }
+
+    private static func compactObject(session: PracticeSession) -> [String: Any] {
+        let fullReport = makeReport(session: session)
+        guard let data = fullReport.data(using: .utf8),
+              var report = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        else { return [:] }
+        report.removeValue(forKey: "transcription")
+        report.removeValue(forKey: "words")
+        return report
     }
 
     private static func encode(_ report: [String: Any]) -> String {
