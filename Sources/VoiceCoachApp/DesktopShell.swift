@@ -177,7 +177,7 @@ struct DesktopStudioWorkspace: View {
                 }
                 .tint(.primary)
                 .studioGlassButton()
-                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission || session.mode == .mimic)
 
                 Button(action: model.recordButtonPressed) {
                     Label(recordButtonTitle(session), systemImage: model.isRecording ? "stop.fill" : "record.circle")

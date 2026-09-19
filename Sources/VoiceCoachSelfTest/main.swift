@@ -178,6 +178,14 @@ do {
     )
     let importedRoundTrip = try JSONDecoder().decode(PracticeSession.self, from: JSONEncoder().encode(importedSession))
     try check(importedRoundTrip.takeSource == .importedVideo, "Imported video source was not preserved")
+    let systemAudioSession = PracticeSession(
+        audioURL: URL(fileURLWithPath: "/tmp/voice-coach-system.wav"),
+        source: .systemAudio,
+        result: steadyResult
+    )
+    let systemAudioRoundTrip = try JSONDecoder().decode(PracticeSession.self, from: JSONEncoder().encode(systemAudioSession))
+    try check(systemAudioRoundTrip.takeSource == .systemAudio, "System audio source was not preserved")
+    try check(TakeSource.systemAudio.title.contains("Mac"), "System audio reference source title drifted")
     let report = ReportFormatter.makeReport(session: session)
     let compactReport = ReportFormatter.makeCompactReport(session: session)
     try check(report.range(of: #"\d+\.\d{3,}"#, options: .regularExpression) == nil, "Structured report contains numbers with more than 2 decimal places")

@@ -19,7 +19,10 @@ struct MimicReferencePicker: View {
                         .lineLimit(1)
                     Spacer()
                     Button("Change…") { model.chooseMimicReference() }
-                        .disabled(model.mimicIsPreparing)
+                        .disabled(model.mimicIsPreparing || model.isCapturingMimicReference)
+                    Button("Capture…") { model.captureMimicReferencePressed() }
+                        .disabled(model.mimicIsPreparing || model.isCapturingMimicReference || model.isRecording)
+                        .help("Replace this reference by capturing Mac audio")
                 }
 
                 MimicTrimWaveform(peaks: draft.peaks, duration: draft.duration,
@@ -75,15 +78,46 @@ struct MimicReferencePicker: View {
                         .font(.caption)
                         .foregroundStyle(Studio.secondary)
                 }
-            } else {
-                Button {
-                    model.chooseMimicReference()
-                } label: {
-                    Label("Import Audio or Video…", systemImage: "square.and.arrow.down")
+            } else if model.isCapturingMimicReference {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 12) {
+                        Label("Capturing Mac Audio", systemImage: "speaker.wave.2.fill")
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(Color.red)
+                        LiveMeterView(level: model.mimicReferenceCaptureLevel)
+                            .frame(maxWidth: .infinity)
+                        Text(vcDuration(model.mimicReferenceCaptureElapsed))
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(Studio.secondary)
+                            .frame(width: 56, alignment: .trailing)
+                        Button("Stop") { model.captureMimicReferencePressed() }
+                            .tint(.red)
+                            .studioGlassButton(prominent: true)
+                    }
+                    Text("Play the voice you want to mimic on this Mac, then stop. Capture auto-stops at 90 seconds.")
+                        .font(.caption)
+                        .foregroundStyle(Studio.secondary)
                 }
-                .disabled(model.mimicIsPreparing)
-                .studioGlassButton()
-                Text("Choose one voice clip. You can select a short excerpt after importing.")
+            } else {
+                HStack(spacing: 10) {
+                    Button {
+                        model.chooseMimicReference()
+                    } label: {
+                        Label("Import Audio or Video…", systemImage: "square.and.arrow.down")
+                    }
+                    .disabled(model.mimicIsPreparing)
+                    .studioGlassButton()
+
+                    Button {
+                        model.captureMimicReferencePressed()
+                    } label: {
+                        Label("Capture Mac Audio", systemImage: "speaker.wave.2")
+                    }
+                    .disabled(model.mimicIsPreparing || model.isRecording)
+                    .studioGlassButton()
+                    .help("Capture what this Mac is playing (not the microphone)")
+                }
+                Text("Import a file, or capture Mac audio (YouTube, podcasts, and so on). Then select a short excerpt.")
                     .font(.caption)
                     .foregroundStyle(Studio.secondary)
                 if model.mimicIsPreparing {

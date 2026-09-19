@@ -297,12 +297,14 @@ public enum TakeSource: String, Codable, Sendable, Equatable {
     case recorded
     case importedAudio
     case importedVideo
+    case systemAudio
 
     public var title: String {
         switch self {
         case .recorded: "Recorded here"
         case .importedAudio: "Imported audio"
         case .importedVideo: "Imported from video"
+        case .systemAudio: "Mac audio reference"
         }
     }
 
@@ -311,6 +313,7 @@ public enum TakeSource: String, Codable, Sendable, Equatable {
         case .recorded: "mic.fill"
         case .importedAudio: "waveform"
         case .importedVideo: "video.fill"
+        case .systemAudio: "speaker.wave.2.fill"
         }
     }
 }

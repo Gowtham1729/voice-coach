@@ -87,6 +87,7 @@ Root: `~/Library/Application Support/VoiceCoach/`
 - `keepsRecordings == false` → replace prior takes and delete old WAVs/analysis after successful save.
 - Deleting a session removes its folder; deleting a take removes that take’s audio + analysis after index save succeeds.
 - Recording: 48 kHz mono PCM, auto-stop ~90s, discard/analyze gate ~0.6s.
+- Mimic reference Mac audio capture (Core Audio process tap): system output only (not mic); used only when creating a Mimic session reference; same ~90s / 0.6s gates; requires `NSAudioCaptureUsageDescription`.
 
 ## Where common work lands
 
@@ -98,6 +99,7 @@ Root: `~/Library/Application Support/VoiceCoach/`
 | Parakeet / nemo-speech | `NemoSpeechTranscriber.swift`, `scripts/setup-transcription.sh` |
 | Import normalize to WAV | `AudioImportService.swift` |
 | Record / playback | `AudioRecorder.swift`, `AppModel.swift` |
+| Mimic reference Mac audio | `SystemAudioCapture.swift`, `MimicReferencePicker.swift`, `AppModel.swift` |
 | Session CRUD / navigation | `AppModel.swift`, `SessionLibrary.swift` |
 | Shell / sidebar / inspectors | `ContentView.swift`, `DesktopShell.swift` |
 | Take screen / charts / transcript | `TakeView.swift`, `Charts.swift`, `TranscriptBrowser.swift` |
