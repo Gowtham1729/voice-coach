@@ -345,6 +345,7 @@ final class AppModel: ObservableObject {
             return
         }
 
+        try? store.deleteTakeAnalysis(sessionID: sessionID, takeID: takeID)
         try? FileManager.default.removeItem(at: removed.audioURL)
         if reportCache?.takeID == takeID { reportCache = nil }
         if remainingCount == 0 { mimicWorkspaceMode = .practice }
@@ -766,7 +767,7 @@ final class AppModel: ObservableObject {
         sessions[index].updatedAt = Date()
         selectedTakeID = take.id
         sortSessions()
-        guard persist() else {
+        guard persist(analysisTakeIDs: [take.id]) else {
             sessions = previousSessions
             selectedTakeID = previousSessions.first(where: { $0.id == selectedSessionID })?.latestTake?.id
             if sessions[index].mode == .mimic {
@@ -795,10 +796,12 @@ final class AppModel: ObservableObject {
 
     private func sortSessions() { sessions.sort { $0.updatedAt > $1.updatedAt } }
 
+    /// Persists the thin session index. Pass take IDs whose analysis blobs changed;
+    /// omit (default empty) for metadata-only updates such as rename or Mimic style.
     @discardableResult
-    private func persist() -> Bool {
+    private func persist(analysisTakeIDs: Set<UUID> = []) -> Bool {
         do {
-            try store.save(sessions)
+            try store.save(sessions, analysisTakeIDs: analysisTakeIDs)
             return true
         } catch {
             errorMessage = "Voice Coach could not save your session library. \(error.localizedDescription)"
@@ -934,7 +937,7 @@ final class AppModel: ObservableObject {
                         ), mimicStyle: .listenAndRepeat, mimicAttemptStyles: [:]
                     )
                     sessions.insert(session, at: 0)
-                    guard persist() else {
+                    guard persist(analysisTakeIDs: [referenceID]) else {
                         sessions.removeAll { $0.id == sessionID }
                         try? store.deleteSessionData(sessionID: sessionID)
                         mimicIsPreparing = false
