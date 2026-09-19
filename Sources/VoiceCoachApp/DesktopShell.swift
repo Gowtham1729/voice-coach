@@ -543,6 +543,41 @@ struct SessionInspector: View {
     }
 }
 
+struct InspectorMetricCard: View {
+    let title: String
+    let value: String
+    let unit: String
+    var detail: String? = nil
+    let symbol: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Label(title, systemImage: symbol)
+                .font(.caption)
+                .foregroundStyle(Studio.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(value)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                Text(unit)
+                    .font(.caption)
+                    .foregroundStyle(Studio.secondary)
+            }
+            if let detail {
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(Studio.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Studio.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .animation(.smooth(duration: 0.22), value: value)
+    }
+}
+
 struct TakeInspector: View {
     @EnvironmentObject private var model: AppModel
     @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
@@ -564,10 +599,10 @@ struct TakeInspector: View {
 
                     Divider()
 
-                    telemetryCard(title: "Pitch Dynamic Range", value: vcOptional(take.result.metrics.pitchRangeSemitones), unit: "st", symbol: "waveform.path")
-                    telemetryCard(title: "Trailing Energy Drop", value: vcSigned(take.result.metrics.phraseDecayDB), unit: "dB", symbol: "arrow.down.right")
-                    telemetryCard(title: "Vocal Clarity (HNR)", value: vcOptional(take.result.metrics.hnrDB), unit: "dB", symbol: "sparkles")
-                    telemetryCard(
+                    InspectorMetricCard(title: "Pitch Dynamic Range", value: vcOptional(take.result.metrics.pitchRangeSemitones), unit: "st", symbol: "waveform.path")
+                    InspectorMetricCard(title: "Trailing Energy Drop", value: vcSigned(take.result.metrics.phraseDecayDB), unit: "dB", symbol: "arrow.down.right")
+                    InspectorMetricCard(title: "Vocal Clarity (HNR)", value: vcOptional(take.result.metrics.hnrDB), unit: "dB", symbol: "sparkles")
+                    InspectorMetricCard(
                         title: "Pause Cadence",
                         value: "\(take.result.metrics.internalPauseCount)",
                         unit: take.result.metrics.internalPauseCount == 1 ? "pause" : "pauses",
@@ -631,32 +666,5 @@ struct TakeInspector: View {
     private func requestDelete(_ takeID: UUID) {
         if confirmBeforeDelete { takePendingDelete = takeID }
         else { model.deleteTake(takeID) }
-    }
-
-    private func telemetryCard(title: String, value: String, unit: String, detail: String? = nil, symbol: String) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Label(title, systemImage: symbol)
-                .font(.caption)
-                .foregroundStyle(Studio.secondary)
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
-                Text(value)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                Text(unit)
-                    .font(.caption)
-                    .foregroundStyle(Studio.secondary)
-            }
-            if let detail {
-                Text(detail)
-                    .font(.caption2)
-                    .foregroundStyle(Studio.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Studio.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .animation(.smooth(duration: 0.22), value: value)
     }
 }

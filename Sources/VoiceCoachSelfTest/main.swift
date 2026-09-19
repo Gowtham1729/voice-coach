@@ -163,12 +163,76 @@ do {
     let mimicAttempt = mimicTake(attemptWords)
     let comparison = MimicComparison.compare(reference: mimicReference, attempt: mimicAttempt)
     try check(comparison.correspondenceReliable && comparison.pairs.count == 3, "Mimic word alignment failed (pairs \(comparison.pairs.count), SNR \(mimicResult.metrics.snrDB), clipping \(mimicResult.metrics.clippingPercent))")
+    try check(comparison.status == .ok, "Reliable mimic alignment did not report status ok")
     let mismatched = mimicTake([
         TranscriptWord(word: "unrelated", start: 0.1, end: 0.3),
         TranscriptWord(word: "phrasing", start: 0.4, end: 0.6)
     ])
     let uncertain = MimicComparison.compare(reference: mimicReference, attempt: mismatched)
     try check(!uncertain.correspondenceReliable, "Mimic inferred reliable correspondence from mismatched wording")
+    try check(uncertain.status == .lowCoverage, "Mismatched wording did not report low_coverage status")
+
+    let mimicCompareJSON = ReportFormatter.makeMimicCompareReport(
+        reference: mimicReference,
+        attempt: mimicAttempt,
+        practiceStyle: "Listen & Repeat",
+        comparison: comparison
+    )
+    let mimicCompareObject = try JSONSerialization.jsonObject(with: Data(mimicCompareJSON.utf8)) as? [String: Any]
+    let expectedMimicKeys: Set<String> = [
+        "schema_version", "practice_style", "reference", "attempt",
+        "reference_transcript", "attempt_transcript", "alignment"
+    ]
+    try check(Set(mimicCompareObject?.keys.map { $0 } ?? []) == expectedMimicKeys, "Mimic compare report keys do not match the contract")
+    try check(mimicCompareObject?["schema_version"] as? Int == 1, "Mimic compare schema_version missing")
+    try check(mimicCompareObject?["practice_style"] as? String == "Listen & Repeat", "Mimic compare practice_style missing")
+    let mimicAlignment = mimicCompareObject?["alignment"] as? [String: Any]
+    try check(mimicAlignment?["reliable"] as? Bool == true, "Reliable mimic compare omitted alignment.reliable")
+    try check(mimicAlignment?["status"] as? String == "ok", "Reliable mimic compare omitted alignment.status")
+    try check(mimicAlignment?["matched_word_count"] as? Int == 3, "Reliable mimic compare matched_word_count mismatch")
+    let mimicAlignedWords = mimicAlignment?["words"] as? [[String: Any]]
+    try check(mimicAlignedWords?.count == 3, "Reliable mimic compare omitted alignment words")
+    let expectedAlignWordKeys: Set<String> = [
+        "word", "ref_start_s", "attempt_start_s", "ref_duration_ms", "attempt_duration_ms",
+        "duration_delta_ms", "start_delta_ms", "ref_pitch_st", "attempt_pitch_st", "pitch_delta_st",
+        "ref_energy_db", "attempt_energy_db", "energy_delta_db"
+    ]
+    try check(Set(mimicAlignedWords?.first?.keys.map { $0 } ?? []) == expectedAlignWordKeys, "Mimic alignment word keys do not match the contract")
+    let mimicRefSection = mimicCompareObject?["reference"] as? [String: Any]
+    let mimicAttemptSection = mimicCompareObject?["attempt"] as? [String: Any]
+    try check(mimicRefSection?["words"] == nil && mimicAttemptSection?["words"] == nil, "Mimic compare embedded full word arrays")
+    try check(mimicRefSection?["transcription"] == nil && mimicAttemptSection?["transcription"] == nil, "Mimic compare embedded nested transcription objects")
+    let lowercaseMimicCompare = mimicCompareJSON.lowercased()
+    try check(!lowercaseMimicCompare.contains("baseline"), "Mimic compare report contains baseline data")
+    try check(!lowercaseMimicCompare.contains("throat"), "Mimic compare report contains subjective throat-effort data")
+    try check(!lowercaseMimicCompare.contains("please"), "Mimic compare report contains a coaching prompt")
+    try check(!lowercaseMimicCompare.contains("cpp_db"), "Mimic compare report contains cpp_db when it should be excluded")
+    try check(mimicCompareJSON.utf8.count < 50_000, "Mimic compare fixture payload exceeded size budget (\(mimicCompareJSON.utf8.count) bytes)")
+
+    let uncertainCompareJSON = ReportFormatter.makeMimicCompareReport(
+        reference: mimicReference,
+        attempt: mismatched,
+        practiceStyle: "Speak Along",
+        comparison: uncertain
+    )
+    let uncertainCompareObject = try JSONSerialization.jsonObject(with: Data(uncertainCompareJSON.utf8)) as? [String: Any]
+    let uncertainAlignment = uncertainCompareObject?["alignment"] as? [String: Any]
+    try check(uncertainAlignment?["reliable"] as? Bool == false, "Unreliable mimic compare claimed reliable")
+    try check(uncertainAlignment?["status"] as? String == "low_coverage", "Unreliable mimic compare status mismatch")
+    try check(uncertainAlignment?["words"] == nil, "Unreliable mimic compare still included alignment words")
+
+    let noTranscriptAttempt = PracticeSession(
+        audioURL: URL(fileURLWithPath: "/tmp/mimic-no-asr.wav"),
+        result: mimicResult, transcription: nil, words: []
+    )
+    let missingASR = MimicComparison.compare(reference: mimicReference, attempt: noTranscriptAttempt)
+    try check(missingASR.status == .missingTranscript && !missingASR.correspondenceReliable, "Missing ASR did not report missing_transcript")
+    let missingASRJSON = ReportFormatter.makeMimicCompareReport(
+        reference: mimicReference, attempt: noTranscriptAttempt, practiceStyle: "Listen & Repeat", comparison: missingASR
+    )
+    let missingASRObject = try JSONSerialization.jsonObject(with: Data(missingASRJSON.utf8)) as? [String: Any]
+    try check((missingASRObject?["alignment"] as? [String: Any])?["words"] == nil, "Missing-ASR compare included alignment words")
+
     let legacyRoundTrip = try JSONDecoder().decode(PracticeSession.self, from: JSONEncoder().encode(session))
     try check(legacyRoundTrip.takeSource == .recorded, "Saved recordings without a source were not treated as microphone takes")
     let importedSession = PracticeSession(

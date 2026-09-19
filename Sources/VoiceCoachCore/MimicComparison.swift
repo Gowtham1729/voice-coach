@@ -12,16 +12,28 @@ public struct MimicWordPair: Sendable, Equatable {
     public let attemptEnergy: Double?
 }
 
+public enum MimicAlignmentStatus: String, Sendable, Equatable {
+    case ok
+    case missingTranscript = "missing_transcript"
+    case tooManyWords = "too_many_words"
+    case lowCoverage = "low_coverage"
+    case poorSnr = "poor_snr"
+    case clipping
+}
+
 public struct MimicComparison: Sendable, Equatable {
     public let pairs: [MimicWordPair]
-    public let correspondenceReliable: Bool
+    public let status: MimicAlignmentStatus
+
+    public var correspondenceReliable: Bool { status == .ok }
 
     public static func compare(reference: PracticeSession, attempt: PracticeSession) -> Self {
         guard let referenceWords = reference.transcription?.words,
               let attemptWords = attempt.transcription?.words,
-              !referenceWords.isEmpty, !attemptWords.isEmpty,
-              referenceWords.count <= 160, attemptWords.count <= 160
-        else { return .init(pairs: [], correspondenceReliable: false) }
+              !referenceWords.isEmpty, !attemptWords.isEmpty
+        else { return empty(.missingTranscript) }
+        guard referenceWords.count <= 160, attemptWords.count <= 160
+        else { return empty(.tooManyWords) }
 
         let left = referenceWords.map { normalized($0.word) }
         let right = attemptWords.map { normalized($0.word) }
@@ -50,7 +62,7 @@ public struct MimicComparison: Sendable, Equatable {
             }
         }
         indices.reverse()
-        let reliable = indices.count >= 2 && Double(indices.count) / Double(max(left.count, right.count)) >= 0.75
+
         let pairs = indices.map { a, b in
             MimicWordPair(
                 referenceIndex: a, attemptIndex: b, word: referenceWords[a].word,
@@ -61,12 +73,29 @@ public struct MimicComparison: Sendable, Equatable {
                 attemptEnergy: attempt.words.indices.contains(b) ? attempt.words[b].loudness.relativeMeanDB : nil
             )
         }
-        let correspondenceReliable = reliable
-            && attempt.result.metrics.clippingPercent < 3
+
+        let coverageOK = indices.count >= 2
+            && Double(indices.count) / Double(max(left.count, right.count)) >= 0.75
+        let clippingOK = attempt.result.metrics.clippingPercent < 3
             && reference.result.metrics.clippingPercent < 3
-            && attempt.result.metrics.snrDB >= 6
+        let snrOK = attempt.result.metrics.snrDB >= 6
             && reference.result.metrics.snrDB >= 6
-        return .init(pairs: pairs, correspondenceReliable: correspondenceReliable)
+
+        let status: MimicAlignmentStatus
+        if !coverageOK {
+            status = .lowCoverage
+        } else if !clippingOK {
+            status = .clipping
+        } else if !snrOK {
+            status = .poorSnr
+        } else {
+            status = .ok
+        }
+        return .init(pairs: pairs, status: status)
+    }
+
+    private static func empty(_ status: MimicAlignmentStatus) -> Self {
+        .init(pairs: [], status: status)
     }
 
     private static func normalized(_ word: String) -> String {
