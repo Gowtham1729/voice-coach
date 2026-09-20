@@ -79,39 +79,45 @@ struct MimicWorkspace: View {
   }
 
   private func heading(_ session: CoachingSession) -> some View {
-    HStack(spacing: 12) {
+    let currentTakeIndex = session.takes.firstIndex(where: {
+      $0.id == (model.selectedTakeID ?? session.latestTake?.id)
+    }) ?? 0
+
+    return HStack(spacing: 12) {
       Label("Mimic", systemImage: "waveform.path")
         .font(.callout.weight(.medium))
       Spacer()
       if !session.takes.isEmpty {
         if snapshot {
-          Text(
-            "Take \((session.takes.firstIndex(where: { $0.id == model.selectedTakeID }) ?? 0) + 1) of \(session.takeCount)"
-          )
-          .font(.caption)
-          .padding(7)
-          .background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
+          Text("Take \(currentTakeIndex + 1) of \(session.takeCount)")
+            .font(.caption)
+            .padding(7)
+            .background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
           Text(model.mimicWorkspaceMode.title)
             .font(.caption.weight(.semibold))
             .padding(7)
             .background(Studio.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
         } else {
-          Picker(
-            "Attempt",
-            selection: Binding(
-              get: { model.selectedTakeID ?? session.latestTake!.id },
-              set: { value in model.selectTake(value) }
-            )
-          ) {
-            ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, take in
-              Text(
-                "Take \(index + 1) · \((session.mimicAttemptStyles?[take.id] ?? .listenAndRepeat).title) · \(take.createdAt.formatted(date: .omitted, time: .shortened))"
+          Menu {
+            Picker(
+              "Attempt",
+              selection: Binding(
+                get: { model.selectedTakeID ?? session.latestTake!.id },
+                set: { value in model.selectTake(value) }
               )
-              .tag(take.id)
+            ) {
+              ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, take in
+                Text(
+                  "Take \(index + 1) · \((session.mimicAttemptStyles?[take.id] ?? .listenAndRepeat).title) · \(take.createdAt.formatted(date: .omitted, time: .shortened))"
+                )
+                .tag(take.id)
+              }
             }
+            .pickerStyle(.inline)
+            .labelsHidden()
+          } label: {
+            Text("Take \(currentTakeIndex + 1) of \(session.takeCount)")
           }
-          .labelsHidden()
-          .frame(width: 210)
           .disabled(model.isRecording || model.mimicPhase != .ready)
 
           Picker(
