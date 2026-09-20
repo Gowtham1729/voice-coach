@@ -58,7 +58,7 @@ struct StudioButtonStyle: ButtonStyle {
       .font(.system(size: 13, weight: .semibold))
       .padding(.horizontal, prominent ? 16 : 12)
       .frame(height: 32)
-      .foregroundStyle(prominent ? Studio.background : Studio.ink)
+      .foregroundStyle(prominent ? Studio.background : (destructive ? tint : Studio.ink))
       .background {
         if prominent {
           RoundedRectangle(cornerRadius: 7, style: .continuous).fill(tint)
@@ -86,20 +86,21 @@ struct StudioButtonStyle: ButtonStyle {
 /// Prefer `.studioGlassButton()` over `.glass` / `.glassProminent` so snapshot proofs stay ImageRenderer-safe.
 extension View {
   @ViewBuilder
-  func studioGlassButton(prominent: Bool = false) -> some View {
-    StudioGlassButtonHost(prominent: prominent, content: self)
+  func studioGlassButton(prominent: Bool = false, destructive: Bool = false) -> some View {
+    StudioGlassButtonHost(prominent: prominent, destructive: destructive, content: self)
   }
 }
 
 private struct StudioGlassButtonHost<Content: View>: View {
   var prominent: Bool
+  var destructive: Bool = false
   var content: Content
   @Environment(\.studioSnapshot) private var snapshot
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
   var body: some View {
     if snapshot || reduceTransparency {
-      content.buttonStyle(StudioButtonStyle(prominent: prominent))
+      content.buttonStyle(StudioButtonStyle(prominent: prominent, destructive: destructive))
     } else if prominent {
       content.buttonStyle(.glassProminent)
     } else {

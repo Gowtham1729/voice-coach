@@ -92,6 +92,7 @@ struct InspectorHeader<Accessory: View>: View {
         Text(title)
           .font(.headline)
           .lineLimit(2)
+          .accessibilityAddTraits(.isHeader)
         ForEach(Array(meta.enumerated()), id: \.offset) { _, line in
           Text(line)
             .font(.caption)

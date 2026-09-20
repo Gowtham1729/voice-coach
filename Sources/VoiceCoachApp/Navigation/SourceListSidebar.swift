@@ -128,6 +128,7 @@ struct SourceListSidebar: View {
             .tag(SidebarSelection.section(section))
         }
       }
+      .disabled(model.isRecording)
 
       Section {
         let recents = sidebarRecents(from: model, limit: 7)
@@ -164,18 +165,21 @@ struct SourceListSidebar: View {
             .accessibilityLabel(recording.accessibilityLabel)
           }
 
-          Button("Show all") {
-            model.navigate(toSection: .library)
+          if model.libraryRecordings.count > recents.count {
+            Button("Show all") {
+              model.navigate(toSection: .library)
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .disabled(model.isRecording)
+            .selectionDisabled()
+            .accessibilityLabel("Show all recordings")
           }
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .disabled(model.isRecording)
-          .selectionDisabled()
-          .accessibilityLabel("Show all recordings")
         }
       } header: {
         Text("Recents")
       }
+      .disabled(model.isRecording)
     }
     .listStyle(.sidebar)
     .safeAreaInset(edge: .bottom) {
@@ -216,6 +220,7 @@ struct SourceListSidebar: View {
         .padding(.top, model.isRecording ? 4 : 8)
         .padding(.bottom, 8)
       }
+      .background(Studio.sidebar)
     }
   }
 
@@ -263,7 +268,7 @@ private func sidebarRecents(from model: AppModel, limit: Int) -> [LibraryRecordi
       ?? RecordingCatalog.recording(takeID: takeID, in: model.sessions)
   {
     items.insert(selected, at: 0)
-    if items.count > limit + 1 {
+    if items.count > limit {
       items.removeLast()
     }
   }

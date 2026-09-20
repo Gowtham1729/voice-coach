@@ -65,18 +65,21 @@ struct TakeInspector: View {
         Menu {
           Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyReport)
         } label: {
-          Label("More", systemImage: "ellipsis")
+          Image(systemName: "ellipsis")
             .inspectorActionLabel()
+            .accessibilityLabel("More")
         }
         .menuStyle(.button)
+        .menuIndicator(.hidden)
         .studioGlassButton()
+        .help("More")
 
         Button(action: { requestDelete(take.id) }) {
           Label("Delete", systemImage: "trash")
             .inspectorActionLabel()
         }
         .tint(.red)
-        .studioGlassButton()
+        .studioGlassButton(destructive: true)
         .disabled(model.isPlaying || model.isAnalyzing)
         .help("Delete")
       }

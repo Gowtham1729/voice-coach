@@ -4,6 +4,8 @@ import VoiceCoachSession
 
 struct MimicInspector: View {
   @EnvironmentObject private var model: AppModel
+  @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
+  @State private var takePendingDelete: UUID?
 
   var body: some View {
     Group {
@@ -68,16 +70,34 @@ struct MimicInspector: View {
         .controlSize(.regular)
         .help("Copy notes to paste into a coach.")
 
-        Menu {
-          Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
-        } label: {
-          Label("More", systemImage: "ellipsis")
-            .inspectorActionLabel()
+        HStack(spacing: 8) {
+          Menu {
+            Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
+          } label: {
+            Image(systemName: "ellipsis")
+              .inspectorActionLabel()
+              .accessibilityLabel("More")
+          }
+          .menuStyle(.button)
+          .menuIndicator(.hidden)
+          .studioGlassButton()
+          .help("More")
+
+          Button(action: { requestDelete(take.id) }) {
+            Label("Delete", systemImage: "trash")
+              .inspectorActionLabel()
+          }
+          .tint(.red)
+          .studioGlassButton(destructive: true)
+          .disabled(model.isPlaying || model.isAnalyzing)
+          .help("Delete")
         }
-        .menuStyle(.button)
-        .studioGlassButton()
       }
     }
+    .modifier(
+      DeleteTakeDialog(takeID: $takePendingDelete) { takeID in
+        model.deleteTake(takeID)
+      })
   }
 
   @ViewBuilder
@@ -118,5 +138,9 @@ struct MimicInspector: View {
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     }
+  }
+
+  private func requestDelete(_ takeID: UUID) {
+    if confirmBeforeDelete { takePendingDelete = takeID } else { model.deleteTake(takeID) }
   }
 }

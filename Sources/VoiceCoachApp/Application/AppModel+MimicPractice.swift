@@ -288,8 +288,8 @@ extension AppModel {
   func stepMimicTake(by delta: Int) {
     guard let session = selectedSession, session.mode == .mimic,
       !isRecording, mimicPhase == .ready,
-      let current = selectedTakeID.flatMap({ id in session.takes.firstIndex(where: { $0.id == id })
-      }),
+      let currentID = selectedTakeID ?? session.latestTake?.id,
+      let current = session.takes.firstIndex(where: { $0.id == currentID }),
       session.takes.indices.contains(current + delta)
     else { return }
     selectTake(session.takes[current + delta].id)
