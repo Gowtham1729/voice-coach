@@ -74,17 +74,17 @@ struct SettingsView: View {
           .onChange(of: autoGenerateTitles) { _, enabled in
             if enabled { SmartTitleGenerator.prewarmIfAvailable() }
           }
+        if autoGenerateTitles {
+          LabeledContent("Apple Intelligence", value: intelligenceStatus.settingsLabel)
+        }
       } header: {
         Text("Naming")
       } footer: {
-        Text("Titles use on-device Apple Intelligence when enabled.")
-      }
-
-      if autoGenerateTitles {
-        Section {
-          LabeledContent("Apple Intelligence", value: intelligenceStatus.settingsLabel)
-        } footer: {
-          Text(intelligenceStatus.settingsFooter)
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Titles use on-device Apple Intelligence when enabled.")
+          if autoGenerateTitles {
+            Text(intelligenceStatus.settingsFooter)
+          }
         }
       }
     }
@@ -95,6 +95,7 @@ struct SettingsView: View {
     let systemStatus = model.systemTranscriptionStatus
     let parakeetStatus = model.transcriptionSetupStatus
     let busy = transcriptionBusy
+    let activeEngine = model.transcriptionEngine
 
     return Form {
       Section {
@@ -112,6 +113,7 @@ struct SettingsView: View {
         title: "System",
         status: systemStatus.title,
         footer: systemStatus.settingsFooter,
+        emphasized: activeEngine == .system,
         progress: {
           if case .downloading = systemStatus {
             progressRow("Downloading…")
@@ -131,6 +133,7 @@ struct SettingsView: View {
         title: "Parakeet",
         status: parakeetStatus.title,
         footer: parakeetStatus.settingsFooter,
+        emphasized: activeEngine == .parakeet,
         progress: {
           if case .installing(let phase) = parakeetStatus {
             progressRow(phase.userFacingLabel)
@@ -185,6 +188,7 @@ struct SettingsView: View {
     title: String,
     status: String,
     footer: String,
+    emphasized: Bool = true,
     @ViewBuilder progress: () -> Progress,
     @ViewBuilder actions: () -> Actions
   ) -> some View {
@@ -198,6 +202,7 @@ struct SettingsView: View {
       Text(footer)
         .textSelection(.enabled)
     }
+    .opacity(emphasized ? 1.0 : 0.65)
   }
 
   private func progressRow(_ label: String) -> some View {
@@ -225,7 +230,7 @@ struct SettingsView: View {
   }
 
   private var snapshotSettings: some View {
-    VStack(alignment: .leading, spacing: 18) {
+    VStack(alignment: .leading, spacing: 16) {
       Text("Voice Coach Settings")
         .font(.title2.weight(.semibold))
 
@@ -242,20 +247,31 @@ struct SettingsView: View {
           Image(systemName: autoGenerateTitles ? "checkmark.circle.fill" : "circle")
             .foregroundStyle(Studio.accent)
         }
+        if autoGenerateTitles {
+          HStack {
+            Text("Apple Intelligence")
+            Spacer()
+            Text(SmartTitleGenerator.status.settingsLabel)
+              .foregroundStyle(.secondary)
+          }
+        }
         Text("Recordings stay on this Mac. Titles use Apple Intelligence when enabled.")
         .font(.caption)
         .foregroundStyle(.secondary)
       }
 
       snapshotCard("Transcription", symbol: "waveform") {
+        let isSystem = model.transcriptionEngine == .system
         Text(model.transcriptionEngine.title)
           .font(.body.weight(.medium))
         Text("System · \(model.systemTranscriptionStatus.title)")
           .font(.caption)
-          .foregroundStyle(.secondary)
+          .foregroundStyle(isSystem ? .primary : .secondary)
+          .opacity(isSystem ? 1.0 : 0.65)
         Text("Parakeet · \(model.transcriptionSetupStatus.title)")
           .font(.caption)
-          .foregroundStyle(.secondary)
+          .foregroundStyle(!isSystem ? .primary : .secondary)
+          .opacity(!isSystem ? 1.0 : 0.65)
       }
 
       snapshotCard("Library", symbol: "internaldrive") {
@@ -288,6 +304,9 @@ struct SettingsView: View {
 extension View {
   fileprivate func settingsPaneChrome() -> some View {
     formStyle(.grouped)
+      .contentMargins(.top, 8, for: .scrollContent)
+      .contentMargins(.bottom, 12, for: .scrollContent)
+      .padding(.top, -6)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
   }
 }
