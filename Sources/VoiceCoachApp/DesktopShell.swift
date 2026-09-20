@@ -527,6 +527,11 @@ struct TakeInspector: View {
                             .font(.caption)
                             .foregroundStyle(Studio.secondary)
                             .lineLimit(2)
+                        if model.isSuggestingTitle {
+                            Text("Naming from transcript…")
+                                .font(.caption2)
+                                .foregroundStyle(Studio.secondary.opacity(0.85))
+                        }
                     }
 
                     Divider()

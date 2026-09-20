@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage("voiceCoach.settingsPane") private var pane = SettingsPane.general
     @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
     @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
+    @AppStorage("voiceCoach.autoGenerateTitles") private var autoGenerateTitles = false
 
     private var transcriptionBusy: Bool {
         model.systemTranscriptionStatus.isBusy
@@ -32,6 +33,9 @@ struct SettingsView: View {
         .onAppear {
             model.refreshTranscriptionSetupStatus()
             model.refreshSystemTranscriptionStatus()
+            if autoGenerateTitles {
+                SmartTitleGenerator.prewarmIfAvailable()
+            }
         }
     }
 
@@ -51,15 +55,29 @@ struct SettingsView: View {
     }
 
     private var generalPane: some View {
-        Form {
+        let intelligenceStatus = SmartTitleGenerator.status
+        return Form {
             Section {
                 Toggle("Confirm before deleting", isOn: $confirmDelete)
                 Toggle("Hide transcript snippets in Library", isOn: $hideTranscriptSnippets)
+                Toggle("Automatically name new recordings from transcripts", isOn: $autoGenerateTitles)
+                    .onChange(of: autoGenerateTitles) { _, enabled in
+                        if enabled { SmartTitleGenerator.prewarmIfAvailable() }
+                    }
             } footer: {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Ask before permanently removing recordings or Mimics.")
                     Text("Recordings stay on this Mac. Voice-quality values are coaching signals, not medical diagnoses.")
                     Text("Library search can use on-device transcripts when they exist.")
+                    Text("When enabled, new mic recordings and Mimics can get on-device titles from Apple Foundation Models (Apple Intelligence). Date or filename titles are used if the model is unavailable. Nothing is uploaded.")
+                }
+            }
+
+            if autoGenerateTitles {
+                Section {
+                    LabeledContent("Apple Intelligence", value: intelligenceStatus.settingsLabel)
+                } footer: {
+                    Text(intelligenceStatus.settingsFooter)
                 }
             }
         }
@@ -187,7 +205,13 @@ struct SettingsView: View {
                     Image(systemName: confirmDelete ? "checkmark.circle.fill" : "circle")
                         .foregroundStyle(Studio.accent)
                 }
-                Text("Recordings stay on this Mac.")
+                HStack {
+                    Text("Automatically name new recordings from transcripts")
+                    Spacer()
+                    Image(systemName: autoGenerateTitles ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(Studio.accent)
+                }
+                Text("Recordings stay on this Mac. Titles use on-device Apple Foundation Models when enabled.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
