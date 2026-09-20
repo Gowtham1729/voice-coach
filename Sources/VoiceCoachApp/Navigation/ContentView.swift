@@ -158,7 +158,13 @@ struct ContentView: View {
   private var inspectorVisibility: Binding<Bool> {
     Binding(
       get: { inspectorPresented && inspectorEligible },
-      set: { inspectorPresented = $0 }
+      set: { newValue in
+        // Persist only user toggles. Navigation that hides the inspector
+        // because it is ineligible must not clear SceneStorage.
+        if inspectorEligible {
+          inspectorPresented = newValue
+        }
+      }
     )
   }
 
