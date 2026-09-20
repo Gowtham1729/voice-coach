@@ -95,7 +95,11 @@ struct MimicInspector: View {
       }
     }
     .modifier(
-      DeleteTakeDialog(takeID: $takePendingDelete) { takeID in
+      DeleteTakeDialog(
+        takeID: $takePendingDelete,
+        title: "Delete this take?",
+        message: "This take and its analysis will be deleted. The reference and other takes stay."
+      ) { takeID in
         model.deleteTake(takeID)
       })
   }

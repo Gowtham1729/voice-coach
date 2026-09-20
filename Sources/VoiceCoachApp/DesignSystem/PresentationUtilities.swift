@@ -2,11 +2,13 @@ import SwiftUI
 
 struct DeleteTakeDialog: ViewModifier {
   @Binding var takeID: UUID?
+  var title: String = "Delete Recording?"
+  var message: String = "This recording and its analysis will be deleted."
   var onDelete: (UUID) -> Void
 
   func body(content: Content) -> some View {
     content.confirmationDialog(
-      "Delete Recording?",
+      title,
       isPresented: Binding(
         get: { takeID != nil },
         set: { if !$0 { takeID = nil } }
@@ -20,7 +22,7 @@ struct DeleteTakeDialog: ViewModifier {
       }
       Button("Cancel", role: .cancel) { takeID = nil }
     } message: {
-      Text("This recording and its analysis will be deleted.")
+      Text(message)
     }
   }
 }
