@@ -60,9 +60,7 @@ struct SettingsView: View {
       Section {
         Toggle("Confirm before deleting", isOn: $confirmDelete)
       } header: {
-        Text("Delete")
-      } footer: {
-        Text("Ask before deleting.")
+        Text("Deleting")
       }
 
       Section {
