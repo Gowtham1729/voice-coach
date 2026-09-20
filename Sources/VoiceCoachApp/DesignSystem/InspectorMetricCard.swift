@@ -86,7 +86,7 @@ struct InspectorMetricRow: View {
       VStack(alignment: .trailing, spacing: 1) {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
           Text(metric.value)
-            .font(.body.weight(.semibold))
+            .font(.callout.weight(.medium))
             .foregroundStyle(.primary)
             .monospacedDigit()
             .contentTransition(.numericText())

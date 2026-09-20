@@ -5,7 +5,9 @@ enum CoreTestFixtures {
   static func metrics(
     duration: Double = 1.5,
     snrDB: Double = 20,
-    clippingPercent: Double = 0
+    clippingPercent: Double = 0,
+    internalPauseCount: Int = 0,
+    meanInternalPauseMs: Double = 0
   ) -> VoiceMetrics {
     VoiceMetrics(
       duration: duration,
@@ -15,11 +17,11 @@ enum CoreTestFixtures {
       snrDB: snrDB,
       clippingPercent: clippingPercent,
       nonSpeechRatio: 0,
-      internalPauseCount: 0,
-      internalPauseTotalMs: 0,
-      meanInternalPauseMs: 0,
-      medianInternalPauseMs: 0,
-      longestInternalPauseMs: 0,
+      internalPauseCount: internalPauseCount,
+      internalPauseTotalMs: Double(internalPauseCount) * meanInternalPauseMs,
+      meanInternalPauseMs: meanInternalPauseMs,
+      medianInternalPauseMs: meanInternalPauseMs,
+      longestInternalPauseMs: meanInternalPauseMs,
       leadingSilenceMs: 0,
       trailingSilenceMs: 0,
       meanLoudnessDBFS: -20,
