@@ -191,7 +191,7 @@ struct HomeView: View {
 
   private func recordingRow(_ recording: LibraryRecording) -> some View {
     HStack(spacing: 12) {
-      Image(systemName: recording.isMimicAttempt ? "waveform.path" : recording.take.takeSource.icon)
+      Image(systemName: recording.iconSymbol)
         .foregroundStyle(Studio.accent)
         .frame(width: 22)
       VStack(alignment: .leading, spacing: 2) {

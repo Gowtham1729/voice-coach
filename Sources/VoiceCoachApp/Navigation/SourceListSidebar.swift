@@ -21,13 +21,15 @@ struct SnapshotSourceListSidebar: View {
         .padding(.top, 18)
         .padding(.horizontal, 10)
       ForEach(snapshotRecents) { recording in
-        snapshotRow(
-          recording.displayTitle,
-          symbol: recording.isMimicAttempt ? "waveform.path" : recording.take.takeSource.icon,
-          selected: snapshotRecordingSelection == recording.id,
-          trailing: recording.takeCount > 1
-            ? "\(recording.takeNumber)/\(recording.takeCount)" : nil
-        )
+        SidebarRecentsRow(recording: recording)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.horizontal, 8)
+          .padding(.vertical, 4)
+          .background(
+            snapshotRecordingSelection == recording.id
+              ? Studio.accent.opacity(0.14) : Color.clear,
+            in: RoundedRectangle(cornerRadius: 6)
+          )
       }
       if model.libraryRecordings.count > snapshotRecents.count {
         Text("Show all")
@@ -117,6 +119,50 @@ struct SnapshotSourceListSidebar: View {
   }
 }
 
+struct TakeCountChip: View {
+  let takeNumber: Int
+  let takeCount: Int
+
+  var body: some View {
+    Text("\(takeNumber)/\(takeCount)")
+      .font(.caption2.weight(.semibold).monospacedDigit())
+      .foregroundStyle(Studio.secondary)
+      .padding(.horizontal, 5)
+      .padding(.vertical, 1.5)
+      .background(Studio.line, in: Capsule())
+      .accessibilityHidden(true)
+  }
+}
+
+struct SidebarRecentsRow: View {
+  let recording: LibraryRecording
+
+  var body: some View {
+    HStack(spacing: 8) {
+      Image(systemName: recording.iconSymbol)
+        .foregroundStyle(Studio.accent)
+        .frame(width: 16)
+      VStack(alignment: .leading, spacing: 2) {
+        Text(recording.sidebarTitle)
+          .lineLimit(1)
+        Text(recording.sidebarSubtitle)
+          .font(.caption)
+          .foregroundStyle(Studio.secondary)
+          .lineLimit(1)
+      }
+      Spacer(minLength: 4)
+      HStack(spacing: 5) {
+        if recording.takeCount > 1 {
+          TakeCountChip(takeNumber: recording.takeNumber, takeCount: recording.takeCount)
+        }
+        Text(vcDuration(recording.take.result.metrics.duration))
+          .font(.caption.monospacedDigit())
+          .foregroundStyle(Studio.secondary)
+      }
+    }
+  }
+}
+
 struct SourceListSidebar: View {
   @EnvironmentObject private var model: AppModel
 
@@ -138,31 +184,9 @@ struct SourceListSidebar: View {
             .font(.callout)
         } else {
           ForEach(recents) { recording in
-            HStack(spacing: 8) {
-              Image(
-                systemName: recording.isMimicAttempt
-                  ? "waveform.path" : recording.take.takeSource.icon
-              )
-              .foregroundStyle(.secondary)
-              .frame(width: 16)
-              VStack(alignment: .leading, spacing: 2) {
-                Text(recording.displayTitle)
-                  .lineLimit(1)
-                Text(recording.subtitle)
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-                  .lineLimit(1)
-              }
-              Spacer(minLength: 0)
-              if recording.takeCount > 1 {
-                Text("\(recording.takeNumber)/\(recording.takeCount)")
-                  .font(.caption2.monospacedDigit())
-                  .foregroundStyle(.tertiary)
-                  .accessibilityHidden(true)
-              }
-            }
-            .tag(SidebarSelection.recording(recording.id))
-            .accessibilityLabel(recording.accessibilityLabel)
+            SidebarRecentsRow(recording: recording)
+              .tag(SidebarSelection.recording(recording.id))
+              .accessibilityLabel(recording.accessibilityLabel)
           }
 
           if model.libraryRecordings.count > recents.count {
