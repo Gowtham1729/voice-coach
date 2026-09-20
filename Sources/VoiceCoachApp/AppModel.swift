@@ -86,6 +86,7 @@ final class AppModel: ObservableObject {
     @Published var isRecording = false
     @Published var isCapturingMimicReference = false
     @Published var isAnalyzing = false
+    @Published private(set) var isSuggestingTitle = false
     @Published var isRequestingPermission = false
     @Published var isPlaying = false
     @Published var playbackTime: TimeInterval = 0
@@ -327,6 +328,9 @@ final class AppModel: ObservableObject {
         let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanName.isEmpty else { return }
         sessions[index].name = cleanName
+        if sessions[index].mode == .mimic {
+            sessions[index].mimicReference?.sourceName = cleanName
+        }
         sessions[index].updatedAt = Date()
         sortSessions()
         persist()
@@ -1142,6 +1146,9 @@ final class AppModel: ObservableObject {
     private func analyze(url: URL, takeID: UUID, source: TakeSource = .recorded) {
         isAnalyzing = true
         let preferredEngine = transcriptionEngine
+        let captureIsNewSession = pendingCaptureIsNewSession
+        let captureImportURL = pendingImportSourceURL
+        let captureSessionID = selectedSessionID
         Task {
             do {
                 let acoustic = try await Task.detached(priority: .userInitiated) {
@@ -1172,8 +1179,18 @@ final class AppModel: ObservableObject {
                     transcription: transcription,
                     words: words
                 )
+
+                finishAnalyzeCleanup()
                 append(take)
                 transcriptionNotice = notice
+                maybeScheduleSmartTitleAfterStandaloneSave(
+                    captureIsNewSession: captureIsNewSession,
+                    captureImportURL: captureImportURL,
+                    captureSessionID: captureSessionID,
+                    source: source,
+                    take: take,
+                    transcript: transcription?.text
+                )
             } catch {
                 errorMessage = "Analysis failed: \(error.localizedDescription)"
                 if selectedSession?.mode == .mimic {
@@ -1182,12 +1199,80 @@ final class AppModel: ObservableObject {
                 } else if pendingCaptureIsNewSession {
                     pendingImportSourceURL = nil
                 }
+                finishAnalyzeCleanup()
             }
-            isAnalyzing = false
-            mimicPhase = .ready
-            recordingURL = nil
-            recordingTakeID = nil
         }
+    }
+
+    private func finishAnalyzeCleanup() {
+        isAnalyzing = false
+        mimicPhase = .ready
+        recordingURL = nil
+        recordingTakeID = nil
+    }
+
+    private func maybeScheduleSmartTitleAfterStandaloneSave(
+        captureIsNewSession: Bool,
+        captureImportURL: URL?,
+        captureSessionID: UUID?,
+        source: TakeSource,
+        take: PracticeSession,
+        transcript: String?
+    ) {
+        let isMicStandalone = captureIsNewSession && captureImportURL == nil && source == .recorded
+        guard isMicStandalone,
+              let sessionID = captureSessionID,
+              let text = transcript
+        else { return }
+
+        let fallbackName = RecordingTitle.make(date: take.createdAt)
+        guard sessions.first(where: { $0.id == sessionID })?.name == fallbackName else { return }
+        scheduleDeferredSmartTitle(
+            sessionID: sessionID,
+            fallbackName: fallbackName,
+            transcript: text,
+            syncMimicSourceName: false
+        )
+    }
+
+    /// Fire-and-forget naming after the take/Mimic UI is already interactive.
+    private func scheduleDeferredSmartTitle(
+        sessionID: UUID,
+        fallbackName: String,
+        transcript: String,
+        syncMimicSourceName: Bool
+    ) {
+        guard AutoTitlePreference.isEnabled else { return }
+        guard SmartTitleRules.transcriptPassesGates(transcript) else { return }
+
+        isSuggestingTitle = true
+        Task.detached(priority: .utility) { [weak self] in
+            try? await Task.sleep(for: .milliseconds(150))
+            let suggested = await SmartTitleGenerator.suggestTitle(from: transcript)
+            await self?.finishDeferredSmartTitle(
+                sessionID: sessionID,
+                fallbackName: fallbackName,
+                suggested: suggested,
+                syncMimicSourceName: syncMimicSourceName
+            )
+        }
+    }
+
+    private func finishDeferredSmartTitle(
+        sessionID: UUID,
+        fallbackName: String,
+        suggested: String?,
+        syncMimicSourceName: Bool
+    ) {
+        defer { isSuggestingTitle = false }
+        guard let suggested,
+              let index = sessions.firstIndex(where: { $0.id == sessionID }),
+              sessions[index].name == fallbackName
+        else { return }
+        if syncMimicSourceName {
+            guard sessions[index].mimicReference?.sourceName == fallbackName else { return }
+        }
+        renameSession(sessionID, to: suggested)
     }
 
     private func append(_ take: PracticeSession) {
@@ -1386,6 +1471,10 @@ final class AppModel: ObservableObject {
         let sessionID = UUID()
         let referenceID = UUID()
         let preferredEngine = transcriptionEngine
+        // Precedence for titles: user-entered name > LLM > sourceName.
+        let trimmedUserName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let userProvidedCustomName = !trimmedUserName.isEmpty && trimmedUserName != draft.sourceName
+        let fallbackName = trimmedUserName.isEmpty ? draft.sourceName : trimmedUserName
         do {
             let destinationURL = try store.referenceURL(sessionID: sessionID)
             Task {
@@ -1403,6 +1492,7 @@ final class AppModel: ObservableObject {
                     } catch {
                         transcriptionNotice = error.localizedDescription
                     }
+                    // Cancel check after ASR, before insert — never insert after dismiss.
                     guard mimicPreparationID == activeID else {
                         try? store.deleteSessionData(sessionID: sessionID)
                         return
@@ -1412,13 +1502,12 @@ final class AppModel: ObservableObject {
                         source: draft.source, result: acoustic,
                         transcription: transcription, words: words
                     )
-                    let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
                     let session = CoachingSession(
                         id: sessionID,
-                        name: cleanName.isEmpty ? draft.sourceName : cleanName,
+                        name: fallbackName,
                         mode: .mimic, prompt: "", keepsRecordings: true,
                         mimicReference: MimicReference(
-                            sourceName: draft.sourceName, take: referenceTake,
+                            sourceName: fallbackName, take: referenceTake,
                             sourceStart: start, sourceEnd: end
                         ), mimicStyle: .listenAndRepeat, mimicAttemptStyles: [:]
                     )
@@ -1435,6 +1524,15 @@ final class AppModel: ObservableObject {
                     mimicWorkspaceMode = .practice
                     destination = .practice(sessionID)
                     cancelMimicPreparation()
+
+                    if !userProvidedCustomName, let text = transcription?.text {
+                        scheduleDeferredSmartTitle(
+                            sessionID: sessionID,
+                            fallbackName: fallbackName,
+                            transcript: text,
+                            syncMimicSourceName: true
+                        )
+                    }
                 } catch {
                     try? store.deleteSessionData(sessionID: sessionID)
                     if mimicPreparationID == activeID {
