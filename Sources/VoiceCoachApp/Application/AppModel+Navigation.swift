@@ -77,6 +77,29 @@ extension AppModel {
     if case .take(let sessionID, _) = destination { destination = .take(sessionID, takeID) }
   }
 
+  func stepTake(by delta: Int) {
+    if selectedSession?.mode == .mimic {
+      stepMimicTake(by: delta)
+      return
+    }
+    guard canStepTake(by: delta), let session = selectedSession else { return }
+    let currentID = selectedTakeID ?? session.latestTake?.id
+    guard let currentID,
+      let current = session.takes.firstIndex(where: { $0.id == currentID })
+    else { return }
+    selectTake(session.takes[current + delta].id)
+  }
+
+  func canStepTake(by delta: Int) -> Bool {
+    guard let session = selectedSession, !isRecording, session.takes.count > 1 else { return false }
+    if session.mode == .mimic, mimicPhase != .ready { return false }
+    let currentID = selectedTakeID ?? session.latestTake?.id
+    guard let currentID,
+      let current = session.takes.firstIndex(where: { $0.id == currentID })
+    else { return false }
+    return session.takes.indices.contains(current + delta)
+  }
+
   /// Switch Mimic Practice / Compare / Analysis while keeping take selection coherent.
   func setMimicWorkspaceMode(_ mode: MimicWorkspaceMode) {
     stopPlayback()

@@ -9,43 +9,111 @@ struct SnapshotSourceListSidebar: View {
     VStack(alignment: .leading, spacing: 4) {
       Color.clear.frame(height: 8)
       snapshotRow(
-        "Home", symbol: "waveform", selected: model.destination.navigationSection == .home)
+        "Home", symbol: "waveform", selected: snapshotSectionSelection == .home)
       snapshotRow(
         "Library", symbol: "rectangle.stack",
-        selected: model.destination.navigationSection == .library)
+        selected: snapshotSectionSelection == .library)
       snapshotRow(
-        "Mimics", symbol: "waveform.path", selected: model.destination.navigationSection == .mimics)
+        "Mimics", symbol: "waveform.path", selected: snapshotSectionSelection == .mimics)
       Text("RECENTS")
         .font(.caption2.weight(.semibold))
         .foregroundStyle(Studio.secondary)
         .padding(.top, 18)
         .padding(.horizontal, 10)
-      ForEach(model.libraryRecordings.prefix(7)) { recording in
+      ForEach(snapshotRecents) { recording in
         snapshotRow(
           recording.displayTitle,
           symbol: recording.isMimicAttempt ? "waveform.path" : recording.take.takeSource.icon,
-          selected: model.selectedTakeID == recording.id
+          selected: snapshotRecordingSelection == recording.id,
+          trailing: recording.takeCount > 1
+            ? "\(recording.takeNumber)/\(recording.takeCount)" : nil
         )
       }
+      if model.libraryRecordings.count > snapshotRecents.count {
+        Text("Show all")
+          .font(.caption)
+          .foregroundStyle(Studio.secondary)
+          .padding(.horizontal, 10)
+          .padding(.top, 4)
+      }
       Spacer()
-      Label("On-device", systemImage: "lock.fill")
-        .font(.caption)
-        .foregroundStyle(Studio.secondary)
-        .padding(10)
+      sidebarFooter
     }
     .padding(8)
     .background(Studio.sidebar)
   }
 
-  private func snapshotRow(_ title: String, symbol: String, selected: Bool) -> some View {
-    Label(title, systemImage: symbol)
-      .font(.callout)
-      .lineLimit(1)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.horizontal, 8)
-      .frame(height: 30)
-      .background(
-        selected ? Studio.accent.opacity(0.14) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+  private var snapshotSectionSelection: NavigationSection? {
+    switch model.destination {
+    case .take: nil
+    case .practice: .mimics
+    case .home, .mimicStart, .library, .mimics: model.destination.navigationSection
+    }
+  }
+
+  private var snapshotRecordingSelection: UUID? {
+    if case .take(_, let takeID) = model.destination { return takeID }
+    return nil
+  }
+
+  private var snapshotRecents: [LibraryRecording] {
+    sidebarRecents(from: model, limit: 7)
+  }
+
+  private var sidebarFooter: some View {
+    VStack(spacing: 0) {
+      Divider()
+      if model.isRecording {
+        HStack(spacing: 6) {
+          Image(systemName: "record.circle.fill")
+            .foregroundStyle(.red)
+          Text("Recording")
+            .foregroundStyle(.red)
+          Spacer(minLength: 0)
+          Text(vcDuration(model.elapsed))
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(Studio.secondary)
+        }
+        .font(.caption)
+        .padding(.horizontal, 10)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+      }
+      HStack(spacing: 8) {
+        Label("On-device", systemImage: "lock.fill")
+          .font(.caption)
+          .foregroundStyle(Studio.secondary)
+        Spacer(minLength: 0)
+        Image(systemName: "gearshape")
+          .font(.caption)
+          .foregroundStyle(Studio.secondary)
+          .accessibilityLabel("Settings")
+      }
+      .padding(.horizontal, 10)
+      .padding(.top, model.isRecording ? 4 : 8)
+      .padding(.bottom, 8)
+    }
+  }
+
+  private func snapshotRow(
+    _ title: String, symbol: String, selected: Bool, trailing: String? = nil
+  ) -> some View {
+    HStack(spacing: 8) {
+      Label(title, systemImage: symbol)
+        .font(.callout)
+        .lineLimit(1)
+      if let trailing {
+        Spacer(minLength: 0)
+        Text(trailing)
+          .font(.caption2.monospacedDigit())
+          .foregroundStyle(Studio.secondary)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.horizontal, 8)
+    .frame(height: 30)
+    .background(
+      selected ? Studio.accent.opacity(0.14) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
   }
 }
 
@@ -61,8 +129,8 @@ struct SourceListSidebar: View {
         }
       }
 
-      Section("Recents") {
-        let recents = Array(model.libraryRecordings.prefix(7))
+      Section {
+        let recents = sidebarRecents(from: model, limit: 7)
         if recents.isEmpty {
           Text("No recordings yet")
             .foregroundStyle(Studio.secondary)
@@ -85,30 +153,69 @@ struct SourceListSidebar: View {
                   .lineLimit(1)
               }
               Spacer(minLength: 0)
+              if recording.takeCount > 1 {
+                Text("\(recording.takeNumber)/\(recording.takeCount)")
+                  .font(.caption2.monospacedDigit())
+                  .foregroundStyle(.tertiary)
+                  .accessibilityHidden(true)
+              }
             }
             .tag(SidebarSelection.recording(recording.id))
             .accessibilityLabel(recording.accessibilityLabel)
           }
+
+          Button("Show all") {
+            model.navigate(toSection: .library)
+          }
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .disabled(model.isRecording)
+          .selectionDisabled()
+          .accessibilityLabel("Show all recordings")
         }
+      } header: {
+        Text("Recents")
       }
     }
     .listStyle(.sidebar)
-    .disabled(model.isRecording)
     .safeAreaInset(edge: .bottom) {
-      HStack(spacing: 8) {
-        Label("On-device", systemImage: "lock.fill")
+      VStack(spacing: 0) {
+        Divider()
+        if model.isRecording {
+          HStack(spacing: 6) {
+            Image(systemName: "record.circle.fill")
+              .foregroundStyle(.red)
+            Text("Recording")
+              .foregroundStyle(.red)
+            Spacer(minLength: 0)
+            Text(vcDuration(model.elapsed))
+              .font(.caption.monospacedDigit())
+              .foregroundStyle(.secondary)
+          }
           .font(.caption)
-          .foregroundStyle(.secondary)
-        Spacer()
-        SettingsLink {
-          Label("Settings", systemImage: "gearshape")
-            .labelStyle(.iconOnly)
+          .padding(.horizontal, 12)
+          .padding(.top, 8)
+          .padding(.bottom, 4)
+          .accessibilityElement(children: .combine)
+          .accessibilityLabel("Recording \(vcDuration(model.elapsed))")
         }
-        .buttonStyle(.borderless)
-        .help("Settings")
+        HStack(spacing: 8) {
+          Label("On-device", systemImage: "lock.fill")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          Spacer(minLength: 0)
+          SettingsLink {
+            Label("Settings", systemImage: "gearshape")
+              .labelStyle(.iconOnly)
+          }
+          .buttonStyle(.borderless)
+          .controlSize(.small)
+          .help("Settings")
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, model.isRecording ? 4 : 8)
+        .padding(.bottom, 8)
       }
-      .padding(.horizontal, 14)
-      .padding(.vertical, 10)
     }
   }
 
@@ -125,7 +232,8 @@ struct SourceListSidebar: View {
         }
       },
       set: { selection in
-        guard !model.isRecording, let selection else { return }
+        guard let selection else { return }
+        if model.isRecording { return }
         Task { @MainActor in
           switch selection {
           case .section(let section): model.navigate(toSection: section)
@@ -143,4 +251,20 @@ struct SourceListSidebar: View {
 private enum SidebarSelection: Hashable {
   case section(NavigationSection)
   case recording(UUID)
+}
+
+private func sidebarRecents(from model: AppModel, limit: Int) -> [LibraryRecording] {
+  let all = model.libraryRecordings
+  var items = Array(all.prefix(limit))
+  if case .take(_, let takeID) = model.destination,
+    !items.contains(where: { $0.id == takeID }),
+    let selected = all.first(where: { $0.id == takeID })
+      ?? RecordingCatalog.recording(takeID: takeID, in: model.sessions)
+  {
+    items.insert(selected, at: 0)
+    if items.count > limit + 1 {
+      items.removeLast()
+    }
+  }
+  return items
 }

@@ -41,18 +41,14 @@ struct ContentView: View {
           sidebarColumn
             .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
         } detail: {
-          HStack(spacing: 0) {
-            destination
-              .frame(maxWidth: .infinity, maxHeight: .infinity)
-            if showInspector {
-              Divider()
+          destination
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .navigationTitle(windowTitle)
+            .toolbar { workspaceToolbar }
+            .inspector(isPresented: inspectorVisibility) {
               contextualInspector
-                .frame(width: 300)
-                .background(Studio.inspector)
+                .inspectorColumnWidth(min: 260, ideal: 300, max: 380)
             }
-          }
-          .navigationTitle(windowTitle)
-          .toolbar { workspaceToolbar }
         }
         .navigationSplitViewStyle(.balanced)
       }
@@ -157,6 +153,13 @@ struct ContentView: View {
 
   private var showInspector: Bool {
     inspectorPresented && inspectorEligible
+  }
+
+  private var inspectorVisibility: Binding<Bool> {
+    Binding(
+      get: { inspectorPresented && inspectorEligible },
+      set: { inspectorPresented = $0 }
+    )
   }
 
   private var showsNewRecording: Bool {
