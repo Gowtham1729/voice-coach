@@ -19,7 +19,6 @@ public struct CoachObservation: Equatable, Sendable {
   private enum CandidateKind: Int {
     case pause = 0
     case pitch = 1
-    case phrase = 2
   }
 
   private struct Candidate {
@@ -28,25 +27,35 @@ public struct CoachObservation: Equatable, Sendable {
     let observation: CoachObservation
   }
 
-  /// Evaluates objective voice metrics against evidence-based gates and returns the single primary
-  /// coaching observation with the highest relative severity. Returns nil if no metric qualifies.
-  /// Clarity is currently parked and not evaluated.
+  // MARK: - Content-frozen copy (exact)
+
+  private static let pauseSummary =
+    "Your pauses averaged longer than this take needs — especially mid-phrase."
+  private static let pauseAction =
+    "On the next take, aim for shorter gaps between phrases."
+
+  private static let pitchSummary =
+    "Your pitch stayed in a narrow range — the line sounds flat."
+  private static let pitchAction =
+    "On the next take, vary pitch more on the key words."
+
+  /// Evaluates objective voice metrics and returns the single primary coaching observation
+  /// with the highest relative severity. Returns nil if no hero-capable metric qualifies.
+  ///
+  /// Hero-capable (product lock): **pauses** + **pitch/prosody**. Clarity and phrase-end drop
+  /// are not default heroes. Phrase-end Content strings stay in `ParkedCoachObservationCopy`
+  /// for a later conditional rule (e.g. repeated fades across phrases).
   ///
   /// Threshold gates:
   /// 1. Pause (inter-phrase disruption): count ≥ 2 AND meanInternalPauseMs ≥ 700.0 ms
   ///    - Severity: (meanInternalPauseMs - 700.0) / 700.0
   /// 2. Pitch narrow (flat / monotone pitch contour): pitchRangeSemitones != nil AND ≤ 3.0 st
   ///    - Severity: (3.0 - range) / 3.0
-  /// 3. Phrase-end drop (audibility decay / loss of energy on phrase tail): phraseDecayDB ≤ -4.0 dB
-  ///    - Severity: ((-phraseDecayDB) - 4.0) / 4.0
   ///
-  /// Ranking & Tie-breaking:
-  /// Candidates are ranked by severity descending. If severities tie, stable precedence order is
-  /// pause, then pitch, then phrase.
+  /// Ranking & tie-break: highest severity; ties prefer pause over pitch.
   public static func from(metrics: VoiceMetrics) -> CoachObservation? {
     var candidates: [Candidate] = []
 
-    // 1. Pause candidate
     if metrics.internalPauseCount >= 2,
       !metrics.meanInternalPauseMs.isNaN,
       !metrics.meanInternalPauseMs.isInfinite,
@@ -59,14 +68,13 @@ public struct CoachObservation: Equatable, Sendable {
           severity: severity,
           observation: CoachObservation(
             eyebrow: "Insight",
-            summary: "Your pauses averaged longer than this take needs — especially mid-phrase.",
-            action: "On the next take, aim for shorter gaps between phrases."
+            summary: pauseSummary,
+            action: pauseAction
           )
         )
       )
     }
 
-    // 2. Pitch narrow candidate
     if let pitchRange = metrics.pitchRangeSemitones,
       !pitchRange.isNaN,
       !pitchRange.isInfinite,
@@ -79,27 +87,8 @@ public struct CoachObservation: Equatable, Sendable {
           severity: severity,
           observation: CoachObservation(
             eyebrow: "Insight",
-            summary: "Your pitch stayed in a narrow range — the line sounds flat.",
-            action: "On the next take, vary pitch more on the key words."
-          )
-        )
-      )
-    }
-
-    // 3. Phrase-end drop candidate (phraseDecay = endDB - startDB; more negative = quieter ending)
-    if !metrics.phraseDecayDB.isNaN,
-      !metrics.phraseDecayDB.isInfinite,
-      metrics.phraseDecayDB <= -4.0
-    {
-      let severity = ((-metrics.phraseDecayDB) - 4.0) / 4.0
-      candidates.append(
-        Candidate(
-          kind: .phrase,
-          severity: severity,
-          observation: CoachObservation(
-            eyebrow: "Insight",
-            summary: "Your energy dropped at the phrase end.",
-            action: "On the next take, keep the last words as strong as the start."
+            summary: pitchSummary,
+            action: pitchAction
           )
         )
       )
@@ -111,10 +100,18 @@ public struct CoachObservation: Equatable, Sendable {
       if a.severity != b.severity {
         return a.severity < b.severity
       }
-      // Tie-break: pause (0) > pitch (1) > phrase (2)
+      // Tie-break: pause (0) > pitch (1)
       return a.kind.rawValue > b.kind.rawValue
     }
 
     return best?.observation
   }
+}
+
+/// Content-frozen copy parked for a later *conditional* phrase-end rule.
+/// Not selected by `CoachObservation.from` — normal boundary decay is not an error.
+public enum ParkedCoachObservationCopy {
+  public static let phraseEndSummary = "Your energy dropped at the phrase end."
+  public static let phraseEndAction =
+    "On the next take, keep the last words as strong as the start."
 }
