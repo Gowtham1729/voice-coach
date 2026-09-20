@@ -8,104 +8,92 @@ struct TakeInspector: View {
   @State private var takePendingDelete: UUID?
 
   var body: some View {
-    StudioScroll {
+    Group {
       if let session = model.selectedSession, let take = model.selectedTake {
-        VStack(alignment: .leading, spacing: 14) {
-          VStack(alignment: .leading, spacing: 3) {
-            SectionEyebrow(text: "Take")
-            Text("Take \(takeNumber(take, in: session))")
-              .font(.headline)
-            Text(
-              "\(session.name) · \(take.createdAt.formatted(date: .omitted, time: .shortened)) · \(vcNumber(take.result.metrics.duration, 1))s"
-            )
-            .font(.caption)
-            .foregroundStyle(Studio.secondary)
-            .lineLimit(2)
-            if model.isSuggestingTitle {
-              Text("Naming…")
-                .font(.caption2)
-                .foregroundStyle(Studio.secondary.opacity(0.85))
-            }
+        InspectorShell {
+          InspectorHeader(
+            eyebrow: "Take",
+            title: "Take \(takeNumber(take, in: session))",
+            meta: takeMeta(session: session, take: take)
+          ) {
+            InspectorTakePager(session: session)
           }
+        } content: {
+          VStack(alignment: .leading, spacing: 14) {
+            if !session.prompt.isEmpty {
+              SectionEyebrow(text: "Prompt")
+              Text(session.prompt)
+                .font(.callout)
+                .foregroundStyle(Studio.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
 
-          Divider()
-
-          if !session.prompt.isEmpty {
-            SectionEyebrow(text: "Prompt")
-            Text(session.prompt)
-              .font(.callout)
-              .foregroundStyle(Studio.secondary)
-              .fixedSize(horizontal: false, vertical: true)
-
-            Divider()
+            InspectorMetricStack(metrics: InspectorMetricItem.voiceMetrics(take.result.metrics))
           }
-
-          InspectorMetricCard(
-            title: VoiceMetricCopy.pitchRange,
-            value: vcOptional(take.result.metrics.pitchRangeSemitones), unit: "st",
-            symbol: "waveform.path")
-          InspectorMetricCard(
-            title: VoiceMetricCopy.phraseFade, value: vcSigned(take.result.metrics.phraseDecayDB),
-            unit: "dB", symbol: "arrow.down.right")
-          InspectorMetricCard(
-            title: VoiceMetricCopy.clarity, value: vcOptional(take.result.metrics.hnrDB), unit: "dB",
-            symbol: "sparkles")
-          InspectorMetricCard(
-            title: VoiceMetricCopy.pauses,
-            value: "\(take.result.metrics.internalPauseCount)",
-            unit: take.result.metrics.internalPauseCount == 1 ? "pause" : "pauses",
-            detail: "\(vcNumber(take.result.metrics.meanInternalPauseMs, 0)) ms average",
-            symbol: "pause.fill"
-          )
-
-          Divider()
-
-          VStack(spacing: 8) {
-            Button(action: model.copyAICoachPrompt) {
-              Label("Copy coach notes", systemImage: "doc.on.doc")
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
-            .help("Copy notes to paste into a coach.")
-
-            Button(action: model.exportCurrent) {
-              Label("Export", systemImage: "square.and.arrow.up")
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .help("Export the audio and report")
-
-            HStack(spacing: 8) {
-              Menu {
-                Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyReport)
-              } label: {
-                Label("More", systemImage: "ellipsis")
-                  .frame(maxWidth: .infinity)
-              }
-              .menuStyle(.button)
-              .buttonStyle(.bordered)
-
-              Button(action: { requestDelete(take.id) }) {
-                Label("Delete", systemImage: "trash")
-                  .frame(maxWidth: .infinity)
-              }
-              .buttonStyle(.bordered)
-              .tint(.red)
-              .disabled(model.isPlaying || model.isAnalyzing)
-              .help("Delete")
-            }
-          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+        } footer: {
+          takeFooter(take)
         }
-        .padding(16)
         .modifier(
           DeleteTakeDialog(takeID: $takePendingDelete) { takeID in
             model.deleteTake(takeID)
           })
       }
     }
-    .scrollContentBackground(.hidden)
+  }
+
+  @ViewBuilder
+  private func takeFooter(_ take: PracticeSession) -> some View {
+    InspectorFooterStack {
+      Button(action: model.copyAICoachPrompt) {
+        Label("Copy coach notes", systemImage: "doc.on.doc")
+          .inspectorActionLabel()
+      }
+      .studioGlassButton()
+      .controlSize(.regular)
+      .help("Copy notes to paste into a coach.")
+
+      Button(action: model.exportCurrent) {
+        Label("Export", systemImage: "square.and.arrow.up")
+          .inspectorActionLabel()
+      }
+      .studioGlassButton()
+      .controlSize(.regular)
+      .help("Export the audio and report")
+
+      HStack(spacing: 8) {
+        Menu {
+          Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyReport)
+        } label: {
+          Image(systemName: "ellipsis")
+            .inspectorActionLabel()
+            .accessibilityLabel("More")
+        }
+        .menuStyle(.button)
+        .menuIndicator(.hidden)
+        .studioGlassButton()
+        .help("More")
+
+        Button(action: { requestDelete(take.id) }) {
+          Label("Delete", systemImage: "trash")
+            .inspectorActionLabel()
+        }
+        .tint(.red)
+        .studioGlassButton(destructive: true)
+        .disabled(model.isPlaying || model.isAnalyzing)
+        .help("Delete")
+      }
+    }
+  }
+
+  private func takeMeta(session: CoachingSession, take: PracticeSession) -> [String] {
+    var lines = [
+      "\(session.name) · \(take.createdAt.formatted(date: .omitted, time: .shortened)) · \(vcNumber(take.result.metrics.duration, 1))s"
+    ]
+    if model.isSuggestingTitle {
+      lines.append("Naming…")
+    }
+    return lines
   }
 
   private func takeNumber(_ take: PracticeSession, in session: CoachingSession) -> Int {

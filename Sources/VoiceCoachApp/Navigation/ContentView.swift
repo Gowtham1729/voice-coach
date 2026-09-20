@@ -49,8 +49,10 @@ struct ContentView: View {
               contextualInspector
                 .frame(width: 300)
                 .background(Studio.inspector)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
             }
           }
+          .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: showInspector)
           .navigationTitle(windowTitle)
           .toolbar { workspaceToolbar }
         }

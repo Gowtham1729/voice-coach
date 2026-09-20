@@ -4,3 +4,5 @@ build/
 *.wav
 *.m4a
 *.pcm
+.swiftpm/
+

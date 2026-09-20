@@ -51,7 +51,7 @@ struct SettingsView: View {
         libraryPane
       }
     }
-    .frame(width: 480, height: 440)
+    .frame(width: 480, height: 520)
   }
 
   private var generalPane: some View {
@@ -59,13 +59,25 @@ struct SettingsView: View {
     return Form {
       Section {
         Toggle("Confirm before deleting", isOn: $confirmDelete)
+      } header: {
+        Text("Deleting")
+      }
+
+      Section {
         Toggle("Hide transcript snippets in Library", isOn: $hideTranscriptSnippets)
+      } header: {
+        Text("Library display")
+      }
+
+      Section {
         Toggle("Name recordings from transcripts", isOn: $autoGenerateTitles)
           .onChange(of: autoGenerateTitles) { _, enabled in
             if enabled { SmartTitleGenerator.prewarmIfAvailable() }
           }
+      } header: {
+        Text("Naming")
       } footer: {
-        Text("Ask before deleting. Titles use on-device Apple Intelligence when enabled.")
+        Text("Titles use on-device Apple Intelligence when enabled.")
       }
 
       if autoGenerateTitles {
@@ -96,36 +108,38 @@ struct SettingsView: View {
         Text(model.transcriptionEngine.settingsFooter)
       }
 
-      Section {
-        LabeledContent("Status", value: systemStatus.title)
-        if case .downloading = systemStatus {
-          progressRow("Downloading…")
-        }
-        if case .needsDownload = systemStatus {
-          Button("Download Model…") {
-            model.ensureSystemTranscriptionAssets()
+      transcriptionStatusSection(
+        title: "System",
+        status: systemStatus.title,
+        footer: systemStatus.settingsFooter,
+        progress: {
+          if case .downloading = systemStatus {
+            progressRow("Downloading…")
           }
-          .disabled(busy)
+        },
+        actions: {
+          if case .needsDownload = systemStatus {
+            Button("Download Model…") {
+              model.ensureSystemTranscriptionAssets()
+            }
+            .disabled(busy)
+          }
         }
-      } header: {
-        Text("System")
-      } footer: {
-        Text(systemStatus.settingsFooter)
-          .textSelection(.enabled)
-      }
+      )
 
-      Section {
-        LabeledContent("Status", value: parakeetStatus.title)
-        if case .installing(let phase) = parakeetStatus {
-          progressRow(phase.userFacingLabel)
+      transcriptionStatusSection(
+        title: "Parakeet",
+        status: parakeetStatus.title,
+        footer: parakeetStatus.settingsFooter,
+        progress: {
+          if case .installing(let phase) = parakeetStatus {
+            progressRow(phase.userFacingLabel)
+          }
+        },
+        actions: {
+          parakeetButtons(status: parakeetStatus, busy: busy)
         }
-        parakeetButtons(status: parakeetStatus, busy: busy)
-      } header: {
-        Text("Parakeet")
-      } footer: {
-        Text(parakeetStatus.settingsFooter)
-          .textSelection(.enabled)
-      }
+      )
     }
     .settingsPaneChrome()
   }
@@ -138,11 +152,6 @@ struct SettingsView: View {
         LabeledContent("Imported", value: "\(model.importedTakeCount)")
         LabeledContent("Mimics", value: "\(model.mimicSessions.count)")
         Button("Show in Finder…", systemImage: "folder", action: model.revealStorage)
-        if !model.emptyLegacySessions.isEmpty {
-          Button("Remove \(model.emptyLegacySessions.count) unused folders") {
-            model.cleanupEmptyLegacySessions()
-          }
-        }
       } footer: {
         VStack(alignment: .leading, spacing: 6) {
           Text("Audio and transcripts stay in this folder.")
@@ -151,6 +160,14 @@ struct SettingsView: View {
             .textSelection(.enabled)
             .lineLimit(2)
             .truncationMode(.middle)
+        }
+      }
+
+      if !model.emptyLegacySessions.isEmpty {
+        Section {
+          Button("Remove \(model.emptyLegacySessions.count) unused folders") {
+            model.cleanupEmptyLegacySessions()
+          }
         }
       }
     }
@@ -162,6 +179,25 @@ struct SettingsView: View {
       get: { model.transcriptionEngine },
       set: { model.setTranscriptionEngine($0) }
     )
+  }
+
+  private func transcriptionStatusSection<Progress: View, Actions: View>(
+    title: String,
+    status: String,
+    footer: String,
+    @ViewBuilder progress: () -> Progress,
+    @ViewBuilder actions: () -> Actions
+  ) -> some View {
+    Section {
+      LabeledContent("Status", value: status)
+      progress()
+      actions()
+    } header: {
+      Text(title)
+    } footer: {
+      Text(footer)
+        .textSelection(.enabled)
+    }
   }
 
   private func progressRow(_ label: String) -> some View {
