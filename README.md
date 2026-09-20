@@ -1,6 +1,6 @@
 # Voice Coach
 
-A local-first macOS voice practice studio for **macOS 26+**. Create sessions, record or import takes, inspect acoustic measurements and on-device transcripts, and keep a private practice library on your Mac.
+A local-first macOS voice practice studio for **macOS 26+**. Record or import on this Mac, inspect acoustic measurements and on-device transcripts, mimic a reference clip, and keep a private library. There is no session setup form.
 
 ## Download
 
@@ -12,11 +12,11 @@ Download `Voice-Coach-3.2.0-macOS.zip`, unzip, and move **Voice Coach.app** to A
 
 ## What you can do
 
-- Create named sessions for general practice, reading a prompt, or free speaking — or jump in with **Quick Record**
-- Record takes (Space) or import audio/video; imports are normalized to a local WAV before analysis
-- Keep every take in a session, or only the newest one
-- Open a take to review word-level transcript chips, pitch / loudness / spectrum plots, and a sticky playback timeline
-- Search the full session library, resume from Recents, and scan aggregate trends in Insights
+- Hit **Record** on Home, or import audio/video; imports are normalized to a local WAV before analysis
+- Open any recording from **Library** without picking a parent folder
+- **Record another** to keep related takes in a stack (Take 1, Take 2, …)
+- Start **Mimic** from a file or Mac audio, then listen, imitate, compare, and retry against that reference
+- Review word-level transcript chips, pitch / loudness / spectrum plots, and a sticky playback timeline
 - Copy transcript text, copy an analysis PNG, copy a coach prompt, or export audio + JSON — all on-device
 
 Nothing is uploaded. Recordings, analysis, and transcripts stay under `~/Library/Application Support/VoiceCoach`.
@@ -25,17 +25,17 @@ Nothing is uploaded. Recordings, analysis, and transcripts stay under `~/Library
 
 Fixture layouts of the current studio shell (synthetic audio only — no personal recordings). Offscreen proofs flatten Liquid Glass into opaque materials; the running app on macOS 26+ uses native glass for chrome and controls.
 
-| Studio | Create a session |
+| Home | Mimic start |
 | --- | --- |
-| ![Studio](docs/screenshots/studio.png) | ![Create a session](docs/screenshots/create-session.png) |
+| ![Home](docs/screenshots/studio.png) | ![Start Mimic](docs/screenshots/create-session.png) |
 
-| Session | Take |
+| Recording (retry stack) | Recording |
 | --- | --- |
-| ![Session workspace](docs/screenshots/practice.png) | ![Take review](docs/screenshots/take.png) |
+| ![Recording with Take picker and prompt](docs/screenshots/practice.png) | ![Recording review](docs/screenshots/take.png) |
 
-| Sessions | Insights |
+| Library | Mimics |
 | --- | --- |
-| ![Sessions library](docs/screenshots/sessions.png) | ![Insights](docs/screenshots/insights.png) |
+| ![Recordings library](docs/screenshots/sessions.png) | ![Mimics](docs/screenshots/insights.png) |
 
 | Settings | Recording |
 | --- | --- |
@@ -43,9 +43,9 @@ Fixture layouts of the current studio shell (synthetic audio only — no persona
 
 ## Studio shell
 
-The app uses a fixed sidebar (**Studio**, **All Sessions**, **Insights**, **Settings**, plus **Recents**), a focused workspace, and a contextual inspector. Primary chrome adopts Liquid Glass on macOS 26+; content panels stay on standard materials. Reduce Transparency falls back to opaque surfaces; Reduce Motion softens page and graph transitions.
+The app uses a fixed sidebar (**Home**, **Library**, **Mimics**, **Settings**, plus **Recents**), a focused workspace, and a contextual inspector. Primary chrome adopts Liquid Glass on macOS 26+; content panels stay on standard materials. Reduce Transparency falls back to opaque surfaces; Reduce Motion softens page and graph transitions.
 
-On a take: tap a transcript word to seek, scrub the sticky waveform timeline (Space to play/pause), and switch Pitch / Loudness / Spectrum. Soft transcription failures still keep the take and acoustic analysis.
+On a recording: tap a transcript word to seek, scrub the sticky waveform timeline (Space to play/pause), and switch Pitch / Loudness / Spectrum. Soft transcription failures still keep the recording and acoustic analysis.
 
 ## What it measures
 
@@ -103,4 +103,4 @@ From a take’s inspector you can export the recording with `voice-report.json` 
 
 ## Privacy
 
-Microphone access is requested only when you record. Analysis and optional Parakeet transcription run locally. The session index is written atomically; deleting a session removes its recording folder.
+Microphone access is requested only when you record. Analysis and optional Parakeet transcription run locally. The recordings index is written atomically; deleting a recording removes its audio and analysis. Deleting a Mimic removes its reference and attempts.

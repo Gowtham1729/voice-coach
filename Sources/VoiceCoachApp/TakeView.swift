@@ -23,11 +23,11 @@ struct TakeView: View {
                 StudioPage(maxWidth: 1050, horizontalPadding: 20) {
                     EmptyState(
                         icon: "waveform",
-                        title: "Take not found",
-                        detail: "Choose another session from your local library.",
-                        actionTitle: "View sessions"
+                        title: "Recording not found",
+                        detail: "Choose another recording from your local library.",
+                        actionTitle: "View library"
                     ) {
-                        model.navigate(to: AppDestination.sessions)
+                        model.navigate(to: .library)
                     }
                 }
             }
@@ -97,6 +97,32 @@ struct TakeView: View {
                 }
                 .labelsHidden()
                 .frame(width: 150)
+            }
+
+            if !embedded, !session.isMimic {
+                if !snapshot, model.isRecording {
+                    LiveMeterView(level: model.liveLevel)
+                        .frame(width: 120)
+                    Text(vcDuration(model.elapsed))
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(Color.red)
+                        .frame(width: 56, alignment: .trailing)
+                    Button("Stop", action: model.recordButtonPressed)
+                        .tint(.red)
+                        .studioGlassButton(prominent: true)
+                        .disabled(model.isAnalyzing || model.isRequestingPermission)
+                        .accessibilityLabel("Stop recording")
+                } else {
+                    Button("Record another", action: model.recordButtonPressed)
+                        .studioGlassButton(prominent: true)
+                        .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+                }
+            }
+            if !embedded, take.takeSource != .recorded {
+                Button("Use as Mimic") { model.useCurrentRecordingAsMimicReference() }
+                    .tint(.primary)
+                    .studioGlassButton()
+                    .disabled(model.isRecording || model.isAnalyzing)
             }
         }
         .frame(minHeight: 32)

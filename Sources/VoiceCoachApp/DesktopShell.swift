@@ -7,16 +7,20 @@ struct SnapshotSourceListSidebar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Color.clear.frame(height: 8)
-            snapshotRow("Studio", symbol: "waveform", selected: model.destination.navigationSection == .studio)
-            snapshotRow("All Sessions", symbol: "rectangle.stack", selected: model.destination.navigationSection == .sessions)
-            snapshotRow("Insights", symbol: "chart.xyaxis.line", selected: model.destination.navigationSection == .insights)
+            snapshotRow("Home", symbol: "waveform", selected: model.destination.navigationSection == .home)
+            snapshotRow("Library", symbol: "rectangle.stack", selected: model.destination.navigationSection == .library)
+            snapshotRow("Mimics", symbol: "waveform.path", selected: model.destination.navigationSection == .mimics)
             Text("RECENTS")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(Studio.secondary)
                 .padding(.top, 18)
                 .padding(.horizontal, 10)
-            ForEach(model.sessions.prefix(7)) { session in
-                snapshotRow(session.name, symbol: session.mode.icon, selected: model.selectedSessionID == session.id && model.destination.navigationSection == .studio)
+            ForEach(model.libraryRecordings.prefix(7)) { recording in
+                snapshotRow(
+                    recording.displayTitle,
+                    symbol: recording.isMimicAttempt ? "waveform.path" : recording.take.takeSource.icon,
+                    selected: model.selectedTakeID == recording.id
+                )
             }
             Spacer()
             Label("On-device", systemImage: "lock.fill")
@@ -52,27 +56,29 @@ struct SourceListSidebar: View {
             }
 
             Section("Recents") {
-                if model.sessions.isEmpty {
-                    Text("No sessions yet")
+                let recents = Array(model.libraryRecordings.prefix(7))
+                if recents.isEmpty {
+                    Text("No recordings yet")
                         .foregroundStyle(Studio.secondary)
                         .font(.callout)
                 } else {
-                    ForEach(model.sessions.prefix(7)) { session in
+                    ForEach(recents) { recording in
                         HStack(spacing: 8) {
-                            Image(systemName: session.mode.icon)
+                            Image(systemName: recording.isMimicAttempt ? "waveform.path" : recording.take.takeSource.icon)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 16)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(session.name)
+                                Text(recording.displayTitle)
                                     .lineLimit(1)
-                                Text(recentSubtitle(session))
+                                Text(recording.subtitle)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                             }
                             Spacer(minLength: 0)
                         }
-                        .tag(SidebarSelection.session(session.id))
+                        .tag(SidebarSelection.recording(recording.id))
+                        .accessibilityLabel(recording.accessibilityLabel)
                     }
                 }
             }
@@ -101,9 +107,11 @@ struct SourceListSidebar: View {
         Binding(
             get: {
                 switch model.destination {
-                case .practice(let sessionID), .take(let sessionID, _):
-                    return .session(sessionID)
-                case .studio, .create, .sessions, .insights:
+                case .practice:
+                    return .section(.mimics)
+                case .take(_, let takeID):
+                    return .recording(takeID)
+                case .home, .mimicStart, .library, .mimics:
                     return .section(model.destination.navigationSection)
                 }
             },
@@ -111,208 +119,39 @@ struct SourceListSidebar: View {
                 guard !model.isRecording, let selection else { return }
                 Task { @MainActor in
                     switch selection {
-                    case .section(let section): model.navigate(to: section)
-                    case .session(let sessionID): model.resumeSession(sessionID)
+                    case .section(let section): model.navigate(toSection: section)
+                    case .recording(let takeID):
+                        if let recording = RecordingCatalog.recording(takeID: takeID, in: model.sessions) {
+                            model.openTake(sessionID: recording.sessionID, takeID: takeID)
+                        }
                     }
                 }
             }
         )
     }
-
-    private func recentSubtitle(_ session: CoachingSession) -> String {
-        "\(takeCountLabel(for: session)) · \(session.updatedAt.formatted(.relative(presentation: .named)))"
-    }
 }
 
 private enum SidebarSelection: Hashable {
     case section(NavigationSection)
-    case session(UUID)
+    case recording(UUID)
 }
 
-struct DesktopStudioWorkspace: View {
-    @EnvironmentObject private var model: AppModel
-
-    var body: some View {
-        StudioPage(maxWidth: 1180, horizontalPadding: 20) {
-            if let session = model.selectedSession {
-                VStack(alignment: .leading, spacing: 14) {
-                    sessionHeader(session)
-                    inputMonitor(session)
-                    takeList(session)
-                }
-            } else {
-                emptyStudio
-            }
-        }
-    }
-
-    private func sessionHeader(_ session: CoachingSession) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            Label(session.mode.title, systemImage: session.mode.icon)
-                .font(.callout.weight(.medium))
-            Spacer()
-            Text(session.updatedAt.formatted(.relative(presentation: .named)))
-                .font(.caption)
-                .foregroundStyle(Studio.secondary)
-        }
-    }
-
-    private func inputMonitor(_ session: CoachingSession) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Label(model.isRecording ? "Recording" : "Audio Input", systemImage: model.isRecording ? "record.circle.fill" : "mic")
-                    .font(.headline)
-                    .foregroundStyle(model.isRecording ? Color.red : Studio.ink)
-
-                LiveMeterView(level: model.liveLevel)
-                    .frame(maxWidth: .infinity)
-
-                Text(model.isRecording ? vcDuration(model.elapsed) : "\(Int(model.liveLevel)) dBFS")
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(Studio.secondary)
-                    .frame(width: 78, alignment: .trailing)
-
-                Button(action: model.importClip) {
-                    Label("Import", systemImage: "square.and.arrow.down")
-                }
-                .tint(.primary)
-                .studioGlassButton()
-                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission || session.mode == .mimic)
-
-                Button(action: model.recordButtonPressed) {
-                    Label(recordButtonTitle(session), systemImage: model.isRecording ? "stop.fill" : "record.circle")
-                }
-                .tint(model.isRecording ? .red : Studio.accent)
-                .studioGlassButton(prominent: true)
-                .keyboardShortcut(.space, modifiers: [])
-                .disabled(model.isAnalyzing || model.isRequestingPermission)
-            }
-
-            if model.isAnalyzing {
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text("Analyzing pitch, loudness, pauses, and voice quality on this Mac…")
-                        .font(.caption)
-                        .foregroundStyle(Studio.secondary)
-                }
-            } else if !session.prompt.isEmpty {
-                Text(session.prompt)
-                    .font(.callout)
-                    .foregroundStyle(Studio.secondary)
-                    .lineLimit(2)
-            }
-        }
-        .padding(14)
-        .desktopPanel()
-    }
-
-    private func takeList(_ session: CoachingSession) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                SectionEyebrow(text: "Takes")
-                Spacer()
-                Text(takeCountLabel(for: session))
-                    .font(.caption)
-                    .foregroundStyle(Studio.secondary)
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 42)
-
-            Divider()
-
-            if session.takes.isEmpty {
-                ContentUnavailableView {
-                    Label("No Takes Yet", systemImage: "waveform.badge.plus")
-                } description: {
-                    Text("Record or import a take to begin this session.")
-                } actions: {
-                    Button("Record a Take", action: model.recordButtonPressed)
-                        .tint(.primary)
-                        .studioGlassButton()
-                        .disabled(model.isAnalyzing || model.isRequestingPermission)
-                }
-                .frame(maxWidth: .infinity, minHeight: 220)
-            } else {
-                ForEach(Array(session.takes.enumerated().reversed()), id: \.element.id) { index, take in
-                    Button { model.openTake(sessionID: session.id, takeID: take.id) } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: take.takeSource.icon)
-                                .foregroundStyle(Studio.accent)
-                                .frame(width: 22)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Take \(index + 1)")
-                                    .font(.body.weight(.medium))
-                                Text(take.takeSource.title)
-                                    .font(.caption)
-                                    .foregroundStyle(Studio.secondary)
-                            }
-
-                            Spacer()
-
-                            Text(take.createdAt.formatted(date: .omitted, time: .shortened))
-                                .foregroundStyle(Studio.secondary)
-                                .frame(width: 90, alignment: .trailing)
-                            Text(vcDuration(take.result.metrics.duration))
-                                .monospacedDigit()
-                                .frame(width: 62, alignment: .trailing)
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Studio.secondary)
-                        }
-                        .padding(.horizontal, 14)
-                        .frame(height: 58)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .studioHoverLift()
-
-                    if take.id != session.takes.first?.id {
-                        Divider().padding(.leading, 48)
-                    }
-                }
-            }
-        }
-        .desktopPanel()
-    }
-
-    private var emptyStudio: some View {
-        ContentUnavailableView {
-            Label("Voice Coach Studio", systemImage: "waveform")
-        } description: {
-            Text("Create a session or start a quick recording.")
-        } actions: {
-            Button("Quick Record", action: model.startQuickPractice)
-                .studioGlassButton(prominent: true)
-            Button("New Session") { model.navigate(to: .create) }
-                .tint(.primary)
-                .studioGlassButton()
-        }
-        .frame(maxWidth: .infinity, minHeight: 460)
-    }
-
-    private func recordButtonTitle(_ session: CoachingSession) -> String {
-        if model.isRecording { return "Stop" }
-        if model.isAnalyzing { return "Analyzing…" }
-        return session.takes.isEmpty ? "Record" : "New Take"
-    }
-
-}
-
-struct DesktopSessionsWorkspace: View {
+struct DesktopLibraryWorkspace: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.studioSnapshot) private var snapshot
     @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
+    @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
     @State private var search = ""
-    @State private var deleteCandidate: CoachingSession?
-    @State private var renameCandidate: CoachingSession?
+    @State private var filter: LibraryFilter = .all
+    @State private var deleteRecording: LibraryRecording?
+    @State private var renameSession: CoachingSession?
     @State private var renameText = ""
 
-    private var filteredSessions: [CoachingSession] {
-        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return model.sessions }
-        return model.sessions.filter {
-            $0.name.localizedCaseInsensitiveContains(query) || $0.prompt.localizedCaseInsensitiveContains(query)
+    private var filtered: [LibraryRecording] {
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return model.libraryRecordings.filter { recording in
+            guard filter.matches(recording) else { return false }
+            return recording.matches(query: query)
         }
     }
 
@@ -320,21 +159,34 @@ struct DesktopSessionsWorkspace: View {
         StudioPage(maxWidth: 1100, horizontalPadding: 20) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 12) {
-                    Text("\(model.sessions.count) sessions · \(model.totalTakeCount) takes")
+                    Text("\(model.userRecordedTakeCount) you recorded · \(model.importedTakeCount) imported · \(vcNumber(model.userRecordedDuration / 60, 1)) min")
                         .font(.caption)
                         .foregroundStyle(Studio.secondary)
                     Spacer()
+                    if snapshot {
+                        Text(filter.title)
+                            .font(.caption)
+                            .foregroundStyle(Studio.secondary)
+                    } else {
+                        Picker("Filter", selection: $filter) {
+                            ForEach(LibraryFilter.allCases) { item in
+                                Text(item.title).tag(item)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 140)
+                        .labelsHidden()
+                    }
                 }
 
-                if filteredSessions.isEmpty {
-                    emptySessionsView
+                if filtered.isEmpty {
+                    emptyLibrary
                 } else {
                     VStack(spacing: 0) {
                         HStack {
-                            Text("SESSION").frame(maxWidth: .infinity, alignment: .leading)
-                            Text("TAKES").frame(width: 70, alignment: .trailing)
+                            Text("RECORDING").frame(maxWidth: .infinity, alignment: .leading)
                             Text("DURATION").frame(width: 90, alignment: .trailing)
-                            Text("UPDATED").frame(width: 120, alignment: .trailing)
+                            Text("DATE").frame(width: 120, alignment: .trailing)
                             Color.clear.frame(width: 28)
                         }
                         .font(.caption2.weight(.semibold))
@@ -344,49 +196,50 @@ struct DesktopSessionsWorkspace: View {
 
                         Divider()
 
-                        ForEach(filteredSessions) { session in
-                            sessionRow(session)
-                            if session.id != filteredSessions.last?.id { Divider().padding(.leading, 48) }
+                        ForEach(filtered) { recording in
+                            recordingRow(recording)
+                            if recording.id != filtered.last?.id { Divider().padding(.leading, 48) }
                         }
                     }
                     .desktopPanel()
                 }
             }
         }
-        .searchable(text: $search, prompt: "Search Sessions")
-        .alert("Delete session?", isPresented: deleteAlertBinding, presenting: deleteCandidate) { session in
-            Button("Delete", role: .destructive) { model.deleteSession(session.id) }
+        .modifier(OptionalSearchable(text: $search, enabled: !snapshot, prompt: "Search recordings, prompts, transcripts"))
+        .alert("Delete recording?", isPresented: deleteAlertBinding, presenting: deleteRecording) { recording in
+            Button("Delete", role: .destructive) {
+                model.selectedSessionID = recording.sessionID
+                model.deleteTake(recording.take.id)
+            }
             Button("Cancel", role: .cancel) {}
-        } message: { session in
-            Text("“\(session.name)” and its local recordings will be removed.")
+        } message: { recording in
+            Text("“\(recording.displayTitle)” will be removed. Other takes and Mimic references stay.")
         }
-        .alert("Rename Session", isPresented: renameAlertBinding) {
-            TextField("Session name", text: $renameText)
-            Button("Cancel", role: .cancel) { renameCandidate = nil }
+        .alert("Rename", isPresented: renameAlertBinding) {
+            TextField("Name", text: $renameText)
+            Button("Cancel", role: .cancel) { renameSession = nil }
             Button("Rename") {
-                if let renameCandidate {
-                    model.renameSession(renameCandidate.id, to: renameText)
+                if let renameSession {
+                    model.renameSession(renameSession.id, to: renameText)
                 }
-                renameCandidate = nil
+                renameSession = nil
             }
             .disabled(renameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        } message: {
-            Text("Choose a name that will be easy to find in your practice library.")
         }
     }
 
-    private func sessionRow(_ session: CoachingSession) -> some View {
+    private func recordingRow(_ recording: LibraryRecording) -> some View {
         HStack(spacing: 10) {
-            Button { model.resumeSession(session.id) } label: {
+            Button { model.openTake(sessionID: recording.sessionID, takeID: recording.take.id) } label: {
                 HStack(spacing: 10) {
-                    Image(systemName: session.mode.icon)
+                    Image(systemName: recording.isMimicAttempt ? "waveform.path" : recording.take.takeSource.icon)
                         .foregroundStyle(Studio.accent)
                         .frame(width: 26)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(session.name)
+                        Text(recording.displayTitle)
                             .font(.body.weight(.medium))
                             .lineLimit(1)
-                        Text(session.prompt.isEmpty ? session.mode.title : session.prompt)
+                        Text(rowDetail(recording))
                             .font(.caption)
                             .foregroundStyle(Studio.secondary)
                             .lineLimit(1)
@@ -396,12 +249,11 @@ struct DesktopSessionsWorkspace: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(recording.accessibilityLabel)
 
-            Text("\(session.takeCount)")
-                .frame(width: 70, alignment: .trailing)
-            Text(vcDuration(session.totalDuration))
+            Text(vcDuration(recording.take.result.metrics.duration))
                 .frame(width: 90, alignment: .trailing)
-            Text(session.updatedAt.formatted(date: .abbreviated, time: .omitted))
+            Text(recording.take.createdAt.formatted(date: .abbreviated, time: .omitted))
                 .frame(width: 120, alignment: .trailing)
 
             if snapshot {
@@ -409,15 +261,28 @@ struct DesktopSessionsWorkspace: View {
                     .frame(width: 28, height: 24)
             } else {
                 Menu {
-                    Button("Open", systemImage: "arrow.right") { model.resumeSession(session.id) }
-                    if session.latestTake != nil {
-                        Button("Open Latest Take", systemImage: "waveform.and.mic") { model.openTake(sessionID: session.id) }
+                    Button("Open", systemImage: "arrow.right") {
+                        model.openTake(sessionID: recording.sessionID, takeID: recording.take.id)
                     }
-                    Button("Rename…", systemImage: "pencil") { requestRename(session) }
+                    if let session = model.sessions.first(where: { $0.id == recording.sessionID }) {
+                        Button("Rename…", systemImage: "pencil") {
+                            renameText = session.name
+                            renameSession = session
+                        }
+                    }
+                    if recording.isImported {
+                        Button("Use as Mimic reference", systemImage: "waveform.path") {
+                            model.openTake(sessionID: recording.sessionID, takeID: recording.take.id)
+                            model.useCurrentRecordingAsMimicReference()
+                        }
+                    }
                     Divider()
                     Button("Delete", systemImage: "trash", role: .destructive) {
-                        if confirmBeforeDelete { deleteCandidate = session }
-                        else { model.deleteSession(session.id) }
+                        if confirmBeforeDelete { deleteRecording = recording }
+                        else {
+                            model.selectedSessionID = recording.sessionID
+                            model.deleteTake(recording.take.id)
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis")
@@ -431,18 +296,26 @@ struct DesktopSessionsWorkspace: View {
         .font(.caption)
         .padding(.horizontal, 12)
         .frame(height: 54)
-        .background(model.selectedSessionID == session.id ? Studio.accent.opacity(0.06) : Color.clear)
+        .background(model.selectedTakeID == recording.id ? Studio.accent.opacity(0.06) : Color.clear)
+    }
+
+    private func rowDetail(_ recording: LibraryRecording) -> String {
+        if hideTranscriptSnippets { return recording.subtitle }
+        if let text = recording.take.transcription?.text, !text.isEmpty {
+            return text.split(separator: " ").prefix(14).joined(separator: " ")
+        }
+        return recording.subtitle
     }
 
     @ViewBuilder
-    private var emptySessionsView: some View {
-        if search.isEmpty {
+    private var emptyLibrary: some View {
+        if search.isEmpty && filter == .all {
             ContentUnavailableView {
-                Label("No Sessions", systemImage: "tray")
+                Label("No recordings", systemImage: "tray")
             } description: {
-                Text("Create a session to start practicing.")
+                Text("Record or import from Home. Nothing is created until audio is saved.")
             } actions: {
-                Button("New Session") { model.navigate(to: .create) }
+                Button("Record") { model.startHomeRecording() }
                     .studioGlassButton(prominent: true)
             }
             .frame(maxWidth: .infinity, minHeight: 420)
@@ -451,7 +324,7 @@ struct DesktopSessionsWorkspace: View {
             ContentUnavailableView(
                 "No Results",
                 systemImage: "magnifyingglass",
-                description: Text("Try a different search.")
+                description: Text("Try a different search or filter.")
             )
             .frame(maxWidth: .infinity, minHeight: 420)
             .desktopPanel()
@@ -459,86 +332,145 @@ struct DesktopSessionsWorkspace: View {
     }
 
     private var deleteAlertBinding: Binding<Bool> {
-        Binding(
-            get: { deleteCandidate != nil },
-            set: { if !$0 { deleteCandidate = nil } }
-        )
+        Binding(get: { deleteRecording != nil }, set: { if !$0 { deleteRecording = nil } })
     }
 
     private var renameAlertBinding: Binding<Bool> {
-        Binding(
-            get: { renameCandidate != nil },
-            set: { if !$0 { renameCandidate = nil } }
-        )
-    }
-
-    private func requestRename(_ session: CoachingSession) {
-        renameText = session.name
-        renameCandidate = session
+        Binding(get: { renameSession != nil }, set: { if !$0 { renameSession = nil } })
     }
 }
 
-private func takeCountLabel(for session: CoachingSession) -> String {
-    let noun = session.takeCount == 1 ? "take" : "takes"
-    return "\(session.takeCount) \(noun)"
-}
-
-struct SessionInspector: View {
+struct DesktopMimicsWorkspace: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.studioSnapshot) private var snapshot
+    @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
+    @State private var deleteCandidate: CoachingSession?
 
     var body: some View {
-        StudioScroll {
-            if let session = model.selectedSession {
-                VStack(alignment: .leading, spacing: 14) {
-                    inspectorHeader(
-                        eyebrow: "Session",
-                        title: session.name,
-                        detail: "Created \(session.createdAt.formatted(date: .abbreviated, time: .shortened))"
-                    )
-
-                    Divider()
-
-                    sessionDetail("Mode", value: session.mode.title)
-                    sessionDetail("Recorded", value: vcDuration(session.totalDuration))
-                    sessionDetail("Updated", value: session.updatedAt.formatted(.relative(presentation: .named)))
-
-                    if !session.prompt.isEmpty {
-                        Divider()
-                        SectionEyebrow(text: "Prompt")
-                        Text(session.prompt)
-                            .font(.callout)
-                            .foregroundStyle(Studio.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
+        StudioPage(maxWidth: 1100, horizontalPadding: 20) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text("\(model.mimicSessions.count) Mimics")
+                        .font(.caption)
+                        .foregroundStyle(Studio.secondary)
+                    Spacer()
+                    Button("New Mimic", action: model.startMimic)
+                        .studioGlassButton(prominent: true)
+                        .disabled(model.isRecording || model.isAnalyzing)
                 }
-                .padding(16)
+
+                if model.mimicSessions.isEmpty {
+                    ContentUnavailableView {
+                        Label("No Mimics", systemImage: "waveform.path")
+                    } description: {
+                        Text("Import a short clip and practice against it. Your attempts stay with that reference.")
+                    } actions: {
+                        Button("Start Mimic", action: model.startMimic)
+                            .studioGlassButton(prominent: true)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 420)
+                    .desktopPanel()
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(model.mimicSessions) { session in
+                            mimicRow(session)
+                            if session.id != model.mimicSessions.last?.id {
+                                Divider().padding(.leading, 48)
+                            }
+                        }
+                    }
+                    .desktopPanel()
+                }
+
+                if !model.archivedMimicSessions.isEmpty {
+                    SectionEyebrow(text: "Archived")
+                    VStack(spacing: 0) {
+                        ForEach(model.archivedMimicSessions) { session in
+                            mimicRow(session, archived: true)
+                        }
+                    }
+                    .desktopPanel()
+                }
             }
         }
-        .scrollContentBackground(.hidden)
-    }
-
-    private func sessionDetail(_ label: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(Studio.secondary)
-            Spacer()
-            Text(value)
-                .font(.callout)
-                .multilineTextAlignment(.trailing)
+        .alert("Delete Mimic?", isPresented: deleteAlertBinding, presenting: deleteCandidate) { session in
+            Button("Delete", role: .destructive) { model.deleteSession(session.id) }
+            Button("Cancel", role: .cancel) {}
+        } message: { session in
+            let attempts = session.takeCount
+            Text("This removes the reference “\(session.mimicReference?.sourceName ?? session.name)” and \(attempts) \(attempts == 1 ? "attempt" : "attempts").")
         }
     }
 
-    private func inspectorHeader(eyebrow: String, title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            SectionEyebrow(text: eyebrow)
-            Text(title)
-                .font(.headline)
-                .lineLimit(2)
-            Text(detail)
+    private func mimicRow(_ session: CoachingSession, archived: Bool = false) -> some View {
+        HStack(spacing: 10) {
+            Button { model.resumeSession(session.id) } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "waveform.path")
+                        .foregroundStyle(Studio.accent)
+                        .frame(width: 26)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(session.mimicReference?.sourceName ?? session.name)
+                            .font(.body.weight(.medium))
+                            .lineLimit(1)
+                        Text("\(session.takeCount) \(session.takeCount == 1 ? "attempt" : "attempts")")
+                            .font(.caption)
+                            .foregroundStyle(Studio.secondary)
+                    }
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Text(session.updatedAt.formatted(.relative(presentation: .named)))
                 .font(.caption)
                 .foregroundStyle(Studio.secondary)
+
+            if snapshot {
+                Image(systemName: "ellipsis")
+                    .frame(width: 28, height: 24)
+            } else {
+                Menu {
+                    Button("Open", systemImage: "arrow.right") { model.resumeSession(session.id) }
+                    if archived {
+                        Button("Restore", systemImage: "tray.and.arrow.up") { model.archiveMimic(session.id, archived: false) }
+                    } else {
+                        Button("Archive", systemImage: "archivebox") { model.archiveMimic(session.id) }
+                    }
+                    Divider()
+                    Button("Delete…", systemImage: "trash", role: .destructive) {
+                        if confirmBeforeDelete { deleteCandidate = session }
+                        else { model.deleteSession(session.id) }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .frame(width: 28, height: 24)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .frame(width: 28)
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 54)
+    }
+
+    private var deleteAlertBinding: Binding<Bool> {
+        Binding(get: { deleteCandidate != nil }, set: { if !$0 { deleteCandidate = nil } })
+    }
+}
+
+private struct OptionalSearchable: ViewModifier {
+    @Binding var text: String
+    var enabled: Bool
+    var prompt: String
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.searchable(text: $text, prompt: prompt)
+        } else {
+            content
         }
     }
 }
@@ -598,6 +530,16 @@ struct TakeInspector: View {
                     }
 
                     Divider()
+
+                    if !session.prompt.isEmpty {
+                        SectionEyebrow(text: "Prompt")
+                        Text(session.prompt)
+                            .font(.callout)
+                            .foregroundStyle(Studio.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Divider()
+                    }
 
                     InspectorMetricCard(title: "Pitch Dynamic Range", value: vcOptional(take.result.metrics.pitchRangeSemitones), unit: "st", symbol: "waveform.path")
                     InspectorMetricCard(title: "Trailing Energy Drop", value: vcSigned(take.result.metrics.phraseDecayDB), unit: "dB", symbol: "arrow.down.right")

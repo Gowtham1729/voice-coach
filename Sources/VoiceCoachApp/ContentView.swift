@@ -15,10 +15,17 @@ struct ContentView: View {
             } message: {
                 Text(model.errorMessage ?? "")
             }
-            .sheet(isPresented: createSessionBinding) {
+            .sheet(isPresented: mimicStartBinding) {
                 CreateSessionView()
                     .environmentObject(model)
-                    .frame(width: 680, height: 720)
+                    .frame(width: 680, height: 640)
+            }
+            .alert("Keep every recording?", isPresented: replaceOnlyBinding) {
+                Button("Keep all from now on") { model.confirmKeepAllFromNowOn() }
+                Button("Replace older recordings", role: .destructive) { model.confirmReplaceOldest() }
+                Button("Cancel", role: .cancel) { model.pendingReplaceOnly = nil }
+            } message: {
+                Text("This older folder was set to keep only the newest recording. Voice Coach now keeps every valid recording unless you choose to replace.")
             }
             .overlay(alignment: .bottom) { toast }
     }
@@ -86,18 +93,16 @@ struct ContentView: View {
     @ViewBuilder
     private var destination: some View {
         switch model.destination {
-        case .studio:
-            PracticeView()
-        case .create:
-            DesktopStudioWorkspace()
+        case .home, .mimicStart:
+            HomeView()
         case .practice:
-            PracticeView()
+            MimicWorkspace()
         case .take:
             TakeView()
-        case .sessions:
-            DesktopSessionsWorkspace()
-        case .insights:
-            InsightsView()
+        case .library:
+            DesktopLibraryWorkspace()
+        case .mimics:
+            DesktopMimicsWorkspace()
         }
     }
 
@@ -105,10 +110,8 @@ struct ContentView: View {
     private var contextualInspector: some View {
         if model.showsTakeInspector {
             TakeInspector()
-        } else if model.selectedSession?.mode == .mimic {
-            MimicInspector()
         } else {
-            SessionInspector()
+            MimicInspector()
         }
     }
 
@@ -117,22 +120,22 @@ struct ContentView: View {
         if showsBackButton {
             ToolbarItem(placement: .navigation) {
                 Button(action: goBack) {
-                    Label(backHelp, systemImage: "chevron.left")
+                    Label("Return to Library", systemImage: "chevron.left")
                 }
-                .help(backHelp)
+                .help("Return to Library")
             }
         }
 
         ToolbarSpacer(.flexible)
 
-        if showsNewSession {
+        if showsNewRecording {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    model.navigate(to: AppDestination.create)
+                    model.startHomeRecording()
                 } label: {
-                    Label("New Session", systemImage: "plus")
+                    Label("Record", systemImage: "plus")
                 }
-                .help("Create a named practice session")
+                .help("Record a new take on this Mac")
                 .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
             }
         }
@@ -156,65 +159,66 @@ struct ContentView: View {
         inspectorPresented && inspectorEligible
     }
 
-    private var showsNewSession: Bool {
+    private var showsNewRecording: Bool {
         switch model.destination {
-        case .studio, .practice, .sessions: true
-        case .create, .take, .insights: false
+        case .home, .library, .mimics: true
+        case .practice, .mimicStart, .take: false
         }
     }
 
     private var showsBackButton: Bool {
-        switch model.destination {
-        case .take: true
-        case .studio, .create, .practice, .sessions, .insights: false
-        }
-    }
-
-    private var backHelp: String {
-        model.destination.isTake ? "Return to the session" : "Return to Studio"
+        if case .take = model.destination { return true }
+        return false
     }
 
     private var inspectorEligible: Bool {
         switch model.destination {
-        case .studio, .practice:
+        case .practice:
             model.selectedSession != nil
         case .take:
             model.selectedTake != nil
-        case .create, .sessions, .insights:
+        case .home, .mimicStart, .library, .mimics:
             false
         }
     }
 
     private var windowTitle: String {
         switch model.destination {
-        case .studio: "Studio"
-        case .create: "Studio"
-        case .practice: model.selectedSession?.name ?? "Practice"
-        case .take: model.selectedSession.map { "\($0.name) — Take" } ?? "Take"
-        case .sessions: "All Sessions"
-        case .insights: "Insights"
+        case .home: "Home"
+        case .mimicStart: "Mimic"
+        case .practice:
+            model.selectedSession?.mimicReference?.sourceName
+                ?? model.selectedSession?.name
+                ?? "Mimic"
+        case .take: model.selectedSession?.name ?? "Recording"
+        case .library: "Library"
+        case .mimics: "Mimics"
         }
     }
 
     private func goBack() {
-        if model.destination.isTake, let session = model.selectedSession {
-            model.resumeSession(session.id)
-        } else {
-            model.navigate(to: AppDestination.studio)
-        }
+        model.navigate(to: .library)
     }
 
-    private var createSessionBinding: Binding<Bool> {
+    private var mimicStartBinding: Binding<Bool> {
         Binding(
             get: {
-                if case .create = model.destination { return true }
+                if case .mimicStart = model.destination { return true }
                 return false
             },
             set: { isPresented in
-                if !isPresented, case .create = model.destination {
-                    model.navigate(to: AppDestination.studio)
+                if !isPresented, case .mimicStart = model.destination {
+                    model.cancelMimicPreparation()
+                    model.navigate(to: .home)
                 }
             }
+        )
+    }
+
+    private var replaceOnlyBinding: Binding<Bool> {
+        Binding(
+            get: { model.pendingReplaceOnly != nil },
+            set: { if !$0 { model.pendingReplaceOnly = nil } }
         )
     }
 

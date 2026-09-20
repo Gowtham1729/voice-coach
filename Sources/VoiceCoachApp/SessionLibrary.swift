@@ -7,8 +7,7 @@ enum PracticeMode: String, Codable, CaseIterable, Identifiable {
     case freeSpeaking
     case mimic
 
-    // Keep legacy cases decodable for existing libraries, but offer only these
-    // two distinct workflows when creating a new session.
+    // Keep legacy cases decodable for existing libraries, but new capture is Record or Mimic.
     static var allCases: [PracticeMode] { [.general, .mimic] }
 
     var id: Self { self }
@@ -73,6 +72,7 @@ struct CoachingSession: Codable, Identifiable, Equatable {
     var mimicReference: MimicReference?
     var mimicStyle: MimicStyle?
     var mimicAttemptStyles: [UUID: MimicStyle]?
+    var archived: Bool
 
     init(
         id: UUID = UUID(),
@@ -85,7 +85,8 @@ struct CoachingSession: Codable, Identifiable, Equatable {
         takes: [PracticeSession] = [],
         mimicReference: MimicReference? = nil,
         mimicStyle: MimicStyle? = nil,
-        mimicAttemptStyles: [UUID: MimicStyle]? = nil
+        mimicAttemptStyles: [UUID: MimicStyle]? = nil,
+        archived: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -98,11 +99,30 @@ struct CoachingSession: Codable, Identifiable, Equatable {
         self.mimicReference = mimicReference
         self.mimicStyle = mimicStyle
         self.mimicAttemptStyles = mimicAttemptStyles
+        self.archived = archived
     }
 
     var latestTake: PracticeSession? { takes.last }
     var takeCount: Int { takes.count }
     var totalDuration: Double { takes.reduce(0) { $0 + $1.result.metrics.duration } }
+
+    var isMimic: Bool { mode == .mimic }
+    var trimmedPrompt: String { prompt.trimmingCharacters(in: .whitespacesAndNewlines) }
+    /// Visible grouping for repeating general work. Mimic is a separate workspace.
+    var isRetryStack: Bool { !isMimic && (!trimmedPrompt.isEmpty || takes.count >= 2) }
+    var isStandaloneRecording: Bool { !isMimic && trimmedPrompt.isEmpty && takes.count == 1 }
+    var isEmptyLegacy: Bool { !isMimic && takes.isEmpty }
+
+    func takeNumber(for takeID: UUID) -> Int? {
+        guard let index = takes.firstIndex(where: { $0.id == takeID }) else { return nil }
+        return index + 1
+    }
+
+    func userRecordedDuration() -> Double {
+        takes.reduce(0) { sum, take in
+            take.takeSource == .recorded ? sum + take.result.metrics.duration : sum
+        }
+    }
 
     fileprivate var allPracticeTakes: [PracticeSession] {
         var items = takes
@@ -111,21 +131,197 @@ struct CoachingSession: Codable, Identifiable, Equatable {
         }
         return items
     }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, createdAt, updatedAt, mode, prompt, keepsRecordings, takes
+        case mimicReference, mimicStyle, mimicAttemptStyles, archived
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        mode = try container.decode(PracticeMode.self, forKey: .mode)
+        prompt = try container.decode(String.self, forKey: .prompt)
+        keepsRecordings = try container.decode(Bool.self, forKey: .keepsRecordings)
+        takes = try container.decodeIfPresent([PracticeSession].self, forKey: .takes) ?? []
+        mimicReference = try container.decodeIfPresent(MimicReference.self, forKey: .mimicReference)
+        mimicStyle = try container.decodeIfPresent(MimicStyle.self, forKey: .mimicStyle)
+        mimicAttemptStyles = try container.decodeIfPresent([UUID: MimicStyle].self, forKey: .mimicAttemptStyles)
+        archived = try container.decodeIfPresent(Bool.self, forKey: .archived) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(mode, forKey: .mode)
+        try container.encode(prompt, forKey: .prompt)
+        try container.encode(keepsRecordings, forKey: .keepsRecordings)
+        try container.encode(takes, forKey: .takes)
+        try container.encodeIfPresent(mimicReference, forKey: .mimicReference)
+        try container.encodeIfPresent(mimicStyle, forKey: .mimicStyle)
+        try container.encodeIfPresent(mimicAttemptStyles, forKey: .mimicAttemptStyles)
+        if archived { try container.encode(true, forKey: .archived) }
+    }
+}
+
+enum RecordingTitle {
+    static func make(date: Date = Date()) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "d MMM, h:mm a"
+        return "Recording · \(formatter.string(from: date))"
+    }
+}
+
+/// User-facing library row. Mimic references are never included.
+struct LibraryRecording: Identifiable, Equatable {
+    let sessionID: UUID
+    let take: PracticeSession
+    let groupName: String
+    let prompt: String
+    let isMimicAttempt: Bool
+    let mimicSourceName: String?
+    let takeNumber: Int
+    let takeCount: Int
+    let isRetryStack: Bool
+    let archived: Bool
+
+    var id: UUID { take.id }
+    var isImported: Bool { take.takeSource != .recorded }
+
+    var displayTitle: String {
+        if isMimicAttempt {
+            let source = mimicSourceName.flatMap { $0.isEmpty ? nil : $0 } ?? groupName
+            return "\(source) · Take \(takeNumber) · \(Self.timeText(take.createdAt))"
+        }
+        if isRetryStack {
+            return "\(stackLabel) · Take \(takeNumber) · \(Self.timeText(take.createdAt))"
+        }
+        return groupName
+    }
+
+    var subtitle: String {
+        if isMimicAttempt { return "Mimic attempt" }
+        if isRetryStack { return prompt.isEmpty ? "Take \(takeNumber) of \(takeCount)" : prompt }
+        return take.takeSource.title
+    }
+
+    var accessibilityLabel: String {
+        if isMimicAttempt {
+            let source = mimicSourceName ?? groupName
+            return "Take \(takeNumber) of \(takeCount), Mimic, \(source)"
+        }
+        if isRetryStack {
+            return "Take \(takeNumber) of \(takeCount), \(stackLabel)"
+        }
+        return "\(groupName), \(take.takeSource.title)"
+    }
+
+    var stackLabel: String {
+        guard !prompt.isEmpty else { return groupName }
+        let excerpt = prompt.split(separator: " ").prefix(8).joined(separator: " ")
+        guard prompt.count > excerpt.count else { return excerpt }
+        return "\(excerpt)…"
+    }
+
+    private static func timeText(_ date: Date) -> String {
+        date.formatted(date: .omitted, time: .shortened)
+    }
+
+    static func make(session: CoachingSession, take: PracticeSession) -> LibraryRecording? {
+        guard let number = session.takeNumber(for: take.id) else { return nil }
+        return LibraryRecording(
+            sessionID: session.id,
+            take: take,
+            groupName: session.name,
+            prompt: session.trimmedPrompt,
+            isMimicAttempt: session.isMimic,
+            mimicSourceName: session.mimicReference?.sourceName,
+            takeNumber: number,
+            takeCount: session.takeCount,
+            isRetryStack: session.isRetryStack,
+            archived: session.archived
+        )
+    }
+
+    func matches(query: String) -> Bool {
+        guard !query.isEmpty else { return true }
+        if displayTitle.localizedCaseInsensitiveContains(query) { return true }
+        if groupName.localizedCaseInsensitiveContains(query) { return true }
+        if prompt.localizedCaseInsensitiveContains(query) { return true }
+        if mimicSourceName?.localizedCaseInsensitiveContains(query) == true { return true }
+        if take.takeSource.title.localizedCaseInsensitiveContains(query) { return true }
+        return take.transcription?.text.localizedCaseInsensitiveContains(query) == true
+    }
+}
+
+enum LibraryFilter: String, CaseIterable, Identifiable {
+    case all
+    case recorded
+    case imported
+    case mimic
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .all: "All"
+        case .recorded: "Recorded"
+        case .imported: "Imported"
+        case .mimic: "Mimic"
+        }
+    }
+
+    func matches(_ recording: LibraryRecording) -> Bool {
+        switch self {
+        case .all: true
+        case .recorded: !recording.isImported && !recording.isMimicAttempt
+        case .imported: recording.isImported && !recording.isMimicAttempt
+        case .mimic: recording.isMimicAttempt
+        }
+    }
+}
+
+enum RecordingCatalog {
+    static func recordings(from sessions: [CoachingSession], includeArchived: Bool = false) -> [LibraryRecording] {
+        sessions.flatMap { session in
+            if session.isMimic, session.archived, !includeArchived { return [] as [LibraryRecording] }
+            return session.takes.compactMap { LibraryRecording.make(session: session, take: $0) }
+        }
+        .sorted { $0.take.createdAt > $1.take.createdAt }
+    }
+
+    static func recording(takeID: UUID, in sessions: [CoachingSession]) -> LibraryRecording? {
+        for session in sessions {
+            if let take = session.takes.first(where: { $0.id == takeID }) {
+                return LibraryRecording.make(session: session, take: take)
+            }
+        }
+        return nil
+    }
 }
 
 enum AppDestination: Equatable {
-    case studio
-    case create
+    case home
+    case mimicStart
     case practice(UUID)
     case take(UUID, UUID)
-    case sessions
-    case insights
+    case library
+    case mimics
 
     var navigationSection: NavigationSection {
         switch self {
-        case .studio, .create, .practice, .take: .studio
-        case .sessions: .sessions
-        case .insights: .insights
+        case .home, .mimicStart: .home
+        case .practice: .mimics
+        case .take: .library
+        case .library: .library
+        case .mimics: .mimics
         }
     }
 
@@ -133,24 +329,29 @@ enum AppDestination: Equatable {
         if case .take = self { return true }
         return false
     }
+
+    var isWorkspace: Bool {
+        switch self {
+        case .practice, .take: true
+        default: false
+        }
+    }
 }
 
 enum NavigationSection: String, CaseIterable, Identifiable {
-    case studio = "Studio"
-    case sessions = "Sessions"
-    case insights = "Insights"
+    case home = "Home"
+    case library = "Library"
+    case mimics = "Mimics"
 
     var id: Self { self }
 
-    var title: String {
-        self == .sessions ? "All Sessions" : rawValue
-    }
+    var title: String { rawValue }
 
     var symbol: String {
         switch self {
-        case .studio: "waveform"
-        case .sessions: "rectangle.stack"
-        case .insights: "chart.xyaxis.line"
+        case .home: "waveform"
+        case .library: "rectangle.stack"
+        case .mimics: "waveform.path"
         }
     }
 }
@@ -178,6 +379,7 @@ private struct StoredSession: Codable {
     var mimicReference: StoredMimicReference?
     var mimicStyle: MimicStyle?
     var mimicAttemptStyles: [UUID: MimicStyle]?
+    var archived: Bool?
 }
 
 private struct StoredTake: Codable {
@@ -362,7 +564,8 @@ final class SessionStore {
                 )
             },
             mimicStyle: session.mimicStyle,
-            mimicAttemptStyles: session.mimicAttemptStyles
+            mimicAttemptStyles: session.mimicAttemptStyles,
+            archived: session.archived ? true : nil
         )
     }
 
@@ -394,7 +597,8 @@ final class SessionStore {
                 )
             },
             mimicStyle: stored.mimicStyle,
-            mimicAttemptStyles: stored.mimicAttemptStyles
+            mimicAttemptStyles: stored.mimicAttemptStyles,
+            archived: stored.archived ?? false
         )
     }
 

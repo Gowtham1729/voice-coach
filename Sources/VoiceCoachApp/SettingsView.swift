@@ -12,6 +12,7 @@ struct SettingsView: View {
     @Environment(\.studioSnapshot) private var snapshot
     @AppStorage("voiceCoach.settingsPane") private var pane = SettingsPane.general
     @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
+    @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
 
     private var transcriptionBusy: Bool {
         model.systemTranscriptionStatus.isBusy
@@ -46,17 +47,19 @@ struct SettingsView: View {
                 libraryPane
             }
         }
-        .frame(width: 480, height: 380)
+        .frame(width: 480, height: 440)
     }
 
     private var generalPane: some View {
         Form {
             Section {
                 Toggle("Confirm before deleting", isOn: $confirmDelete)
+                Toggle("Hide transcript snippets in Library", isOn: $hideTranscriptSnippets)
             } footer: {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Ask before permanently removing sessions or takes.")
+                    Text("Ask before permanently removing recordings or Mimics.")
                     Text("Recordings stay on this Mac. Voice-quality values are coaching signals, not medical diagnoses.")
+                    Text("Library search can use on-device transcripts when they exist.")
                 }
             }
         }
@@ -117,15 +120,25 @@ struct SettingsView: View {
     private var libraryPane: some View {
         Form {
             Section {
-                LabeledContent("Sessions", value: "\(model.sessions.count)")
-                LabeledContent("Takes", value: "\(model.totalTakeCount)")
+                LabeledContent("Recordings you made", value: "\(model.userRecordedTakeCount)")
+                LabeledContent("Minutes recorded", value: vcNumber(model.userRecordedDuration / 60, 1))
+                LabeledContent("Imported clips", value: "\(model.importedTakeCount)")
+                LabeledContent("Mimics", value: "\(model.mimicSessions.count)")
                 Button("Show in Finder…", systemImage: "folder", action: model.revealStorage)
+                if !model.emptyLegacySessions.isEmpty {
+                    Button("Remove \(model.emptyLegacySessions.count) unused folders") {
+                        model.cleanupEmptyLegacySessions()
+                    }
+                }
             } footer: {
-                Text(model.storageLocation.path)
-                    .font(.caption.monospaced())
-                    .textSelection(.enabled)
-                    .lineLimit(2)
-                    .truncationMode(.middle)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Audio, Mimic references, and optional transcripts live under this folder. Nothing is uploaded.")
+                    Text(model.storageLocation.path)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                        .lineLimit(2)
+                        .truncationMode(.middle)
+                }
             }
         }
         .settingsPaneChrome()
@@ -191,8 +204,9 @@ struct SettingsView: View {
             }
 
             snapshotCard("Library", symbol: "internaldrive") {
-                LabeledContent("Sessions", value: "\(model.sessions.count)")
-                LabeledContent("Takes", value: "\(model.totalTakeCount)")
+                LabeledContent("Recordings you made", value: "\(model.userRecordedTakeCount)")
+                LabeledContent("Imported clips", value: "\(model.importedTakeCount)")
+                LabeledContent("Mimics", value: "\(model.mimicSessions.count)")
             }
         }
         .padding(24)

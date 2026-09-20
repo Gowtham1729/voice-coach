@@ -36,29 +36,29 @@ private struct VoiceCoachCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("New Session") { model.navigate(to: .create) }
+            Button("Record") { model.startHomeRecording() }
                 .keyboardShortcut("n", modifiers: .command)
                 .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
 
-            Button("Quick Recording") { model.startQuickPractice() }
-                .keyboardShortcut("r", modifiers: [.command, .shift])
+            Button("Mimic…") { model.startMimic() }
+                .keyboardShortcut("m", modifiers: [.command, .shift])
                 .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
         }
 
         CommandGroup(after: .importExport) {
             Button("Import Recording…") { model.importClip() }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
-                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission || model.selectedSession?.mode == .mimic)
+                .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission || (model.selectedSession?.mode == .mimic && model.destination.isWorkspace))
 
-            Button("Export Current Take…") { model.exportCurrent() }
+            Button("Export Current Recording…") { model.exportCurrent() }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
                 .disabled(model.selectedTake == nil || model.isRecording || model.isAnalyzing)
         }
 
         CommandMenu("Navigate") {
-            navigationButton("Studio", section: .studio, shortcut: "1")
-            navigationButton("All Sessions", section: .sessions, shortcut: "2")
-            navigationButton("Insights", section: .insights, shortcut: "3")
+            navigationButton("Home", section: .home, shortcut: "1")
+            navigationButton("Library", section: .library, shortcut: "2")
+            navigationButton("Mimics", section: .mimics, shortcut: "3")
         }
 
         CommandMenu("Practice") {
@@ -79,7 +79,7 @@ private struct VoiceCoachCommands: Commands {
     }
 
     private func navigationButton(_ title: String, section: NavigationSection, shortcut: KeyEquivalent) -> some View {
-        Button(title) { model.navigate(to: section) }
+        Button(title) { model.navigate(toSection: section) }
             .keyboardShortcut(shortcut, modifiers: .command)
             .disabled(model.isRecording)
     }
