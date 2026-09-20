@@ -127,5 +127,6 @@ Root: `~/Library/Application Support/VoiceCoach/`
 
 - Human-oriented product docs: `README.md`
 - Architecture and dependency rules: `docs/architecture/README.md`
+- Peekaboo macOS UI QA & automation guide: `docs/PEEKABOO.md`
 - Cloud bootstrap: `scripts/cloud-agent-install.sh`
 - Official AGENTS.md convention: https://agents.md/
