@@ -8,7 +8,7 @@ Prebuilt app (ad-hoc signed):
 
 **[Voice Coach 3.2.0 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.2.0)**
 
-Download `Voice-Coach-3.2.0-macOS.zip`, unzip, and move **Voice Coach.app** to Applications. If Gatekeeper blocks the first launch, right-click the app → **Open**. For word-level transcripts, open **Settings → Transcription** once and download the on-device Parakeet model (~714 MB).
+Download `Voice-Coach-3.2.0-macOS.zip`, unzip, and move **Voice Coach.app** to Applications. If Gatekeeper blocks the first launch, right-click the app → **Open**. Voice Coach uses Apple’s on-device transcription by default; Parakeet is an optional local download (~714 MB) under **Settings → Transcription**.
 
 ## What you can do
 
@@ -57,7 +57,7 @@ Acoustic coaching signals (not medical measurements — they cannot prove diaphr
 - mean loudness, dynamic range, deviation, phrase-ending decay, and a **24**-value loudness contour
 - pause count plus mean, median, and longest pause
 - HNR (and related voice-quality estimates used in the UI)
-- local NVIDIA Parakeet transcription with word timestamps and per-word pitch / loudness
+- on-device transcription (Apple by default, optional NVIDIA Parakeet) with word timestamps and per-word pitch / loudness
 - waveform and spectrogram in the app UI only (not in exported JSON)
 
 ## Run from source
@@ -89,13 +89,21 @@ Analysis contract suite:
 swift run VoiceCoachSelfTest
 ```
 
-Layout proofs (eight screens + persistence round-trip, synthetic audio only):
+Unit tests for analysis/report contracts and session persistence:
+
+```sh
+./scripts/test.sh
+```
+
+Layout proofs (synthetic audio only, with a persistence round-trip):
 
 ```sh
 ./scripts/render-previews.sh
 ```
 
 If macOS reports that the Xcode license is not accepted, run `sudo xcodebuild -license` once in Terminal and accept it yourself.
+
+The package is divided into `VoiceCoachCore` (analysis/transcription), `VoiceCoachSession` (session domain/persistence), and `VoiceCoachApp` (macOS UI/platform services). See [`docs/architecture/README.md`](docs/architecture/README.md) before adding a cross-cutting feature.
 
 ## Export
 

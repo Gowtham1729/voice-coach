@@ -10,9 +10,11 @@ Local-first **macOS 26+** SwiftUI voice practice studio (Swift 6.2). Record/impo
 
 | Area | Path | Notes |
 | --- | --- | --- |
-| DSP / models / reports / ASR adapter | `Sources/VoiceCoachCore/` | Linux-buildable when AVFoundation is missing |
-| App UI, recording, persistence | `Sources/VoiceCoachApp/` | macOS-only (SwiftUI/AppKit/Metal) |
-| Contract suite | `Sources/VoiceCoachSelfTest/main.swift` | Real verification — `Tests/` is empty/unused |
+| DSP / reports / ASR | `Sources/VoiceCoachCore/` | Platform-light library; Linux-buildable when AVFoundation is missing |
+| Session domain / persistence | `Sources/VoiceCoachSession/` | Foundation-only library over `VoiceCoachCore` |
+| App coordination / UI / capture | `Sources/VoiceCoachApp/` | macOS-only; organized by App, Application, Features, Services, and DesignSystem |
+| Unit suites | `Tests/VoiceCoachCoreTests/`, `Tests/VoiceCoachSessionTests/` | Swift Testing coverage for pure contracts and persistence |
+| Integration contract suite | `Sources/VoiceCoachSelfTest/main.swift` | Cross-platform acoustic/report smoke and live helpers |
 | App bundle resources | `Resources/` | Packaged by `scripts/build-app.sh` |
 | Dev/scripts | `scripts/` | Prefer these over inventing new build steps |
 
@@ -25,6 +27,9 @@ Run from repo root. Prefer the Xcode toolchain when present (scripts do this).
 ```sh
 # Fast contract check (DSP + report JSON). Use after Core/report/transcription changes.
 swift run VoiceCoachSelfTest
+
+# Unit tests (Core + Session domain/persistence).
+./scripts/test.sh
 
 # Dev app (macOS only)
 swift run VoiceCoachApp
@@ -53,12 +58,13 @@ If macOS refuses the toolchain with an Xcode license error, the human must run `
 
 | Change | Minimum check |
 | --- | --- |
-| `VoiceCoachCore` / report shape / SelfTest | `swift run VoiceCoachSelfTest` |
+| `VoiceCoachCore` / report shape | `./scripts/test.sh` + `swift run VoiceCoachSelfTest` |
+| `VoiceCoachSession` / persistence | `./scripts/test.sh`; add or update a focused persistence test |
 | App UI / layout / charts / Home/Library/Take | `./scripts/render-previews.sh` when feasible (macOS); otherwise say UI was not visually verified |
 | Persistence / SessionStore | Prefer preview path (it round-trips a fixture library) or exercise save/load carefully |
 | Transcription setup scripts | Do not re-download the model in CI/cloud unless explicitly asked |
 
-Do not add SPM `testTarget` wiring unless asked — the empty `Tests/VoiceCoachCoreTests/` folder is not the suite.
+Keep `VoiceCoachSelfTest` as the integration/contract smoke. Put deterministic unit and persistence coverage in the Swift Testing targets instead of growing `main.swift` further.
 
 ## Non-negotiable product constraints
 
@@ -93,19 +99,21 @@ Root: `~/Library/Application Support/VoiceCoach/`
 
 | Task | Start here |
 | --- | --- |
-| Pitch / pauses / HNR / CPP / spectrogram | `AudioAnalyzer.swift` |
-| Per-word pitch/loudness | `WordAcousticAnalyzer.swift` |
-| JSON export shape | `ReportFormatter.swift` + SelfTest assertions |
-| Parakeet / nemo-speech | `NemoSpeechTranscriber.swift`, `scripts/setup-transcription.sh` |
-| Import normalize to WAV | `AudioImportService.swift` |
-| Record / playback | `AudioRecorder.swift`, `AppModel.swift` |
-| Mimic reference Mac audio | `SystemAudioCapture.swift`, `MimicReferencePicker.swift`, `AppModel.swift` |
-| Session CRUD / navigation | `AppModel.swift`, `SessionLibrary.swift` |
-| Home / Library / Mimics | `HomeView.swift`, `DesktopShell.swift`, `ContentView.swift` |
-| Shell / sidebar / inspectors | `ContentView.swift`, `DesktopShell.swift` |
-| Take screen / charts / transcript | `TakeView.swift`, `Charts.swift`, `TranscriptBrowser.swift` |
-| Palette / glass / motion | `StudioStyle.swift` |
-| Fixture screenshots | `RenderPreviews.swift`, `scripts/render-previews.sh` |
+| Pitch / pauses / HNR / CPP / spectrogram | `Sources/VoiceCoachCore/Analysis/` |
+| Per-word pitch/loudness | `Sources/VoiceCoachCore/Analysis/WordAcousticAnalyzer.swift` |
+| JSON export shape | `Sources/VoiceCoachCore/Reports/ReportFormatter.swift` + report tests + SelfTest |
+| Apple / Parakeet transcription | `Sources/VoiceCoachCore/Transcription/`, `scripts/setup-transcription.sh` |
+| Import normalize to WAV | `Sources/VoiceCoachCore/Audio/AudioImportService.swift` |
+| Session models / library projection | `Sources/VoiceCoachSession/Models/` |
+| Session persistence / migrations | `Sources/VoiceCoachSession/Persistence/SessionStore.swift` |
+| App-wide state and actions | `Sources/VoiceCoachApp/Application/AppModel*.swift` |
+| Record / playback platform service | `Sources/VoiceCoachApp/Services/AudioRecorder.swift` |
+| Mimic reference Mac audio | `Sources/VoiceCoachApp/Services/SystemAudioCapture.swift`, `Features/Mimic/` |
+| Home / Library / Mimics / Take / Settings | `Sources/VoiceCoachApp/Features/` |
+| Shell / sidebar / inspectors | `Sources/VoiceCoachApp/Navigation/`, feature inspector files |
+| Charts and timelines | `Sources/VoiceCoachApp/Visualization/` |
+| Palette / glass / reusable chrome | `Sources/VoiceCoachApp/DesignSystem/` |
+| Fixture screenshots | `Sources/VoiceCoachApp/PreviewSupport/RenderPreviews.swift`, `scripts/render-previews.sh` |
 
 ## Boundaries
 
@@ -117,5 +125,6 @@ Root: `~/Library/Application Support/VoiceCoach/`
 ## Pointers
 
 - Human-oriented product docs: `README.md`
+- Architecture and dependency rules: `docs/architecture/README.md`
 - Cloud bootstrap: `scripts/cloud-agent-install.sh`
 - Official AGENTS.md convention: https://agents.md/
