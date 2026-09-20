@@ -51,7 +51,7 @@ struct MimicWorkspace: View {
                     .padding(.vertical, 24)
                     .frame(maxWidth: .infinity, alignment: .top)
                 } else {
-                    ContentUnavailableView("Reference Unavailable", systemImage: "waveform.badge.exclamationmark", description: Text("This Mimic session needs its reference audio."))
+                    ContentUnavailableView("Reference Unavailable", systemImage: "waveform.badge.exclamationmark", description: Text("This Mimic needs its reference audio."))
                         .frame(maxWidth: .infinity, minHeight: 350)
                 }
             }

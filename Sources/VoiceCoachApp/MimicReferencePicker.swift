@@ -126,7 +126,7 @@ struct MimicReferencePicker: View {
                 }
             }
 
-            Text("The reference and every attempt are saved locally in this session.")
+            Text("The reference and every attempt are saved locally with this Mimic.")
                 .font(.caption)
                 .foregroundStyle(Studio.secondary)
         }

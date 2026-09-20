@@ -39,6 +39,21 @@ func renderStudioPreviewsIfRequested() {
         precondition(model.sessions == sessions.sorted { $0.updatedAt > $1.updatedAt })
         precondition(model.totalTakeCount == sessions.reduce(0) { $0 + $1.takeCount })
 
+        let interview = model.sessions.first { $0.name == "Job Interview Prep" }
+        precondition(interview?.isRetryStack == true, "Prompted multi-take session must remain a retry stack")
+        precondition(interview?.trimmedPrompt.isEmpty == false, "Prompt must survive as stack context")
+        let presentation = model.sessions.first { $0.name == "Product Presentation" }
+        precondition(presentation?.isRetryStack == true, "Prompted single-take session must remain a stack")
+        let mimic = model.sessions.first { $0.isMimic }
+        precondition(mimic != nil)
+        let catalog = model.libraryRecordings
+        precondition(catalog.contains { $0.isMimicAttempt }, "Mimic attempts belong in Library")
+        precondition(!catalog.contains { rec in
+            mimic?.mimicReference?.take.id == rec.take.id
+        }, "Mimic reference must not appear as a user recording")
+        precondition(catalog.filter(\.isMimicAttempt).allSatisfy { $0.displayTitle.contains("Take") })
+        precondition(model.userRecordedTakeCount == catalog.filter { !$0.isImported }.count)
+
         // Metadata-only save must not rewrite analysis blobs (Mimic style / rename path).
         let probeSession = model.sessions[0]
         let probeTake = probeSession.takes[0]
@@ -88,25 +103,29 @@ func renderStudioPreviewsIfRequested() {
             try png.write(to: output.appendingPathComponent(name + ".png"))
         }
 
-        model.destination = .studio
+        model.destination = .home
         model.selectedSessionID = nil
-        try render("01-studio")
-        model.destination = .create
-        try renderCreateSession("02-create-session")
-        model.resumeSession(model.sessions[0].id)
+        try render("01-home")
+        model.destination = .mimicStart
+        try renderCreateSession("02-mimic-start", mode: .mimic)
+        if let first = model.sessions[0].takes.first {
+            model.openTake(sessionID: model.sessions[0].id, takeID: first.id)
+        }
         try render("03-practice")
         if let latest = model.selectedTake {
             model.openTake(sessionID: model.sessions[0].id, takeID: latest.id)
         }
         try render("04-take", height: 1_360)
-        model.destination = .sessions
-        try render("05-sessions")
-        model.destination = .insights
-        try render("06-insights")
+        model.destination = .library
+        try render("05-library")
+        model.destination = .mimics
+        try render("06-mimics")
         model.transcriptionEngine = .system
         model.systemTranscriptionStatus = .ready(localeIdentifier: "en_US")
         try renderSettings("07-settings")
-        model.destination = .practice(model.sessions[0].id)
+        model.destination = .home
+        model.selectedSessionID = nil
+        model.selectedTakeID = nil
         model.isRecording = true
         model.liveLevel = -17
         model.elapsed = 12.4

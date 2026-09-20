@@ -4,7 +4,7 @@ Operating manual for coding agents. Prefer this over guessing; prefer `VoiceCoac
 
 ## What this repo is
 
-Local-first **macOS 26+** SwiftUI voice practice studio (Swift 6.2). Record/import takes, run on-device acoustic analysis + optional Parakeet transcription, persist a private session library. Not a web app; nothing uploads recordings.
+Local-first **macOS 26+** SwiftUI voice practice studio (Swift 6.2). Record/import takes, run on-device acoustic analysis + optional Parakeet transcription, persist a private recordings library. Not a web app; nothing uploads recordings.
 
 ## Layout (where to edit)
 
@@ -16,7 +16,7 @@ Local-first **macOS 26+** SwiftUI voice practice studio (Swift 6.2). Record/impo
 | App bundle resources | `Resources/` | Packaged by `scripts/build-app.sh` |
 | Dev/scripts | `scripts/` | Prefer these over inventing new build steps |
 
-**Naming trap:** UI “session” = `CoachingSession` (`SessionLibrary.swift`). UI “take” = Core `PracticeSession` (`Models.swift`). Do not rename these casually.
+**Naming trap:** UI “recording” / retry stack / Mimic map onto `CoachingSession` (`SessionLibrary.swift`). UI “take” = Core `PracticeSession` (`Models.swift`). Do not rename these storage types casually. See `docs/design/RECORDING_FIRST_PRD.md`.
 
 ## Commands
 
@@ -32,7 +32,7 @@ swift run VoiceCoachApp
 # Release .app → build/Voice Coach.app (ad-hoc codesign)
 ./scripts/build-app.sh
 
-# SelfTest + 8 DEBUG layout PNGs in build/previews (synthetic audio only)
+# SelfTest + DEBUG layout PNGs in build/previews (synthetic audio only)
 ./scripts/render-previews.sh
 
 # One-time local ASR (~714 MB). Prefer Settings → Transcription in the app for end users.
@@ -54,7 +54,7 @@ If macOS refuses the toolchain with an Xcode license error, the human must run `
 | Change | Minimum check |
 | --- | --- |
 | `VoiceCoachCore` / report shape / SelfTest | `swift run VoiceCoachSelfTest` |
-| App UI / layout / charts / Take/Studio | `./scripts/render-previews.sh` when feasible (macOS); otherwise say UI was not visually verified |
+| App UI / layout / charts / Home/Library/Take | `./scripts/render-previews.sh` when feasible (macOS); otherwise say UI was not visually verified |
 | Persistence / SessionStore | Prefer preview path (it round-trips a fixture library) or exercise save/load carefully |
 | Transcription setup scripts | Do not re-download the model in CI/cloud unless explicitly asked |
 
@@ -84,10 +84,10 @@ Root: `~/Library/Application Support/VoiceCoach/`
 - `Sessions/<sessionUUID>/take-<takeUUID>.analysis.json` — full `AnalysisResult` + transcript/words for that take (and Mimic reference).
 - `Sessions/<sessionUUID>/take-<takeUUID>.wav` or `…-imported.wav`; Mimic reference audio is `reference.wav`.
 - Metadata edits (rename, Mimic style) rewrite the thin index only; new/changed takes also write their analysis blob.
-- `keepsRecordings == false` → replace prior takes and delete old WAVs/analysis after successful save.
-- Deleting a session removes its folder; deleting a take removes that take’s audio + analysis after index save succeeds.
+- `keepsRecordings == false` → replace prior takes and delete old WAVs/analysis after successful save. New recordings always keep every valid take; legacy replace-only folders prompt before the next save.
+- Deleting a Mimic removes its folder; deleting a recording removes that take’s audio + analysis after index save succeeds. Empty leftover folders are cleaned from Settings.
 - Recording: 48 kHz mono PCM, auto-stop ~90s, discard/analyze gate ~0.6s.
-- Mimic reference Mac audio capture (Core Audio process tap): system output only (not mic); used only when creating a Mimic session reference; same ~90s / 0.6s gates; requires `NSAudioCaptureUsageDescription`.
+- Mimic reference Mac audio capture (Core Audio process tap): system output only (not mic); used only when creating a Mimic reference; same ~90s / 0.6s gates; requires `NSAudioCaptureUsageDescription`.
 
 ## Where common work lands
 
@@ -101,6 +101,7 @@ Root: `~/Library/Application Support/VoiceCoach/`
 | Record / playback | `AudioRecorder.swift`, `AppModel.swift` |
 | Mimic reference Mac audio | `SystemAudioCapture.swift`, `MimicReferencePicker.swift`, `AppModel.swift` |
 | Session CRUD / navigation | `AppModel.swift`, `SessionLibrary.swift` |
+| Home / Library / Mimics | `HomeView.swift`, `DesktopShell.swift`, `ContentView.swift` |
 | Shell / sidebar / inspectors | `ContentView.swift`, `DesktopShell.swift` |
 | Take screen / charts / transcript | `TakeView.swift`, `Charts.swift`, `TranscriptBrowser.swift` |
 | Palette / glass / motion | `StudioStyle.swift` |
@@ -116,5 +117,6 @@ Root: `~/Library/Application Support/VoiceCoach/`
 ## Pointers
 
 - Human-oriented product docs: `README.md`
+- Recording-first product contract: `docs/design/RECORDING_FIRST_PRD.md`
 - Cloud bootstrap: `scripts/cloud-agent-install.sh`
 - Official AGENTS.md convention: https://agents.md/

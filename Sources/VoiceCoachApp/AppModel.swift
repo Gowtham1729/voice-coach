@@ -65,12 +65,24 @@ enum MimicPlaybackSource: CaseIterable, Identifiable {
     }
 }
 
+struct ReplaceOnlyPrompt: Equatable {
+    enum Kind: Equatable {
+        case record
+        case importClip
+    }
+
+    let sessionID: UUID
+    let kind: Kind
+}
+
 @MainActor
 final class AppModel: ObservableObject {
-    @Published var destination: AppDestination = .studio
+    @Published var destination: AppDestination = .home
     @Published private(set) var sessions: [CoachingSession] = []
     @Published var selectedSessionID: UUID?
     @Published var selectedTakeID: UUID?
+    @Published var pendingReplaceOnly: ReplaceOnlyPrompt?
+    @Published var lastUsedMimicID: UUID?
     @Published var isRecording = false
     @Published var isCapturingMimicReference = false
     @Published var isAnalyzing = false
@@ -123,6 +135,8 @@ final class AppModel: ObservableObject {
     private var mimicPlaybackEnd: Double?
     private var mimicShouldRecordAfterPlayback = false
     private var mimicAlong = false
+    private var pendingCaptureIsNewSession = false
+    private var pendingImportSourceURL: URL?
 
     init(storageRoot: URL? = nil, loadPersistedData: Bool = true) {
         do {
@@ -154,10 +168,9 @@ final class AppModel: ObservableObject {
         guard loadPersistedData else { return }
         do {
             sessions = try store.load()
-            selectedSessionID = sessions.first?.id
-            selectedTakeID = sessions.first?.latestTake?.id
+            lastUsedMimicID = sessions.first(where: { $0.isMimic && !$0.archived })?.id
         } catch {
-            errorMessage = "Your saved sessions could not be loaded. The existing files were left untouched. \(error.localizedDescription)"
+            errorMessage = "Your saved recordings could not be loaded. The existing files were left untouched. \(error.localizedDescription)"
         }
     }
 
@@ -188,8 +201,8 @@ final class AppModel: ObservableObject {
     var isMimicWorkspace: Bool {
         guard selectedSession?.mode == .mimic else { return false }
         switch destination {
-        case .studio, .practice: return true
-        case .create, .take, .sessions, .insights: return false
+        case .practice: return true
+        case .home, .mimicStart, .take, .library, .mimics: return false
         }
     }
     var hasPendingMimicWork: Bool {
@@ -198,6 +211,33 @@ final class AppModel: ObservableObject {
     var showsTakeInspector: Bool {
         if destination.isTake { return true }
         return selectedSession?.mode == .mimic && mimicWorkspaceMode == .analysis
+    }
+    var libraryRecordings: [LibraryRecording] {
+        RecordingCatalog.recordings(from: sessions)
+    }
+    var mimicSessions: [CoachingSession] {
+        sessions.filter { $0.isMimic && !$0.archived }
+    }
+    var archivedMimicSessions: [CoachingSession] {
+        sessions.filter { $0.isMimic && $0.archived }
+    }
+    var emptyLegacySessions: [CoachingSession] {
+        sessions.filter(\.isEmptyLegacy)
+    }
+    var continueMimic: CoachingSession? {
+        if let lastUsedMimicID, let session = sessions.first(where: { $0.id == lastUsedMimicID && $0.isMimic && !$0.archived }) {
+            return session
+        }
+        return mimicSessions.first
+    }
+    var userRecordedTakeCount: Int {
+        sessions.reduce(0) { $0 + $1.takes.filter { $0.takeSource == .recorded }.count }
+    }
+    var userRecordedDuration: Double {
+        sessions.reduce(0) { $0 + $1.userRecordedDuration() }
+    }
+    var importedTakeCount: Int {
+        sessions.reduce(0) { $0 + $1.takes.filter { $0.takeSource != .recorded }.count }
     }
     var totalTakeCount: Int { sessions.reduce(0) { $0 + $1.takeCount } }
     var totalRecordedDuration: Double { sessions.reduce(0) { $0 + $1.totalDuration } }
@@ -208,44 +248,42 @@ final class AppModel: ObservableObject {
         self.destination = destination
     }
 
-    func navigate(to section: NavigationSection) {
+    func navigate(toSection section: NavigationSection) {
         switch section {
-        case .studio: navigate(to: AppDestination.studio)
-        case .sessions: navigate(to: AppDestination.sessions)
-        case .insights: navigate(to: AppDestination.insights)
+        case .home: navigate(to: .home)
+        case .library: navigate(to: .library)
+        case .mimics: navigate(to: .mimics)
         }
     }
 
-    @discardableResult
-    func createSession(name: String, mode: PracticeMode, prompt: String, keepsRecordings: Bool) -> UUID {
-        let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let session = CoachingSession(
-            name: cleanName.isEmpty ? "Untitled Practice" : cleanName,
-            mode: mode,
-            prompt: prompt.trimmingCharacters(in: .whitespacesAndNewlines),
-            keepsRecordings: mode == .mimic ? true : keepsRecordings
-        )
-        sessions.insert(session, at: 0)
-        selectedSessionID = session.id
+    /// Immediate capture from Home. Does not create a library item until a valid recording is saved.
+    func startHomeRecording() {
+        if isRecording {
+            stopRecording()
+            return
+        }
+        guard !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference else { return }
+        discardPendingStandaloneIfEmpty()
         selectedTakeID = nil
-        persist()
-        destination = .practice(session.id)
-        return session.id
-    }
-
-    func startQuickPractice() {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d · h:mm a"
-        createSession(name: "Quick Practice · \(formatter.string(from: Date()))", mode: .general, prompt: "", keepsRecordings: true)
+        destination = .home
+        prepareStandaloneCapture()
+        requestPermissionAndRecord()
     }
 
     func resumeSession(_ id: UUID) {
         guard let session = sessions.first(where: { $0.id == id }) else { return }
-        selectedSessionID = id
-        selectedTakeID = session.latestTake?.id
-        navigate(to: .practice(id))
-        if session.mode == .mimic {
+        if session.isMimic {
+            selectedSessionID = id
+            selectedTakeID = session.latestTake?.id
+            lastUsedMimicID = id
             mimicWorkspaceMode = session.latestTake != nil ? .compare : .practice
+            navigate(to: .practice(id))
+        } else if let latest = session.latestTake {
+            openTake(sessionID: id, takeID: latest.id)
+        } else {
+            selectedSessionID = nil
+            selectedTakeID = nil
+            navigate(to: .library)
         }
     }
 
@@ -255,8 +293,9 @@ final class AppModel: ObservableObject {
         else { return }
         selectedSessionID = sessionID
         selectedTakeID = take.id
-        if session.mode == .mimic {
-            setMimicWorkspaceMode(.analysis)
+        if session.isMimic {
+            lastUsedMimicID = sessionID
+            setMimicWorkspaceMode(.compare)
             navigate(to: .practice(sessionID))
         } else {
             navigate(to: .take(sessionID, take.id))
@@ -295,19 +334,23 @@ final class AppModel: ObservableObject {
 
     func deleteSession(_ id: UUID) {
         if pendingMimicSessionID == id {
-            errorMessage = "This session has an unsaved recording. Retry saving it or reveal the audio file before deleting the session."
+            errorMessage = "This Mimic has an unsaved recording. Retry saving it or reveal the audio file before deleting."
             return
         }
         stopPlayback()
+        guard let session = sessions.first(where: { $0.id == id }) else { return }
         let previousSessions = sessions
         let previousSessionID = selectedSessionID
         let previousTakeID = selectedTakeID
         let previousDestination = destination
+        let wasMimic = session.isMimic
+        let attemptCount = session.takeCount
         sessions.removeAll { $0.id == id }
+        if lastUsedMimicID == id { lastUsedMimicID = nil }
         if selectedSessionID == id {
-            selectedSessionID = sessions.first?.id
-            selectedTakeID = sessions.first?.latestTake?.id
-            destination = .sessions
+            selectedSessionID = nil
+            selectedTakeID = nil
+            destination = wasMimic ? .mimics : .library
         }
         guard persist() else {
             sessions = previousSessions
@@ -318,9 +361,48 @@ final class AppModel: ObservableObject {
         }
         do {
             try store.deleteSessionData(sessionID: id)
-            toastMessage = "Session and recordings removed"
+            toastMessage = deleteMessage(wasMimic: wasMimic, attemptCount: attemptCount)
         } catch {
-            errorMessage = "The session was removed from the library, but its recording folder could not be deleted. \(error.localizedDescription)"
+            errorMessage = "Removed from the library, but the recording folder could not be deleted. \(error.localizedDescription)"
+        }
+    }
+
+    private func deleteMessage(wasMimic: Bool, attemptCount: Int) -> String {
+        guard wasMimic else { return "Recording group removed" }
+        guard attemptCount > 0 else { return "Mimic reference removed" }
+        let noun = attemptCount == 1 ? "attempt" : "attempts"
+        return "Mimic, reference, and \(attemptCount) \(noun) removed"
+    }
+
+    func archiveMimic(_ id: UUID, archived: Bool = true) {
+        guard let index = sessions.firstIndex(where: { $0.id == id && $0.isMimic }) else { return }
+        sessions[index].archived = archived
+        sessions[index].updatedAt = Date()
+        if archived, lastUsedMimicID == id { lastUsedMimicID = nil }
+        persist()
+        if archived, selectedSessionID == id {
+            selectedSessionID = nil
+            selectedTakeID = nil
+            destination = .mimics
+        }
+        toastMessage = archived ? "Mimic archived" : "Mimic restored"
+    }
+
+    func cleanupEmptyLegacySessions() {
+        let emptyIDs = sessions.filter(\.isEmptyLegacy).map(\.id)
+        guard !emptyIDs.isEmpty else {
+            toastMessage = "No unused folders to clean up"
+            return
+        }
+        sessions.removeAll { emptyIDs.contains($0.id) }
+        guard persist() else { return }
+        for id in emptyIDs {
+            try? store.deleteSessionData(sessionID: id)
+        }
+        if emptyIDs.count == 1 {
+            toastMessage = "Removed 1 unused folder"
+        } else {
+            toastMessage = "Removed \(emptyIDs.count) unused folders"
         }
     }
 
@@ -346,7 +428,8 @@ final class AppModel: ObservableObject {
                 if let selectedTakeID {
                     destination = .take(sessionID, selectedTakeID)
                 } else {
-                    destination = .practice(sessionID)
+                    selectedSessionID = nil
+                    destination = .library
                 }
             }
         }
@@ -363,28 +446,128 @@ final class AppModel: ObservableObject {
         try? FileManager.default.removeItem(at: removed.audioURL)
         if reportCache?.takeID == takeID { reportCache = nil }
         if remainingCount == 0 { mimicWorkspaceMode = .practice }
-        toastMessage = remainingCount == 0
-            ? "Take removed. Record another when you are ready."
-            : "Take removed"
+        toastMessage = "Recording removed"
     }
 
     func recordButtonPressed() {
-        if selectedSession?.mode == .mimic {
+        if selectedSession?.isMimic == true, destination.isWorkspace {
             if isRecording { stopRecording() }
             else { startMimicPractice() }
             return
         }
         guard !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference else { return }
-        isRecording ? stopRecording() : requestPermissionAndRecord()
+        if isRecording {
+            stopRecording()
+            return
+        }
+        switch destination {
+        case .home, .library, .mimics, .mimicStart:
+            startHomeRecording()
+        case .practice:
+            startMimicPractice()
+        case .take:
+            recordAnother()
+        }
+    }
+
+    func recordAnother() {
+        guard let session = selectedSession, !session.isMimic else {
+            startHomeRecording()
+            return
+        }
+        if !session.keepsRecordings {
+            pendingReplaceOnly = ReplaceOnlyPrompt(sessionID: session.id, kind: .record)
+            return
+        }
+        requestPermissionAndRecord()
+    }
+
+    func confirmKeepAllFromNowOn() {
+        guard let prompt = pendingReplaceOnly,
+              let index = sessions.firstIndex(where: { $0.id == prompt.sessionID })
+        else { return }
+        sessions[index].keepsRecordings = true
+        persist()
+        continuePendingReplaceOnly(prompt)
+    }
+
+    func confirmReplaceOldest() {
+        guard let prompt = pendingReplaceOnly else { return }
+        continuePendingReplaceOnly(prompt)
+    }
+
+    private func continuePendingReplaceOnly(_ prompt: ReplaceOnlyPrompt) {
+        let kind = prompt.kind
+        let sessionID = prompt.sessionID
+        pendingReplaceOnly = nil
+        switch kind {
+        case .record: requestPermissionAndRecord()
+        case .importClip: presentImportPanel(sessionID: sessionID)
+        }
     }
 
     func importClip() {
-        guard !isRecording, !isAnalyzing, !isRequestingPermission, ensureActiveSession(),
-              selectedSession?.mode != .mimic, let sessionID = selectedSessionID else { return }
+        guard !isRecording, !isAnalyzing, !isRequestingPermission else { return }
+        if selectedSession?.isMimic == true, destination.isWorkspace { return }
+        guard let session = selectedSession,
+              !session.isMimic,
+              destination.isWorkspace else {
+            presentImportPanel(sessionID: nil)
+            return
+        }
+        if !session.keepsRecordings {
+            pendingReplaceOnly = ReplaceOnlyPrompt(sessionID: session.id, kind: .importClip)
+            return
+        }
+        presentImportPanel(sessionID: session.id)
+    }
 
+    func startMimic() {
+        guard !isRecording, !isAnalyzing, !isRequestingPermission else { return }
+        navigate(to: .mimicStart)
+    }
+
+    func useCurrentRecordingAsMimicReference() {
+        guard let take = selectedTake, !isRecording, !isAnalyzing else { return }
+        cancelMimicPreparation()
+        let id = UUID()
+        mimicPreparationID = id
+        mimicIsPreparing = true
+        errorMessage = nil
+        let sourceName: String
+        if let sessionName = selectedSession?.name, !sessionName.isEmpty {
+            sourceName = sessionName
+        } else {
+            sourceName = take.audioURL.deletingPathExtension().lastPathComponent
+        }
+        let staged = FileManager.default.temporaryDirectory.appendingPathComponent("voice-coach-mimic-\(id).wav")
+        Task {
+            do {
+                if FileManager.default.fileExists(atPath: staged.path) {
+                    try FileManager.default.removeItem(at: staged)
+                }
+                try FileManager.default.copyItem(at: take.audioURL, to: staged)
+                guard mimicPreparationID == id else {
+                    try? FileManager.default.removeItem(at: staged)
+                    return
+                }
+                presentMimicDraft(id: id, url: staged, sourceName: sourceName, source: take.takeSource)
+                destination = .mimicStart
+            } catch {
+                try? FileManager.default.removeItem(at: staged)
+                if mimicPreparationID == id {
+                    mimicIsPreparing = false
+                    mimicPreparationID = nil
+                    errorMessage = "Could not use this recording as a Mimic reference. \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func presentImportPanel(sessionID: UUID?) {
         let panel = NSOpenPanel()
         panel.title = "Import an audio or video clip"
-        panel.message = "Voice Coach will extract the audio and save an analyzed copy in this session."
+        panel.message = "Voice Coach will extract the audio and save an analyzed copy on this Mac."
         panel.prompt = "Import clip"
         panel.allowedContentTypes = AudioImportService.allowedContentTypes
         panel.allowsMultipleSelection = false
@@ -392,11 +575,23 @@ final class AppModel: ObservableObject {
         panel.canChooseFiles = true
         guard panel.runModal() == .OK, let sourceURL = panel.url else { return }
 
+        let targetID: UUID
+        if let sessionID {
+            targetID = sessionID
+            selectedSessionID = sessionID
+            pendingCaptureIsNewSession = false
+        } else {
+            prepareStandaloneCapture()
+            guard let pending = selectedSessionID else { return }
+            targetID = pending
+            pendingImportSourceURL = sourceURL
+        }
+
         let takeID = UUID()
         let source = AudioImportService.source(for: sourceURL)
         do {
             let destinationURL = try store.importedAudioURL(
-                sessionID: sessionID,
+                sessionID: targetID,
                 takeID: takeID,
                 fileExtension: "wav"
             )
@@ -411,11 +606,13 @@ final class AppModel: ObservableObject {
                     analyze(url: destinationURL, takeID: takeID, source: source)
                 } catch {
                     try? FileManager.default.removeItem(at: destinationURL)
+                    discardPendingStandaloneIfEmpty()
                     errorMessage = "Import failed: \(error.localizedDescription)"
                     isAnalyzing = false
                 }
             }
         } catch {
+            discardPendingStandaloneIfEmpty()
             errorMessage = "Voice Coach could not create local storage for this import. \(error.localizedDescription)"
         }
     }
@@ -425,7 +622,7 @@ final class AppModel: ObservableObject {
     func copyAICoachPrompt() {
         guard let session = selectedSession, !report.isEmpty else { return }
         let coachPrompt = """
-        You are an expert speech coach. Assess the objective acoustic measurements for the take below from the session “\(session.name)”. Explain the strongest delivery patterns, identify the two highest-impact improvements, and give three specific exercises for the next take. Treat HNR as an acoustic proxy, not a medical measurement. CPP is not provided—do not invent it. Do not invent observations that are not supported by the data.
+        You are an expert speech coach. Assess the objective acoustic measurements for the recording below (“\(session.name)”). Explain the strongest delivery patterns, identify the two highest-impact improvements, and give three specific exercises for the next take. Treat HNR as an acoustic proxy, not a medical measurement. CPP is not provided—do not invent it. Do not invent observations that are not supported by the data.
 
         VOICE COACH JSON
         \(report)
@@ -465,7 +662,7 @@ final class AppModel: ObservableObject {
         )
         let coachPrompt = """
         You are an expert speech coach helping with Mimic practice.
-        The user tried to match a reference clip in session “\(context.session.name)”.
+        The user tried to match a reference clip (“\(context.session.name)”).
         Practice style for this attempt is included in the JSON.
 
         Use ONLY the JSON below. Goal: sound closer to the reference on timing, pitch contour shape, emphasis, and pause placement—not identical absolute pitch or loudness level (reference may be another speaker).
@@ -680,7 +877,10 @@ final class AppModel: ObservableObject {
     }
 
     private func requestPermissionAndRecord() {
-        guard ensureActiveSession() else { return }
+        if selectedSessionID == nil {
+            prepareStandaloneCapture()
+        }
+        guard selectedSessionID != nil else { return }
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized: beginRecording()
         case .notDetermined:
@@ -689,18 +889,45 @@ final class AppModel: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
                     self.isRequestingPermission = false
-                    if granted { self.beginRecording() }
-                    else { self.errorMessage = RecorderError.microphoneDenied.localizedDescription }
+                    if granted {
+                        self.beginRecording()
+                    } else {
+                        self.discardPendingStandaloneIfEmpty()
+                        self.errorMessage = RecorderError.microphoneDenied.localizedDescription
+                    }
                 }
             }
-        default: errorMessage = RecorderError.microphoneDenied.localizedDescription
+        default:
+            discardPendingStandaloneIfEmpty()
+            errorMessage = RecorderError.microphoneDenied.localizedDescription
         }
     }
 
-    private func ensureActiveSession() -> Bool {
-        if let selectedSessionID, sessions.contains(where: { $0.id == selectedSessionID }) { return true }
-        startQuickPractice()
-        return selectedSessionID != nil
+    private func prepareStandaloneCapture() {
+        discardPendingStandaloneIfEmpty()
+        let id = UUID()
+        pendingCaptureIsNewSession = true
+        selectedSessionID = id
+        do {
+            _ = try store.takeDirectory(sessionID: id)
+        } catch {
+            pendingCaptureIsNewSession = false
+            selectedSessionID = nil
+            errorMessage = "Voice Coach could not create local storage for this recording. \(error.localizedDescription)"
+        }
+    }
+
+    private func discardPendingStandaloneIfEmpty() {
+        guard pendingCaptureIsNewSession, let id = selectedSessionID,
+              !sessions.contains(where: { $0.id == id }) else {
+            pendingCaptureIsNewSession = false
+            pendingImportSourceURL = nil
+            return
+        }
+        try? store.deleteSessionData(sessionID: id)
+        pendingCaptureIsNewSession = false
+        pendingImportSourceURL = nil
+        if selectedSessionID == id { selectedSessionID = nil }
     }
 
     private func beginRecording() {
@@ -770,6 +997,7 @@ final class AppModel: ObservableObject {
             recordingURL = nil
             recordingTakeID = nil
             mimicPhase = .ready
+            discardPendingStandaloneIfEmpty()
             return
         }
         analyze(url: url, takeID: takeID)
@@ -951,6 +1179,8 @@ final class AppModel: ObservableObject {
                 if selectedSession?.mode == .mimic {
                     pendingMimicAudio = (url, takeID)
                     pendingMimicSessionID = selectedSessionID
+                } else if pendingCaptureIsNewSession {
+                    pendingImportSourceURL = nil
                 }
             }
             isAnalyzing = false
@@ -961,7 +1191,14 @@ final class AppModel: ObservableObject {
     }
 
     private func append(_ take: PracticeSession) {
-        guard let selectedSessionID, let index = sessions.firstIndex(where: { $0.id == selectedSessionID }) else { return }
+        guard let selectedSessionID else { return }
+
+        if pendingCaptureIsNewSession, !sessions.contains(where: { $0.id == selectedSessionID }) {
+            appendStandalone(take, sessionID: selectedSessionID)
+            return
+        }
+
+        guard let index = sessions.firstIndex(where: { $0.id == selectedSessionID }) else { return }
         let previousSessions = sessions
         var recordingsToReplace: [URL] = []
         if sessions[index].keepsRecordings || sessions[index].mode == .mimic {
@@ -980,7 +1217,7 @@ final class AppModel: ObservableObject {
         guard persist(analysisTakeIDs: [take.id]) else {
             sessions = previousSessions
             selectedTakeID = previousSessions.first(where: { $0.id == selectedSessionID })?.latestTake?.id
-            if sessions[index].mode == .mimic {
+            if sessions.first(where: { $0.id == selectedSessionID })?.mode == .mimic {
                 pendingMimicTake = take
                 pendingMimicSessionID = selectedSessionID
                 errorMessage = "The recording is still on this Mac but could not be added to the library. Retry Save or reveal the audio file."
@@ -997,11 +1234,42 @@ final class AppModel: ObservableObject {
         }
         toastMessage = "\(take.takeSource.title) saved on this Mac"
         if sessions[index].mode == .mimic {
+            lastUsedMimicID = selectedSessionID
             mimicWorkspaceMode = .compare
             destination = .practice(selectedSessionID)
         } else {
             destination = .take(selectedSessionID, take.id)
         }
+    }
+
+    private func appendStandalone(_ take: PracticeSession, sessionID: UUID) {
+        let name: String
+        if let source = pendingImportSourceURL {
+            name = source.deletingPathExtension().lastPathComponent
+        } else {
+            name = RecordingTitle.make(date: take.createdAt)
+        }
+        let session = CoachingSession(
+            id: sessionID,
+            name: name,
+            mode: .general,
+            prompt: "",
+            keepsRecordings: true,
+            takes: [take]
+        )
+        sessions.insert(session, at: 0)
+        selectedTakeID = take.id
+        pendingCaptureIsNewSession = false
+        pendingImportSourceURL = nil
+        sortSessions()
+        guard persist(analysisTakeIDs: [take.id]) else {
+            sessions.removeAll { $0.id == sessionID }
+            selectedTakeID = nil
+            errorMessage = "The recording is still on this Mac but could not be added to the library."
+            return
+        }
+        toastMessage = "\(take.takeSource.title) saved on this Mac"
+        destination = .take(sessionID, take.id)
     }
 
     private func sortSessions() { sessions.sort { $0.updatedAt > $1.updatedAt } }
@@ -1014,7 +1282,7 @@ final class AppModel: ObservableObject {
             try store.save(sessions, analysisTakeIDs: analysisTakeIDs)
             return true
         } catch {
-            errorMessage = "Voice Coach could not save your session library. \(error.localizedDescription)"
+            errorMessage = "Voice Coach could not save your library. \(error.localizedDescription)"
             return false
         }
     }
@@ -1161,6 +1429,7 @@ final class AppModel: ObservableObject {
                         mimicIsPreparing = false
                         return
                     }
+                    lastUsedMimicID = sessionID
                     selectedSessionID = sessionID
                     selectedTakeID = nil
                     mimicWorkspaceMode = .practice
@@ -1170,7 +1439,7 @@ final class AppModel: ObservableObject {
                     try? store.deleteSessionData(sessionID: sessionID)
                     if mimicPreparationID == activeID {
                         mimicIsPreparing = false
-                        errorMessage = "Could not create Mimic session: \(error.localizedDescription)"
+                        errorMessage = "Could not start Mimic: \(error.localizedDescription)"
                     }
                 }
             }
