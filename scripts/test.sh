@@ -16,4 +16,24 @@ fi
 export CLANG_MODULE_CACHE_PATH="$PROJECT_DIR/.build/module-cache"
 export SWIFTPM_MODULECACHE_OVERRIDE="$PROJECT_DIR/.build/module-cache"
 
-"$SWIFT_BIN" test --disable-sandbox
+MODE="${1:-unit}"
+
+case "$MODE" in
+    unit|--unit)
+        [[ $# -gt 0 ]] && shift
+        "$SWIFT_BIN" test --disable-sandbox "$@"
+        ;;
+    self-test|--self-test)
+        shift
+        "$SWIFT_BIN" run --disable-sandbox VoiceCoachSelfTest "$@"
+        ;;
+    all|--all)
+        shift
+        "$SWIFT_BIN" test --disable-sandbox
+        "$SWIFT_BIN" run --disable-sandbox VoiceCoachSelfTest "$@"
+        ;;
+    *)
+        echo "usage: $0 [--unit|--self-test|--all] [arguments...]" >&2
+        exit 2
+        ;;
+esac

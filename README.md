@@ -73,20 +73,21 @@ Developer alternate (same runtime/model):
 Honor a custom binary with `VOICE_COACH_NEMO_SPEECH_PATH` if needed.
 
 ```sh
-swift run VoiceCoachApp
+./script/build_and_run.sh
 ```
 
-Double-clickable app bundle:
+The script builds and signs the app bundle, stops an existing development instance, and launches the new build. It also supports `--debug`, `--logs`, `--telemetry`, and `--verify`. The Codex **Run** action uses the same entry point.
+
+Build without launching:
 
 ```sh
 ./scripts/build-app.sh
-open "build/Voice Coach.app"
 ```
 
 Analysis contract suite:
 
 ```sh
-swift run VoiceCoachSelfTest
+./scripts/test.sh --self-test
 ```
 
 Unit tests for analysis/report contracts and session persistence:

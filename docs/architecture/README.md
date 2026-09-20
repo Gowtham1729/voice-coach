@@ -53,7 +53,7 @@ Use the narrowest relevant check while editing, then run the release sequence be
 
 ```sh
 ./scripts/test.sh
-swift run VoiceCoachSelfTest
+./scripts/test.sh --self-test
 ./scripts/render-previews.sh
 ./scripts/build-app.sh
 ```
