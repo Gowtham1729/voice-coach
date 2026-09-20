@@ -61,7 +61,7 @@ extension AppModel {
     if elapsedCapture < 0.6 {
       failMimicReferenceCapture(
         url: url,
-        message: "Capture at least one second of Mac audio.")
+        message: "Capture at least one second of Mac audio."
       )
       return
     }
@@ -69,7 +69,7 @@ extension AppModel {
       failMimicReferenceCapture(
         url: url,
         message: SystemAudioCaptureError.permissionOrSilent.errorDescription
-          ?? "Play audio on this Mac, then capture again.")
+          ?? "Play audio on this Mac, then capture again."
       )
       return
     }
