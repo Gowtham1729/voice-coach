@@ -1,6 +1,14 @@
-# PR / main gate: unit tests + VoiceCoachSelfTest.
+# PR / main gate: unit tests + VoiceCoachSelfTest + release app bundle.
 # Package.swift is swift-tools-version 6.2 with platforms: [.macOS(.v26)].
 # scripts/test.sh is zsh and prefers /Applications/Xcode.app when present.
+#
+# Xcode pin: /Applications/Xcode_26.6.app is the highest stable 26.x on
+# GitHub-hosted macos-26 (image 20260907.0351.1 and 20260824.0517.1).
+# It is also the default (/Applications/Xcode.app → 26.6). Xcode 27 is a
+# public preview on a separate `xcode-27` runner image — not used here.
+#
+# Intentionally not in this workflow: render-previews, Peekaboo, extra
+# macOS jobs, or a release.yml uploader. Those stay local / follow-up.
 name: CI
 
 on:
@@ -20,11 +28,20 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Select Xcode 26.6
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+
       - name: Show toolchain
         run: |
+          xcode-select -p
           xcodebuild -version
           xcrun --sdk macosx --show-sdk-version
           swift --version
 
       - name: Run tests
         run: ./scripts/test.sh --all
+
+      - name: Build app
+        run: |
+          ./scripts/build-app.sh
+          test -d "build/Voice Coach.app"
