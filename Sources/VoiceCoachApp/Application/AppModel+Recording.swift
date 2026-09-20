@@ -23,7 +23,8 @@ extension AppModel {
             self.discardPendingStandaloneIfEmpty()
             self.presentError(
               title: "Microphone Access Needed",
-              message: RecorderError.microphoneDenied.localizedDescription ?? "")
+              message: RecorderError.microphoneDenied.errorDescription
+                ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
           }
         }
       }
@@ -31,7 +32,8 @@ extension AppModel {
       discardPendingStandaloneIfEmpty()
       presentError(
         title: "Microphone Access Needed",
-        message: RecorderError.microphoneDenied.localizedDescription ?? "")
+        message: RecorderError.microphoneDenied.errorDescription
+          ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
     }
   }
 
@@ -317,7 +319,7 @@ extension AppModel {
         pendingMimicSessionID = selectedSessionID
         presentError(
           title: "Save failed",
-          message: "The recording is still on this Mac. Retry Save, or show the audio file.")
+          message: "The recording is still on this Mac. Try again, or show the file.")
       }
       return
     }

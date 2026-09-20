@@ -103,7 +103,7 @@ extension AppModel {
     if pendingMimicSessionID == id {
       presentError(
         title: "Can’t Delete",
-        message: "This Mimic has an unsaved recording. Retry Save, or show the audio file.")
+        message: "This Mimic has an unsaved recording. Try again, or show the file.")
       return
     }
     stopPlayback()

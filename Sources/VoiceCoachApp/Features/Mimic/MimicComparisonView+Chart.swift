@@ -107,7 +107,7 @@ extension MimicComparisonView {
     switch metric {
     case .pitch: "Relative pitch · semitones by matched words"
     case .timing:
-      "Word duration (ms) · orange marks changed pauses"
+      "Word length · orange = pause change"
     case .emphasis: "Relative word energy · dB"
     }
   }

@@ -68,7 +68,8 @@ extension AppModel {
     if !heardAudio {
       failMimicReferenceCapture(
         url: url,
-        message: SystemAudioCaptureError.permissionOrSilent.localizedDescription
+        message: SystemAudioCaptureError.permissionOrSilent.errorDescription
+          ?? "Play audio on this Mac, then capture again.")
       )
       return
     }

@@ -129,13 +129,35 @@ final class AppModel: ObservableObject {
   }
 
   static func userFacingMessage(_ error: Error, fallback: String) -> String {
+    guard let description = appAuthoredDescription(error) else { return fallback }
+    return description
+  }
+
+  private static func appAuthoredDescription(_ error: Error) -> String? {
+    let authored: String?
     switch error {
-    case is RecorderError, is AudioImportError, is AnalysisError, is TranscriptionError,
-      is TranscriptionSetupError, is SystemAudioCaptureError:
-      return error.localizedDescription
-    default:
-      return fallback
+    case let error as RecorderError: authored = error.errorDescription
+    case let error as AudioImportError: authored = error.errorDescription
+    case let error as AnalysisError: authored = error.errorDescription
+    case let error as TranscriptionError: authored = error.errorDescription
+    case let error as TranscriptionSetupError: authored = error.errorDescription
+    case let error as SystemAudioCaptureError: authored = error.errorDescription
+    default: return nil
     }
+    guard let authored, isShortUserFacing(authored) else { return nil }
+    return authored
+  }
+
+  private static func isShortUserFacing(_ text: String) -> Bool {
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, trimmed.count <= 220 else { return false }
+    let lower = trimmed.lowercased()
+    if lower.contains("error domain") || lower.contains("code=") || lower.contains("nserror")
+      || lower.contains("osstatus") || lower.contains("posixerror")
+    {
+      return false
+    }
+    return true
   }
 
   var selectedSession: CoachingSession? {

@@ -262,7 +262,7 @@ struct MimicWorkspace: View {
         Text("This take isn’t in the library yet.")
           .font(.callout)
         HStack {
-          Button("Retry Save") { model.retryPendingMimicWork() }
+          Button("Try again") { model.retryPendingMimicWork() }
           Button("Show in Finder") { model.revealPendingMimicAudio() }
         }
       }

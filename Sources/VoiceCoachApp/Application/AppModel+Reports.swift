@@ -14,7 +14,7 @@ extension AppModel {
       VOICE COACH JSON
       \(report)
       """
-    copyToPasteboard(coachPrompt, message: "Copied for coach")
+    copyToPasteboard(coachPrompt, message: "Copied")
   }
 
   private var mimicCompareContext:
@@ -68,7 +68,7 @@ extension AppModel {
       MIMIC COMPARE JSON
       \(json)
       """
-    copyToPasteboard(coachPrompt, message: "Copied for coach")
+    copyToPasteboard(coachPrompt, message: "Copied")
   }
 
   func copyMimicCompareJSON() {

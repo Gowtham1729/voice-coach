@@ -126,7 +126,7 @@ extension AppModel {
   private func presentImportPanel(sessionID: UUID?) {
     let panel = NSOpenPanel()
     panel.title = "Import Audio or Video"
-    panel.message = "Voice Coach extracts the audio and analyzes a local copy."
+    panel.message = "Imports as a local audio file."
     panel.prompt = "Import"
     panel.allowedContentTypes = AudioImportService.allowedContentTypes
     panel.allowsMultipleSelection = false

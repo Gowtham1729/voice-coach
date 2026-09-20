@@ -64,7 +64,7 @@ struct MimicInspector: View {
       )
 
       if !model.mimicCompareAlignmentReliable {
-        Text("Word comparison is limited. Coach copy uses recording metrics.")
+        Text("Word comparison is limited. Coach notes use recording metrics.")
           .font(.caption)
           .foregroundStyle(Studio.secondary)
       }
@@ -83,12 +83,12 @@ struct MimicInspector: View {
         .disabled(model.isPlaying || model.isAnalyzing)
 
         Button(action: model.copyMimicCoachPrompt) {
-          Label("Copy for Coach", systemImage: "doc.on.doc")
+          Label("Copy coach notes", systemImage: "doc.on.doc")
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
         .controlSize(.regular)
-        .help("Copy this comparison to paste into a coach.")
+        .help("Copy notes to paste into a coach.")
 
         Menu {
           Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)

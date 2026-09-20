@@ -207,14 +207,16 @@ extension AppModel {
           } else {
             self.presentError(
               title: "Microphone Access Needed",
-              message: RecorderError.microphoneDenied.localizedDescription ?? "")
+              message: RecorderError.microphoneDenied.errorDescription
+                ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
           }
         }
       }
     default:
       presentError(
         title: "Microphone Access Needed",
-        message: RecorderError.microphoneDenied.localizedDescription ?? "")
+        message: RecorderError.microphoneDenied.errorDescription
+          ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
     }
   }
 

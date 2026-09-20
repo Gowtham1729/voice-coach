@@ -2,7 +2,7 @@ import SwiftUI
 
 enum VoiceMetricCopy {
   static let pitchRange = "Pitch range"
-  static let phraseFade = "Phrase fade"
+  static let phraseFade = "Drop at phrase end"
   static let clarity = "Clarity"
   static let pauses = "Pauses"
 }

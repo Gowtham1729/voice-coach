@@ -62,12 +62,12 @@ struct TakeInspector: View {
 
           VStack(spacing: 8) {
             Button(action: model.copyAICoachPrompt) {
-              Label("Copy for Coach", systemImage: "doc.on.doc")
+              Label("Copy coach notes", systemImage: "doc.on.doc")
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.regular)
-            .help("Copy this take’s measurements to paste into a coach.")
+            .help("Copy notes to paste into a coach.")
 
             Button(action: model.exportCurrent) {
               Label("Export", systemImage: "square.and.arrow.up")
