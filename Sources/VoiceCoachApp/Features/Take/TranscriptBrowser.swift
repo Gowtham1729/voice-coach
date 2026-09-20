@@ -68,25 +68,58 @@ private struct WordTimingChip: View {
   let reduceMotion: Bool
   let action: () -> Void
 
+  @Environment(\.studioSnapshot) private var snapshot
+  @State private var isHovered = false
+
+  private var showTiming: Bool {
+    isHovered || isHighlighted
+  }
+
+  private var timingText: String {
+    "\(vcNumber(word.start, 2))–\(vcNumber(word.end, 2))s"
+  }
+
   var body: some View {
     Button(action: action) {
-      VStack(alignment: .leading, spacing: 4) {
-        Text(word.word).font(.system(size: 12, weight: .medium)).lineLimit(1)
-        Text("\(vcNumber(word.start, 2))–\(vcNumber(word.end, 2))s")
-          .font(.system(size: 8, design: .monospaced)).foregroundStyle(Studio.secondary)
+      VStack(alignment: .leading, spacing: 3) {
+        Text(word.word)
+          .font(.system(size: 12, weight: .medium))
+          .lineLimit(1)
+        if showTiming {
+          Text(timingText)
+            .font(.system(size: 8, design: .monospaced))
+            .foregroundStyle(Studio.secondary)
+            .lineLimit(1)
+        }
       }
-      .padding(.horizontal, 10).padding(.vertical, 8)
-      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, 9)
+      .padding(.vertical, 6)
+      .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+      .contentShape(RoundedRectangle(cornerRadius: 9))
       .background(
-        isHighlighted ? Studio.accent.opacity(0.16) : Studio.surface.opacity(0.7),
+        isHighlighted
+          ? Studio.accent.opacity(0.16)
+          : (isHovered ? Studio.surface : Studio.surface.opacity(0.7)),
         in: RoundedRectangle(cornerRadius: 9)
       )
       .overlay(
-        RoundedRectangle(cornerRadius: 9).stroke(isHighlighted ? Studio.accent : Studio.line)
+        RoundedRectangle(cornerRadius: 9).stroke(
+          isHighlighted ? Studio.accent : (isHovered ? Studio.line.opacity(1.5) : Studio.line)
+        )
       )
       .scaleEffect(isHighlighted && isPlaying ? 1.015 : 1)
       .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: isHighlighted)
+      .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isHovered)
     }
     .buttonStyle(.plain)
+    .onHover { hovering in
+      if !snapshot {
+        isHovered = hovering
+      }
+    }
+    .accessibilityLabel(word.word)
+    .accessibilityValue(timingText)
+    .accessibilityAddTraits(isHighlighted ? .isSelected : [])
+    .help("\(word.word): \(timingText)")
   }
 }

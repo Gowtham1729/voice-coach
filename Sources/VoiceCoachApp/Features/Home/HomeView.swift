@@ -92,25 +92,29 @@ struct HomeView: View {
   }
 
   private var activityRow: some View {
-    HStack(spacing: 18) {
-      activityFact("\(model.userRecordedTakeCount)", "recordings")
-      activityFact(vcNumber(model.userRecordedDuration / 60, 1), "min recorded")
-      activityFact("\(model.importedTakeCount)", "imported")
-      activityFact("\(model.mimicSessions.count)", "Mimics")
+    HStack(spacing: 8) {
+      activityChip("\(model.userRecordedTakeCount)", "recordings")
+      activityChip(vcNumber(model.userRecordedDuration / 60, 1), "min recorded")
+      activityChip("\(model.importedTakeCount)", "imported")
+      activityChip("\(model.mimicSessions.count)", "Mimics")
       Spacer()
     }
-    .font(.caption)
-    .foregroundStyle(Studio.secondary)
     .padding(.horizontal, 4)
   }
 
-  private func activityFact(_ value: String, _ label: String) -> some View {
-    HStack(spacing: 6) {
+  private func activityChip(_ value: String, _ label: String) -> some View {
+    HStack(spacing: 5) {
       Text(value)
-        .font(.callout.weight(.medium).monospacedDigit())
+        .font(.caption.weight(.semibold).monospacedDigit())
         .foregroundStyle(Studio.ink)
       Text(label)
+        .font(.caption)
+        .foregroundStyle(Studio.secondary)
     }
+    .padding(.horizontal, 8)
+    .padding(.vertical, 3.5)
+    .background(Studio.line, in: Capsule())
+    .accessibilityElement(children: .combine)
   }
 
   private func continueMimicCard(_ session: CoachingSession) -> some View {
