@@ -7,7 +7,9 @@ enum CoreTestFixtures {
     snrDB: Double = 20,
     clippingPercent: Double = 0,
     internalPauseCount: Int = 0,
-    meanInternalPauseMs: Double = 0
+    meanInternalPauseMs: Double = 0,
+    pitchRangeSemitones: Double? = 8.0,
+    phraseDecayDB: Double = -1.0
   ) -> VoiceMetrics {
     VoiceMetrics(
       duration: duration,
@@ -29,12 +31,12 @@ enum CoreTestFixtures {
       loudnessStandardDeviationDB: 1.5,
       phraseStartDBFS: -19,
       phraseEndDBFS: -21,
-      phraseDecayDB: -2,
+      phraseDecayDB: phraseDecayDB,
       medianPitchHz: 160,
       pitchLowHz: 145,
       pitchHighHz: 180,
       pitchVariationHz: 8,
-      pitchRangeSemitones: 3.7,
+      pitchRangeSemitones: pitchRangeSemitones,
       pitchStandardDeviationSemitones: 1.2,
       pitchInstabilityPercent: 2,
       hnrDB: 18,
