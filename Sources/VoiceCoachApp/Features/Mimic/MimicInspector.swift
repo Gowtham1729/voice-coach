@@ -41,7 +41,7 @@ struct MimicInspector: View {
       }
     } content: {
       VStack(alignment: .leading, spacing: 14) {
-        InspectorMetricStack(metrics: InspectorMetricItem.voiceMetrics(metrics))
+        TakeInsightsView(metrics: metrics)
 
         if !model.mimicCompareAlignmentReliable {
           Text("Word comparison is limited. Coach notes use recording metrics.")
