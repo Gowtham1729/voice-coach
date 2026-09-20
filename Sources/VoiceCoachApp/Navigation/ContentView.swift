@@ -122,9 +122,9 @@ struct ContentView: View {
     if showsBackButton {
       ToolbarItem(placement: .navigation) {
         Button(action: goBack) {
-          Label("Library", systemImage: "chevron.left")
+          Label(parentSectionTitle, systemImage: "chevron.backward")
         }
-        .help("Back to Library")
+        .help("Back to \(parentSectionTitle)")
       }
     }
 
@@ -169,8 +169,26 @@ struct ContentView: View {
   }
 
   private var showsBackButton: Bool {
-    if case .take = model.destination { return true }
-    return false
+    switch model.destination {
+    case .take:
+      true
+    case .practice:
+      model.selectedSession != nil
+    case .home, .mimicStart, .library, .mimics:
+      false
+    }
+  }
+
+  private var parentSectionTitle: String {
+    parentSection?.title ?? ""
+  }
+
+  private var parentSection: NavigationSection? {
+    switch model.destination {
+    case .take: .library
+    case .practice: .mimics
+    case .home, .mimicStart, .library, .mimics: nil
+    }
   }
 
   private var inspectorEligible: Bool {
@@ -199,7 +217,14 @@ struct ContentView: View {
   }
 
   private func goBack() {
-    model.navigate(to: .library)
+    switch model.destination {
+    case .take:
+      model.navigate(to: .library)
+    case .practice:
+      model.navigate(to: .mimics)
+    case .home, .mimicStart, .library, .mimics:
+      break
+    }
   }
 
   private var mimicStartBinding: Binding<Bool> {
