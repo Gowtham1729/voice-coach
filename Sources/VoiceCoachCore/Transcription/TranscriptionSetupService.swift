@@ -1,5 +1,9 @@
 import Foundation
 
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
+
 public enum TranscriptionSetupPhase: String, Sendable, Equatable {
   case preparing
   case installingRuntime
