@@ -1,0 +1,30 @@
+# PR / main gate: unit tests + VoiceCoachSelfTest.
+# Package.swift is swift-tools-version 6.2 with platforms: [.macOS(.v26)].
+# scripts/test.sh is zsh and prefers /Applications/Xcode.app when present.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-version
+          swift --version
+
+      - name: Run tests
+        run: ./scripts/test.sh --all
