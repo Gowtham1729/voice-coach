@@ -135,10 +135,10 @@ enum RecorderError: LocalizedError {
 
   var errorDescription: String? {
     switch self {
-    case .couldNotStart: "The recording could not start. Check that a microphone is connected."
-    case .couldNotPlay: "The recording could not be played. Try recording another sample."
+    case .couldNotStart: "Check that a microphone is connected, then try again."
+    case .couldNotPlay: "Try playing again, or record a new take."
     case .microphoneDenied:
-      "Microphone access is off. Enable Voice Coach in System Settings → Privacy & Security → Microphone."
+      "Turn on Voice Coach in System Settings → Privacy & Security → Microphone."
     }
   }
 }

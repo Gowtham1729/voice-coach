@@ -47,16 +47,16 @@ struct MimicInspector: View {
       Divider()
 
       InspectorMetricCard(
-        title: "Pitch Dynamic Range", value: vcOptional(metrics.pitchRangeSemitones), unit: "st",
+        title: VoiceMetricCopy.pitchRange, value: vcOptional(metrics.pitchRangeSemitones), unit: "st",
         symbol: "waveform.path")
       InspectorMetricCard(
-        title: "Trailing Energy Drop", value: vcSigned(metrics.phraseDecayDB), unit: "dB",
+        title: VoiceMetricCopy.phraseFade, value: vcSigned(metrics.phraseDecayDB), unit: "dB",
         symbol: "arrow.down.right")
       InspectorMetricCard(
-        title: "Vocal Clarity (HNR)", value: vcOptional(metrics.hnrDB), unit: "dB",
+        title: VoiceMetricCopy.clarity, value: vcOptional(metrics.hnrDB), unit: "dB",
         symbol: "sparkles")
       InspectorMetricCard(
-        title: "Pause Cadence",
+        title: VoiceMetricCopy.pauses,
         value: "\(metrics.internalPauseCount)",
         unit: metrics.internalPauseCount == 1 ? "pause" : "pauses",
         detail: "\(vcNumber(metrics.meanInternalPauseMs, 0)) ms average",
@@ -64,7 +64,7 @@ struct MimicInspector: View {
       )
 
       if !model.mimicCompareAlignmentReliable {
-        Text("Word comparison limited — coach copy will lean on recording metrics.")
+        Text("Word comparison is limited. Coach copy uses recording metrics.")
           .font(.caption)
           .foregroundStyle(Studio.secondary)
       }
@@ -75,7 +75,7 @@ struct MimicInspector: View {
         Button {
           model.startMimicPractice()
         } label: {
-          Text("Try Again")
+          Text("Practice")
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
@@ -83,14 +83,12 @@ struct MimicInspector: View {
         .disabled(model.isPlaying || model.isAnalyzing)
 
         Button(action: model.copyMimicCoachPrompt) {
-          Label("Copy Coach Prompt", systemImage: "doc.on.doc")
+          Label("Copy for Coach", systemImage: "doc.on.doc")
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
         .controlSize(.regular)
-        .help(
-          "Copy a mimic coach prompt with reference and take metrics. Includes transcripts; paste only where you trust."
-        )
+        .help("Copy this comparison to paste into a coach.")
 
         Menu {
           Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
@@ -123,10 +121,10 @@ struct MimicInspector: View {
 
       Divider()
 
-      Text("Microphone: System Input")
+      Text("Microphone")
         .font(.callout)
       LiveMeterView(level: model.liveLevel).frame(height: 18)
-      Text("A two-second count-in precedes recording.")
+      Text("2-second count-in before recording.")
         .font(.caption)
         .foregroundStyle(Studio.secondary)
 
@@ -137,7 +135,7 @@ struct MimicInspector: View {
       Slider(value: $model.mimicReferenceVolume, in: 0.1...1)
       if session.mimicStyle == .speakAlong {
         Label(
-          "Headphones reduce reference sound entering the microphone.", systemImage: "headphones"
+          "Use headphones so the reference isn’t recorded.", systemImage: "headphones"
         )
         .font(.caption)
         .foregroundStyle(Studio.secondary)

@@ -49,7 +49,7 @@ struct MimicComparisonView: View {
               Toggle("Follow", isOn: $followPlayback)
                 .toggleStyle(.checkbox)
                 .font(.caption)
-                .help("Keep the current moment in view while audio plays")
+                .help("Keep the playhead in view")
             }
             if snapshot {
               Text(metric.rawValue)

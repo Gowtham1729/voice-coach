@@ -13,24 +13,23 @@ public enum TranscriptionError: LocalizedError, Sendable {
     switch self {
     case .runtimeUnavailable:
       return
-        "Parakeet transcription is not installed yet. Open Settings → Transcription to download the optional on-device Parakeet model (~714 MB), or use System transcription."
-    case .systemUnavailable(let detail):
-      return "System transcription is unavailable. \(detail)"
+        "Parakeet isn’t installed. Open Settings → Transcription to download it (~714 MB), or use System."
+    case .systemUnavailable:
+      return "System transcription isn’t available."
     case .systemLocaleUnsupported(let identifier):
       return
-        "System transcription does not support \(identifier). Choose another language in System Settings, or install Parakeet in Settings → Transcription."
-    case .systemAssetsUnavailable(let detail):
-      return "System speech model is not ready. \(detail)"
-    case .launchFailed(let detail):
-      return "Could not start local transcription: \(detail)"
+        "System transcription doesn’t support \(identifier). Choose another language in System Settings, or install Parakeet in Settings → Transcription."
+    case .systemAssetsUnavailable:
+      return "System speech model isn’t ready."
+    case .launchFailed:
+      return "Couldn’t start transcription."
     case .recognitionFailed(let detail):
       if detail.lowercased().contains("input must be a .wav") {
-        return
-          "This older imported clip was not stored as WAV. Import the source again to generate its local transcript."
+        return "This clip isn’t stored as WAV. Import it again to transcribe."
       }
-      return "Local transcription failed: \(detail)"
+      return "Transcription failed."
     case .invalidOutput:
-      return "Local transcription returned an unreadable result."
+      return "Transcription returned an unreadable result."
     }
   }
 }

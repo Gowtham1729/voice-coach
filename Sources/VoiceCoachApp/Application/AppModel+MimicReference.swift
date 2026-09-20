@@ -28,13 +28,16 @@ extension AppModel {
       mimicReferenceCaptureElapsed = 0
       mimicReferenceCaptureLevel = -80
       isCapturingMimicReference = true
-      errorMessage = nil
+      clearError()
       toastMessage = nil
       startMimicReferenceCaptureTimer()
     } catch {
       try? FileManager.default.removeItem(at: staged)
       mimicPreparationID = nil
-      errorMessage = error.localizedDescription
+      presentError(
+        title: "Capture failed",
+        error: error,
+        fallback: "Couldn’t capture Mac audio.")
     }
   }
 
@@ -58,7 +61,7 @@ extension AppModel {
     if elapsedCapture < 0.6 {
       failMimicReferenceCapture(
         url: url,
-        message: "Capture at least one second of Mac audio for the reference."
+        message: "Capture at least one second of Mac audio.")
       )
       return
     }
@@ -75,7 +78,7 @@ extension AppModel {
 
   private func failMimicReferenceCapture(url: URL, message: String) {
     try? FileManager.default.removeItem(at: url)
-    errorMessage = message
+    presentError(title: "Capture failed", message: message)
     clearMimicReferenceCaptureMeters()
     mimicPreparationID = nil
   }
@@ -109,7 +112,7 @@ extension AppModel {
   /// Shared path for file import and Mac-audio capture → trim-ready draft.
   func presentMimicDraft(id: UUID, url: URL, sourceName: String, source: TakeSource) {
     mimicIsPreparing = true
-    errorMessage = nil
+    clearError()
     Task {
       do {
         let overview = try await Task.detached(priority: .userInitiated) {
@@ -135,7 +138,10 @@ extension AppModel {
           mimicIsPreparing = false
           mimicPreparationID = nil
           clearMimicReferenceCaptureMeters()
-          errorMessage = "Could not prepare the reference: \(error.localizedDescription)"
+          presentError(
+            title: "Mimic failed",
+            error: error,
+            fallback: "Couldn’t prepare this reference.")
         }
       }
     }

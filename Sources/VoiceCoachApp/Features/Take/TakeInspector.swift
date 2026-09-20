@@ -22,7 +22,7 @@ struct TakeInspector: View {
             .foregroundStyle(Studio.secondary)
             .lineLimit(2)
             if model.isSuggestingTitle {
-              Text("Naming from transcript…")
+              Text("Naming…")
                 .font(.caption2)
                 .foregroundStyle(Studio.secondary.opacity(0.85))
             }
@@ -41,17 +41,17 @@ struct TakeInspector: View {
           }
 
           InspectorMetricCard(
-            title: "Pitch Dynamic Range",
+            title: VoiceMetricCopy.pitchRange,
             value: vcOptional(take.result.metrics.pitchRangeSemitones), unit: "st",
             symbol: "waveform.path")
           InspectorMetricCard(
-            title: "Trailing Energy Drop", value: vcSigned(take.result.metrics.phraseDecayDB),
+            title: VoiceMetricCopy.phraseFade, value: vcSigned(take.result.metrics.phraseDecayDB),
             unit: "dB", symbol: "arrow.down.right")
           InspectorMetricCard(
-            title: "Vocal Clarity (HNR)", value: vcOptional(take.result.metrics.hnrDB), unit: "dB",
+            title: VoiceMetricCopy.clarity, value: vcOptional(take.result.metrics.hnrDB), unit: "dB",
             symbol: "sparkles")
           InspectorMetricCard(
-            title: "Pause Cadence",
+            title: VoiceMetricCopy.pauses,
             value: "\(take.result.metrics.internalPauseCount)",
             unit: take.result.metrics.internalPauseCount == 1 ? "pause" : "pauses",
             detail: "\(vcNumber(take.result.metrics.meanInternalPauseMs, 0)) ms average",
@@ -62,20 +62,20 @@ struct TakeInspector: View {
 
           VStack(spacing: 8) {
             Button(action: model.copyAICoachPrompt) {
-              Label("Copy Coach Prompt", systemImage: "doc.on.doc")
+              Label("Copy for Coach", systemImage: "doc.on.doc")
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.regular)
-            .help("Copy a prompt with this take’s measurements for an AI coach")
+            .help("Copy this take’s measurements to paste into a coach.")
 
             Button(action: model.exportCurrent) {
-              Label("Export Audio + JSON", systemImage: "square.and.arrow.up")
+              Label("Export", systemImage: "square.and.arrow.up")
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
             .controlSize(.regular)
-            .help("Export the recording and analysis files")
+            .help("Export the audio and report")
 
             HStack(spacing: 8) {
               Menu {
@@ -94,7 +94,7 @@ struct TakeInspector: View {
               .buttonStyle(.bordered)
               .tint(.red)
               .disabled(model.isPlaying || model.isAnalyzing)
-              .help("Delete this take")
+              .help("Delete")
             }
           }
         }

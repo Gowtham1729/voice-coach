@@ -22,7 +22,7 @@ struct MimicTranscriptText: View {
           return .handled
         }
       )
-      .help("Choose a word to play from there")
+      .help("Play from this word")
   }
 
   private var linkedWords: AttributedString {

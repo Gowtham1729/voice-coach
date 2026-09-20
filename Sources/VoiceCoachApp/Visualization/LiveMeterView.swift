@@ -15,7 +15,7 @@ struct LiveMeterView: View {
         }
     }
     .frame(height: 8)
-    .accessibilityLabel("Live microphone level")
+    .accessibilityLabel("Microphone level")
     .accessibilityValue("\(Int(level)) decibels full scale")
   }
 }

@@ -28,7 +28,7 @@ struct SpectrogramView: View {
         }
       }
     }
-    .accessibilityLabel("Voice spectrogram from low to high frequency")
+    .accessibilityLabel("Spectrogram, low to high frequency")
   }
 
   /// Perceptually sequential stops for dark Studio chrome.

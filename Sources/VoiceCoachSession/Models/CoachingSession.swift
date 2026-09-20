@@ -14,19 +14,19 @@ package enum PracticeMode: String, Codable, CaseIterable, Identifiable, Sendable
 
   package var title: String {
     switch self {
-    case .general: "General practice"
+    case .general: "Practice"
     case .prompt: "Read a prompt"
     case .freeSpeaking: "Free speaking"
-    case .mimic: "Mimic a reference"
+    case .mimic: "Mimic"
     }
   }
 
   package var detail: String {
     switch self {
-    case .general: "Speak freely on any topic. Build consistency and confidence."
-    case .prompt: "Read a short prompt aloud. Focus on clarity and delivery."
-    case .freeSpeaking: "Speak on a topic of your choice. Develop structure and fluency."
-    case .mimic: "Listen, imitate a short clip, compare, and retry."
+    case .general: "Speak on any topic."
+    case .prompt: "Read a short prompt aloud."
+    case .freeSpeaking: "Speak on a topic of your choice."
+    case .mimic: "Listen, record, and compare."
     }
   }
 

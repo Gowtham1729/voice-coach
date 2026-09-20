@@ -10,8 +10,8 @@ struct ContentView: View {
   var body: some View {
     shell
       .tint(Studio.accent)
-      .alert("Voice Coach", isPresented: errorBinding) {
-        Button("OK", role: .cancel) { model.errorMessage = nil }
+      .alert(model.errorTitle, isPresented: errorBinding) {
+        Button("OK", role: .cancel) { model.clearError() }
       } message: {
         Text(model.errorMessage ?? "")
       }
@@ -20,14 +20,12 @@ struct ContentView: View {
           .environmentObject(model)
           .frame(width: 680, height: 640)
       }
-      .alert("Keep every recording?", isPresented: replaceOnlyBinding) {
-        Button("Keep all from now on") { model.confirmKeepAllFromNowOn() }
-        Button("Replace older recordings", role: .destructive) { model.confirmReplaceOldest() }
+      .alert("Keep all recordings?", isPresented: replaceOnlyBinding) {
+        Button("Keep All") { model.confirmKeepAllFromNowOn() }
+        Button("Replace Older", role: .destructive) { model.confirmReplaceOldest() }
         Button("Cancel", role: .cancel) { model.pendingReplaceOnly = nil }
       } message: {
-        Text(
-          "This older folder was set to keep only the newest recording. Voice Coach now keeps every valid recording unless you choose to replace."
-        )
+        Text("This session used to keep only the newest take. Keep all recordings, or replace older ones?")
       }
       .overlay(alignment: .bottom) { toast }
   }
@@ -122,9 +120,9 @@ struct ContentView: View {
     if showsBackButton {
       ToolbarItem(placement: .navigation) {
         Button(action: goBack) {
-          Label("Return to Library", systemImage: "chevron.left")
+          Label("Library", systemImage: "chevron.left")
         }
-        .help("Return to Library")
+        .help("Back to Library")
       }
     }
 
@@ -137,7 +135,7 @@ struct ContentView: View {
         } label: {
           Label("Record", systemImage: "plus")
         }
-        .help("Record a new take on this Mac")
+        .help("Record")
         .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
       }
     }
@@ -256,6 +254,6 @@ struct ContentView: View {
   }
 
   private var errorBinding: Binding<Bool> {
-    Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })
+    Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.clearError() } })
   }
 }

@@ -10,16 +10,16 @@ public enum TranscriptionEnginePreference: String, CaseIterable, Sendable, Codab
   public var title: String {
     switch self {
     case .system: "System (Apple)"
-    case .parakeet: "Parakeet (NVIDIA)"
+    case .parakeet: "Parakeet"
     }
   }
 
   public var detail: String {
     switch self {
     case .system:
-      "Default. Uses macOS on-device SpeechAnalyzer. Models are shared system assets."
+      "On-device SpeechAnalyzer. Shared system models."
     case .parakeet:
-      "Optional. Uses a local NeMo-Speech.cpp install (~714 MB) when you prefer Parakeet."
+      "Optional local Parakeet model (~714 MB)."
     }
   }
 
@@ -77,7 +77,7 @@ public struct TranscriptionService: Sendable {
           result: result,
           engine: .parakeet,
           notice:
-            "System transcription failed (\(error.localizedDescription)). Used installed Parakeet instead."
+            "System transcription failed. Used Parakeet instead."
         )
       }
     case .parakeet:

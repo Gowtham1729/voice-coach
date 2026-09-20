@@ -36,9 +36,6 @@ struct HomeView: View {
             .foregroundStyle(Studio.secondary)
             .frame(width: 78, alignment: .trailing)
         } else {
-          Text("Record, import, or start Mimic. Nothing is created until audio is saved.")
-            .font(.caption)
-            .foregroundStyle(Studio.secondary)
           Spacer()
         }
 
@@ -63,13 +60,16 @@ struct HomeView: View {
         .studioGlassButton(prominent: true)
         .keyboardShortcut(.space, modifiers: [])
         .disabled(model.isAnalyzing || model.isRequestingPermission)
-        .accessibilityLabel(model.isRecording ? "Stop recording" : "Record")
+        .accessibilityLabel(
+          model.isRecording
+            ? "Stop recording"
+            : model.isRequestingPermission ? "Allow Mic" : "Record")
       }
 
       if model.isAnalyzing {
         HStack(spacing: 8) {
           ProgressView().controlSize(.small)
-          Text("Analyzing pitch, loudness, pauses, and voice quality on this Mac…")
+          Text("Analyzing…")
             .font(.caption)
             .foregroundStyle(Studio.secondary)
         }
@@ -81,8 +81,7 @@ struct HomeView: View {
 
   private var recordTitle: String {
     if model.isRecording { return "Stop" }
-    if model.isAnalyzing { return "Analyzing…" }
-    if model.isRequestingPermission { return "Microphone…" }
+    if model.isRequestingPermission { return "Allow Mic" }
     return "Record"
   }
 
@@ -94,9 +93,9 @@ struct HomeView: View {
 
   private var activityRow: some View {
     HStack(spacing: 18) {
-      activityFact("\(model.userRecordedTakeCount)", "recordings you made")
-      activityFact(vcNumber(model.userRecordedDuration / 60, 1), "minutes recorded")
-      activityFact("\(model.importedTakeCount)", "imported clips")
+      activityFact("\(model.userRecordedTakeCount)", "recordings")
+      activityFact(vcNumber(model.userRecordedDuration / 60, 1), "min recorded")
+      activityFact("\(model.importedTakeCount)", "imported")
       activityFact("\(model.mimicSessions.count)", "Mimics")
       Spacer()
     }
@@ -167,7 +166,7 @@ struct HomeView: View {
         ContentUnavailableView {
           Label("No recordings yet", systemImage: "mic")
         } description: {
-          Text("Press Record to capture on this Mac, or import a clip.")
+          Text("Press Record or import a clip.")
         }
         .frame(maxWidth: .infinity, minHeight: 220)
       } else {

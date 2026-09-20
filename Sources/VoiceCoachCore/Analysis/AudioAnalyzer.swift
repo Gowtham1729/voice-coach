@@ -10,8 +10,8 @@ public enum AnalysisError: LocalizedError {
 
   public var errorDescription: String? {
     switch self {
-    case .emptyRecording: "The recording is empty."
-    case .unreadableAudio: "The audio file could not be decoded."
+    case .emptyRecording: "This recording is empty."
+    case .unreadableAudio: "This audio file couldn’t be decoded."
     }
   }
 }

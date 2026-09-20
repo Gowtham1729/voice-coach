@@ -33,7 +33,7 @@ extension TakeView {
           systemImage: "text.badge.xmark",
           description: Text(
             model.transcriptionNotice
-              ?? "This take has audio and acoustic measurements, but no transcript.")
+              ?? "This take has audio and analysis, but no transcript.")
         )
         .frame(maxWidth: .infinity, minHeight: 200)
       }

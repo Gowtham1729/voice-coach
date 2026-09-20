@@ -17,11 +17,9 @@ struct CreateSessionView: View {
           Spacer()
         }
 
-        Text(
-          "Import a file, or capture Mac audio. Then select a short excerpt. Attempts stay with this reference."
-        )
-        .font(.callout)
-        .foregroundStyle(Studio.secondary)
+        Text("Import a clip or capture Mac audio, then trim a short excerpt.")
+          .font(.callout)
+          .foregroundStyle(Studio.secondary)
 
         MimicReferencePicker(start: $excerptStart, end: $excerptEnd)
 
@@ -34,7 +32,7 @@ struct CreateSessionView: View {
           .tint(.primary)
           .keyboardShortcut(.cancelAction)
           .studioGlassButton()
-          Button("Start Mimic") {
+          Button("Start") {
             let name = model.mimicDraft?.sourceName ?? "Mimic"
             model.createMimicSession(name: name, start: excerptStart, end: excerptEnd)
           }
@@ -45,12 +43,6 @@ struct CreateSessionView: View {
           )
           .studioGlassButton(prominent: true)
         }
-
-        Text(
-          "Recordings and analysis stay on this Mac. Voice Coach measurements are not a medical assessment."
-        )
-        .font(.caption)
-        .foregroundStyle(Studio.secondary)
       }
       .onChange(of: model.mimicDraft?.id) { _, _ in
         loadMimicDraft()

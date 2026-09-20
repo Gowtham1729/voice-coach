@@ -1,5 +1,12 @@
 import SwiftUI
 
+enum VoiceMetricCopy {
+  static let pitchRange = "Pitch range"
+  static let phraseFade = "Phrase fade"
+  static let clarity = "Clarity"
+  static let pauses = "Pauses"
+}
+
 struct InspectorMetricCard: View {
   let title: String
   let value: String

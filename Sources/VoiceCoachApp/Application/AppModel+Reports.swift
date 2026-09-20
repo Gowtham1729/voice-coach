@@ -4,17 +4,17 @@ import VoiceCoachCore
 import VoiceCoachSession
 
 extension AppModel {
-  func copyReport() { copyToPasteboard(report, message: "Word-level voice data copied") }
+  func copyReport() { copyToPasteboard(report, message: "JSON copied") }
 
   func copyAICoachPrompt() {
     guard let session = selectedSession, !report.isEmpty else { return }
     let coachPrompt = """
-      You are an expert speech coach. Assess the objective acoustic measurements for the recording below (“\(session.name)”). Explain the strongest delivery patterns, identify the two highest-impact improvements, and give three specific exercises for the next take. Treat HNR as an acoustic proxy, not a medical measurement. CPP is not provided—do not invent it. Do not invent observations that are not supported by the data.
+      You are a speech coach. Use only the JSON for “\(session.name)”. Name the strongest patterns, the two highest-impact improvements, and three exercises for the next take. Treat HNR as an acoustic signal, not a diagnosis. CPP is not provided—do not invent it. Do not invent observations the data does not support.
 
       VOICE COACH JSON
       \(report)
       """
-    copyToPasteboard(coachPrompt, message: "AI coach prompt copied")
+    copyToPasteboard(coachPrompt, message: "Copied for coach")
   }
 
   private var mimicCompareContext:
@@ -52,32 +52,28 @@ extension AppModel {
       practiceStyle: context.style
     )
     let coachPrompt = """
-      You are an expert speech coach helping with Mimic practice.
-      The user tried to match a reference clip (“\(context.session.name)”).
-      Practice style for this attempt is included in the JSON.
+      You are a speech coach for Mimic practice. The user matched a reference (“\(context.session.name)”). Practice style is in the JSON.
 
-      Use ONLY the JSON below. Goal: sound closer to the reference on timing, pitch contour shape, emphasis, and pause placement—not identical absolute pitch or loudness level (reference may be another speaker).
+      Use only the JSON. Goal: closer timing, pitch shape, emphasis, and pauses—not identical pitch or loudness.
 
-      Rules:
-      - Treat hnr_db as an acoustic proxy only; not medical. CPP is not provided—do not invent it.
-      - If alignment.reliable is false or alignment.words is absent: ignore word-level deltas; use recording-level metrics, contours, and transcripts only. Say when word comparison is unavailable.
-      - Do not invent words, pauses, or metrics. Matched words are an LCS subset; skipped/added words may be missing from alignment.
-      - Prefer concrete, listen-verifiable cues (e.g. longer pause before X, flatter contour on Y).
+      - Treat hnr_db as an acoustic signal, not medical. Do not invent CPP.
+      - If alignment.reliable is false or alignment.words is missing, skip word-level deltas and say so.
+      - Do not invent words, pauses, or metrics.
 
       Return:
-      1) Strongest matches (0–3, skip if none)
-      2) Two highest-impact gaps vs the reference
-      3) Three specific exercises for the next take (style-aware)
+      1) Strongest matches (0–3)
+      2) Two highest-impact gaps
+      3) Three exercises for the next take
 
       MIMIC COMPARE JSON
       \(json)
       """
-    copyToPasteboard(coachPrompt, message: "Mimic coach prompt copied")
+    copyToPasteboard(coachPrompt, message: "Copied for coach")
   }
 
   func copyMimicCompareJSON() {
     guard let json = mimicCompareReportJSON() else { return }
-    copyToPasteboard(json, message: "Compare JSON copied")
+    copyToPasteboard(json, message: "JSON copied")
   }
 
   private func copyToPasteboard(_ value: String, message: String) {

@@ -21,17 +21,19 @@ extension AppModel {
   func setTranscriptionEngine(_ engine: TranscriptionEnginePreference) {
     transcriptionEngine = engine
     engine.save()
-    toastMessage = "Transcription engine set to \(engine.title)"
+    toastMessage = "Using \(engine == .system ? "System" : "Parakeet") transcription"
   }
 
   func ensureSystemTranscriptionAssets() {
     guard !systemTranscriptionStatus.isBusy else { return }
     guard !isRecording, !isAnalyzing else {
-      errorMessage = "Finish recording or analysis before downloading speech models."
+      presentError(
+        title: "Download Unavailable",
+        message: "Finish recording or analysis first.")
       return
     }
     if case .ready = systemTranscriptionStatus {
-      toastMessage = "System transcription is already ready"
+      toastMessage = "System transcription is ready"
       return
     }
 
@@ -56,8 +58,12 @@ extension AppModel {
       } catch is CancellationError {
         refreshSystemTranscriptionStatus()
       } catch {
-        systemTranscriptionStatus = .unavailable(error.localizedDescription)
-        errorMessage = error.localizedDescription
+        systemTranscriptionStatus = .unavailable(
+          Self.userFacingMessage(error, fallback: "Couldn’t download the speech model."))
+        presentError(
+          title: "Download failed",
+          error: error,
+          fallback: "Couldn’t download the speech model.")
       }
     }
   }
@@ -65,7 +71,9 @@ extension AppModel {
   func startTranscriptionSetup() {
     guard !transcriptionSetupStatus.isBusy else { return }
     guard !isRecording, !isAnalyzing else {
-      errorMessage = "Finish recording or analysis before downloading transcription."
+      presentError(
+        title: "Download Unavailable",
+        message: "Finish recording or analysis first.")
       return
     }
 
@@ -87,8 +95,12 @@ extension AppModel {
       } catch is CancellationError {
         refreshTranscriptionSetupStatus()
       } catch {
-        transcriptionSetupStatus = .failed(error.localizedDescription)
-        errorMessage = error.localizedDescription
+        transcriptionSetupStatus = .failed(
+          Self.userFacingMessage(error, fallback: "Couldn’t install Parakeet."))
+        presentError(
+          title: "Download failed",
+          error: error,
+          fallback: "Couldn’t install Parakeet.")
       }
     }
   }

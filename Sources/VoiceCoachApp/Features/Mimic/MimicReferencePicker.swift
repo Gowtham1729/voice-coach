@@ -82,7 +82,7 @@ struct MimicReferencePicker: View {
         .foregroundStyle(Studio.secondary)
 
         HStack {
-          Button(model.isPlaying ? "Stop Preview" : "Play Excerpt") {
+          Button(model.isPlaying ? "Stop" : "Play Excerpt") {
             if model.isPlaying {
               model.stopPlayback()
             } else {
@@ -91,7 +91,7 @@ struct MimicReferencePicker: View {
           }
           .disabled(end - start < 1)
           Spacer()
-          Text("Drag either handle to trim. Aim for a short spoken passage.")
+          Text("Drag a handle to trim.")
             .font(.caption)
             .foregroundStyle(Studio.secondary)
         }
@@ -111,9 +111,7 @@ struct MimicReferencePicker: View {
               .tint(.red)
               .studioGlassButton(prominent: true)
           }
-          Text(
-            "Play the voice you want to mimic on this Mac, then stop. Capture auto-stops at 90 seconds."
-          )
+          Text("Play the voice you want, then stop. Capture auto-stops at 90 seconds.")
           .font(.caption)
           .foregroundStyle(Studio.secondary)
         }
@@ -122,7 +120,7 @@ struct MimicReferencePicker: View {
           Button {
             model.chooseMimicReference()
           } label: {
-            Label("Import Audio or Video…", systemImage: "square.and.arrow.down")
+            Label("Import…", systemImage: "square.and.arrow.down")
           }
           .disabled(model.mimicIsPreparing)
           .studioGlassButton()
@@ -130,26 +128,20 @@ struct MimicReferencePicker: View {
           Button {
             model.captureMimicReferencePressed()
           } label: {
-            Label("Capture Mac Audio", systemImage: "speaker.wave.2")
+            Label("Capture", systemImage: "speaker.wave.2")
           }
           .disabled(model.mimicIsPreparing || model.isRecording)
           .studioGlassButton()
-          .help("Capture what this Mac is playing (not the microphone)")
+          .help("Capture what this Mac is playing")
         }
-        Text(
-          "Import a file, or capture Mac audio (YouTube, podcasts, and so on). Then select a short excerpt."
-        )
+        Text("Import a clip or capture Mac audio, then trim an excerpt.")
         .font(.caption)
         .foregroundStyle(Studio.secondary)
         if model.mimicIsPreparing {
-          ProgressView("Preparing audio on this Mac…")
+          ProgressView("Preparing audio…")
             .controlSize(.small)
         }
       }
-
-      Text("The reference and every attempt are saved locally with this Mimic.")
-        .font(.caption)
-        .foregroundStyle(Studio.secondary)
     }
     .padding(16)
     .desktopPanel()

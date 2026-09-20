@@ -105,7 +105,7 @@ struct SourceListSidebar: View {
             .labelStyle(.iconOnly)
         }
         .buttonStyle(.borderless)
-        .help("Voice Coach Settings")
+        .help("Settings")
       }
       .padding(.horizontal, 14)
       .padding(.vertical, 10)

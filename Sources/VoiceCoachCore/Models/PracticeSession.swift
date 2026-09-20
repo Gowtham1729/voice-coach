@@ -39,10 +39,10 @@ public enum TakeSource: String, Codable, Sendable, Equatable {
 
   public var title: String {
     switch self {
-    case .recorded: "Recorded here"
-    case .importedAudio: "Imported audio"
-    case .importedVideo: "Imported from video"
-    case .systemAudio: "Mac audio reference"
+    case .recorded: "Recorded"
+    case .importedAudio: "Imported"
+    case .importedVideo: "Imported video"
+    case .systemAudio: "Mac audio"
     }
   }
 

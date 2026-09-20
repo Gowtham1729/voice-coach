@@ -88,7 +88,7 @@ extension AppModel {
     let id = UUID()
     mimicPreparationID = id
     mimicIsPreparing = true
-    errorMessage = nil
+    clearError()
     let sourceName: String
     if let sessionName = selectedSession?.name, !sessionName.isEmpty {
       sourceName = sessionName
@@ -114,8 +114,10 @@ extension AppModel {
         if mimicPreparationID == id {
           mimicIsPreparing = false
           mimicPreparationID = nil
-          errorMessage =
-            "Could not use this recording as a Mimic reference. \(error.localizedDescription)"
+          presentError(
+            title: "Mimic failed",
+            error: error,
+            fallback: "Couldn’t use this recording as a Mimic reference.")
         }
       }
     }
@@ -123,9 +125,9 @@ extension AppModel {
 
   private func presentImportPanel(sessionID: UUID?) {
     let panel = NSOpenPanel()
-    panel.title = "Import an audio or video clip"
-    panel.message = "Voice Coach will extract the audio and save an analyzed copy on this Mac."
-    panel.prompt = "Import clip"
+    panel.title = "Import Audio or Video"
+    panel.message = "Voice Coach extracts the audio and analyzes a local copy."
+    panel.prompt = "Import"
     panel.allowedContentTypes = AudioImportService.allowedContentTypes
     panel.allowsMultipleSelection = false
     panel.canChooseDirectories = false
@@ -153,7 +155,7 @@ extension AppModel {
         fileExtension: "wav"
       )
       isAnalyzing = true
-      errorMessage = nil
+      clearError()
       toastMessage = nil
       transcriptionNotice = nil
 
@@ -164,14 +166,18 @@ extension AppModel {
         } catch {
           try? FileManager.default.removeItem(at: destinationURL)
           discardPendingStandaloneIfEmpty()
-          errorMessage = "Import failed: \(error.localizedDescription)"
+          presentError(
+            title: "Import failed",
+            error: error,
+            fallback: "Couldn’t prepare this clip. Try another audio or video file.")
           isAnalyzing = false
         }
       }
     } catch {
       discardPendingStandaloneIfEmpty()
-      errorMessage =
-        "Voice Coach could not create local storage for this import. \(error.localizedDescription)"
+      presentError(
+        title: "Import failed",
+        message: "Couldn’t create a local file for this import.")
     }
   }
 }
