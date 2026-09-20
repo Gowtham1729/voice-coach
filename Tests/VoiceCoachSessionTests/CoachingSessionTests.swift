@@ -44,4 +44,44 @@ struct CoachingSessionTests {
 
     #expect(try JSONDecoder().decode(CoachingSession.self, from: data).archived == false)
   }
+
+  @Test("LibraryRecording sidebarTitle and sidebarSubtitle format correctly")
+  func libraryRecordingSidebarProperties() {
+    let take = SessionTestFixtures.take(audioURL: URL(fileURLWithPath: "/tmp/take.wav"))
+    let session = SessionTestFixtures.session(take: take)
+    let recording = LibraryRecording.make(session: session, take: take)!
+
+    #expect(recording.iconSymbol == "mic.fill")
+    #expect(recording.sidebarTitle == "Practice")
+    #expect(recording.sidebarSubtitle == "Recorded")
+
+    // Multi-take retry stack
+    var retrySession = session
+    let secondTake = SessionTestFixtures.take(audioURL: URL(fileURLWithPath: "/tmp/take2.wav"))
+    retrySession.takes.append(secondTake)
+    let retryRec1 = LibraryRecording.make(session: retrySession, take: take)!
+    let retryRec2 = LibraryRecording.make(session: retrySession, take: secondTake)!
+
+    #expect(retryRec1.sidebarTitle == "Practice")
+    #expect(retryRec1.sidebarSubtitle == "Take 1 of 2")
+    #expect(retryRec2.sidebarTitle == "Practice")
+    #expect(retryRec2.sidebarSubtitle == "Take 2 of 2")
+
+    // Prompted retry stack
+    var promptSession = session
+    promptSession.prompt = "Tell me about yourself and your background in engineering"
+    let promptRec = LibraryRecording.make(session: promptSession, take: take)!
+    #expect(promptRec.sidebarTitle == "Tell me about yourself and your background in…")
+    #expect(promptRec.sidebarSubtitle == "Take 1 of 1")
+
+    // Mimic attempt
+    let mimicRef = MimicReference(sourceName: "Reference Speech", take: take, sourceStart: 0, sourceEnd: 2)
+    var mimicSession = session
+    mimicSession.mode = .mimic
+    mimicSession.mimicReference = mimicRef
+    let mimicRec = LibraryRecording.make(session: mimicSession, take: take)!
+    #expect(mimicRec.iconSymbol == "waveform.path")
+    #expect(mimicRec.sidebarTitle == "Reference Speech")
+    #expect(mimicRec.sidebarSubtitle == "Mimic attempt")
+  }
 }

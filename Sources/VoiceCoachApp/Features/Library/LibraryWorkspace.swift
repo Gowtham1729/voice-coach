@@ -106,11 +106,9 @@ struct DesktopLibraryWorkspace: View {
         model.openTake(sessionID: recording.sessionID, takeID: recording.take.id)
       } label: {
         HStack(spacing: 10) {
-          Image(
-            systemName: recording.isMimicAttempt ? "waveform.path" : recording.take.takeSource.icon
-          )
-          .foregroundStyle(Studio.accent)
-          .frame(width: 26)
+          Image(systemName: recording.iconSymbol)
+            .foregroundStyle(Studio.accent)
+            .frame(width: 26)
           VStack(alignment: .leading, spacing: 2) {
             Text(recording.displayTitle)
               .font(.body.weight(.medium))

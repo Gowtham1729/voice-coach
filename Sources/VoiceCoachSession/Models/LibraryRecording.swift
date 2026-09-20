@@ -17,6 +17,26 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
   package var id: UUID { take.id }
   package var isImported: Bool { take.takeSource != .recorded }
 
+  package var iconSymbol: String {
+    isMimicAttempt ? "waveform.path" : take.takeSource.icon
+  }
+
+  package var sidebarTitle: String {
+    if isMimicAttempt {
+      return mimicSourceName.flatMap { $0.isEmpty ? nil : $0 } ?? groupName
+    }
+    if isRetryStack {
+      return stackLabel
+    }
+    return groupName
+  }
+
+  package var sidebarSubtitle: String {
+    if isMimicAttempt { return "Mimic attempt" }
+    if isRetryStack { return "Take \(takeNumber) of \(takeCount)" }
+    return take.takeSource.title
+  }
+
   package var displayTitle: String {
     if isMimicAttempt {
       let source = mimicSourceName.flatMap { $0.isEmpty ? nil : $0 } ?? groupName
