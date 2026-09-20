@@ -6,8 +6,9 @@ cd "$PROJECT_DIR"
 
 XCODE_DEVELOPER="/Applications/Xcode.app/Contents/Developer"
 if [[ -x "$XCODE_DEVELOPER/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift" ]]; then
+    export DEVELOPER_DIR="$XCODE_DEVELOPER"
     SWIFT_BIN="$XCODE_DEVELOPER/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift"
-    export SDKROOT="$XCODE_DEVELOPER/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+    export SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
 else
     SWIFT_BIN="swift"
 fi
