@@ -63,16 +63,16 @@ struct CoachingSessionTests {
     let retryRec2 = LibraryRecording.make(session: retrySession, take: secondTake)!
 
     #expect(retryRec1.sidebarTitle == "Practice")
-    #expect(retryRec1.sidebarSubtitle == "Take 1 of 2")
+    #expect(retryRec1.sidebarSubtitle == "Recorded")
     #expect(retryRec2.sidebarTitle == "Practice")
-    #expect(retryRec2.sidebarSubtitle == "Take 2 of 2")
+    #expect(retryRec2.sidebarSubtitle == "Recorded")
 
     // Prompted retry stack
     var promptSession = session
     promptSession.prompt = "Tell me about yourself and your background in engineering"
     let promptRec = LibraryRecording.make(session: promptSession, take: take)!
     #expect(promptRec.sidebarTitle == "Tell me about yourself and your background in…")
-    #expect(promptRec.sidebarSubtitle == "Take 1 of 1")
+    #expect(promptRec.sidebarSubtitle == "Recorded")
 
     // Mimic attempt
     let mimicRef = MimicReference(sourceName: "Reference Speech", take: take, sourceStart: 0, sourceEnd: 2)

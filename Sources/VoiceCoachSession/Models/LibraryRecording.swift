@@ -33,7 +33,6 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
 
   package var sidebarSubtitle: String {
     if isMimicAttempt { return "Mimic attempt" }
-    if isRetryStack { return "Take \(takeNumber) of \(takeCount)" }
     return take.takeSource.title
   }
 
