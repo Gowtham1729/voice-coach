@@ -101,8 +101,9 @@ extension AppModel {
 
   func deleteSession(_ id: UUID) {
     if pendingMimicSessionID == id {
-      errorMessage =
-        "This Mimic has an unsaved recording. Retry saving it or reveal the audio file before deleting."
+      presentError(
+        title: "Can’t Delete",
+        message: "This Mimic has an unsaved recording. Try again, or show the file.")
       return
     }
     stopPlayback()
@@ -131,16 +132,17 @@ extension AppModel {
       try store.deleteSessionData(sessionID: id)
       toastMessage = deleteMessage(wasMimic: wasMimic, attemptCount: attemptCount)
     } catch {
-      errorMessage =
-        "Removed from the library, but the recording folder could not be deleted. \(error.localizedDescription)"
+      presentError(
+        title: "Delete failed",
+        message: "Removed from the library, but the folder couldn’t be deleted.")
     }
   }
 
   private func deleteMessage(wasMimic: Bool, attemptCount: Int) -> String {
-    guard wasMimic else { return "Recording group removed" }
-    guard attemptCount > 0 else { return "Mimic reference removed" }
+    guard wasMimic else { return "Recording removed" }
+    guard attemptCount > 0 else { return "Mimic removed" }
     let noun = attemptCount == 1 ? "attempt" : "attempts"
-    return "Mimic, reference, and \(attemptCount) \(noun) removed"
+    return "Mimic and \(attemptCount) \(noun) removed"
   }
 
   func archiveMimic(_ id: UUID, archived: Bool = true) {
@@ -160,7 +162,7 @@ extension AppModel {
   func cleanupEmptyLegacySessions() {
     let emptyIDs = sessions.filter(\.isEmptyLegacy).map(\.id)
     guard !emptyIDs.isEmpty else {
-      toastMessage = "No unused folders to clean up"
+      toastMessage = "No unused folders"
       return
     }
     sessions.removeAll { emptyIDs.contains($0.id) }

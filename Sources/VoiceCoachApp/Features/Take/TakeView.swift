@@ -23,9 +23,9 @@ struct TakeView: View {
         StudioPage(maxWidth: 1050, horizontalPadding: 20) {
           EmptyState(
             icon: "waveform",
-            title: "Recording not found",
-            detail: "Choose another recording from your local library.",
-            actionTitle: "View library"
+            title: "Recording Unavailable",
+            detail: "Choose another recording from Library.",
+            actionTitle: "Library"
           ) {
             model.navigate(to: .library)
           }
@@ -118,7 +118,7 @@ struct TakeView: View {
             .disabled(model.isAnalyzing || model.isRequestingPermission)
             .accessibilityLabel("Stop recording")
         } else {
-          Button("Record another", action: model.recordButtonPressed)
+          Button("Record", action: model.recordButtonPressed)
             .studioGlassButton(prominent: true)
             .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
         }

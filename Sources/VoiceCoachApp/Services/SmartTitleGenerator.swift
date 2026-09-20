@@ -23,9 +23,9 @@ enum SmartTitleGenerator {
     var settingsLabel: String {
       switch self {
       case .available: "Ready"
-      case .deviceNotEligible: "This Mac can’t run Apple Intelligence"
+      case .deviceNotEligible: "Not supported on this Mac"
       case .appleIntelligenceNotEnabled: "Turn on Apple Intelligence in System Settings"
-      case .modelNotReady: "Apple Intelligence model still downloading or preparing"
+      case .modelNotReady: "Apple Intelligence is still downloading"
       case .unavailable: "Unavailable"
       }
     }
@@ -33,15 +33,15 @@ enum SmartTitleGenerator {
     var settingsFooter: String {
       switch self {
       case .available:
-        "On-device Apple Foundation Models. Titles stay on this Mac."
+        "On-device titles. Nothing is uploaded."
       case .deviceNotEligible:
         "Smart titles need an Apple Intelligence–compatible Mac."
       case .appleIntelligenceNotEnabled:
-        "Enable Apple Intelligence & Siri in System Settings, then return here."
+        "Enable Apple Intelligence in System Settings, then return here."
       case .modelNotReady:
-        "Keep this Mac online until Apple Intelligence finishes downloading. Date titles are used until then."
+        "Keep this Mac online until Apple Intelligence finishes downloading."
       case .unavailable:
-        "Smart titles can’t run right now. Date or filename titles are used instead."
+        "Smart titles aren’t available. Date or filename titles are used instead."
       }
     }
   }

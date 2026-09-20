@@ -8,8 +8,8 @@ extension AppModel {
   func chooseMimicReference() {
     guard !mimicIsPreparing, !isRecording, !isCapturingMimicReference else { return }
     let panel = NSOpenPanel()
-    panel.title = "Choose a voice to mimic"
-    panel.message = "Audio stays on this Mac. You can select a short excerpt next."
+    panel.title = "Choose a Voice to Mimic"
+    panel.message = "Import a clip, then trim a short excerpt."
     panel.prompt = "Use Clip"
     panel.allowedContentTypes = AudioImportService.allowedContentTypes
     panel.allowsMultipleSelection = false
@@ -19,7 +19,7 @@ extension AppModel {
     let id = UUID()
     mimicPreparationID = id
     mimicIsPreparing = true
-    errorMessage = nil
+    clearError()
     let staged = FileManager.default.temporaryDirectory.appendingPathComponent(
       "voice-coach-mimic-\(id).wav")
     Task {
@@ -40,7 +40,10 @@ extension AppModel {
         if mimicPreparationID == id {
           mimicIsPreparing = false
           mimicPreparationID = nil
-          errorMessage = "Could not prepare the reference: \(error.localizedDescription)"
+          presentError(
+            title: "Mimic failed",
+            error: error,
+            fallback: "Couldn’t prepare this reference.")
         }
       }
     }
@@ -96,7 +99,8 @@ extension AppModel {
             transcription = outcome.result
             words = WordAcousticAnalyzer().analyze(transcription: outcome.result, result: acoustic)
           } catch {
-            transcriptionNotice = error.localizedDescription
+            transcriptionNotice = Self.userFacingMessage(
+              error, fallback: "Transcription failed.")
           }
           // Cancel check after ASR, before insert — never insert after dismiss.
           guard mimicPreparationID == activeID else {
@@ -143,13 +147,18 @@ extension AppModel {
           try? store.deleteSessionData(sessionID: sessionID)
           if mimicPreparationID == activeID {
             mimicIsPreparing = false
-            errorMessage = "Could not start Mimic: \(error.localizedDescription)"
+            presentError(
+              title: "Mimic failed",
+              error: error,
+              fallback: "Couldn’t start this Mimic.")
           }
         }
       }
     } catch {
       mimicIsPreparing = false
-      errorMessage = "Could not create reference storage: \(error.localizedDescription)"
+      presentError(
+        title: "Mimic failed",
+        message: "Couldn’t create a local file for this reference.")
     }
   }
 
@@ -169,8 +178,9 @@ extension AppModel {
       let reference = selectedSession?.mimicReference
     else { return }
     guard FileManager.default.fileExists(atPath: reference.take.audioURL.path) else {
-      errorMessage =
-        "The reference audio is missing. Its saved attempts are still available in Analysis."
+      presentError(
+        title: "Reference Missing",
+        message: "Previous takes are still available in Analysis.")
       return
     }
     let begin: @MainActor () -> Void = { [weak self] in
@@ -195,11 +205,18 @@ extension AppModel {
           if granted {
             begin()
           } else {
-            self.errorMessage = RecorderError.microphoneDenied.localizedDescription
+            self.presentError(
+              title: "Microphone Access Needed",
+              message: RecorderError.microphoneDenied.errorDescription
+                ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
           }
         }
       }
-    default: errorMessage = RecorderError.microphoneDenied.localizedDescription
+    default:
+      presentError(
+        title: "Microphone Access Needed",
+        message: RecorderError.microphoneDenied.errorDescription
+          ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
     }
   }
 
@@ -309,7 +326,11 @@ extension AppModel {
       mimicPlaybackEnd = mimicPlaybackEnd ?? take.result.metrics.duration
       isPlaying = true
       startPlaybackTimer()
-    } catch { errorMessage = "This clip could not be played: \(error.localizedDescription)" }
+    } catch {
+      presentError(
+        title: "Playback failed",
+        message: "This clip couldn’t be played.")
+    }
   }
 
   private func playMimicSegment(url: URL, source: MimicPlaybackSource, start: Double, end: Double) {
@@ -327,7 +348,9 @@ extension AppModel {
     } catch {
       mimicShouldRecordAfterPlayback = false
       mimicPhase = .ready
-      errorMessage = "This clip could not be played: \(error.localizedDescription)"
+      presentError(
+        title: "Playback failed",
+        message: "This clip couldn’t be played.")
     }
   }
 

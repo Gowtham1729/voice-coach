@@ -17,13 +17,13 @@ public enum AudioImportError: LocalizedError {
   public var errorDescription: String? {
     switch self {
     case .noAudioTrack:
-      "This file does not contain an audio track to analyze."
+      "This file has no audio track."
     case .unsupportedMedia:
-      "Choose an audio or video file that macOS can play."
-    case .exportFailed(let detail):
-      "Voice Coach could not prepare this clip. \(detail)"
+      "Choose an audio or video file macOS can play."
+    case .exportFailed:
+      "Couldn’t prepare this clip."
     case .invalidExcerpt:
-      "Choose an excerpt that is at least one second long and inside the clip."
+      "Select at least one second inside the clip."
     }
   }
 }

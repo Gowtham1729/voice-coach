@@ -75,7 +75,7 @@ struct DesktopLibraryWorkspace: View {
     }
     .modifier(
       OptionalSearchable(
-        text: $search, enabled: !snapshot, prompt: "Search recordings, prompts, transcripts")
+        text: $search, enabled: !snapshot, prompt: "Search")
     )
     .alert("Delete recording?", isPresented: deleteAlertBinding, presenting: deleteRecording) {
       recording in
@@ -85,7 +85,7 @@ struct DesktopLibraryWorkspace: View {
       }
       Button("Cancel", role: .cancel) {}
     } message: { recording in
-      Text("“\(recording.displayTitle)” will be removed. Other takes and Mimic references stay.")
+      Text("“\(recording.displayTitle)” will be deleted.")
     }
     .alert("Rename", isPresented: renameAlertBinding) {
       TextField("Name", text: $renameText)
@@ -147,7 +147,7 @@ struct DesktopLibraryWorkspace: View {
             }
           }
           if recording.isImported {
-            Button("Use as Mimic reference", systemImage: "waveform.path") {
+            Button("Use as Mimic", systemImage: "waveform.path") {
               model.openTake(sessionID: recording.sessionID, takeID: recording.take.id)
               model.useCurrentRecordingAsMimicReference()
             }
@@ -190,7 +190,7 @@ struct DesktopLibraryWorkspace: View {
       ContentUnavailableView {
         Label("No recordings", systemImage: "tray")
       } description: {
-        Text("Record or import from Home. Nothing is created until audio is saved.")
+        Text("Record or import a clip.")
       } actions: {
         Button("Record") { model.startHomeRecording() }
           .studioGlassButton(prominent: true)
@@ -201,7 +201,7 @@ struct DesktopLibraryWorkspace: View {
       ContentUnavailableView(
         "No Results",
         systemImage: "magnifyingglass",
-        description: Text("Try a different search or filter.")
+        description: Text("Try another search or filter.")
       )
       .frame(maxWidth: .infinity, minHeight: 420)
       .desktopPanel()

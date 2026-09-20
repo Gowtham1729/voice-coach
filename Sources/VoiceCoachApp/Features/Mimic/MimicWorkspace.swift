@@ -168,7 +168,7 @@ struct MimicWorkspace: View {
     .desktopPanel()
     .overlay(alignment: .bottomLeading) {
       if !audioAvailable {
-        Text("Reference audio is missing. Previous takes remain available in Analysis.")
+        Text("Reference audio is missing. Previous takes remain in Analysis.")
           .font(.caption)
           .foregroundStyle(.orange)
           .padding(.horizontal, 14)
@@ -179,7 +179,7 @@ struct MimicWorkspace: View {
 
   private func practicePanel(_ session: CoachingSession, reference: MimicReference) -> some View {
     VStack(alignment: .leading, spacing: 24) {
-      SectionEyebrow(text: model.isRecording ? "Recording" : "Listen, then make it yours")
+      SectionEyebrow(text: model.isRecording ? "Recording" : "Practice")
       if let transcription = reference.take.transcription {
         MimicTranscriptText(
           transcription: transcription,
@@ -195,9 +195,7 @@ struct MimicWorkspace: View {
       } else {
         ContentUnavailableView(
           "Transcript Unavailable", systemImage: "text.quote",
-          description: Text(
-            "You can listen and practise without transcription. Word-by-word comparison will be unavailable."
-          )
+          description: Text("Listen and record without a transcript. Word comparison won’t be available.")
         )
         .frame(maxWidth: .infinity, minHeight: 130)
       }
@@ -235,8 +233,8 @@ struct MimicWorkspace: View {
 
       Text(
         session.mimicStyle == .speakAlong
-          ? "Use headphones for a clean take. Speaker sound can enter your microphone while the reference plays."
-          : "Listen to the reference, then record your own version."
+          ? "Use headphones. Speaker playback can leak into the mic."
+          : "Listen to the reference, then record your version."
       )
       .font(.callout)
       .foregroundStyle(Studio.secondary)
@@ -253,19 +251,19 @@ struct MimicWorkspace: View {
         Text("Starting in \(number)…")
           .font(.headline.monospacedDigit())
       } else if model.mimicPhase == .playingReference {
-        Text("Listen to the reference. Recording starts after a short count-in.")
+        Text("Listening… Recording starts after a count-in.")
           .font(.callout)
           .foregroundStyle(Studio.secondary)
       } else if model.isAnalyzing || model.mimicPhase == .analyzing {
-        ProgressView("Saving and analyzing on this Mac…")
+        ProgressView("Analyzing…")
       }
       if model.hasPendingMimicWork {
         Divider()
-        Text("This recording is on your Mac but needs to be saved to the library.")
+        Text("This take isn’t in the library yet.")
           .font(.callout)
         HStack {
-          Button("Retry Save / Analysis") { model.retryPendingMimicWork() }
-          Button("Reveal Audio") { model.revealPendingMimicAudio() }
+          Button("Try again") { model.retryPendingMimicWork() }
+          Button("Show in Finder") { model.revealPendingMimicAudio() }
         }
       }
     }
@@ -318,25 +316,26 @@ struct MimicWorkspace: View {
   private var practiceTransport: some View {
     HStack(spacing: 12) {
       if case .countIn = model.mimicPhase {
-        Button("Cancel Count-in") { model.cancelMimicCountIn() }
+        Button("Cancel") { model.cancelMimicCountIn() }
       } else if model.mimicPhase == .playingReference {
         Button("Cancel") { model.stopPlayback() }
           .keyboardShortcut(.space, modifiers: [])
       } else if model.isRecording {
-        Button("Stop Recording") { model.recordButtonPressed() }
+        Button("Stop") { model.recordButtonPressed() }
           .tint(.red)
           .studioGlassButton(prominent: true)
       } else {
         Button("Listen") { model.toggleMimicPlayback() }
           .keyboardShortcut(.space, modifiers: [])
           .disabled(model.isAnalyzing || model.mimicPhase != .ready || model.hasPendingMimicWork)
-        Button("Start Practice") { model.startMimicPractice() }
+        Button("Practice") { model.startMimicPractice() }
           .studioGlassButton(prominent: true)
           .disabled(
             model.isAnalyzing || model.isRequestingPermission || model.isPlaying
               || model.mimicPhase != .ready || model.hasPendingMimicWork)
         if model.selectedSession?.mimicStyle == .listenAndRepeat {
-          Button("Record Now") { model.startMimicPractice(skipReference: true) }
+          Button("Record") { model.startMimicPractice(skipReference: true) }
+            .help("Record without listening first")
             .disabled(model.isAnalyzing || model.isPlaying || model.hasPendingMimicWork)
         }
       }

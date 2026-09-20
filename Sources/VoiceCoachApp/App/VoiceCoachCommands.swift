@@ -16,13 +16,13 @@ struct VoiceCoachCommands: Commands {
     }
 
     CommandGroup(after: .importExport) {
-      Button("Import Recording…") { model.importClip() }
+      Button("Import…") { model.importClip() }
         .keyboardShortcut("i", modifiers: [.command, .shift])
         .disabled(
           model.isRecording || model.isAnalyzing || model.isRequestingPermission
             || (model.selectedSession?.mode == .mimic && model.destination.isWorkspace))
 
-      Button("Export Current Recording…") { model.exportCurrent() }
+      Button("Export…") { model.exportCurrent() }
         .keyboardShortcut("e", modifiers: [.command, .shift])
         .disabled(model.selectedTake == nil || model.isRecording || model.isAnalyzing)
     }
@@ -36,8 +36,8 @@ struct VoiceCoachCommands: Commands {
     CommandMenu("Practice") {
       Button(
         model.mimicPhase == .playingReference
-          ? "Cancel Reference Playback"
-          : model.isPlaying ? "Pause Mimic Playback" : "Play Mimic Audio"
+          ? "Stop"
+          : model.isPlaying ? "Pause" : "Play"
       ) {
         model.toggleMimicPlayback()
       }
@@ -45,7 +45,7 @@ struct VoiceCoachCommands: Commands {
         !model.isMimicWorkspace || model.isRecording || model.isAnalyzing
           || (model.mimicPhase != .ready && model.mimicPhase != .playingReference))
 
-      Button(model.isRecording ? "Stop Mimic Recording" : "Start Mimic Practice") {
+      Button(model.isRecording ? "Stop Recording" : "Practice") {
         model.recordButtonPressed()
       }
       .keyboardShortcut("r", modifiers: .command)

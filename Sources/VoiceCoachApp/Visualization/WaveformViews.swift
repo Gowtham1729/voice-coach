@@ -25,7 +25,7 @@ struct WaveformView: View {
       }
       context.stroke(path, with: .color(color.opacity(0.9)), lineWidth: 1)
     }
-    .accessibilityLabel("Recorded voice waveform")
+    .accessibilityLabel("Waveform")
   }
 }
 

@@ -381,11 +381,11 @@ enum SystemAudioCaptureError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .alreadyCapturing:
-      "Mac audio capture is already running."
+      "Capture is already running."
     case .setupFailed:
-      "Voice Coach could not capture Mac audio. Check System Settings → Privacy & Security → Screen & System Audio Recording and allow Voice Coach (System Audio Recording Only is enough)."
+      "Allow Voice Coach in System Settings → Privacy & Security → Screen & System Audio Recording."
     case .permissionOrSilent:
-      "No Mac audio was captured. Play something on this Mac, then try again. If nothing was playing, grant Voice Coach access under System Settings → Privacy & Security → Screen & System Audio Recording."
+      "Play audio on this Mac, then capture again. If nothing was playing, allow Voice Coach under System Settings → Privacy & Security → Screen & System Audio Recording."
     }
   }
 }

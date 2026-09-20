@@ -60,21 +60,12 @@ struct SettingsView: View {
       Section {
         Toggle("Confirm before deleting", isOn: $confirmDelete)
         Toggle("Hide transcript snippets in Library", isOn: $hideTranscriptSnippets)
-        Toggle("Automatically name new recordings from transcripts", isOn: $autoGenerateTitles)
+        Toggle("Name recordings from transcripts", isOn: $autoGenerateTitles)
           .onChange(of: autoGenerateTitles) { _, enabled in
             if enabled { SmartTitleGenerator.prewarmIfAvailable() }
           }
       } footer: {
-        VStack(alignment: .leading, spacing: 6) {
-          Text("Ask before permanently removing recordings or Mimics.")
-          Text(
-            "Recordings stay on this Mac. Voice-quality values are coaching signals, not medical diagnoses."
-          )
-          Text("Library search can use on-device transcripts when they exist.")
-          Text(
-            "When enabled, new mic recordings and Mimics can get on-device titles from Apple Foundation Models (Apple Intelligence). Date or filename titles are used if the model is unavailable. Nothing is uploaded."
-          )
-        }
+        Text("Ask before deleting. Titles use on-device Apple Intelligence when enabled.")
       }
 
       if autoGenerateTitles {
@@ -142,9 +133,9 @@ struct SettingsView: View {
   private var libraryPane: some View {
     Form {
       Section {
-        LabeledContent("Recordings you made", value: "\(model.userRecordedTakeCount)")
+        LabeledContent("Recordings", value: "\(model.userRecordedTakeCount)")
         LabeledContent("Minutes recorded", value: vcNumber(model.userRecordedDuration / 60, 1))
-        LabeledContent("Imported clips", value: "\(model.importedTakeCount)")
+        LabeledContent("Imported", value: "\(model.importedTakeCount)")
         LabeledContent("Mimics", value: "\(model.mimicSessions.count)")
         Button("Show in Finder…", systemImage: "folder", action: model.revealStorage)
         if !model.emptyLegacySessions.isEmpty {
@@ -154,9 +145,7 @@ struct SettingsView: View {
         }
       } footer: {
         VStack(alignment: .leading, spacing: 6) {
-          Text(
-            "Audio, Mimic references, and optional transcripts live under this folder. Nothing is uploaded."
-          )
+          Text("Audio and transcripts stay in this folder.")
           Text(model.storageLocation.path)
             .font(.caption.monospaced())
             .textSelection(.enabled)
@@ -212,14 +201,12 @@ struct SettingsView: View {
             .foregroundStyle(Studio.accent)
         }
         HStack {
-          Text("Automatically name new recordings from transcripts")
+          Text("Name recordings from transcripts")
           Spacer()
           Image(systemName: autoGenerateTitles ? "checkmark.circle.fill" : "circle")
             .foregroundStyle(Studio.accent)
         }
-        Text(
-          "Recordings stay on this Mac. Titles use on-device Apple Foundation Models when enabled."
-        )
+        Text("Recordings stay on this Mac. Titles use Apple Intelligence when enabled.")
         .font(.caption)
         .foregroundStyle(.secondary)
       }
@@ -236,8 +223,8 @@ struct SettingsView: View {
       }
 
       snapshotCard("Library", symbol: "internaldrive") {
-        LabeledContent("Recordings you made", value: "\(model.userRecordedTakeCount)")
-        LabeledContent("Imported clips", value: "\(model.importedTakeCount)")
+        LabeledContent("Recordings", value: "\(model.userRecordedTakeCount)")
+        LabeledContent("Imported", value: "\(model.importedTakeCount)")
         LabeledContent("Mimics", value: "\(model.mimicSessions.count)")
       }
     }
@@ -273,9 +260,9 @@ extension TranscriptionEnginePreference {
   fileprivate var settingsFooter: String {
     switch self {
     case .system:
-      "On-device Apple SpeechAnalyzer. Shared system speech models."
+      "On-device SpeechAnalyzer. Shared system models."
     case .parakeet:
-      "Optional local NeMo-Speech install. Recordings are never uploaded."
+      "Optional local Parakeet model (~714 MB)."
     }
   }
 }
@@ -286,9 +273,9 @@ extension SystemTranscriptionStatus {
     case .ready(let locale):
       "\(locale) · on-device"
     case .needsDownload(let locale):
-      "Download the Apple speech model for \(locale). Analysis still works without it."
+      "Download the speech model for \(locale). Analysis still works without it."
     case .downloading(let locale):
-      "Downloading model for \(locale)…"
+      "Downloading \(locale)…"
     case .unavailable(let message):
       message
     }
@@ -301,7 +288,7 @@ extension TranscriptionSetupStatus {
     case .ready(_, let modelID):
       "\(modelID) · local only"
     case .missing:
-      "Optional. System transcription works without Parakeet."
+      "Optional. System transcription works without it."
     case .installing(let phase):
       phase.userFacingLabel
     case .failed(let message), .unsupported(let message):

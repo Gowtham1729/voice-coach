@@ -32,10 +32,10 @@ public struct AppleSpeechTranscriber: Sendable {
   {
     #if canImport(Speech)
       guard SpeechTranscriber.isAvailable else {
-        return .unavailable("Apple SpeechTranscriber is not available on this Mac.")
+        return .unavailable("Speech transcription isn’t available on this Mac.")
       }
       guard let locale = await resolveLocale(for: preferredLocale) else {
-        return .unavailable("No Apple speech locale matches \(preferredLocale.identifier).")
+        return .unavailable("No speech locale matches \(preferredLocale.identifier).")
       }
 
       let installed = await SpeechTranscriber.installedLocales
@@ -53,12 +53,12 @@ public struct AppleSpeechTranscriber: Sendable {
       case .supported:
         return .needsDownload(localeIdentifier: locale.identifier)
       case .unsupported:
-        return .unavailable("Apple speech assets are unsupported for \(locale.identifier).")
+        return .unavailable("Speech models aren’t supported for \(locale.identifier).")
       @unknown default:
-        return .unavailable("Apple speech asset status is unknown for \(locale.identifier).")
+        return .unavailable("Speech model status is unknown for \(locale.identifier).")
       }
     #else
-      return .unavailable("Apple speech transcription requires the Speech framework.")
+      return .unavailable("Speech transcription requires the Speech framework.")
     #endif
   }
 
@@ -66,7 +66,7 @@ public struct AppleSpeechTranscriber: Sendable {
     #if canImport(Speech)
       guard SpeechTranscriber.isAvailable else {
         throw TranscriptionError.systemUnavailable(
-          "Apple SpeechTranscriber is not available on this Mac.")
+          "Speech transcription isn’t available on this Mac.")
       }
       guard let locale = await resolveLocale(for: preferredLocale) else {
         throw TranscriptionError.systemLocaleUnsupported(preferredLocale.identifier)
@@ -74,7 +74,7 @@ public struct AppleSpeechTranscriber: Sendable {
       try await installAssetsIfNeeded(for: locale)
     #else
       throw TranscriptionError.systemUnavailable(
-        "Apple speech transcription requires the Speech framework.")
+        "Speech transcription requires the Speech framework.")
     #endif
   }
 
@@ -82,7 +82,7 @@ public struct AppleSpeechTranscriber: Sendable {
     #if canImport(Speech) && canImport(AVFoundation)
       guard SpeechTranscriber.isAvailable else {
         throw TranscriptionError.systemUnavailable(
-          "Apple SpeechTranscriber is not available on this Mac.")
+          "Speech transcription isn’t available on this Mac.")
       }
       guard let resolvedLocale = await Self.resolveLocale(for: locale) else {
         throw TranscriptionError.systemLocaleUnsupported(locale.identifier)
@@ -145,7 +145,7 @@ public struct AppleSpeechTranscriber: Sendable {
       return payload
     #else
       throw TranscriptionError.systemUnavailable(
-        "Apple speech transcription requires Speech and AVFoundation.")
+        "Speech transcription requires Speech and AVFoundation.")
     #endif
   }
 
@@ -188,13 +188,13 @@ public struct AppleSpeechTranscriber: Sendable {
         return
       case .downloading:
         throw TranscriptionError.systemAssetsUnavailable(
-          "Apple speech model for \(locale.identifier) is still downloading."
+          "Speech model for \(locale.identifier) is still downloading."
         )
       case .unsupported:
         throw TranscriptionError.systemLocaleUnsupported(locale.identifier)
       @unknown default:
         throw TranscriptionError.systemAssetsUnavailable(
-          "Apple speech model for \(locale.identifier) is not ready."
+          "Speech model for \(locale.identifier) isn’t ready."
         )
       }
     }
@@ -229,11 +229,11 @@ public enum SystemTranscriptionStatus: Sendable, Equatable {
   public var detail: String {
     switch self {
     case .ready(let locale):
-      "Apple SpeechTranscriber · \(locale) · on-device"
+      "\(locale) · on-device"
     case .needsDownload(let locale):
-      "Download the shared Apple speech model for \(locale). Acoustic analysis still works without it."
+      "Download the speech model for \(locale). Analysis still works without it."
     case .downloading(let locale):
-      "Downloading Apple speech model for \(locale)…"
+      "Downloading \(locale)…"
     case .unavailable(let message):
       message
     }

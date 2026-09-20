@@ -107,7 +107,7 @@ struct LabeledLineChart: View {
               maxJumpSemitones: maxJumpSemitones
             )
           } else {
-            Text("Not enough voiced audio for a contour")
+            Text("Not enough voiced audio")
               .font(.system(size: 12)).foregroundStyle(Studio.secondary)
           }
           TimeRangeHighlight(range: highlightedRange, duration: duration)

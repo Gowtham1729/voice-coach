@@ -17,8 +17,9 @@ extension AppModel {
       isPlaying = true
       startPlaybackTimer()
     } catch {
-      errorMessage =
-        "This recording could not be played. Its audio file may have been moved. \(error.localizedDescription)"
+      presentError(
+        title: "Playback failed",
+        message: "This recording’s audio file is missing or unreadable.")
     }
   }
 
@@ -51,15 +52,19 @@ extension AppModel {
         try recorder.play(url: take.audioURL, from: clamped)
         isPlaying = true
         startPlaybackTimer()
-      } catch { errorMessage = error.localizedDescription }
+      } catch {
+        presentError(
+          title: "Playback failed",
+          message: "This recording’s audio file is missing or unreadable.")
+      }
     }
   }
 
   func exportCurrent() {
     guard let take = selectedTake else { return }
     let panel = NSOpenPanel()
-    panel.title = "Choose where to export this Voice Coach take"
-    panel.prompt = "Export Here"
+    panel.title = "Export Recording"
+    panel.prompt = "Export"
     panel.canChooseFiles = false
     panel.canChooseDirectories = true
     panel.canCreateDirectories = true
@@ -76,9 +81,11 @@ extension AppModel {
         at: take.audioURL, to: folder.appendingPathComponent("recording.\(extensionName)"))
       try report.write(
         to: folder.appendingPathComponent("voice-report.json"), atomically: true, encoding: .utf8)
-      toastMessage = "Exported audio and report"
+      toastMessage = "Export complete"
       NSWorkspace.shared.activateFileViewerSelecting([folder])
-    } catch { errorMessage = "Could not export the take: \(error.localizedDescription)" }
+    } catch {
+      presentError(title: "Export failed", message: "Couldn’t write the audio and report files.")
+    }
   }
 
   func revealStorage() { NSWorkspace.shared.activateFileViewerSelecting([storageLocation]) }

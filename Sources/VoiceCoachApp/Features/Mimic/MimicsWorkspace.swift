@@ -26,10 +26,10 @@ struct DesktopMimicsWorkspace: View {
             Label("No Mimics", systemImage: "waveform.path")
           } description: {
             Text(
-              "Import a short clip and practice against it. Your attempts stay with that reference."
+              "Import a clip and practice against it."
             )
           } actions: {
-            Button("Start Mimic", action: model.startMimic)
+            Button("New Mimic", action: model.startMimic)
               .studioGlassButton(prominent: true)
           }
           .frame(maxWidth: .infinity, minHeight: 420)
@@ -64,7 +64,7 @@ struct DesktopMimicsWorkspace: View {
     } message: { session in
       let attempts = session.takeCount
       Text(
-        "This removes the reference “\(session.mimicReference?.sourceName ?? session.name)” and \(attempts) \(attempts == 1 ? "attempt" : "attempts")."
+        "This deletes “\(session.mimicReference?.sourceName ?? session.name)” and \(attempts) \(attempts == 1 ? "attempt" : "attempts")."
       )
     }
   }

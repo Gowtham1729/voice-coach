@@ -105,9 +105,9 @@ extension MimicComparisonView {
 
   var chartCaption: String {
     switch metric {
-    case .pitch: "Relative pitch contour · semitones aligned by matched words"
+    case .pitch: "Relative pitch · semitones by matched words"
     case .timing:
-      "Word durations (ms) · longer bar fills each pair · orange marks changed pauses · click a row to play"
+      "Word length · orange = pause change"
     case .emphasis: "Relative word energy · dB"
     }
   }
@@ -185,7 +185,7 @@ extension MimicComparisonView {
         }
         .font(.body)
       } else {
-        Text("Transcript unavailable")
+        Text("No transcript")
           .foregroundStyle(Studio.secondary)
       }
     }
@@ -306,7 +306,7 @@ extension MimicComparisonView {
       jump(to: index, source: model.mimicPlaybackSource)
     }
     .accessibilityLabel(
-      "\(metric.rawValue) comparison of \(pairs.count) matched words. Choose a word below to play it."
+      "\(metric.rawValue) comparison of \(pairs.count) matched words. Choose a word to play it."
     )
     .overlay(alignment: .topLeading) {
       if !followPlayback, let x = playbackX {

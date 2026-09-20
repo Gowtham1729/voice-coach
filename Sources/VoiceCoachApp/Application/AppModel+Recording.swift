@@ -21,13 +21,19 @@ extension AppModel {
             self.beginRecording()
           } else {
             self.discardPendingStandaloneIfEmpty()
-            self.errorMessage = RecorderError.microphoneDenied.localizedDescription
+            self.presentError(
+              title: "Microphone Access Needed",
+              message: RecorderError.microphoneDenied.errorDescription
+                ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
           }
         }
       }
     default:
       discardPendingStandaloneIfEmpty()
-      errorMessage = RecorderError.microphoneDenied.localizedDescription
+      presentError(
+        title: "Microphone Access Needed",
+        message: RecorderError.microphoneDenied.errorDescription
+          ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
     }
   }
 
@@ -41,8 +47,9 @@ extension AppModel {
     } catch {
       pendingCaptureIsNewSession = false
       selectedSessionID = nil
-      errorMessage =
-        "Voice Coach could not create local storage for this recording. \(error.localizedDescription)"
+      presentError(
+        title: "Recording failed",
+        message: "Couldn’t create a local file for this recording.")
     }
   }
 
@@ -81,7 +88,7 @@ extension AppModel {
         mimicPhase = .recording
       }
       isAnalyzing = false
-      errorMessage = nil
+      clearError()
       toastMessage = nil
       transcriptionNotice = nil
       startTimer()
@@ -98,14 +105,20 @@ extension AppModel {
           timer = nil
           isRecording = false
           mimicPhase = .ready
-          errorMessage =
-            "Could not play the reference while recording. \(error.localizedDescription)"
+          presentError(
+            title: "Playback failed",
+            message: "Couldn’t play the reference while recording.")
           if let recordingURL { try? FileManager.default.removeItem(at: recordingURL) }
           recordingURL = nil
           recordingTakeID = nil
         }
       }
-    } catch { errorMessage = error.localizedDescription }
+    } catch {
+      presentError(
+        title: "Recording failed",
+        error: error,
+        fallback: "Couldn’t start recording. Check that a microphone is connected.")
+    }
   }
 
   func stopRecording() {
@@ -123,7 +136,9 @@ extension AppModel {
     isRecording = false
     if wasMimic { mimicPhase = .analyzing }
     guard elapsed >= 0.6, let url = recordingURL, let takeID = recordingTakeID else {
-      errorMessage = "Record at least one second so there is enough voice to analyze."
+      presentError(
+        title: "Recording Too Short",
+        message: "Record at least one second.")
       if let recordingURL { try? FileManager.default.removeItem(at: recordingURL) }
       recordingURL = nil
       recordingTakeID = nil
@@ -161,7 +176,7 @@ extension AppModel {
           )
           notice = outcome.notice
         } catch {
-          notice = error.localizedDescription
+          notice = Self.userFacingMessage(error, fallback: "Transcription failed.")
         }
 
         let take = PracticeSession(
@@ -185,7 +200,10 @@ extension AppModel {
           transcript: transcription?.text
         )
       } catch {
-        errorMessage = "Analysis failed: \(error.localizedDescription)"
+        presentError(
+          title: "Analysis failed",
+          error: error,
+          fallback: "Couldn’t analyze this recording. Try again.")
         if selectedSession?.mode == .mimic {
           pendingMimicAudio = (url, takeID)
           pendingMimicSessionID = selectedSessionID
@@ -299,8 +317,9 @@ extension AppModel {
       if sessions.first(where: { $0.id == selectedSessionID })?.mode == .mimic {
         pendingMimicTake = take
         pendingMimicSessionID = selectedSessionID
-        errorMessage =
-          "The recording is still on this Mac but could not be added to the library. Retry Save or reveal the audio file."
+        presentError(
+          title: "Save failed",
+          message: "The recording is still on this Mac. Try again, or show the file.")
       }
       return
     }
@@ -312,7 +331,7 @@ extension AppModel {
     for url in recordingsToReplace where url != take.audioURL {
       try? FileManager.default.removeItem(at: url)
     }
-    toastMessage = "\(take.takeSource.title) saved on this Mac"
+    toastMessage = saveToast(for: take.takeSource)
     if sessions[index].mode == .mimic {
       lastUsedMimicID = selectedSessionID
       mimicWorkspaceMode = .compare
@@ -345,14 +364,24 @@ extension AppModel {
     guard persist(analysisTakeIDs: [take.id]) else {
       sessions.removeAll { $0.id == sessionID }
       selectedTakeID = nil
-      errorMessage = "The recording is still on this Mac but could not be added to the library."
+      presentError(
+        title: "Save failed",
+        message: "The recording is still on this Mac but wasn’t added to the library.")
       return
     }
-    toastMessage = "\(take.takeSource.title) saved on this Mac"
+    toastMessage = saveToast(for: take.takeSource)
     destination = .take(sessionID, take.id)
   }
 
   func sortSessions() { sessions.sort { $0.updatedAt > $1.updatedAt } }
+
+  private func saveToast(for source: TakeSource) -> String {
+    switch source {
+    case .recorded: "Recording saved"
+    case .importedAudio, .importedVideo: "Import saved"
+    case .systemAudio: "Mac audio saved"
+    }
+  }
 
   /// Persists the thin session index. Pass take IDs whose analysis blobs changed;
   /// omit (default empty) for metadata-only updates such as rename or Mimic style.
@@ -362,7 +391,7 @@ extension AppModel {
       try store.save(sessions, analysisTakeIDs: analysisTakeIDs)
       return true
     } catch {
-      errorMessage = "Voice Coach could not save your library. \(error.localizedDescription)"
+      presentError(title: "Save failed", message: "Couldn’t update the library.")
       return false
     }
   }

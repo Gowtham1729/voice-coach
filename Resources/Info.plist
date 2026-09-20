@@ -27,9 +27,9 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Voice Coach uses your microphone only to record voice samples that you choose to analyze locally.</string>
+    <string>Voice Coach uses the microphone to record practice takes on this Mac.</string>
     <key>NSAudioCaptureUsageDescription</key>
-    <string>Voice Coach can capture Mac audio (for example a YouTube clip playing on this computer) so you can analyze it locally for practice. It does not record your microphone in that mode, and audio stays on this Mac.</string>
+    <string>Voice Coach captures Mac audio so you can use a clip as a Mimic reference. Capture stays on this Mac.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

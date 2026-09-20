@@ -26,7 +26,7 @@ extension TakeView {
       pasteboard.setData(data, forType: .png)
     }
     isGraphCopied = true
-    model.toastMessage = "\(selectedPlot.rawValue) graph copied as PNG"
+    model.toastMessage = "\(selectedPlot.rawValue) graph copied"
   }
 
   func analysisClipboardSnapshot(_ take: PracticeSession) -> some View {

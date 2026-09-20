@@ -22,12 +22,13 @@ final class AppModel: ObservableObject {
   @Published var liveLevel: Double = -80
   @Published var mimicReferenceCaptureElapsed: TimeInterval = 0
   @Published var mimicReferenceCaptureLevel: Double = -80
+  @Published var errorTitle = "Voice Coach"
   @Published var errorMessage: String?
   @Published var toastMessage: String?
   @Published var transcriptionNotice: String?
   @Published var transcriptionSetupStatus: TranscriptionSetupStatus = .missing
   @Published var systemTranscriptionStatus: SystemTranscriptionStatus = .unavailable(
-    "Checking system speech…")
+    "Checking speech…")
   @Published var transcriptionEngine: TranscriptionEnginePreference = .load()
   @Published var mimicDraft: MimicReferenceDraft?
   @Published var mimicIsPreparing = false
@@ -88,13 +89,13 @@ final class AppModel: ObservableObject {
     }
     recorder.onRecordingInterrupted = { [weak self] in
       guard let self, self.isRecording else { return }
-      self.toastMessage = "Recording interrupted; saving the audio captured so far."
+      self.toastMessage = "Recording interrupted. Saving…"
       self.stopRecording()
     }
     systemAudioCapture.onCaptureInterrupted = { [weak self] in
       Task { @MainActor in
         guard let self, self.isCapturingMimicReference else { return }
-        self.toastMessage = "Mac audio capture interrupted; using what was captured."
+        self.toastMessage = "Capture interrupted. Using what was recorded."
         self.finishMimicReferenceCapture()
       }
     }
@@ -107,9 +108,56 @@ final class AppModel: ObservableObject {
       sessions = try store.load()
       lastUsedMimicID = sessions.first(where: { $0.isMimic && !$0.archived })?.id
     } catch {
-      errorMessage =
-        "Your saved recordings could not be loaded. The existing files were left untouched. \(error.localizedDescription)"
+      presentError(
+        title: "Library couldn’t be loaded",
+        message: "Existing files were left untouched. Try quitting and reopening Voice Coach.")
     }
+  }
+
+  func presentError(title: String, message: String) {
+    errorTitle = title
+    errorMessage = message
+  }
+
+  func presentError(title: String, error: Error, fallback: String) {
+    presentError(title: title, message: Self.userFacingMessage(error, fallback: fallback))
+  }
+
+  func clearError() {
+    errorTitle = "Voice Coach"
+    errorMessage = nil
+  }
+
+  static func userFacingMessage(_ error: Error, fallback: String) -> String {
+    guard let description = appAuthoredDescription(error) else { return fallback }
+    return description
+  }
+
+  private static func appAuthoredDescription(_ error: Error) -> String? {
+    let authored: String?
+    switch error {
+    case let error as RecorderError: authored = error.errorDescription
+    case let error as AudioImportError: authored = error.errorDescription
+    case let error as AnalysisError: authored = error.errorDescription
+    case let error as TranscriptionError: authored = error.errorDescription
+    case let error as TranscriptionSetupError: authored = error.errorDescription
+    case let error as SystemAudioCaptureError: authored = error.errorDescription
+    default: return nil
+    }
+    guard let authored, isShortUserFacing(authored) else { return nil }
+    return authored
+  }
+
+  private static func isShortUserFacing(_ text: String) -> Bool {
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, trimmed.count <= 220 else { return false }
+    let lower = trimmed.lowercased()
+    if lower.contains("error domain") || lower.contains("code=") || lower.contains("nserror")
+      || lower.contains("osstatus") || lower.contains("posixerror")
+    {
+      return false
+    }
+    return true
   }
 
   var selectedSession: CoachingSession? {

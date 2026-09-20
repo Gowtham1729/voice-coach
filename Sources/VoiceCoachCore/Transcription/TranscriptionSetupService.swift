@@ -1,5 +1,9 @@
 import Foundation
 
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
+
 public enum TranscriptionSetupPhase: String, Sendable, Equatable {
   case preparing
   case installingRuntime
@@ -9,9 +13,9 @@ public enum TranscriptionSetupPhase: String, Sendable, Equatable {
   public var userFacingLabel: String {
     switch self {
     case .preparing: "Preparing…"
-    case .installingRuntime: "Installing transcription runtime…"
-    case .downloadingModel: "Downloading Parakeet model (~714 MB)…"
-    case .verifying: "Verifying local install…"
+    case .installingRuntime: "Installing runtime…"
+    case .downloadingModel: "Downloading Parakeet (~714 MB)…"
+    case .verifying: "Verifying…"
     }
   }
 }
@@ -46,9 +50,9 @@ public enum TranscriptionSetupStatus: Sendable, Equatable {
   public var detail: String {
     switch self {
     case .ready(_, let modelID):
-      "\(modelID) · local only · optional"
+      "\(modelID) · local"
     case .missing:
-      "Optional fallback. Acoustic analysis and System transcription work without this."
+      "Optional. System transcription works without it."
     case .installing(let phase):
       phase.userFacingLabel
     case .failed(let message), .unsupported(let message):
@@ -68,14 +72,14 @@ public enum TranscriptionSetupError: LocalizedError, Sendable {
     switch self {
     case .unsupportedArchitecture:
       return TranscriptionSetupService.appleSiliconRequirement
-    case .downloadFailed(let detail):
-      return "Could not download the transcription installer: \(detail)"
-    case .installFailed(let detail):
-      return "Could not install the local transcription runtime: \(detail)"
-    case .pullFailed(let detail):
-      return "Could not download the Parakeet model: \(detail)"
-    case .verificationFailed(let detail):
-      return "Transcription install finished, but verification failed: \(detail)"
+    case .downloadFailed:
+      return "Couldn’t download the installer."
+    case .installFailed:
+      return "Couldn’t install the transcription runtime."
+    case .pullFailed:
+      return "Couldn’t download the Parakeet model."
+    case .verificationFailed:
+      return "Install finished, but verification failed."
     }
   }
 }
@@ -95,7 +99,7 @@ public struct TranscriptionSetupService: Sendable {
   }
 
   public static let appleSiliconRequirement =
-    "On-device Parakeet transcription currently requires Apple Silicon."
+    "Parakeet requires Apple Silicon."
 
   public static var isAppleSilicon: Bool {
     #if arch(arm64)

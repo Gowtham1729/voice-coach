@@ -6,13 +6,13 @@ struct DeleteTakeDialog: ViewModifier {
 
   func body(content: Content) -> some View {
     content.confirmationDialog(
-      "Delete this recording?",
+      "Delete Recording?",
       isPresented: Binding(
         get: { takeID != nil },
         set: { if !$0 { takeID = nil } }
       )
     ) {
-      Button("Delete recording", role: .destructive) {
+      Button("Delete", role: .destructive) {
         if let takeID {
           onDelete(takeID)
         }
@@ -20,7 +20,7 @@ struct DeleteTakeDialog: ViewModifier {
       }
       Button("Cancel", role: .cancel) { takeID = nil }
     } message: {
-      Text("The recording and analysis will be removed. Other takes and Mimic references stay.")
+      Text("This recording and its analysis will be deleted.")
     }
   }
 }
