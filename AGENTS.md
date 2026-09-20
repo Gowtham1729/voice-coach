@@ -16,7 +16,7 @@ Local-first **macOS 26+** SwiftUI voice practice studio (Swift 6.2). Record/impo
 | App bundle resources | `Resources/` | Packaged by `scripts/build-app.sh` |
 | Dev/scripts | `scripts/` | Prefer these over inventing new build steps |
 
-**Naming trap:** UI “recording” / retry stack / Mimic map onto `CoachingSession` (`SessionLibrary.swift`). UI “take” = Core `PracticeSession` (`Models.swift`). Do not rename these storage types casually. See `docs/design/RECORDING_FIRST_PRD.md`.
+**Naming trap:** UI “recording” / retry stack / Mimic map onto `CoachingSession` (`SessionLibrary.swift`). UI “take” = Core `PracticeSession` (`Models.swift`). Do not rename these storage types casually.
 
 ## Commands
 
@@ -117,6 +117,5 @@ Root: `~/Library/Application Support/VoiceCoach/`
 ## Pointers
 
 - Human-oriented product docs: `README.md`
-- Recording-first product contract: `docs/design/RECORDING_FIRST_PRD.md`
 - Cloud bootstrap: `scripts/cloud-agent-install.sh`
 - Official AGENTS.md convention: https://agents.md/
