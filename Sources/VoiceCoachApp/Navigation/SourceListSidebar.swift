@@ -253,6 +253,7 @@ private enum SidebarSelection: Hashable {
   case recording(UUID)
 }
 
+@MainActor
 private func sidebarRecents(from model: AppModel, limit: Int) -> [LibraryRecording] {
   let all = model.libraryRecordings
   var items = Array(all.prefix(limit))

@@ -41,14 +41,20 @@ struct ContentView: View {
           sidebarColumn
             .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
         } detail: {
-          destination
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle(windowTitle)
-            .toolbar { workspaceToolbar }
-            .inspector(isPresented: inspectorVisibility) {
+          HStack(spacing: 0) {
+            destination
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if showInspector {
+              Divider()
               contextualInspector
-                .inspectorColumnWidth(min: 260, ideal: 300, max: 380)
+                .frame(width: 300)
+                .background(Studio.inspector)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
             }
+          }
+          .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: showInspector)
+          .navigationTitle(windowTitle)
+          .toolbar { workspaceToolbar }
         }
         .navigationSplitViewStyle(.balanced)
       }
@@ -153,19 +159,6 @@ struct ContentView: View {
 
   private var showInspector: Bool {
     inspectorPresented && inspectorEligible
-  }
-
-  private var inspectorVisibility: Binding<Bool> {
-    Binding(
-      get: { inspectorPresented && inspectorEligible },
-      set: { newValue in
-        // Persist only user toggles. Navigation that hides the inspector
-        // because it is ineligible must not clear SceneStorage.
-        if inspectorEligible {
-          inspectorPresented = newValue
-        }
-      }
-    )
   }
 
   private var showsNewRecording: Bool {

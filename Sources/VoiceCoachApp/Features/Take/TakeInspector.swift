@@ -28,7 +28,7 @@ struct TakeInspector: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
 
-            InspectorMetricStack(metrics: .voiceMetrics(take.result.metrics))
+            InspectorMetricStack(metrics: InspectorMetricItem.voiceMetrics(take.result.metrics))
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         } footer: {
