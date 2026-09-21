@@ -6,9 +6,9 @@ For speakers who practice on their Mac — talks, pitches, interviews — and wa
 
 ## Demo
 
-[~1 min tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4) — Home → Take → Mimic → Library.
+https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
 
-<video src="https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4" controls width="720"></video>
+[Download the ~1 min tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4) — Home → Take → Mimic → Library.
 
 ## Download
 
