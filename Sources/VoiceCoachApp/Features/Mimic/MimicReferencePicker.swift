@@ -116,36 +116,65 @@ struct MimicReferencePicker: View {
           .foregroundStyle(Studio.secondary)
         }
       } else {
-        HStack(spacing: 10) {
-          Button {
-            model.chooseMimicReference()
-          } label: {
-            Label("Import…", systemImage: "square.and.arrow.down")
-          }
-          .disabled(model.mimicIsPreparing)
-          .studioGlassButton()
-
-          Button {
-            model.captureMimicReferencePressed()
-          } label: {
-            Label("Capture", systemImage: "speaker.wave.2")
-          }
-          .disabled(model.mimicIsPreparing || model.isRecording)
-          .studioGlassButton()
-          .help("Capture what this Mac is playing")
-        }
-        Text("Import a clip or capture Mac audio, then trim an excerpt.")
-        .font(.caption)
-        .foregroundStyle(Studio.secondary)
-        if model.mimicIsPreparing {
-          ProgressView("Preparing audio…")
-            .controlSize(.small)
-        }
+        emptyDropZone
       }
     }
     .padding(16)
+    .frame(
+      maxWidth: .infinity,
+      maxHeight: model.mimicDraft == nil && !model.isCapturingMimicReference ? .infinity : nil,
+      alignment: .topLeading
+    )
     .desktopPanel()
     .onChange(of: model.mimicDraft?.id) { _, _ in viewportStart = 0 }
+  }
+
+  private var emptyDropZone: some View {
+    VStack(spacing: 14) {
+      Spacer()
+      HStack(spacing: 12) {
+        Button {
+          model.chooseMimicReference()
+        } label: {
+          Label("Import…", systemImage: "square.and.arrow.down")
+        }
+        .disabled(model.mimicIsPreparing)
+        .studioGlassButton()
+
+        Button {
+          model.captureMimicReferencePressed()
+        } label: {
+          Label("Capture", systemImage: "speaker.wave.2")
+        }
+        .disabled(model.mimicIsPreparing || model.isRecording)
+        .studioGlassButton()
+        .help("Capture what this Mac is playing")
+      }
+
+      Text("Trim appears here after you add a clip.")
+        .font(.callout)
+        .foregroundStyle(Studio.secondary)
+
+      if model.mimicIsPreparing {
+        ProgressView("Preparing audio…")
+          .controlSize(.small)
+      }
+      Spacer()
+    }
+    .frame(maxWidth: .infinity, minHeight: 180, maxHeight: .infinity)
+    .padding(.vertical, 16)
+    .padding(.horizontal, 16)
+    .background {
+      let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+      shape
+        .fill(Studio.surface.opacity(0.35))
+        .overlay(
+          shape.strokeBorder(
+            Studio.secondary.opacity(0.32),
+            style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
+          )
+        )
+    }
   }
 
   private func trimButtons(
