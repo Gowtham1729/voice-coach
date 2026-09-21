@@ -62,16 +62,9 @@ struct MimicInspector: View {
         .controlSize(.regular)
         .disabled(model.isPlaying || model.isAnalyzing)
 
-        Button(action: model.copyMimicCoachPrompt) {
-          Label("Copy coach notes", systemImage: "doc.on.doc")
-            .inspectorActionLabel()
-        }
-        .studioGlassButton()
-        .controlSize(.regular)
-        .help("Copy notes to paste into a coach.")
-
         HStack(spacing: 8) {
           Menu {
+            Button("Copy coach notes", systemImage: "doc.on.doc", action: model.copyMimicCoachPrompt)
             Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
           } label: {
             Image(systemName: "ellipsis")
