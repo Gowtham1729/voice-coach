@@ -50,6 +50,9 @@ public enum FrozenCoachCopy: Sendable {
     "Your pitch stayed in a narrow range — the line sounds flat."
   public static let pitchAction =
     "On the next take, vary pitch more on the key words."
+
+  public static let acceptedPauseRewrite = ContentFrozenAcceptedRewrite.pause
+  public static let acceptedPitchRewrite = ContentFrozenAcceptedRewrite.pitch
 }
 
 /// Content-frozen copy parked for a later *conditional* phrase-end rule.

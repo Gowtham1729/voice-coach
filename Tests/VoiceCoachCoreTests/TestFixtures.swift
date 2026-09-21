@@ -121,14 +121,7 @@ final class StubInsightCopyGenerator: InsightCopyGenerating, @unchecked Sendable
 }
 
 enum InsightCopyTestSamples {
-  static let pauseRewrite = InsightCopyRewrite(
-    observation: "Pauses in the middle of phrases ran longer than this take needs.",
-    action: "On the next take, keep gaps between phrases shorter."
-  )
-
-  static let pitchRewrite = InsightCopyRewrite(
-    observation: "Pitch stayed in a narrow range, so the line sounds flat.",
-    action: "On the next take, vary pitch more on the key words."
-  )
+  static let pauseRewrite = ContentFrozenAcceptedRewrite.pause
+  static let pitchRewrite = ContentFrozenAcceptedRewrite.pitch
 }
 

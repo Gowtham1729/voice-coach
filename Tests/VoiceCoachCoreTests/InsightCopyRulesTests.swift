@@ -3,8 +3,8 @@ import VoiceCoachCore
 
 @Suite("Insight copy rules")
 struct InsightCopyRulesTests {
-  @Test("Placeholder pause rewrite is accepted; frozen strings also pass")
-  func pausePlaceholdersPass() {
+  @Test("Content-frozen pause rewrite is accepted; frozen strings also pass")
+  func contentFrozenPauseRewritePasses() {
     let packet = FrozenHeroCatalog.pause.packet()
     let accepted = InsightCopyRules.acceptedObservation(
       rewrite: InsightCopyTestSamples.pauseRewrite,
@@ -23,14 +23,15 @@ struct InsightCopyRulesTests {
     #expect(frozen == packet.frozen)
   }
 
-  @Test("Placeholder pitch rewrite is accepted")
-  func pitchPlaceholderPasses() {
+  @Test("Content-frozen pitch rewrite is accepted")
+  func contentFrozenPitchRewritePasses() {
     let packet = FrozenHeroCatalog.pitch.packet()
     let accepted = InsightCopyRules.acceptedObservation(
       rewrite: InsightCopyTestSamples.pitchRewrite,
       packet: packet
     )
     #expect(accepted?.summary == InsightCopyTestSamples.pitchRewrite.observation)
+    #expect(accepted?.action == InsightCopyTestSamples.pitchRewrite.action)
   }
 
   @Test("Sanitize rejects length, markup, and wrapping junk")
@@ -69,6 +70,24 @@ struct InsightCopyRulesTests {
       InsightCopyRules.acceptedObservation(
         rewrite: InsightCopyRewrite(
           observation: "Pauses may mean a medical throat diagnosis on this take.",
+          action: "On the next take, keep gaps between phrases shorter."
+        ),
+        packet: packet
+      ) == nil
+    )
+    #expect(
+      InsightCopyRules.acceptedObservation(
+        rewrite: InsightCopyRewrite(
+          observation: "You sounded worried when pauses ran long between phrases.",
+          action: "On the next take, keep gaps between phrases shorter."
+        ),
+        packet: packet
+      ) == nil
+    )
+    #expect(
+      InsightCopyRules.acceptedObservation(
+        rewrite: InsightCopyRewrite(
+          observation: "You lacked confidence when pauses ran long between phrases.",
           action: "On the next take, keep gaps between phrases shorter."
         ),
         packet: packet

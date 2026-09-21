@@ -120,21 +120,59 @@ private func verifyInsightCopyLayer() async throws {
   let rejectedPause = await rejected.resolve(metrics: pauseMetrics)
   try check(rejectedPause == pauseFrozen, "Sanitize reject did not fail-close to frozen copy")
 
-  let acceptedPause = InsightCopyRewrite(
-    observation: "Pauses in the middle of phrases ran longer than this take needs.",
-    action: "On the next take, keep gaps between phrases shorter."
+  let worriedRejected = InsightCopyResolver(
+    generator: SelfTestInsightGenerator(
+      availability: .available,
+      rewrite: InsightCopyRewrite(
+        observation: "You sounded worried when pauses ran long between phrases.",
+        action: "On the next take, keep gaps between phrases shorter."
+      )
+    )
   )
+  let worriedPause = await worriedRejected.resolve(metrics: pauseMetrics)
+  try check(worriedPause == pauseFrozen, "Worried euphemism did not fail-close to frozen copy")
+
+  let confidenceRejected = InsightCopyResolver(
+    generator: SelfTestInsightGenerator(
+      availability: .available,
+      rewrite: InsightCopyRewrite(
+        observation: "You lacked confidence when pauses ran long between phrases.",
+        action: "On the next take, keep gaps between phrases shorter."
+      )
+    )
+  )
+  let confidencePause = await confidenceRejected.resolve(metrics: pauseMetrics)
+  try check(
+    confidencePause == pauseFrozen,
+    "Lacked confidence euphemism did not fail-close to frozen copy"
+  )
+
+  let acceptedPause = ContentFrozenAcceptedRewrite.pause
   let accepted = InsightCopyResolver(
     generator: SelfTestInsightGenerator(availability: .available, rewrite: acceptedPause)
   )
   let rewritten = await accepted.resolve(metrics: pauseMetrics)
   try check(
     rewritten?.summary == acceptedPause.observation,
-    "Accepted pause placeholder was not shown"
+    "Accepted pause rewrite was not shown"
   )
   try check(
     rewritten?.action == acceptedPause.action,
-    "Accepted pause placeholder action was not shown"
+    "Accepted pause rewrite action was not shown"
+  )
+
+  let acceptedPitch = ContentFrozenAcceptedRewrite.pitch
+  let acceptedPitchResolver = InsightCopyResolver(
+    generator: SelfTestInsightGenerator(availability: .available, rewrite: acceptedPitch)
+  )
+  let rewrittenPitch = await acceptedPitchResolver.resolve(metrics: pitchMetrics)
+  try check(
+    rewrittenPitch?.summary == acceptedPitch.observation,
+    "Accepted pitch rewrite was not shown"
+  )
+  try check(
+    rewrittenPitch?.action == acceptedPitch.action,
+    "Accepted pitch rewrite action was not shown"
   )
 
   guard let pausePacket = HeroPacket.from(metrics: pauseMetrics) else {

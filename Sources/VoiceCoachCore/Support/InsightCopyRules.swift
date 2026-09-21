@@ -20,6 +20,7 @@ public enum InsightCopyRules: Sendable {
     "damaged voice", "vocal cord", "vocal fold", "nodule", "polyp",
     "anxiety", "anxious", "nervous", "confidence", "confident",
     "boredom", "boring", "emotion", "depression", "trauma",
+    "worr", "hesitat", "insecur", "timid", "scared", "fear",
     "please", "baseline", "throat",
     "filler", "words per minute", "wpm",
     "breath support", "room projection",

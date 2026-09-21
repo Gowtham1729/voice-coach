@@ -85,9 +85,11 @@ struct InsightCopyGenerator: InsightCopyGenerating {
     private func generateGuidedWording(packet: HeroPacket) async -> InsightCopyRewrite? {
       do {
         let session = LanguageModelSession(instructions: InsightCopyPrompt.instructions)
+        let options = GenerationOptions(samplingMode: .greedy, temperature: 0.0)
         let response = try await session.respond(
           to: InsightCopyPrompt.userMessage(for: packet),
-          generating: CoachingWording.self
+          generating: CoachingWording.self,
+          options: options
         )
         let rewrite = InsightCopyRewrite(
           observation: response.content.observation,
