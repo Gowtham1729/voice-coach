@@ -45,14 +45,6 @@ struct TakeInspector: View {
   @ViewBuilder
   private func takeFooter(_ take: PracticeSession) -> some View {
     InspectorFooterStack {
-      Button(action: model.copyAICoachPrompt) {
-        Label("Copy coach notes", systemImage: "doc.on.doc")
-          .inspectorActionLabel()
-      }
-      .studioGlassButton()
-      .controlSize(.regular)
-      .help("Copy notes to paste into a coach.")
-
       Button(action: model.exportCurrent) {
         Label("Export", systemImage: "square.and.arrow.up")
           .inspectorActionLabel()
@@ -63,6 +55,7 @@ struct TakeInspector: View {
 
       HStack(spacing: 8) {
         Menu {
+          Button("Copy coach notes", systemImage: "doc.on.doc", action: model.copyAICoachPrompt)
           Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyReport)
         } label: {
           Image(systemName: "ellipsis")
