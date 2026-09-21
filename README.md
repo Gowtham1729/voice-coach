@@ -18,9 +18,11 @@ Apple on-device transcription is the default. Optional NVIDIA Parakeet (~714 MB)
 
 ## Demo
 
-A short product tour will land here once QA hands it over. Until then, build from source or use the release zip above.
+Short product tour (~1 min) — Home → Take → Mimic → Library / Settings:
 
-<!-- Demo video: attach when available (do not commit large binaries to git; prefer a release asset or external host link). -->
+**[Watch the tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4)**
+
+<video src="https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4" controls width="720"></video>
 
 ## Features
 
