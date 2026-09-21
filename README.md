@@ -1,26 +1,18 @@
 # Voice Coach
 
-Local-first **macOS 26+** voice practice studio. Record or import on this Mac, review acoustic metrics and on-device transcripts, practice against a Mimic reference, and keep a private library — nothing is uploaded.
+Practice your voice on this Mac — record, Mimic a reference, and get a clear next step. Local-first for **macOS 26+**. Nothing is uploaded.
 
 ## Download
 
-Prebuilt app (ad-hoc signed, not notarized):
+**[Voice Coach 3.2.0 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.2.0)** — zip, move to Applications. If Gatekeeper blocks: right-click → **Open**.
 
-**[Voice Coach 3.2.0 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.2.0)**
-
-1. Download `Voice-Coach-3.2.0-macOS.zip` and unzip.
-2. Move **Voice Coach.app** to Applications.
-3. If Gatekeeper blocks the first launch: right-click → **Open**.
-
-Apple on-device transcription is the default. Optional NVIDIA Parakeet (~714 MB) can be installed later under **Settings → Transcription**.
+Apple on-device transcription is default. Optional Parakeet (~714 MB) under **Settings → Transcription**.
 
 > Tagged releases are built by GitHub Actions (`v*` tags). See [`docs/RELEASE.md`](docs/RELEASE.md).
 
 ## Demo
 
-Short product tour (~1 min) — Home → Take → Mimic → Library / Settings:
-
-**[Watch the tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4)**
+[~1 min tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4) — Home → Take → Mimic → Library.
 
 <video src="https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4" controls width="720"></video>
 
@@ -30,29 +22,20 @@ Short product tour (~1 min) — Home → Take → Mimic → Library / Settings:
 | --- | --- |
 | **Home** | One-tap **Record**, import audio/video (normalized to local WAV), Recents |
 | **Takes** | Stacked retries (Take 1, Take 2, …), sticky timeline, transcript word seek |
-| **Insights** | Plain-language observation when pauses or pitch stand out, plus quieter metrics underneath |
+| **Insights** | One plain next-step when pauses or pitch stand out — metrics stay quieter underneath |
 | **Mimic** | Reference from file or Mac audio → listen, imitate, compare, retry |
 | **Library** | Flat catalog of recordings — no folder picking |
-| **Export / coach notes** | Export audio + JSON; copy coach notes from the inspector **More** menu |
+| **Export / coach notes** | Export audio + JSON; coach notes live under inspector **More** |
 
 All analysis and transcription stay on-device under `~/Library/Application Support/VoiceCoach`.
 
-## Studio layout
-
-Fixed sidebar (**Home**, **Library**, **Mimics**, **Settings**, plus **Recents**), focused workspace, and a contextual inspector. Liquid Glass chrome on macOS 26+; Reduce Transparency / Reduce Motion respected.
-
-On a take: scrub the waveform (Space play/pause), jump via transcript chips, switch Pitch / Loudness / Spectrum. Soft transcription failures still keep the recording and acoustic analysis.
-
 ## What it measures
 
-Acoustic coaching signals — **not** medical measurements. They cannot prove diaphragm use or diagnose a voice condition.
+Acoustic coaching signals — **not** medical measurements.
 
-- Duration, active speech, pause counts and timing (mean / median / longest)
-- Noise floor, SNR, sample rate, clipping
-- Pitch (median, range in semitones, variation / instability) and loudness (mean, dynamic range, phrase-end decay)
-- Contours for pitch and loudness (UI), plus HNR / related voice-quality estimates
-- On-device transcript with word timestamps and per-word pitch / loudness when available
-- Waveform and spectrogram in the app only (not in exported JSON)
+- Pauses, pitch range, loudness, and phrase-end energy
+- Noise / SNR / clipping (recording hygiene)
+- On-device transcript with word timing when available
 
 ## Privacy
 
@@ -97,10 +80,6 @@ If macOS reports the Xcode license is not accepted, run `sudo xcodebuild -licens
 | `VoiceCoachApp` | macOS UI and platform services |
 
 See [`docs/architecture/README.md`](docs/architecture/README.md) before adding a cross-cutting feature.
-
-## Export
-
-From a take’s inspector you can export the recording with `voice-report.json` (expanded report via `ReportFormatter.makeReport`), including transcription and per-word pitch / loudness when present. Dense acoustic frames, waveform, and spectrogram stay in the local library and are not part of the export.
 
 ## Releases
 
