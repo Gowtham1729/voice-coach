@@ -1,0 +1,119 @@
+# Tag-triggered Free-tier release: ad-hoc signed zip, no Developer ID / notarization.
+# Package.swift is swift-tools-version 6.2 with platforms: [.macOS(.v26)].
+# scripts/test.sh is zsh and prefers /Applications/Xcode.app when present.
+#
+# Xcode pin: /Applications/Xcode_26.6.app is the highest stable 26.x on
+# GitHub-hosted macos-26 (same pin as ci.yml). Xcode 27 is a public preview
+# on a separate `xcode-27` runner image — not used here.
+#
+# Intentionally not in this workflow: render-previews, Peekaboo, Apple
+# Developer ID, notarization, or any signing secrets.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  # Dry-run: same build/zip path, no GitHub Release. First real validation
+  # after merge is still cutting a test tag.
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: release
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode 26.6
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+
+      - name: Show toolchain
+        run: |
+          xcode-select -p
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-version
+          swift --version
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+          else
+            TAG=""
+            VERSION="dry-run"
+          fi
+          if [[ -z "${VERSION}" || "${VERSION}" == "${TAG}" ]]; then
+            echo "Expected a v* tag with a version after v (got '${GITHUB_REF_NAME}')" >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved VERSION=${VERSION} TAG=${TAG}"
+
+      - name: Run tests
+        run: ./scripts/test.sh --all
+
+      - name: Build app
+        run: |
+          ./scripts/build-app.sh
+          test -d "build/Voice Coach.app"
+
+      - name: Zip app
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          ZIP="Voice-Coach-${VERSION}-macOS.zip"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "build/Voice Coach.app" \
+            "${ZIP}"
+          test -f "${ZIP}"
+          ls -lh "${ZIP}"
+
+      - name: Upload zip (dry-run artifact)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: Voice-Coach-${{ steps.version.outputs.version }}-macOS
+          path: Voice-Coach-${{ steps.version.outputs.version }}-macOS.zip
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          ZIP="Voice-Coach-${VERSION}-macOS.zip"
+          NOTES="$(mktemp)"
+          TAG_MSG="$(git tag -l --format='%(contents)' "${TAG}" | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d')"
+          TAG_MSG="${TAG_MSG%"${TAG_MSG##*[![:space:]]}"}"
+          {
+            echo "This zip is **ad-hoc signed** (not Developer ID, not notarized)."
+            echo
+            echo "Gatekeeper may block first launch: unzip, move **Voice Coach.app** to Applications, then **right-click → Open**."
+            echo
+            echo "The zip does **not** include the Parakeet / NeMo-Speech model. On-device transcription is an optional later download (**Settings → Transcription**)."
+            echo
+            if [[ -n "${TAG_MSG}" ]]; then
+              echo "## Tag message"
+              echo
+              printf '%s\n' "${TAG_MSG}"
+              echo
+            fi
+            echo "<!-- Editors: add changelog notes for this tag (see v3.2.0 for tone). -->"
+          } > "${NOTES}"
+          gh release create "${TAG}" "${ZIP}" \
+            --title "Voice Coach ${VERSION}" \
+            --notes-file "${NOTES}" \
+            --verify-tag
