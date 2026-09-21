@@ -14,6 +14,7 @@ struct SettingsView: View {
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
   @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
   @AppStorage("voiceCoach.autoGenerateTitles") private var autoGenerateTitles = false
+  @AppStorage("voiceCoach.rewriteInsightWording") private var rewriteInsightWording = false
 
   private var transcriptionBusy: Bool {
     model.systemTranscriptionStatus.isBusy
@@ -35,6 +36,9 @@ struct SettingsView: View {
       model.refreshSystemTranscriptionStatus()
       if autoGenerateTitles {
         SmartTitleGenerator.prewarmIfAvailable()
+      }
+      if rewriteInsightWording {
+        InsightCopyGenerator.prewarmIfAvailable()
       }
     }
   }
@@ -86,6 +90,22 @@ struct SettingsView: View {
             Text(intelligenceStatus.settingsFooter)
           }
         }
+      }
+
+      Section {
+        Toggle("On-device insight wording", isOn: $rewriteInsightWording)
+          .onChange(of: rewriteInsightWording) { _, enabled in
+            if enabled { InsightCopyGenerator.prewarmIfAvailable() }
+          }
+        if rewriteInsightWording {
+          LabeledContent("Apple Intelligence", value: InsightCopyGenerator.status.settingsLabel)
+        }
+      } header: {
+        Text("Insights")
+      } footer: {
+        Text(
+          "Coaching decisions are deterministic. On supported devices, wording may be rewritten on device."
+        )
       }
     }
     .settingsPaneChrome()
@@ -255,7 +275,18 @@ struct SettingsView: View {
               .foregroundStyle(.secondary)
           }
         }
+        HStack {
+          Text("On-device insight wording")
+          Spacer()
+          Image(systemName: rewriteInsightWording ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(Studio.accent)
+        }
         Text("Recordings stay on this Mac. Titles use Apple Intelligence when enabled.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        Text(
+          "Coaching decisions are deterministic. On supported devices, wording may be rewritten on device."
+        )
         .font(.caption)
         .foregroundStyle(.secondary)
       }

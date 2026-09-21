@@ -14,6 +14,146 @@ private func check(_ condition: @autoclosure () -> Bool, _ message: String) thro
   if !condition() { throw CheckFailed(message: message) }
 }
 
+private func insightMetrics(
+  internalPauseCount: Int = 0,
+  meanInternalPauseMs: Double = 0,
+  pitchRangeSemitones: Double? = 8.0,
+  phraseDecayDB: Double = -1.0
+) -> VoiceMetrics {
+  VoiceMetrics(
+    duration: 1.5,
+    activeSpeechDuration: 1.5,
+    sampleRateHz: 16_000,
+    noiseFloorDBFS: -55,
+    snrDB: 20,
+    clippingPercent: 0,
+    nonSpeechRatio: 0,
+    internalPauseCount: internalPauseCount,
+    internalPauseTotalMs: Double(internalPauseCount) * meanInternalPauseMs,
+    meanInternalPauseMs: meanInternalPauseMs,
+    medianInternalPauseMs: meanInternalPauseMs,
+    longestInternalPauseMs: meanInternalPauseMs,
+    leadingSilenceMs: 0,
+    trailingSilenceMs: 0,
+    meanLoudnessDBFS: -20,
+    loudnessDynamicRangeDB: 6,
+    loudnessStandardDeviationDB: 1.5,
+    phraseStartDBFS: -19,
+    phraseEndDBFS: -21,
+    phraseDecayDB: phraseDecayDB,
+    medianPitchHz: 160,
+    pitchLowHz: 145,
+    pitchHighHz: 180,
+    pitchVariationHz: 8,
+    pitchRangeSemitones: pitchRangeSemitones,
+    pitchStandardDeviationSemitones: 1.2,
+    pitchInstabilityPercent: 2,
+    hnrDB: 18,
+    cppDB: 12
+  )
+}
+
+private final class SelfTestInsightGenerator: InsightCopyGenerating, @unchecked Sendable {
+  let availability: InsightCopyAvailability
+  let rewriteResult: InsightCopyRewrite?
+
+  init(availability: InsightCopyAvailability, rewrite: InsightCopyRewrite? = nil) {
+    self.availability = availability
+    self.rewriteResult = rewrite
+  }
+
+  func rewrite(_: HeroPacket) async -> InsightCopyRewrite? {
+    rewriteResult
+  }
+}
+
+private func verifyInsightCopyLayer() async throws {
+  let pauseMetrics = insightMetrics(
+    internalPauseCount: 4,
+    meanInternalPauseMs: 890.0,
+    pitchRangeSemitones: 10.0
+  )
+  let pitchMetrics = insightMetrics(pitchRangeSemitones: 2.1)
+  let pauseFrozen = CoachObservation.from(metrics: pauseMetrics)
+  let pitchFrozen = CoachObservation.from(metrics: pitchMetrics)
+
+  try check(pauseFrozen != nil, "Pause fixture did not produce a hero")
+  try check(
+    pauseFrozen?.summary
+      == "Your pauses averaged longer than this take needs — especially mid-phrase.",
+    "Pause frozen observation drifted"
+  )
+  try check(
+    pauseFrozen?.action == "On the next take, aim for shorter gaps between phrases.",
+    "Pause frozen action drifted"
+  )
+  try check(
+    pitchFrozen?.summary
+      == "Your pitch stayed in a narrow range — the line sounds flat.",
+    "Pitch frozen observation drifted"
+  )
+
+  let nilGenerator = InsightCopyResolver(generator: nil)
+  try check(
+    await nilGenerator.resolve(metrics: pauseMetrics) == pauseFrozen,
+    "Nil generator did not fail-close to frozen pause copy"
+  )
+  try check(
+    await nilGenerator.resolve(metrics: pitchMetrics) == pitchFrozen,
+    "Nil generator did not fail-close to frozen pitch copy"
+  )
+
+  let unavailable = InsightCopyResolver(
+    generator: SelfTestInsightGenerator(availability: .unavailable)
+  )
+  try check(
+    await unavailable.resolve(metrics: pauseMetrics) == pauseFrozen,
+    "Unavailable generator did not fail-close to frozen copy"
+  )
+
+  let rejected = InsightCopyResolver(
+    generator: SelfTestInsightGenerator(
+      availability: .available,
+      rewrite: InsightCopyRewrite(
+        observation: "Medical anxiety with 890 ms pauses.",
+        action: "Please fix your throat."
+      )
+    )
+  )
+  try check(
+    await rejected.resolve(metrics: pauseMetrics) == pauseFrozen,
+    "Sanitize reject did not fail-close to frozen copy"
+  )
+
+  let acceptedPause = InsightCopyRewrite(
+    observation: "Pauses in the middle of phrases ran longer than this take needs.",
+    action: "On the next take, keep gaps between phrases shorter."
+  )
+  let accepted = InsightCopyResolver(
+    generator: SelfTestInsightGenerator(availability: .available, rewrite: acceptedPause)
+  )
+  let rewritten = await accepted.resolve(metrics: pauseMetrics)
+  try check(
+    rewritten?.summary == acceptedPause.observation,
+    "Accepted pause placeholder was not shown"
+  )
+  try check(
+    rewritten?.action == acceptedPause.action,
+    "Accepted pause placeholder action was not shown"
+  )
+
+  guard let pausePacket = HeroPacket.from(metrics: pauseMetrics) else {
+    throw CheckFailed(message: "Pause fixture missing HeroPacket")
+  }
+  let prompt = InsightCopyPrompt.userMessage(for: pausePacket)
+  try check(!prompt.contains("890"), "Insight prompt leaked raw pause duration")
+  try check(!prompt.contains("VoiceMetrics"), "Insight prompt mentioned VoiceMetrics")
+  try check(
+    HeroPacket.from(metrics: insightMetrics(phraseDecayDB: -8.0)) == nil,
+    "Phrase-end became an Insight hero"
+  )
+}
+
 #if canImport(AVFoundation)
   private func writeTestWAV(samples: [Float], sampleRate: Double, to url: URL) throws {
     guard
@@ -445,6 +585,8 @@ do {
     "Structured report contains cpp_db when it should be excluded")
   try check(
     !compactReport.contains("cpp_db"), "Compact report contains cpp_db when it should be excluded")
+
+  try await verifyInsightCopyLayer()
 
   // Keep word-level JSON responsive for long takes (copy/export path).
   let emptyPitch = WordPitchMetrics(

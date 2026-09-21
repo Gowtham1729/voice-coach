@@ -41,7 +41,14 @@ struct MimicInspector: View {
       }
     } content: {
       VStack(alignment: .leading, spacing: 14) {
-        TakeInsightsView(metrics: metrics)
+        TakeInsightsView(
+          metrics: metrics,
+          observation: model.displayedInsight(for: metrics)
+        )
+        .onAppear { model.scheduleInsightWording(for: metrics) }
+        .onChange(of: take.id) { _, _ in
+          model.scheduleInsightWording(for: take.result.metrics)
+        }
 
         if !model.mimicCompareAlignmentReliable {
           Text("Word comparison is limited. Coach notes use recording metrics.")

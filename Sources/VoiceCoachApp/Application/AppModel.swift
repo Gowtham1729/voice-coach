@@ -69,6 +69,12 @@ final class AppModel: ObservableObject {
   var pendingCaptureIsNewSession = false
   var pendingImportSourceURL: URL?
 
+  let insightResolverCache: PersistedInsightCopyCache
+  let insightResolver: InsightCopyResolver
+  @Published var insightCopyByKey: [InsightCopyCacheKey: CoachObservation] = [:]
+  @Published var insightCopyRevision = 0
+  var insightAttemptedKeys: Set<InsightCopyCacheKey> = []
+
   init(
     storageRoot: URL? = nil,
     loadPersistedData: Bool = true,
@@ -79,6 +85,13 @@ final class AppModel: ObservableObject {
       recorder = dependencies.recorder
       systemAudioCapture = dependencies.systemAudioCapture
       store = dependencies.sessionStore
+      insightResolverCache = PersistedInsightCopyCache()
+      insightResolver = InsightCopyResolver(
+        generator: InsightCopyGenerator(),
+        cache: insightResolverCache,
+        localeIdentifier: { Locale.current.identifier },
+        isEnabled: { InsightWordingPreference.isEnabled }
+      )
     } catch {
       fatalError("Voice Coach could not open local storage: \(error.localizedDescription)")
     }

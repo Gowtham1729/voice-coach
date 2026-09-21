@@ -28,7 +28,14 @@ struct TakeInspector: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
 
-            TakeInsightsView(metrics: take.result.metrics)
+            TakeInsightsView(
+              metrics: take.result.metrics,
+              observation: model.displayedInsight(for: take.result.metrics)
+            )
+            .onAppear { model.scheduleInsightWording(for: take.result.metrics) }
+            .onChange(of: take.id) { _, _ in
+              model.scheduleInsightWording(for: take.result.metrics)
+            }
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         } footer: {

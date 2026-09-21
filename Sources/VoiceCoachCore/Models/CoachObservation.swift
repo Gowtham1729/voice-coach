@@ -16,29 +16,6 @@ public struct CoachObservation: Equatable, Sendable {
     self.action = action
   }
 
-  private enum CandidateKind: Int {
-    case pause = 0
-    case pitch = 1
-  }
-
-  private struct Candidate {
-    let kind: CandidateKind
-    let severity: Double
-    let observation: CoachObservation
-  }
-
-  // MARK: - Content-frozen copy (exact)
-
-  private static let pauseSummary =
-    "Your pauses averaged longer than this take needs — especially mid-phrase."
-  private static let pauseAction =
-    "On the next take, aim for shorter gaps between phrases."
-
-  private static let pitchSummary =
-    "Your pitch stayed in a narrow range — the line sounds flat."
-  private static let pitchAction =
-    "On the next take, vary pitch more on the key words."
-
   /// Evaluates objective voice metrics and returns the single primary coaching observation
   /// with the highest relative severity. Returns nil if no hero-capable metric qualifies.
   ///
@@ -53,59 +30,26 @@ public struct CoachObservation: Equatable, Sendable {
   ///    - Severity: (3.0 - range) / 3.0
   ///
   /// Ranking & tie-break: highest severity; ties prefer pause over pitch.
+  ///
+  /// This is the fail-closed Insight copy. An optional on-device wording layer may rewrite
+  /// the selected `HeroPacket` and must fall back to these frozen strings on any reject.
   public static func from(metrics: VoiceMetrics) -> CoachObservation? {
-    var candidates: [Candidate] = []
-
-    if metrics.internalPauseCount >= 2,
-      !metrics.meanInternalPauseMs.isNaN,
-      !metrics.meanInternalPauseMs.isInfinite,
-      metrics.meanInternalPauseMs >= 700.0
-    {
-      let severity = (metrics.meanInternalPauseMs - 700.0) / 700.0
-      candidates.append(
-        Candidate(
-          kind: .pause,
-          severity: severity,
-          observation: CoachObservation(
-            eyebrow: "Insight",
-            summary: pauseSummary,
-            action: pauseAction
-          )
-        )
-      )
-    }
-
-    if let pitchRange = metrics.pitchRangeSemitones,
-      !pitchRange.isNaN,
-      !pitchRange.isInfinite,
-      pitchRange <= 3.0
-    {
-      let severity = (3.0 - max(0.0, pitchRange)) / 3.0
-      candidates.append(
-        Candidate(
-          kind: .pitch,
-          severity: severity,
-          observation: CoachObservation(
-            eyebrow: "Insight",
-            summary: pitchSummary,
-            action: pitchAction
-          )
-        )
-      )
-    }
-
-    guard !candidates.isEmpty else { return nil }
-
-    let best = candidates.max { a, b in
-      if a.severity != b.severity {
-        return a.severity < b.severity
-      }
-      // Tie-break: pause (0) > pitch (1)
-      return a.kind.rawValue > b.kind.rawValue
-    }
-
-    return best?.observation
+    HeroPacket.from(metrics: metrics)?.frozen
   }
+}
+
+/// Content-frozen observation/action strings. Insight wording may paraphrase these
+/// meanings only — it must not invent a new hero or claim.
+public enum FrozenCoachCopy: Sendable {
+  public static let pauseSummary =
+    "Your pauses averaged longer than this take needs — especially mid-phrase."
+  public static let pauseAction =
+    "On the next take, aim for shorter gaps between phrases."
+
+  public static let pitchSummary =
+    "Your pitch stayed in a narrow range — the line sounds flat."
+  public static let pitchAction =
+    "On the next take, vary pitch more on the key words."
 }
 
 /// Content-frozen copy parked for a later *conditional* phrase-end rule.
