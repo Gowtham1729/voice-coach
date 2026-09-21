@@ -58,16 +58,16 @@ struct HeroPacketTests {
   @Test("Non-hero metric changes do not change pause packet identity")
   func counterfactualNonHeroMetrics() {
     let base = CoreTestFixtures.metrics(
+      snrDB: 20,
       internalPauseCount: 4,
       meanInternalPauseMs: 890.0,
-      pitchRangeSemitones: 10.0,
-      snrDB: 20
+      pitchRangeSemitones: 10.0
     )
     let varied = CoreTestFixtures.metrics(
+      snrDB: 8,
       internalPauseCount: 4,
       meanInternalPauseMs: 890.0,
       pitchRangeSemitones: 10.0,
-      snrDB: 8,
       phraseDecayDB: -12.0
     )
     let a = HeroPacket.from(metrics: base)
@@ -78,7 +78,7 @@ struct HeroPacketTests {
   }
 
   @Test("Prompt carries canonical copy only, not raw VoiceMetrics")
-  func promptOmitsRawMetrics() {
+  func promptOmitsRawMetrics() throws {
     let metrics = CoreTestFixtures.metrics(
       internalPauseCount: 4,
       meanInternalPauseMs: 890.0,

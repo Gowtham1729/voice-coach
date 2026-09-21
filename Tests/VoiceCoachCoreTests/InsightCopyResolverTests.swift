@@ -70,7 +70,7 @@ struct InsightCopyResolverTests {
   }
 
   @Test("Accepted placeholder rewrite is returned and cached")
-  func acceptedRewriteIsCached() async {
+  func acceptedRewriteIsCached() async throws {
     let metrics = CoreTestFixtures.metrics(
       internalPauseCount: 4,
       meanInternalPauseMs: 890.0

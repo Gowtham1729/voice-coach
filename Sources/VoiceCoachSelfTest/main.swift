@@ -94,20 +94,17 @@ private func verifyInsightCopyLayer() async throws {
   )
 
   let nilGenerator = InsightCopyResolver(generator: nil)
-  try check(
-    await nilGenerator.resolve(metrics: pauseMetrics) == pauseFrozen,
-    "Nil generator did not fail-close to frozen pause copy"
-  )
-  try check(
-    await nilGenerator.resolve(metrics: pitchMetrics) == pitchFrozen,
-    "Nil generator did not fail-close to frozen pitch copy"
-  )
+  let nilPause = await nilGenerator.resolve(metrics: pauseMetrics)
+  let nilPitch = await nilGenerator.resolve(metrics: pitchMetrics)
+  try check(nilPause == pauseFrozen, "Nil generator did not fail-close to frozen pause copy")
+  try check(nilPitch == pitchFrozen, "Nil generator did not fail-close to frozen pitch copy")
 
   let unavailable = InsightCopyResolver(
     generator: SelfTestInsightGenerator(availability: .unavailable)
   )
+  let unavailablePause = await unavailable.resolve(metrics: pauseMetrics)
   try check(
-    await unavailable.resolve(metrics: pauseMetrics) == pauseFrozen,
+    unavailablePause == pauseFrozen,
     "Unavailable generator did not fail-close to frozen copy"
   )
 
@@ -120,10 +117,8 @@ private func verifyInsightCopyLayer() async throws {
       )
     )
   )
-  try check(
-    await rejected.resolve(metrics: pauseMetrics) == pauseFrozen,
-    "Sanitize reject did not fail-close to frozen copy"
-  )
+  let rejectedPause = await rejected.resolve(metrics: pauseMetrics)
+  try check(rejectedPause == pauseFrozen, "Sanitize reject did not fail-close to frozen copy")
 
   let acceptedPause = InsightCopyRewrite(
     observation: "Pauses in the middle of phrases ran longer than this take needs.",
