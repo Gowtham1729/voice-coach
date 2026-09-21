@@ -2,6 +2,12 @@
 
 Practice your voice on this Mac — record, Mimic a reference, and get a clear next step. Local-first for **macOS 26+**. Nothing is uploaded.
 
+## Demo
+
+[~1 min tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4) — Home → Take → Mimic → Library.
+
+<video src="https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4" controls width="720"></video>
+
 ## Download
 
 **[Voice Coach 3.2.0 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.2.0)** — zip, move to Applications. If Gatekeeper blocks: right-click → **Open**.
@@ -9,12 +15,6 @@ Practice your voice on this Mac — record, Mimic a reference, and get a clear n
 Apple on-device transcription is default. Optional Parakeet (~714 MB) under **Settings → Transcription**.
 
 > Tagged releases are built by GitHub Actions (`v*` tags). See [`docs/RELEASE.md`](docs/RELEASE.md).
-
-## Demo
-
-[~1 min tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4) — Home → Take → Mimic → Library.
-
-<video src="https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4" controls width="720"></video>
 
 ## Features
 
@@ -29,13 +29,9 @@ Apple on-device transcription is default. Optional Parakeet (~714 MB) under **Se
 
 All analysis and transcription stay on-device under `~/Library/Application Support/VoiceCoach`.
 
-## What it measures
+## How insights work
 
-Acoustic coaching signals — **not** medical measurements.
-
-- Pauses, pitch range, loudness, and phrase-end energy
-- Noise / SNR / clipping (recording hygiene)
-- On-device transcript with word timing when available
+One clear next step when pauses or pitch stand out. Metrics stay quieter underneath.
 
 ## Privacy
 
@@ -43,6 +39,14 @@ Acoustic coaching signals — **not** medical measurements.
 - Analysis and optional Parakeet transcription run locally
 - The library index is written atomically
 - Deleting a recording removes its audio and analysis; deleting a Mimic removes its reference and attempts
+
+## What it measures
+
+Acoustic coaching signals — **not** medical measurements.
+
+- Pauses, pitch range, loudness, and phrase-end energy
+- Noise / SNR / clipping (recording hygiene)
+- On-device transcript with word timing when available
 
 ## Develop from source
 
