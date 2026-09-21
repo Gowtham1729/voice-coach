@@ -2,6 +2,8 @@
 
 Practice your voice on this Mac — record, Mimic a reference, and get a clear next step. Local-first for **macOS 26+**. Nothing is uploaded.
 
+For speakers who practice on their Mac — talks, pitches, interviews — and want one clear next step without uploading audio.
+
 ## Demo
 
 [~1 min tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4) — Home → Take → Mimic → Library.
@@ -12,24 +14,30 @@ Practice your voice on this Mac — record, Mimic a reference, and get a clear n
 
 **[Voice Coach 3.2.0 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.2.0)** — zip, move to Applications. If Gatekeeper blocks: right-click → **Open**.
 
+Try the tour above, then install — same local-first app, no signup.
+
 Apple on-device transcription is default. Optional Parakeet (~714 MB) under **Settings → Transcription**.
 
 > Tagged releases are built by GitHub Actions (`v*` tags). See [`docs/RELEASE.md`](docs/RELEASE.md).
 
 ## Features
 
+The loop: Take → one next step → Mimic. Retry until it lands.
+
 | Area | What you get |
 | --- | --- |
 | **Home** | One-tap **Record**, import audio/video (normalized to local WAV), Recents |
 | **Takes** | Stacked retries (Take 1, Take 2, …), sticky timeline, transcript word seek |
-| **Insights** | One plain next-step when pauses or pitch stand out — metrics stay quieter underneath |
+| **Hybrid Insights** | One plain next-step when pauses or pitch stand out — metrics stay quieter underneath |
 | **Mimic** | Reference from file or Mac audio → listen, imitate, compare, retry |
 | **Library** | Flat catalog of recordings — no folder picking |
 | **Export / coach notes** | Export audio + JSON; coach notes live under inspector **More** |
 
 All analysis and transcription stay on-device under `~/Library/Application Support/VoiceCoach`.
 
-## How insights work
+Recordings, analysis, and transcripts stay on this Mac — no account, no upload, no cloud processing.
+
+## How Hybrid Insights work
 
 One clear next step when pauses or pitch stand out. Metrics stay quieter underneath.
 
