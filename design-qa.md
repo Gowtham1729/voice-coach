@@ -2,6 +2,22 @@
 
 Date: 2026-09-22. Final result: passed.
 
+## Interactive ribbon follow-up
+
+- Inspected the real WebGL surface at desktop 1280 x 800 and phone 390 x 844.
+  Cobalt material, fine ribs, perspective, soft shadow, and the existing caption
+  fit the hero. The phone document remains 390 px wide with no horizontal scroll.
+- Verified pointer/click and keyboard ripple activation, plus pause/resume. The
+  paused sculpture visually remains still. Browser error/warning log was empty.
+- Touch scrolling is preserved with `touch-action: pan-y`; pointer-move responses
+  are mouse-only. A physical touch device was not used for verification.
+- Four focused lifecycle tests cover initial and changing reduced-motion settings,
+  absent WebGL, shader failure, pause, offscreen/hidden suspension, single animation
+  loop ownership, bounded pixel density, click/keyboard inputs, and context loss.
+  These use a mocked renderer; actual shader rendering was checked in the browser.
+- The original image is retained for reduced motion and graphics failures. No new
+  dependencies, microphone requests, sound synthesis, or outbound data paths.
+
 ## Final-pass verification
 
 The final review was implemented and inspected at 390 x 844, 320 x 740,

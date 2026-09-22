@@ -1,3 +1,5 @@
+import { initSoundRibbon } from "./sound-ribbon.js";
+
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [
   ...parent.querySelectorAll(selector),
@@ -160,3 +162,4 @@ $$(".faq-list details").forEach((detail) => {
     });
   });
 });
+initSoundRibbon();

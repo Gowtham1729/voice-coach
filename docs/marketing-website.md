@@ -10,6 +10,7 @@ From the repository root, with Node.js 20 or newer:
 
 ```sh
 node scripts/check-website.mjs
+node scripts/test-sound-ribbon.mjs
 node scripts/build-website.mjs
 node scripts/serve-website.mjs --port 4173
 ```
@@ -28,7 +29,14 @@ and the static output; it must not include personal audio or the Swift build dir
 ## Experience
 
 - Original cream, cobalt, and pale-green visual system with a generated ribbed
-  sound sculpture; self-hosted DM Sans and Space Grotesk; original app icon.
+  sound sculpture fallback; self-hosted DM Sans and Space Grotesk; original app icon.
+- A dependency-free WebGL ribbon progressively replaces the hero image. Slow
+  resting motion, damped pointer tilt, and bounded travelling-wave packets make
+  the sculpture respond to mouse movement, clicks, and Enter/Space. It is a
+  visual approximation of vibration, not an acoustic measurement or simulation.
+  A visible pause/resume button controls motion. No sound or microphone access.
+  Reduced motion and graphics failure retain the image. Rendering stops offscreen
+  and when the document is hidden; pixel density is capped at 1.75.
 - Responsive layouts at 320, 390, 768, and 1280 px; reduced-motion support.
 - Native modal tour with captions and chapter seeking. Closing stops playback.
 - Three equal ways-in cards explain microphone recording, Mac-audio capture,
@@ -41,6 +49,7 @@ and the static output; it must not include personal audio or the Swift build dir
   details collapse by default; the notarization notice remains visible.
 - The two final-pass interactions are the pause/pitch tip flip and a subtle
   press/icon response on the input cards. Reduced motion disables both animations.
+  The interactive hero ribbon was added in a subsequent, separately requested pass.
 - A focused real-app Mimic comparison section with the listen / imitate / compare
   practice loop.
 - One compact local-first proof strip, native FAQ disclosure, and a download
