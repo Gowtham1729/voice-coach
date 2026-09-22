@@ -14,7 +14,7 @@ struct SettingsView: View {
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
   @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
   @AppStorage("voiceCoach.autoGenerateTitles") private var autoGenerateTitles = false
-  @AppStorage("voiceCoach.rewriteInsightWording") private var rewriteInsightWording = false
+  @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording = false
 
   private var transcriptionBusy: Bool {
     model.systemTranscriptionStatus.isBusy
@@ -95,7 +95,10 @@ struct SettingsView: View {
       Section {
         Toggle("On-device insight wording", isOn: $rewriteInsightWording)
           .onChange(of: rewriteInsightWording) { _, enabled in
-            if enabled { InsightCopyGenerator.prewarmIfAvailable() }
+            if enabled {
+              InsightCopyGenerator.prewarmIfAvailable()
+              model.rescheduleInsightWordingForSelection()
+            }
           }
         if rewriteInsightWording {
           LabeledContent("Apple Intelligence", value: InsightCopyGenerator.status.settingsLabel)

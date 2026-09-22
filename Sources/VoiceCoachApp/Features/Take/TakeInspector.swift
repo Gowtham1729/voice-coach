@@ -5,6 +5,7 @@ import VoiceCoachSession
 struct TakeInspector: View {
   @EnvironmentObject private var model: AppModel
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
+  @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording = false
   @State private var takePendingDelete: UUID?
 
   var body: some View {
@@ -32,10 +33,11 @@ struct TakeInspector: View {
               metrics: take.result.metrics,
               observation: model.displayedInsight(for: take.result.metrics)
             )
-            .onAppear { model.scheduleInsightWording(for: take.result.metrics) }
-            .onChange(of: take.id) { _, _ in
-              model.scheduleInsightWording(for: take.result.metrics)
-            }
+            .insightWordingTask(
+              takeID: take.id,
+              metrics: take.result.metrics,
+              wordingEnabled: rewriteInsightWording
+            ) { model.scheduleInsightWording(for: $0) }
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         } footer: {

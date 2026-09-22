@@ -5,6 +5,7 @@ import VoiceCoachSession
 struct MimicInspector: View {
   @EnvironmentObject private var model: AppModel
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
+  @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording = false
   @State private var takePendingDelete: UUID?
 
   var body: some View {
@@ -45,10 +46,11 @@ struct MimicInspector: View {
           metrics: metrics,
           observation: model.displayedInsight(for: metrics)
         )
-        .onAppear { model.scheduleInsightWording(for: metrics) }
-        .onChange(of: take.id) { _, _ in
-          model.scheduleInsightWording(for: take.result.metrics)
-        }
+        .insightWordingTask(
+          takeID: take.id,
+          metrics: metrics,
+          wordingEnabled: rewriteInsightWording
+        ) { model.scheduleInsightWording(for: $0) }
 
         if !model.mimicCompareAlignmentReliable {
           Text("Word comparison is limited. Coach notes use recording metrics.")

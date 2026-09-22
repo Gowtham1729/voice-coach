@@ -71,9 +71,11 @@ final class AppModel: ObservableObject {
 
   let insightResolverCache: PersistedInsightCopyCache
   let insightResolver: InsightCopyResolver
+  /// Accepted rewrites only (never frozen fail-closed copy). Display falls back to `HeroPacket.frozen`.
   @Published var insightCopyByKey: [InsightCopyCacheKey: CoachObservation] = [:]
   @Published var insightCopyRevision = 0
   var insightAttemptedKeys: Set<InsightCopyCacheKey> = []
+  var insightInFlightKeys: Set<InsightCopyCacheKey> = []
 
   init(
     storageRoot: URL? = nil,

@@ -25,11 +25,11 @@ struct CoachObservationBlock: View {
 /// Shared insights view used by TakeInspector and MimicInspector compare content
 /// to maintain a synchronous visual hierarchy (Hero observation above quieter metrics stack).
 ///
-/// Copy source is the caller (`displayedInsight`). Unavailable / rejected wording is
-/// frozen `CoachObservation` — same Hybrid card, no AI chrome.
+/// Caller passes `displayedInsight` when the optional wording layer is wired. Metrics always
+/// render. Missing / rejected wording uses frozen `CoachObservation` — same card, no AI chrome.
 struct TakeInsightsView: View {
   let metrics: VoiceMetrics
-  var observation: CoachObservation?
+  let observation: CoachObservation?
 
   init(metrics: VoiceMetrics, observation: CoachObservation? = nil) {
     self.metrics = metrics
@@ -43,5 +43,26 @@ struct TakeInsightsView: View {
       }
       InspectorMetricStack(metrics: InspectorMetricItem.voiceMetrics(metrics))
     }
+    .accessibilityElement(children: .contain)
+    .accessibilityLabel("Insights")
   }
+}
+
+extension View {
+  /// Schedules optional Insight wording when the take or preference changes.
+  func insightWordingTask(
+    takeID: UUID,
+    metrics: VoiceMetrics,
+    wordingEnabled: Bool,
+    schedule: @escaping (VoiceMetrics) -> Void
+  ) -> some View {
+    task(id: InsightWordingTaskID(takeID: takeID, wordingEnabled: wordingEnabled)) {
+      schedule(metrics)
+    }
+  }
+}
+
+private struct InsightWordingTaskID: Hashable {
+  let takeID: UUID
+  let wordingEnabled: Bool
 }
