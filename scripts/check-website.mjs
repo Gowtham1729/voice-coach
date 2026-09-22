@@ -47,6 +47,7 @@ assert.ok(
   "Marketing page must not record audio or send analytics",
 );
 assert.ok(!html.includes("—"), "Landing-page strings must not use em dashes");
+assert.ok(!js.includes("—"), "Interactive strings must not use em dashes");
 for (const requiredCopy of [
   "Practice how you sound,",
   "Record with your mic",
@@ -56,12 +57,30 @@ for (const requiredCopy of [
   "Your pauses averaged longer than this take needs,",
   "No account, no upload, no cloud processing.",
   "Free while in early access. No account required.",
+  "Is this an AI speech coach?",
+  "No. It’s a private practice studio. Core Insights use acoustic rules (pauses and pitch). The practice loop does not require sending your voice to a cloud AI service.",
+  "System audio access is needed when you capture Mac audio.",
+  "Your pitch stayed in a narrow range, the line sounds flat.",
+  "On the next take, vary pitch more on the key words.",
 ]) {
   assert.ok(
     normalizedHtml.includes(requiredCopy),
     `Missing required v2 copy: ${requiredCopy}`,
   );
 }
+assert.equal(
+  html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)[1]
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim(),
+  "Practice how you sound, privately, on your Mac.",
+  "Keep the complete frozen headline at every viewport",
+);
+assert.ok(
+  !html.includes("Free while in early access ·") &&
+    !html.includes("needed only when you capture Mac audio for Mimic"),
+  "Do not restore the superseded commercial or Mimic-only permission copy",
+);
 for (const bannedClaim of [
   "YouTube URL importer",
   "confidence score",

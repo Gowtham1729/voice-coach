@@ -57,13 +57,23 @@
         <a href="#questions">Questions</a>
       </nav>
       <a
-        class="button button-dark nav-download"
+        class="button button-blue nav-download"
         href="#download"
         data-open-download
       >
         Download for Mac
         <img class="icon light" src="assets/icons/arrow-down.svg" alt="" />
       </a>
+      <details class="mobile-menu">
+        <summary>Menu <img class="icon" src="assets/icons/plus.svg" alt="" /></summary>
+        <nav aria-label="Mobile navigation">
+          <a href="#ways-in">Start</a>
+          <a href="#insights">Insights</a>
+          <a href="#mimic">Mimic</a>
+          <a href="#questions">Questions</a>
+          <a href="#download">Download for Mac</a>
+        </nav>
+      </details>
     </header>
 
     <main id="main">
@@ -134,7 +144,7 @@
               <h3>Record with your mic</h3>
               <p>Rehearse a talk, pitch, or interview out loud.</p>
             </article>
-            <article class="way-card accent">
+            <article class="way-card">
               <span class="way-number">02</span>
               <img src="assets/icons/laptop.svg" alt="" />
               <h3>Capture Mac audio</h3>
@@ -263,22 +273,43 @@
                   loading="lazy"
                 />
               </div>
-              <aside class="next-step-card">
-                <span class="demo-label">ONE NEXT STEP</span>
-                <div>
-                  <strong>Observation</strong>
-                  <p>
-                    Your pauses averaged longer than this take needs,
-                    especially mid-phrase.
-                  </p>
-                </div>
-                <div>
-                  <strong>Action</strong>
-                  <p>
-                    On the next take, aim for shorter gaps between phrases.
-                  </p>
-                </div>
-              </aside>
+              <button
+                class="next-step-card"
+                data-tip-toggle
+                aria-label="Show pitch example"
+              >
+                <span class="tip-heading">
+                  <span class="demo-label">ONE NEXT STEP</span>
+                  <span class="tip-switch">Pauses / Pitch <span aria-hidden="true">↔</span></span>
+                </span>
+                <span class="tip-examples" aria-live="polite">
+                  <span class="tip-example" data-tip="pause">
+                    <span class="tip-part">
+                      <strong>Observation</strong>
+                      <span class="tip-copy">
+                        Your pauses averaged longer than this take needs,
+                        especially mid-phrase.
+                      </span>
+                    </span>
+                    <span class="tip-part">
+                      <strong>Action</strong>
+                      <span class="tip-copy">
+                        On the next take, aim for shorter gaps between phrases.
+                      </span>
+                    </span>
+                  </span>
+                  <span class="tip-example" data-tip="pitch" hidden>
+                    <span class="tip-part">
+                      <strong>Observation</strong>
+                      <span class="tip-copy">Your pitch stayed in a narrow range, the line sounds flat.</span>
+                    </span>
+                    <span class="tip-part">
+                      <strong>Action</strong>
+                      <span class="tip-copy">On the next take, vary pitch more on the key words.</span>
+                    </span>
+                  </span>
+                </span>
+              </button>
             </div>
 
             <div class="insight-view" data-insight-view="retry" hidden>
@@ -381,6 +412,13 @@
         <div class="faq-list">
           <details>
             <summary>
+              Is this an AI speech coach?
+              <img class="icon" src="assets/icons/plus.svg" alt="" />
+            </summary>
+            <p>No. It’s a private practice studio. Core Insights use acoustic rules (pauses and pitch). The practice loop does not require sending your voice to a cloud AI service.</p>
+          </details>
+          <details>
+            <summary>
               Does anything get uploaded?
               <img class="icon" src="assets/icons/plus.svg" alt="" />
             </summary>
@@ -445,9 +483,9 @@
             <span class="eyebrow">YOUR NEXT TAKE IS WAITING</span>
             <h2 id="download-title">Make room for the words that matter.</h2>
             <p>Free while in early access. No account required.</p>
-            <button class="button button-cream" data-open-download>
+            <button class="button button-blue" data-open-download>
               Download for Mac
-              <img class="icon" src="assets/icons/arrow-down.svg" alt="" />
+              <img class="icon light" src="assets/icons/arrow-down.svg" alt="" />
             </button>
             <span class="release-meta">v3.2.0 · macOS 26+</span>
           </div>
@@ -460,21 +498,21 @@
               alt="Voice Coach app icon"
               loading="lazy"
             />
-            <div>
-              <strong>Before you install</strong>
+            <p class="install-warning">The current release is ad-hoc signed and not Apple-notarized.</p>
+            <details class="install-details" data-responsive-details open>
+              <summary>Before you install</summary>
               <p>
-                The current release is ad-hoc signed and not Apple-notarized.
-                Microphone access is needed to record. System audio access is
-                needed only when you capture Mac audio for Mimic.
+                Microphone access is needed to record.
+                System audio access is needed when you capture Mac audio.
               </p>
-            </div>
-            <div>
-              <strong>Optional transcription</strong>
+            </details>
+            <details class="install-details" data-responsive-details open>
+              <summary>Optional transcription</summary>
               <p>
                 Optional on-device transcription needs a one-time ~714 MB
                 download. Your recordings stay on this Mac.
               </p>
-            </div>
+            </details>
           </div>
         </div>
       </section>
@@ -506,6 +544,11 @@
         >GitHub</a>
       </div>
     </footer>
+
+    <a class="mobile-download-bar" href="#download">
+      <span>Mac app · <strong>Download</strong></span>
+      <img class="icon light" src="assets/icons/arrow-down.svg" alt="" />
+    </a>
 
     <dialog
       class="tour-dialog"
@@ -577,10 +620,8 @@
         alt=""
       />
       <h2 id="download-dialog-title">Download Voice Coach.</h2>
-      <p class="dialog-description">
-        Voice Coach v3.2.0 · macOS 26+<br />Free while in early access · No
-        account required
-      </p>
+      <p class="dialog-description">Voice Coach v3.2.0 · macOS 26+</p>
+      <p class="dialog-commercial">Free while in early access. No account required.</p>
       <div class="install-disclosure">
         <strong>This release is not Apple-notarized yet.</strong>
         <p>
@@ -588,20 +629,24 @@
           if you trust its source.
         </p>
       </div>
-      <ol class="install-steps">
-        <li>Download and unzip the app.</li>
-        <li>Move Voice Coach to Applications.</li>
-        <li>
-          If macOS blocks it, review the release instructions. The approval may
-          appear in System Settings under Privacy &amp; Security.
-          <a
-            href="https://support.apple.com/en-us/102445"
-            target="_blank"
-            rel="noopener"
-          >Apple’s opening guidance</a>
-          explains the process.
-        </li>
-      </ol>
+      <details class="install-details" data-responsive-details open>
+        <summary>Installation steps and permissions</summary>
+        <ol class="install-steps">
+          <li>Download and unzip the app.</li>
+          <li>Move Voice Coach to Applications.</li>
+          <li>
+            If macOS blocks it, review the release instructions. The approval may
+            appear in System Settings under Privacy &amp; Security.
+            <a
+              href="https://support.apple.com/en-us/102445"
+              target="_blank"
+              rel="noopener"
+            >Apple’s opening guidance</a>
+            explains the process.
+          </li>
+        </ol>
+        <p>Microphone access is needed to record. System audio access is needed when you capture Mac audio.</p>
+      </details>
       <a
         class="button button-blue direct-download"
         href="https://github.com/Gowtham1729/voice-coach/releases/download/v3.2.0/Voice-Coach-3.2.0-macOS.zip"

@@ -2,6 +2,34 @@
 
 Date: 2026-09-22. Final result: passed.
 
+## Final-pass verification
+
+The final review was implemented and inspected at 390 x 844, 320 x 740,
+and 1280 x 800 in the local browser preview.
+
+- Frozen H1 retained verbatim. AI speech coach FAQ matches the supplied Q/A.
+  Capture permission copy applies generally. The dialog separates the platform
+  and exact early-access sentence into paragraphs. No em dashes in HTML or JS.
+- At 390 px, both hero CTAs are 350 px wide and at least 52 px high. At 320 px,
+  they are 280 px wide and at least 52 px high. Document width equals viewport
+  width at both phone sizes; no main-content element extends beyond 320 px.
+- All three input cards use the same cream background. The YouTube explanation
+  occupies the full width below the stack.
+- Mobile menu opens and closes after navigating. FAQ expands to the exact AI
+  answer. The persistent Mac download link reaches the download section.
+- Install details collapse on phones and expand on desktop. Notarization honesty
+  stays visible. Expanded instructions include the general system-audio line.
+- Mimic art starts at the 20 px mobile gutter and keeps its aspect ratio.
+  Walkthrough screenshots use a bounded crop on phones, with full images on desktop.
+- Phone tour dialog is 590 px tall at 390 x 844, with a 201 px video and 44 px
+  chapter buttons. Seeking to Analysis reaches 36 seconds; closing pauses playback.
+- Tip flip works by click, native Return, and Space, showing one example at a time.
+  The only new decorative motions are tip flip and input-card press/icon breathing.
+  The loaded reduced-motion stylesheet explicitly disables both new animations
+  and card translation. The OS motion preference was not changed during QA.
+- Browser error log was empty during the checked interactions. Website checks,
+  build, and whitespace validation pass. Existing media files were not changed.
+
 The v2 page keeps the original cream, cobalt, and pale-green visual identity
 while replacing the poetry-first sequence with a clarity-first conversion path:
 hero, three ways to start, Insights, Mimic, one privacy proof strip, FAQ, and
