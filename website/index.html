@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4f1e9" />
+    <meta
+      name="description"
+      content="A private voice practice studio for Mac. Rehearse a talk, pitch, or interview. Record a take, find one thing to try, and go again. Your audio stays on your Mac."
+    />
+    <meta property="og:title" content="Voice Coach — Practice. Out loud." />
+    <meta
+      property="og:description"
+      content="Your next big moment starts with a little private practice. A voice practice studio for macOS 26+."
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:url"
+      content="https://voice-coach-studio.gowtham.chatgpt.site/"
+    />
+    <meta
+      property="og:image"
+      content="https://voice-coach-studio.gowtham.chatgpt.site/assets/sound-sculpture.jpg"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link
+      rel="canonical"
+      href="https://voice-coach-studio.gowtham.chatgpt.site/"
+    />
+    <title>Voice Coach — Practice. Out loud.</title>
+    <link rel="icon" href="assets/favicon.png" type="image/png" />
+    <link
+      rel="preload"
+      href="assets/fonts/space-grotesk-bold.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="wordmark" href="#" aria-label="Voice Coach home"
+        ><img src="assets/favicon.png" width="34" height="34" alt="" /><span
+          >voice coach<span class="wordmark-period">.</span></span
+        ></a
+      >
+      <nav class="desktop-nav" aria-label="Main navigation">
+        <a href="#studio">The studio</a><a href="#how-it-works">The practice</a
+        ><a href="#privacy">The privacy</a>
+      </nav>
+      <a
+        class="button button-dark nav-download"
+        href="#download"
+        data-open-download
+        >Get Voice Coach
+        <img class="icon light" src="assets/icons/arrow-down.svg" alt=""
+      /></a>
+    </header>
+    <main id="main">
+      <section class="hero container" aria-labelledby="hero-title">
+        <div class="hero-topline">
+          <span class="eyebrow"
+            ><span class="status-dot"></span> A PRIVATE VOICE PRACTICE STUDIO
+            FOR MAC</span
+          ><span class="edition">MADE FOR YOUR NEXT TAKE ↗</span>
+        </div>
+        <div class="hero-composition">
+          <div class="hero-copy">
+            <h1 id="hero-title">Practice.<br /><span>Out loud.</span></h1>
+            <p class="hero-description">
+              For the thing you’re about to say.<br />Try it. Hear it. Find your
+              next take.<br /><strong>Privately, on your Mac.</strong>
+            </p>
+            <div class="hero-actions">
+              <a class="button button-blue" href="#download" data-open-download
+                >Download for Mac
+                <img
+                  class="icon light"
+                  src="assets/icons/arrow-down.svg"
+                  alt="" /></a
+              ><button class="text-button" data-open-tour>
+                <span class="small-play"
+                  ><img class="icon" src="assets/icons/play.svg" alt=""
+                /></span>
+                Watch the 1-min tour
+              </button>
+            </div>
+            <p class="small-note">
+              macOS 26+ <span>·</span> No account. Just you.
+            </p>
+          </div>
+          <div class="hero-art" aria-hidden="true">
+            <img
+              class="sound-sculpture"
+              src="assets/sound-sculpture.jpg"
+              width="1536"
+              height="1024"
+              alt=""
+              fetchpriority="high"
+            /><span class="art-caption"
+              >a little room<br />to find your voice.</span
+            >
+            <div class="local-stamp">
+              <img src="assets/icons/lock-key.svg" alt="" /><span
+                >YOUR VOICE.<br />YOUR MAC.<br />YOUR BUSINESS.</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="hero-bottom">
+          <span>BIG MOMENT COMING UP?</span>
+          <div class="occasion-links">
+            <a href="#your-moment" data-occasion="talk">A talk</a><span>/</span
+            ><a href="#your-moment" data-occasion="pitch">A pitch</a
+            ><span>/</span
+            ><a href="#your-moment" data-occasion="interview">An interview</a
+            ><span>/</span
+            ><span class="occasion-extra">Just finding your rhythm</span>
+          </div>
+          <a class="round-link" href="#studio" aria-label="Explore the studio"
+            ><img class="icon" src="assets/icons/arrow-down.svg" alt=""
+          /></a>
+        </div>
+      </section>
+
+      <section
+        class="studio-section"
+        id="studio"
+        aria-labelledby="studio-title"
+      >
+        <div class="container">
+          <div class="section-label light-label">
+            <span>01 / YOUR OWN LITTLE REHEARSAL ROOM</span
+            ><span>ON DEVICE. ON YOUR TERMS.</span>
+          </div>
+          <div class="section-intro">
+            <h2 id="studio-title">
+              Before the big moment,<br />there’s this little window.
+            </h2>
+            <p>
+              Open your Mac. Say it out loud.<br />A place for the first
+              attempt, the second thought, and the take that finally feels like
+              you.
+            </p>
+          </div>
+          <button
+            class="tour-preview"
+            data-open-tour
+            aria-label="Play the 59-second Voice Coach app tour"
+          >
+            <img
+              src="assets/mimic-compare.jpg"
+              width="1112"
+              height="720"
+              alt="Voice Coach on Mac, comparing a reference and a practice take with pitch curves and word timing"
+              loading="lazy"
+            /><span class="video-play-pill"
+              ><span class="play-circle"
+                ><img class="icon" src="assets/icons/play.svg" alt="" /></span
+              ><span
+                >Step inside the studio<small
+                  >THE REAL APP · 59 SECONDS</small
+                ></span
+              ><img class="icon" src="assets/icons/arrow-up-right.svg" alt=""
+            /></span>
+          </button>
+          <div class="studio-caption">
+            <span>NATIVE MAC APP. NO BROWSER TAB REQUIRED.</span
+            ><button class="underlined-button" data-open-tour>
+              See it in motion
+              <img
+                class="icon light"
+                src="assets/icons/arrow-up-right.svg"
+                alt=""
+              />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="practice-section container"
+        id="how-it-works"
+        aria-labelledby="practice-title"
+      >
+        <div class="section-label">
+          <span>02 / SMALL REPEATS. REAL PRACTICE.</span
+          ><span>TAKE YOUR TIME. THEN TAKE TWO.</span>
+        </div>
+        <div class="practice-layout">
+          <div class="practice-copy">
+            <h2 id="practice-title">
+              One take.<br />One thing to try.<br /><span class="blue-text"
+                >Another take.</span
+              >
+            </h2>
+            <p>
+              You don’t need a wall of numbers to start. When pauses or pitch
+              stand out, Voice Coach gives you one clear thing to try next.
+            </p>
+            <div
+              class="step-tabs"
+              role="tablist"
+              aria-label="Explore the practice loop"
+              aria-orientation="vertical"
+            >
+              <button
+                role="tab"
+                id="step-record"
+                aria-controls="practice-panel"
+                aria-selected="true"
+                data-step="record"
+              >
+                <span class="step-number">01</span
+                ><span
+                  >Give it a first take<small
+                    >Record or import something you’re practicing.</small
+                  ></span
+                ><img
+                  class="icon"
+                  src="assets/icons/arrow-up-right.svg"
+                  alt=""
+                />
+              </button>
+              <button
+                role="tab"
+                id="step-notice"
+                aria-controls="practice-panel"
+                aria-selected="false"
+                tabindex="-1"
+                data-step="notice"
+              >
+                <span class="step-number">02</span
+                ><span
+                  >Notice one useful thing<small
+                    >A next step, with the acoustic evidence beneath.</small
+                  ></span
+                ><img
+                  class="icon"
+                  src="assets/icons/arrow-up-right.svg"
+                  alt=""
+                />
+              </button>
+              <button
+                role="tab"
+                id="step-retry"
+                aria-controls="practice-panel"
+                aria-selected="false"
+                tabindex="-1"
+                data-step="retry"
+              >
+                <span class="step-number">03</span
+                ><span
+                  >Go again. Make it yours.<small
+                    >Keep your takes together. Listen back as you go.</small
+                  ></span
+                ><img
+                  class="icon"
+                  src="assets/icons/arrow-up-right.svg"
+                  alt=""
+                />
+              </button>
+            </div>
+          </div>
+          <div
+            class="practice-demo"
+            id="practice-panel"
+            role="tabpanel"
+            aria-labelledby="step-record"
+            tabindex="0"
+          >
+            <div class="demo-header">
+              <span class="demo-project"
+                ><img src="assets/icons/microphone.svg" class="icon" alt="" />
+                The big idea</span
+              ><span class="demo-local"
+                ><img src="assets/icons/lock-key.svg" alt="" /> ON YOUR
+                MAC</span
+              >
+            </div>
+            <div class="demo-view" data-view="record">
+              <div class="demo-eyebrow">FIRST, LET’S HEAR IT.</div>
+              <p class="demo-script">
+                “Here’s the idea.<br />What if we made<br />space to
+                <em>practice?</em>”
+              </p>
+              <div class="demo-timeline">
+                <canvas
+                  class="waveform"
+                  width="700"
+                  height="96"
+                  aria-label="Illustrative audio waveform"
+                ></canvas>
+                <div>
+                  <span>00:00</span><span>TAKE 01</span><span>00:12</span>
+                </div>
+              </div>
+              <button
+                class="button button-blue demo-next"
+                data-next-step="notice"
+              >
+                See what stands out
+                <img
+                  class="icon light"
+                  src="assets/icons/arrow-right.svg"
+                  alt=""
+                />
+              </button>
+            </div>
+            <div class="demo-view" data-view="notice" hidden>
+              <div class="demo-eyebrow">ONE THING FOR YOUR NEXT TAKE</div>
+              <span class="insight-label"
+                ><img src="assets/icons/pause.svg" class="icon" alt="" />
+                PAUSES</span
+              >
+              <p class="insight-summary">
+                Your pauses averaged longer than this take needs — especially
+                mid-phrase.
+              </p>
+              <div class="insight-action">
+                <span>TRY THIS</span>
+                <p>On the next take, aim for shorter gaps between phrases.</p>
+              </div>
+              <div class="quiet-metrics">
+                <span>3 internal pauses</span><span>820 ms average</span>
+              </div>
+              <button
+                class="button button-blue demo-next"
+                data-next-step="retry"
+              >
+                Let’s try another take
+                <img class="icon light" src="assets/icons/repeat.svg" alt="" />
+              </button>
+            </div>
+            <div class="demo-view" data-view="retry" hidden>
+              <div class="demo-eyebrow">A FRESH TAKE, SAME YOU.</div>
+              <p class="retry-headline">
+                You’ve got<br />room to <em>repeat.</em>
+              </p>
+              <div class="take-stack">
+                <div>
+                  <span>01</span><span>The first idea</span
+                  ><small>12 sec</small>
+                </div>
+                <div class="current-take">
+                  <span>02</span><span>A little more flow</span
+                  ><span class="take-badge">NEXT TAKE</span>
+                </div>
+              </div>
+              <p class="retry-note">
+                Listen back. Try a different rhythm.<br />Every take is part of
+                the practice.
+              </p>
+              <button
+                class="button button-blue demo-next"
+                data-next-step="record"
+              >
+                Run through it again
+                <img class="icon light" src="assets/icons/repeat.svg" alt="" />
+              </button>
+            </div>
+            <div class="demo-footnote">
+              INTERACTIVE WALKTHROUGH · ILLUSTRATIVE DATA
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="word-ribbon" aria-hidden="true">
+        <div>
+          <span>SAY IT.</span><span>HEAR IT.</span><span>TRY IT.</span
+          ><span>OWN IT.</span><span>SAY IT.</span><span>HEAR IT.</span
+          ><span>TRY IT.</span><span>OWN IT.</span>
+        </div>
+      </div>
+
+      <section
+        class="mimic-section container"
+        id="mimic"
+        aria-labelledby="mimic-title"
+      >
+        <div class="section-label">
+          <span>03 / BORROW A RHYTHM. FIND YOUR OWN.</span
+          ><span>MEET MIMIC</span>
+        </div>
+        <div class="mimic-layout">
+          <div class="mimic-visual">
+            <div class="mimic-top">
+              <span class="mini-label">REFERENCE / YOU</span
+              ><span class="compare-label">SIDE BY SIDE</span>
+            </div>
+            <img
+              id="mimic-image"
+              src="assets/mimic-compare.jpg"
+              width="1112"
+              height="720"
+              loading="lazy"
+              alt="Real Voice Coach Mimic screen comparing the reference and your delivery"
+            />
+            <div
+              class="mimic-switcher"
+              role="group"
+              aria-label="Choose an app view"
+            >
+              <button aria-pressed="true" data-app-view="compare">
+                Compare</button
+              ><button aria-pressed="false" data-app-view="analysis">
+                Analysis</button
+              ><button aria-pressed="false" data-app-view="library">
+                Library
+              </button>
+            </div>
+          </div>
+          <div class="mimic-copy">
+            <span class="eyebrow blue-text"
+              >A GOOD REFERENCE GOES A LONG WAY.</span
+            >
+            <h2 id="mimic-title">Catch the rhythm.<br />Keep your voice.</h2>
+            <p>
+              Bring in a reference from a file or capture Mac audio. Listen,
+              imitate, and compare how the words land—pitch, timing, and
+              emphasis.
+            </p>
+            <p>Then hit Try Again. That’s the whole idea.</p>
+            <div class="mimic-loop">
+              <span>Listen</span
+              ><img
+                class="icon"
+                src="assets/icons/arrow-right.svg"
+                alt="then"
+              /><span>Imitate</span
+              ><img
+                class="icon"
+                src="assets/icons/arrow-right.svg"
+                alt="then"
+              /><span>Compare</span
+              ><img
+                class="icon"
+                src="assets/icons/repeat.svg"
+                alt="and repeat"
+              />
+            </div>
+            <button class="underlined-button" data-open-tour data-tour-time="6">
+              See Mimic in the tour
+              <img class="icon" src="assets/icons/arrow-up-right.svg" alt="" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="privacy-section"
+        id="privacy"
+        aria-labelledby="privacy-title"
+      >
+        <div class="container">
+          <div class="section-label">
+            <span>04 / YOUR VOICE IS YOUR BUSINESS.</span
+            ><span
+              ><img class="icon" src="assets/icons/lock-key.svg" alt="" /> LOCAL
+              BY DESIGN</span
+            >
+          </div>
+          <div class="privacy-layout">
+            <div>
+              <h2 id="privacy-title">
+                Some things<br />don’t need<br /><em>an audience.</em>
+              </h2>
+              <p>
+                The rough draft. The fifth attempt.<br />The interview answer
+                you’re still figuring out.<br />They can stay between you and
+                your Mac.
+              </p>
+            </div>
+            <div class="privacy-proof">
+              <div>
+                <span class="privacy-number">01</span>
+                <h3>Your recordings stay here.</h3>
+                <p>
+                  Audio, analysis, and transcripts live in your local Voice
+                  Coach library.
+                </p>
+              </div>
+              <div>
+                <span class="privacy-number">02</span>
+                <h3>The work happens on your Mac.</h3>
+                <p>
+                  Acoustic analysis and supported transcription run on device.
+                  Your recordings aren’t sent away for processing.
+                </p>
+              </div>
+              <div>
+                <span class="privacy-number">03</span>
+                <h3>You own the next move.</h3>
+                <p>
+                  No Voice Coach account. Export your audio and reports. Delete
+                  a recording and its audio and analysis go with it.
+                </p>
+              </div>
+              <button class="underlined-button" data-open-privacy>
+                Read the plain-English privacy note
+                <img
+                  class="icon"
+                  src="assets/icons/arrow-up-right.svg"
+                  alt=""
+                />
+              </button>
+            </div>
+          </div>
+          <div class="privacy-bottom">
+            <img class="icon" src="assets/icons/laptop.svg" alt="" /><span
+              >RECORDING → ANALYSIS → TRANSCRIPT → LIBRARY</span
+            ><span>ALL ON THIS MAC.</span>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="moment-section container"
+        id="your-moment"
+        aria-labelledby="moment-title"
+      >
+        <div class="section-label">
+          <span>05 / WHAT’S YOUR NEXT BIG MOMENT?</span
+          ><span>START WITH ONE SMALL TAKE.</span>
+        </div>
+        <div class="moment-layout">
+          <div>
+            <h2 id="moment-title">For the words<br />that <em>matter.</em></h2>
+            <div
+              class="occasion-tabs"
+              role="tablist"
+              aria-label="Choose what you are rehearsing"
+            >
+              <button
+                role="tab"
+                id="occasion-talk"
+                aria-controls="occasion-panel"
+                aria-selected="true"
+                data-moment="talk"
+              >
+                A talk</button
+              ><button
+                role="tab"
+                id="occasion-pitch"
+                aria-controls="occasion-panel"
+                aria-selected="false"
+                tabindex="-1"
+                data-moment="pitch"
+              >
+                A pitch</button
+              ><button
+                role="tab"
+                id="occasion-interview"
+                aria-controls="occasion-panel"
+                aria-selected="false"
+                tabindex="-1"
+                data-moment="interview"
+              >
+                An interview
+              </button>
+            </div>
+          </div>
+          <div
+            class="occasion-panel"
+            id="occasion-panel"
+            role="tabpanel"
+            aria-labelledby="occasion-talk"
+            tabindex="0"
+          >
+            <span class="mini-label" id="occasion-eyebrow"
+              >BEFORE YOU TAKE THE ROOM</span
+            >
+            <p class="occasion-quote" id="occasion-quote">
+              “I want the opening<br />to feel like <em>me.</em>”
+            </p>
+            <p id="occasion-description">
+              Run through the first minute. Hear where you rush, leave a gap, or
+              lose the shape of a sentence. Then give it another go.
+            </p>
+            <a class="underlined-button" href="#download"
+              >Make room for a rehearsal
+              <img class="icon" src="assets/icons/arrow-up-right.svg" alt=""
+            /></a>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="faq-section container"
+        id="questions"
+        aria-labelledby="faq-title"
+      >
+        <div class="faq-heading">
+          <span class="eyebrow">A FEW GOOD QUESTIONS</span>
+          <h2 id="faq-title">Before you <br />press record.</h2>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>
+              Does anything get uploaded?<img
+                class="icon"
+                src="assets/icons/plus.svg"
+                alt=""
+              />
+            </summary>
+            <p>
+              Voice Coach keeps recordings, analysis, and transcripts on your
+              Mac. Acoustic analysis and supported transcription happen on
+              device. Optional transcription models need a one-time download;
+              that doesn’t upload your recordings. You choose if you export or
+              share a file.
+            </p>
+          </details>
+          <details>
+            <summary>
+              Do I need an account?<img
+                class="icon"
+                src="assets/icons/plus.svg"
+                alt=""
+              />
+            </summary>
+            <p>
+              No Voice Coach account or signup is required. Download the Mac
+              app, open it, and start with a take.
+            </p>
+          </details>
+          <details>
+            <summary>
+              What does it actually measure?<img
+                class="icon"
+                src="assets/icons/plus.svg"
+                alt=""
+              />
+            </summary>
+            <p>
+              Acoustic signals including pauses, pitch range, loudness,
+              phrase-end energy, and recording quality. When pauses or pitch
+              stand out, Insights can suggest one next practice step. There’s no
+              overall confidence, personality, or audience-reaction score.
+            </p>
+          </details>
+          <details>
+            <summary>
+              Is this an AI speech coach?<img
+                class="icon"
+                src="assets/icons/plus.svg"
+                alt=""
+              />
+            </summary>
+            <p>
+              It’s a private practice studio. The core Insights shown here use
+              rules based on acoustic measurements. Speech recognition can
+              create an on-device transcript, but the practice loop doesn’t
+              require sending your voice to a cloud AI service.
+            </p>
+          </details>
+          <details>
+            <summary>
+              What is Mimic for?<img
+                class="icon"
+                src="assets/icons/plus.svg"
+                alt=""
+              />
+            </summary>
+            <p>
+              Mimic lets you practice with a reference: listen, imitate,
+              compare, and retry. You can explore timing, pitch, and emphasis.
+              It doesn’t grade your accent or provide pronunciation scoring.
+            </p>
+          </details>
+          <details>
+            <summary>
+              Is it medical advice or speech therapy?<img
+                class="icon"
+                src="assets/icons/plus.svg"
+                alt=""
+              />
+            </summary>
+            <p>
+              No. Voice Coach is for acoustic practice. It doesn’t diagnose
+              voice conditions or replace a clinician, speech therapist, or
+              human coach.
+            </p>
+          </details>
+          <details>
+            <summary>
+              What should I know before installing?<img
+                class="icon"
+                src="assets/icons/plus.svg"
+                alt=""
+              />
+            </summary>
+            <p>
+              The current public download is v3.2.0 for macOS 26+. It is ad-hoc
+              signed and isn’t Apple-notarized yet, so macOS may block the first
+              launch. Review the release notes and install guidance before
+              opening it. This page’s tour shows the development build; some
+              screens may be ahead of the public release.
+              <a href="#download">See download details.</a>
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <section
+        class="download-section"
+        id="download"
+        aria-labelledby="download-title"
+      >
+        <div class="container">
+          <div class="download-top">
+            <span class="eyebrow">YOUR NEXT TAKE IS WAITING.</span
+            ><span class="download-edition">FOR MACOS 26+</span>
+          </div>
+          <div class="download-main">
+            <h2 id="download-title">Go on.<br /><em>Say it again.</em></h2>
+            <div class="download-action">
+              <img
+                src="assets/app-icon.png"
+                width="88"
+                height="88"
+                alt="Voice Coach app icon"
+                loading="lazy"
+              />
+              <p>A little practice.<br />A space that’s yours.</p>
+              <button class="button button-cream" data-open-download>
+                Get Voice Coach for Mac
+                <img
+                  class="icon"
+                  src="assets/icons/arrow-down.svg"
+                  alt=""
+                /></button
+              ><span>v3.2.0 · Early development · Free download</span>
+            </div>
+          </div>
+          <div class="install-note">
+            <img class="icon light" src="assets/icons/laptop.svg" alt="" />
+            <p>
+              <strong>A note before you install.</strong> The current release is
+              ad-hoc signed, not Apple-notarized. We’ll show you the install
+              details before your download.
+            </p>
+            <a
+              href="https://github.com/Gowtham1729/voice-coach/releases/tag/v3.2.0"
+              target="_blank"
+              rel="noopener"
+              >Release notes
+              <img
+                class="icon light"
+                src="assets/icons/arrow-up-right.svg"
+                alt="opens in a new tab"
+            /></a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer container">
+      <a class="wordmark" href="#"
+        ><img src="assets/favicon.png" width="28" height="28" alt="" /><span
+          >voice coach.</span
+        ></a
+      ><span class="footer-line">Made for practice. Made for your Mac.</span>
+      <div>
+        <button data-open-privacy>Privacy</button
+        ><a
+          href="https://github.com/Gowtham1729/voice-coach/issues/new"
+          target="_blank"
+          rel="noopener"
+          >Send feedback
+          <img
+            class="icon"
+            src="assets/icons/arrow-up-right.svg"
+            alt="opens in a new tab" /></a
+        ><a
+          href="https://github.com/Gowtham1729/voice-coach"
+          target="_blank"
+          rel="noopener"
+          >GitHub</a
+        >
+      </div>
+    </footer>
+
+    <dialog
+      class="tour-dialog"
+      id="tour-dialog"
+      aria-labelledby="tour-dialog-title"
+    >
+      <div class="dialog-top">
+        <div>
+          <span class="mini-label">COME ON IN.</span>
+          <h2 id="tour-dialog-title">Your studio, in 59 seconds.</h2>
+        </div>
+        <button
+          class="icon-button"
+          data-close-dialog
+          aria-label="Close app tour"
+        >
+          <img class="icon" src="assets/icons/x.svg" alt="" />
+        </button>
+      </div>
+      <video
+        id="tour-video"
+        controls
+        playsinline
+        preload="none"
+        poster="assets/mimic-compare.jpg"
+      >
+        <source src="assets/voice-coach-tour.mp4" type="video/mp4" />
+        <track
+          kind="captions"
+          src="assets/tour-captions.vtt"
+          srclang="en"
+          label="English scene descriptions"
+          default
+        />
+      </video>
+      <div class="tour-chapters" aria-label="Jump to a part of the tour">
+        <button data-seek="0">00:00 Library</button
+        ><button data-seek="6">00:06 Practice</button
+        ><button data-seek="18">00:18 Compare</button
+        ><button data-seek="36">00:36 Analysis</button
+        ><button data-seek="48">00:48 Import</button>
+      </div>
+      <p class="tour-note">
+        Real app footage · Development build; some screens may be ahead of
+        v3.2.0.
+      </p>
+    </dialog>
+    <dialog
+      class="info-dialog"
+      id="download-dialog"
+      aria-labelledby="download-dialog-title"
+    >
+      <div class="dialog-top">
+        <span class="mini-label">ONE LITTLE THING BEFORE YOU START.</span
+        ><button
+          class="icon-button"
+          data-close-dialog
+          aria-label="Close download details"
+        >
+          <img class="icon" src="assets/icons/x.svg" alt="" />
+        </button>
+      </div>
+      <img
+        class="download-app-icon"
+        src="assets/app-icon.png"
+        width="72"
+        height="72"
+        alt=""
+      />
+      <h2 id="download-dialog-title">Meet your new<br />practice space.</h2>
+      <p class="dialog-description">
+        Voice Coach v3.2.0 · macOS 26+<br />Free download · Early development
+      </p>
+      <div class="install-disclosure">
+        <strong>This release isn’t Apple-notarized yet.</strong>
+        <p>
+          It is ad-hoc signed. macOS may block the first launch; only open the
+          app if you trust its source.
+        </p>
+      </div>
+      <ol class="install-steps">
+        <li>Download and unzip the app.</li>
+        <li>Move Voice Coach to Applications.</li>
+        <li>
+          If macOS blocks it, review the release’s opening instructions. On
+          current macOS, the approval may appear in System Settings → Privacy
+          &amp; Security.
+          <a
+            href="https://support.apple.com/en-us/102445"
+            target="_blank"
+            rel="noopener"
+            >Apple’s opening guidance</a
+          >
+          explains the process.
+        </li>
+      </ol>
+      <a
+        class="button button-blue direct-download"
+        href="https://github.com/Gowtham1729/voice-coach/releases/download/v3.2.0/Voice-Coach-3.2.0-macOS.zip"
+        >Download v3.2.0 · 2.2 MB
+        <img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></a
+      ><a
+        class="release-link"
+        href="https://github.com/Gowtham1729/voice-coach/releases/tag/v3.2.0"
+        target="_blank"
+        rel="noopener"
+        >Read the release notes
+        <img
+          class="icon"
+          src="assets/icons/arrow-up-right.svg"
+          alt="opens in a new tab"
+      /></a>
+      <p class="small-note">
+        No account required. Recordings stay on your Mac.
+      </p>
+    </dialog>
+    <dialog
+      class="info-dialog privacy-dialog"
+      id="privacy-dialog"
+      aria-labelledby="privacy-dialog-title"
+    >
+      <div class="dialog-top">
+        <span class="mini-label">THE PLAIN-ENGLISH VERSION</span
+        ><button
+          class="icon-button"
+          data-close-dialog
+          aria-label="Close privacy note"
+        >
+          <img class="icon" src="assets/icons/x.svg" alt="" />
+        </button>
+      </div>
+      <h2 id="privacy-dialog-title">Your practice.<br />Your files.</h2>
+      <div class="privacy-note-content">
+        <h3>Inside the Mac app</h3>
+        <p>
+          Recordings, acoustic analysis, and available transcripts are stored
+          locally under <code>~/Library/Application Support/VoiceCoach/</code>.
+          The app doesn’t upload your recordings for analysis or transcription,
+          and you don’t need a Voice Coach account.
+        </p>
+        <h3>Permissions &amp; downloads</h3>
+        <p>
+          Recording needs microphone permission. Capturing a Mimic reference
+          from Mac audio needs system-audio permission. Optional Parakeet
+          transcription requires a model/runtime download of about 714 MB.
+          Downloading those files does not send your recordings away.
+        </p>
+        <h3>Exporting &amp; deleting</h3>
+        <p>
+          You choose whether to export audio or reports, and where they go.
+          Deleting a recording removes its audio and analysis after the library
+          update succeeds. Deleting a Mimic removes its reference and attempts.
+          Files you already exported stay wherever you saved them.
+        </p>
+        <h3>This website</h3>
+        <p>
+          This landing page has no analytics scripts, forms, or microphone
+          access. Its fonts, images, and video are served with the site. Sites
+          hosting may use its own access controls and operational logs. Download
+          and feedback links take you to GitHub, which has its own privacy
+          practices.
+        </p>
+      </div>
+    </dialog>
+    <noscript
+      ><div class="noscript-note">
+        Download
+        <a href="https://github.com/Gowtham1729/voice-coach/releases/tag/v3.2.0"
+          >Voice Coach v3.2.0</a
+        >
+        for macOS 26+. The release is ad-hoc signed and not notarized.
+        <a href="assets/voice-coach-tour.mp4">Watch the app tour.</a>
+      </div></noscript
+    >
+  </body>
+</html>
