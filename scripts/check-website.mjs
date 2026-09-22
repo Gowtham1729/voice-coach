@@ -5,6 +5,14 @@ import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
 const root = fileURLToPath(new URL("../website/", import.meta.url));
+const hosting = JSON.parse(
+  readFileSync(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
+);
+assert.equal(
+  hosting.static.directory,
+  "dist",
+  "Sites static output must use the supported dist root",
+);
 const html = readFileSync(resolve(root, "index.html"), "utf8");
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
 const js = readFileSync(resolve(root, "app.js"), "utf8");

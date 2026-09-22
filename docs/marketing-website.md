@@ -1,7 +1,7 @@
 # Voice Coach landing page
 
 The independent marketing website lives in `website/`. It uses static HTML, CSS,
-and a small JavaScript module. There are no package dependencies, build tools,
+and a small JavaScript module. There are no package dependencies, bundlers,
 analytics, forms, microphone APIs, or external font requests.
 
 ## Run and verify
@@ -10,6 +10,7 @@ From the repository root, with Node.js 20 or newer:
 
 ```sh
 node scripts/check-website.mjs
+node scripts/build-website.mjs
 node scripts/serve-website.mjs --port 4173
 ```
 
@@ -17,11 +18,12 @@ The preview server supports video byte ranges, including Safari chapter seeking.
 Use `--host 0.0.0.0` only when previewing from another local device. This is a
 development server, not the production runtime.
 
-The page is buildless: `website/` is the deployable static output. Sites identity
-and the static directory are recorded in `.openai/hosting.json`. Preserve that
+The build verifies and copies `website/` into the ignored `dist/` directory,
+which is a supported Sites static output root. Sites identity and the static
+directory are recorded in `.openai/hosting.json`. Preserve that
 project ID for subsequent deployments. Push the exact source commit before
 packaging and saving a Sites version. The archive contains the hosting manifest
-and `website/`; it must not include personal audio or the Swift build directory.
+and the static output; it must not include personal audio or the Swift build directory.
 
 ## Experience
 

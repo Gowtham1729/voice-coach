@@ -62,6 +62,9 @@ capture used the browser viewport API; no mock browser images were substituted.
 - `node scripts/check-website.mjs`: 37 references, 35 unique IDs, valid ARIA
   targets, JavaScript syntax, and no external scripts or recording APIs.
 - `git diff --check`: passed.
+- Sites packaging initially rejected the authoring folder as a static output
+  root. Added a verified copy build to the supported `dist/` root and updated
+  the hosting manifest. No page code or appearance changed in this repair.
 
 ## Remaining limits
 

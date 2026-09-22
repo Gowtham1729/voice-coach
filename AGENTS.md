@@ -16,7 +16,7 @@ Local-first **macOS 26+** SwiftUI voice practice studio (Swift 6.2). Record/impo
 | Unit suites | `Tests/VoiceCoachCoreTests/`, `Tests/VoiceCoachSessionTests/` | Swift Testing coverage for pure contracts and persistence |
 | Integration contract suite | `Sources/VoiceCoachSelfTest/main.swift` | Cross-platform acoustic/report smoke and live helpers |
 | App bundle resources | `Resources/` | Packaged by `scripts/build-app.sh` |
-| Marketing website | `website/` | Static Sites landing page; `node scripts/check-website.mjs`; preview with `node scripts/serve-website.mjs` |
+| Marketing website | `website/` | Build/check: `node scripts/build-website.mjs`; preview: `node scripts/serve-website.mjs`; Sites config: `.openai/hosting.json` |
 | Dev/scripts | `scripts/`, `script/build_and_run.sh` | Prefer these over inventing new build steps |
 
 **Naming trap:** UI “recording” / retry stack / Mimic map onto `CoachingSession` (`Sources/VoiceCoachSession/Models/CoachingSession.swift`). UI “take” = Core `PracticeSession` (`Sources/VoiceCoachCore/Models/PracticeSession.swift`). Do not rename these storage types casually.
