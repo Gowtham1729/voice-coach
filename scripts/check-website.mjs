@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
@@ -16,7 +16,8 @@ assert.equal(
 const html = readFileSync(resolve(root, "index.html"), "utf8");
 const normalizedHtml = html.replace(/\s+/g, " ");
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
-const js = readFileSync(resolve(root, "app.js"), "utf8");
+const modules = readdirSync(root).filter((file) => file.endsWith(".js"));
+const js = modules.map((file) => readFileSync(resolve(root, file), "utf8")).join("\n");
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(ids).size, ids.length, "HTML IDs must be unique");
 const urls = new Set([
@@ -25,6 +26,7 @@ const urls = new Set([
   ),
   ...[...css.matchAll(/url\(['"]?([^'"\)]+)['"]?\)/g)].map((match) => match[1]),
   ...[...js.matchAll(/['"](assets\/[^'"\s]+)['"]/g)].map((match) => match[1]),
+  ...[...js.matchAll(/\bfrom ["']\.\/([^"']+)["']/g)].map((match) => match[1]),
 ]);
 for (const url of urls) {
   if (url === "#" || url.startsWith("https://")) continue;
@@ -43,8 +45,8 @@ assert.ok(
   "No external script dependency",
 );
 assert.ok(
-  !/getUserMedia|MediaRecorder|sendBeacon/.test(js),
-  "Marketing page must not record audio or send analytics",
+  !/getUserMedia|MediaRecorder|sendBeacon|AudioContext/.test(js),
+  "Marketing page must not capture or synthesize audio, or send analytics",
 );
 assert.ok(!html.includes("—"), "Landing-page strings must not use em dashes");
 assert.ok(!js.includes("—"), "Interactive strings must not use em dashes");
@@ -89,9 +91,11 @@ for (const bannedClaim of [
 ]) {
   assert.ok(!html.includes(bannedClaim), `Unsupported claim found: ${bannedClaim}`);
 }
-execFileSync(process.execPath, ["--check", resolve(root, "app.js")], {
-  stdio: "inherit",
-});
+for (const module of modules) {
+  execFileSync(process.execPath, ["--check", resolve(root, module)], {
+    stdio: "inherit",
+  });
+}
 console.log(
   `Website verified: ${urls.size} references, ${ids.length} unique IDs, valid ARIA targets, JavaScript syntax, and no external scripts.`,
 );
