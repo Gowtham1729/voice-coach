@@ -174,6 +174,11 @@ img {
   justify-self: end;
 }
 
+.mobile-menu,
+.mobile-download-bar {
+  display: none;
+}
+
 .button {
   display: inline-flex;
   gap: 14px;
@@ -195,11 +200,6 @@ img {
   transform: translateY(-2px);
 }
 
-.button-dark {
-  color: var(--white);
-  background: var(--ink);
-}
-
 .button-blue {
   color: var(--white);
   background: var(--blue);
@@ -208,11 +208,6 @@ img {
 
 .button-blue:hover {
   background: var(--blue-deep);
-}
-
-.button-cream {
-  color: var(--ink);
-  background: var(--paper-bright);
 }
 
 .hero {
@@ -292,6 +287,7 @@ img {
 
 .hero-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 28px;
   align-items: center;
   margin-top: 34px;
@@ -324,6 +320,7 @@ img {
   display: grid;
   width: 35px;
   height: 35px;
+  flex-shrink: 0;
   border: 1px solid var(--ink);
   border-radius: 50%;
   place-items: center;
@@ -448,10 +445,31 @@ img {
   border-right: 1px solid var(--ink);
   border-bottom: 1px solid var(--ink);
   background: var(--paper-bright);
+  transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
-.way-card.accent {
-  background: var(--lime);
+.way-card:active {
+  transform: translateY(3px);
+  box-shadow: inset 0 3px 0 rgba(31, 36, 31, 0.12);
+}
+
+@media (hover: hover) {
+  .way-card:hover {
+    transform: translateY(3px);
+    box-shadow: inset 0 3px 0 rgba(31, 36, 31, 0.12);
+  }
+
+  .way-card:hover > img {
+    animation: icon-breathe 650ms ease-in-out;
+  }
+}
+
+.way-card:active > img {
+  animation: icon-breathe 650ms ease-in-out;
+}
+
+@keyframes icon-breathe {
+  50% { transform: scale(1.12); }
 }
 
 .way-card > img {
@@ -496,6 +514,7 @@ img {
   width: 18px;
   height: 18px;
   margin-top: 1px;
+  flex-shrink: 0;
 }
 
 .insights-section {
@@ -591,6 +610,7 @@ img {
 
 .screen-frame > img {
   width: 100%;
+  height: auto;
   aspect-ratio: 1112 / 720;
   object-fit: cover;
 }
@@ -633,14 +653,51 @@ img {
   background: var(--lime);
   box-shadow: 14px 14px 0 var(--blue);
   transform: rotate(1.4deg);
+  text-align: left;
+  cursor: pointer;
 }
 
-.next-step-card > div {
+.tip-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tip-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.tip-switch > span {
+  font-size: 22px;
+}
+
+.tip-examples,
+.tip-example,
+.tip-part,
+.tip-copy {
+  display: block;
+}
+
+.tip-example {
+  animation: tip-flip 220ms ease-out;
+}
+
+@keyframes tip-flip {
+  from { opacity: 0.4; transform: perspective(600px) rotateX(-8deg); }
+  to { opacity: 1; transform: perspective(600px) rotateX(0); }
+}
+
+.tip-part {
   padding-block: 22px;
   border-top: 1px solid rgba(31, 36, 31, 0.35);
 }
 
-.next-step-card > div:first-of-type {
+.tip-part:first-child {
   margin-top: 20px;
 }
 
@@ -649,7 +706,7 @@ img {
   font-size: 13px;
 }
 
-.next-step-card p {
+.tip-copy {
   margin: 8px 0 0;
   font-size: 17px;
   line-height: 1.45;
@@ -951,14 +1008,41 @@ img {
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
 }
 
-.download-notes > div {
-  padding-top: 25px;
+.install-details {
   border-top: 1px solid rgba(31, 36, 31, 0.35);
 }
 
-.download-notes strong {
+.install-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  padding-block: 12px;
   font-family: var(--display);
-  font-size: 19px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.install-details summary::-webkit-details-marker,
+.mobile-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.install-details summary::after {
+  content: "+";
+  flex-shrink: 0;
+  font-size: 22px;
+}
+
+.install-details[open] summary::after {
+  content: "−";
+}
+
+.install-details > p {
+  margin: 0 0 16px;
 }
 
 .download-notes p {
@@ -1028,8 +1112,8 @@ dialog::backdrop {
 .icon-button {
   display: grid;
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid var(--ink);
   border-radius: 50%;
@@ -1040,6 +1124,9 @@ dialog::backdrop {
 
 .tour-dialog video {
   width: 100%;
+  max-height: 55svh;
+  aspect-ratio: 1112 / 720;
+  object-fit: contain;
   border: 1px solid var(--ink);
   background: #000;
 }
@@ -1052,6 +1139,7 @@ dialog::backdrop {
 }
 
 .tour-chapters button {
+  min-height: 44px;
   padding: 8px 11px;
   border: 1px solid var(--ink);
   border-radius: 999px;
@@ -1081,6 +1169,11 @@ dialog::backdrop {
 
 .dialog-description {
   color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.dialog-commercial {
+  margin-top: 0;
 }
 
 .install-disclosure {
@@ -1134,11 +1227,58 @@ dialog::backdrop {
 
 @media (max-width: 1050px) {
   .site-header {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
+    gap: 16px;
   }
 
   .desktop-nav {
     display: none;
+  }
+
+  .mobile-menu {
+    display: block;
+  }
+
+  .mobile-menu summary {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 16px;
+    border: 1px solid var(--ink);
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .mobile-menu[open] summary img {
+    transform: rotate(45deg);
+  }
+
+  .mobile-menu nav {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    left: 0;
+    padding: 12px 20px;
+    border: 1px solid var(--ink);
+    border-radius: 16px;
+    background: var(--paper-bright);
+    box-shadow: 0 16px 30px rgba(31, 36, 31, 0.12);
+  }
+
+  .mobile-menu nav a {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .mobile-menu nav a:last-child {
+    border-bottom: 0;
   }
 
   .hero {
@@ -1173,37 +1313,75 @@ dialog::backdrop {
 
 @media (max-width: 780px) {
   :root {
-    --container: min(100% - 36px, 680px);
+    --container: min(100% - 40px, 680px);
   }
 
   .site-header {
-    width: calc(100vw - 28px);
+    width: calc(100% - 40px);
     min-height: 70px;
+    grid-template-columns: 1fr auto;
   }
 
   .nav-download {
-    min-height: 42px;
-    padding: 9px 15px;
-    font-size: 12px;
+    display: none;
   }
 
   .hero {
     grid-template-columns: 1fr;
     gap: 10px;
     min-height: auto;
-    padding-block: 60px 72px;
+    padding-block: 32px 64px;
   }
 
   .hero h1 {
-    font-size: clamp(57px, 15vw, 92px);
+    font-size: clamp(3rem, 12.7vw, 5.5rem);
+    line-height: 0.98;
+    letter-spacing: -0.065em;
   }
 
   .hero-description {
     font-size: 18px;
+    margin-top: 24px;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .hero-actions > * {
+    width: 100%;
+    justify-content: center;
+    min-height: 52px;
+  }
+
+  .eyebrow,
+  .section-kicker,
+  .demo-label,
+  .mini-label {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .status-dot {
+    flex-shrink: 0;
+  }
+
+  .hero-index {
+    font-size: 12px;
+    letter-spacing: 0.02em;
   }
 
   .hero-art {
-    margin-top: 20px;
+    margin-top: 8px;
+    max-height: 250px;
+  }
+
+  .hero-art .sound-sculpture {
+    height: 250px;
+    object-fit: cover;
   }
 
   .sound-sculpture {
@@ -1221,11 +1399,22 @@ dialog::backdrop {
   }
 
   .way-card {
-    min-height: 260px;
+    min-height: 245px;
+    padding: 24px;
   }
 
   .way-card > img {
-    margin-top: 38px;
+    margin-top: 18px;
+  }
+
+  .way-number,
+  .mimic-loop span {
+    font-size: 14px;
+  }
+
+  .honesty-line {
+    width: 100%;
+    font-size: 14px;
   }
 
   .insights-section,
@@ -1234,13 +1423,29 @@ dialog::backdrop {
   }
 
   .insight-tabs {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .insight-tabs button {
-    min-height: 85px;
-    border-right: 0;
-    border-bottom: 1px solid var(--ink);
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 8px;
+    min-height: 110px;
+    padding: 14px 10px;
+  }
+
+  .insight-tabs button > span {
+    grid-row: auto;
+    font-size: 14px;
+  }
+
+  .insight-tabs strong {
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .insight-tabs small {
+    display: none;
   }
 
   .insight-tabs button:last-child {
@@ -1252,13 +1457,36 @@ dialog::backdrop {
   }
 
   .insight-view {
-    min-height: 500px;
+    min-height: 0;
+    gap: 20px;
+  }
+
+  .insight-view .screen-frame > img {
+    height: clamp(140px, 40vw, 230px);
+    aspect-ratio: auto;
+    object-position: top;
+  }
+
+  .screen-frame {
+    box-shadow: 6px 8px 0 rgba(31, 36, 31, 0.11);
   }
 
   .next-step-card {
-    width: 92%;
-    margin: -48px auto 10px;
-    transform: rotate(0.8deg);
+    width: calc(100% - 8px);
+    margin: 0 8px 8px 0;
+    transform: none;
+  }
+
+  .tip-part {
+    padding-block: 16px;
+  }
+
+  .tip-copy {
+    font-size: 16px;
+  }
+
+  .demo-disclaimer {
+    font-size: 12px;
   }
 
   .mimic-layout,
@@ -1283,6 +1511,48 @@ dialog::backdrop {
 
   .download-notes {
     margin-top: 55px;
+    gap: 16px;
+    transform: none;
+  }
+
+  .mimic-visual {
+    min-width: 0;
+    margin: 0 8px 16px 0;
+    transform: none;
+  }
+
+  .mimic-sticker {
+    right: 8px;
+    font-size: 12px;
+  }
+
+  .mobile-download-bar {
+    position: fixed;
+    z-index: 15;
+    right: 20px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 48px;
+    padding: 12px 20px;
+    border-radius: 999px;
+    color: var(--white);
+    background: var(--blue);
+    box-shadow: 0 6px 24px rgba(31, 36, 31, 0.2);
+  }
+
+  body {
+    padding-bottom: 76px;
+  }
+
+  .tour-dialog video {
+    max-height: 30svh;
+  }
+
+  .tour-chapters button {
+    font-size: 14px;
   }
 
   .site-footer {
@@ -1295,10 +1565,6 @@ dialog::backdrop {
 }
 
 @media (max-width: 520px) {
-  :root {
-    --container: calc(100vw - 28px);
-  }
-
   .wordmark {
     font-size: 14px;
   }
@@ -1316,22 +1582,8 @@ dialog::backdrop {
     display: none;
   }
 
-  .hero {
-    padding-top: 48px;
-  }
-
   .hero .eyebrow {
     margin-bottom: 24px;
-  }
-
-  .hero h1 {
-    font-size: clamp(49px, 16vw, 78px);
-  }
-
-  .hero-actions {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 20px;
   }
 
   .trust-line {
@@ -1341,10 +1593,6 @@ dialog::backdrop {
   .art-caption {
     right: 0;
     font-size: 15px;
-  }
-
-  .hero-index {
-    font-size: 8px;
   }
 
   .section-kicker span:last-child {
@@ -1368,10 +1616,6 @@ dialog::backdrop {
     font-size: 17px;
   }
 
-  .honesty-line {
-    font-size: 12px;
-  }
-
   .insights-heading h2 {
     font-size: 52px;
   }
@@ -1380,19 +1624,9 @@ dialog::backdrop {
     padding: 12px;
   }
 
-  .insight-view {
-    min-height: 455px;
-  }
-
   .next-step-card {
-    width: calc(100% - 16px);
-    padding: 22px;
-    margin-top: -22px;
+    padding: 18px;
     box-shadow: 8px 8px 0 var(--blue);
-  }
-
-  .next-step-card p {
-    font-size: 15px;
   }
 
   .screen-bar {
@@ -1507,10 +1741,6 @@ dialog::backdrop {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .tour-chapters button {
-    font-size: 11px;
-  }
-
   .direct-download {
     width: 100%;
   }
@@ -1532,5 +1762,15 @@ dialog::backdrop {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .way-card:hover,
+  .way-card:active {
+    transform: none;
+  }
+
+  .way-card > img,
+  .tip-example {
+    animation: none !important;
   }
 }

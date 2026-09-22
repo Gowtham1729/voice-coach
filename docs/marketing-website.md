@@ -34,7 +34,13 @@ and the static output; it must not include personal audio or the Swift build dir
 - Three equal ways-in cards explain microphone recording, Mac-audio capture,
   and file import, followed by an explicit note that YouTube URLs are not imported.
 - Keyboard-accessible take / notice / retry tabs. The Insight view pairs real app
-  footage with an explicitly illustrative pause observation and next action.
+  footage with an illustrative pause or pitch observation and next action.
+  Click the tip card, or use Enter/Space, to switch examples.
+- On phones, a compact section menu and a persistent Mac download link support
+  discovery. Hero actions stack full-width. Installation and transcription
+  details collapse by default; the notarization notice remains visible.
+- The two final-pass interactions are the pause/pitch tip flip and a subtle
+  press/icon response on the input cards. Reduced motion disables both animations.
 - A focused real-app Mimic comparison section with the listen / imitate / compare
   practice loop.
 - One compact local-first proof strip, native FAQ disclosure, and a download
@@ -51,8 +57,9 @@ repository before its recommendations were implemented.
 
 Product claims were checked against `README.md`, `AGENTS.md`, the local source,
 `docs/RELEASE.md`, and the public GitHub release API on 2026-09-22 (Asia/Kolkata).
-The exact pause Insight text comes from
-`Sources/VoiceCoachCore/Models/CoachObservation.swift`. Sample measurements and
+The pause and pitch Insight words come from
+`Sources/VoiceCoachCore/Models/CoachObservation.swift`, with commas replacing
+em dashes to follow the landing-page typography rule. Sample measurements and
 practice takes are explicitly illustrative.
 
 The latest public release verified in this task was v3.2.0 (2,157,070 bytes).
@@ -99,6 +106,11 @@ https://support.apple.com/en-us/102445.
 > no interface. This is a decorative brand art asset, not a screenshot.
 
 ## Scope
+
+The user-supplied `landing-v2-lastpass-builder-brief.md` informed the final patch:
+restore the exact AI FAQ, correct Capture-general permission copy and commercial
+punctuation, improve phone discovery, and add only the two selected interactions.
+The existing media files and frozen headline remain unchanged.
 
 This change does not alter the Swift app, audio capture, analysis, or persistence.
 Website verification is separate from live microphone or Mac app validation.
