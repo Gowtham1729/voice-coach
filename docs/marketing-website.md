@@ -30,13 +30,17 @@ and the static output; it must not include personal audio or the Swift build dir
 
 - Original cream, cobalt, and pale-green visual system with a generated ribbed
   sound sculpture fallback; self-hosted DM Sans and Space Grotesk; original app icon.
-- A dependency-free WebGL ribbon progressively replaces the hero image. Slow
-  resting motion, damped pointer tilt, and bounded travelling-wave packets make
-  the sculpture respond to mouse movement, clicks, and Enter/Space. It is a
-  visual approximation of vibration, not an acoustic measurement or simulation.
+- On desktop, a dependency-free WebGL sculpture progressively replaces the hero
+  image with 18 separate lengthwise cobalt layers shaped after the original.
+  Mouse movement gently changes the viewing angle. Clicking or Enter/Space
+  plucks a fundamental and two quieter standing-wave harmonics with rapid decay.
+  The sculpture is still at rest, with no continuous surface flow. This is a
+  slowed visual analogy for resonance, not an acoustic measurement.
   A visible pause/resume button controls motion. No sound or microphone access.
-  Reduced motion and graphics failure retain the image. Rendering stops offscreen
-  and when the document is hidden; pixel density is capped at 1.75.
+  Phones (780 px and below), reduced motion, and graphics failure retain the image.
+  Phones show no interaction controls and do not create a graphics context on load.
+  Rendering stops at rest, offscreen, and when the document is hidden; pixel density
+  is capped at 1.75. Geometry and normals are generated once at initialization.
 - Responsive layouts at 320, 390, 768, and 1280 px; reduced-motion support.
 - Native modal tour with captions and chapter seeking. Closing stops playback.
 - Three equal ways-in cards explain microphone recording, Mac-audio capture,

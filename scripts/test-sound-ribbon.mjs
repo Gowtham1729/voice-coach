@@ -16,6 +16,9 @@ function target(properties = {}) {
       entries.push({ callback, once: options.once });
       listeners.set(type, entries);
     },
+    removeEventListener(type, callback) {
+      listeners.set(type, (listeners.get(type) || []).filter((e) => e.callback !== callback));
+    },
     emit(type, event = {}) {
       for (const entry of [...(listeners.get(type) || [])]) {
         if (entry.once) listeners.set(type, listeners.get(type).filter((e) => e !== entry));
@@ -26,7 +29,7 @@ function target(properties = {}) {
   }, properties);
 }
 
-function setup({ reduced = false, gpu = true, compile = true } = {}) {
+function setup({ reduced = false, mobile = false, gpu = true, compile = true } = {}) {
   const frames = new Map();
   const values = {};
   let nextFrame = 0;
@@ -57,9 +60,12 @@ function setup({ reduced = false, gpu = true, compile = true } = {}) {
     })[selector],
   };
   const media = target({ matches: reduced });
+  const phone = target({ matches: mobile });
   const document = target({ hidden: false, querySelector: () => scene });
   runInNewContext(`${source}\ninitSoundRibbon();`, {
-    document, matchMedia: () => media, devicePixelRatio: 3,
+    document,
+    matchMedia: (query) => query.includes("max-width") ? phone : media,
+    devicePixelRatio: 3,
     requestAnimationFrame: (callback) => {
       frames.set(++nextFrame, callback);
       return nextFrame;
@@ -72,7 +78,7 @@ function setup({ reduced = false, gpu = true, compile = true } = {}) {
     ResizeObserver: class { observe() {} },
   });
   return {
-    canvas, pause, fallback, media, document, frames, values, classes,
+    canvas, pause, fallback, media, phone, document, frames, values, classes,
     draws: () => draws, contexts: () => contexts,
     intersect: (visible) => intersect([{ isIntersecting: visible }]),
     tick(time) {
@@ -102,6 +108,24 @@ test("missing WebGL or shader failure leaves the original image available", () =
     assert.equal(page.classes.has("ribbon-ready"), false);
     assert.equal(page.frames.size, 0);
   }
+});
+
+test("mobile keeps the original image, including after crossing the desktop breakpoint", () => {
+  const page = setup({ mobile: true });
+  assert.equal(page.contexts(), 0);
+  assert.equal(page.frames.size, 0);
+  assert.equal(page.canvas.hidden, true);
+  page.phone.matches = false;
+  page.phone.emit("change");
+  assert.equal(page.contexts(), 1);
+  assert.equal(page.canvas.hidden, false);
+  page.phone.matches = true;
+  page.phone.emit("change");
+  assert.equal(page.frames.size, 0);
+  assert.equal(page.canvas.hidden, true);
+  assert.equal(page.classes.has("ribbon-ready"), false);
+  page.canvas.emit("click", { clientX: 200 });
+  assert.equal(page.frames.size, 0);
 });
 
 test("pause, visibility, and motion preference stop work without duplicate animation loops", () => {
@@ -134,7 +158,7 @@ test("pause, visibility, and motion preference stop work without duplicate anima
   assert.equal(page.frames.size, 1);
 });
 
-test("click and keyboard launch bounded waves; touch scrolling is not intercepted", () => {
+test("click and keyboard pluck the sculpture, then rendering stops at rest", () => {
   const page = setup();
   page.tick(100);
   page.canvas.emit("click", { clientX: 150 });
@@ -146,6 +170,11 @@ test("click and keyboard launch bounded waves; touch scrolling is not intercepte
   assert.equal(pulses[4], 0.5);
   assert.ok(pulses.every(Number.isFinite));
   assert.deepEqual(page.values.u_tilt, [0, 0]);
+  for (let time = 132; time < 2300; time += 16) page.tick(time);
+  assert.equal(page.frames.size, 0, "settled sculpture does not continuously redraw");
+  page.canvas.emit("pointermove", { pointerType: "mouse", clientX: 450, clientY: 200 });
+  assert.equal(page.frames.size, 1, "pointer movement wakes the spring");
+  page.tick(2320);
   page.canvas.emit("webglcontextlost", { preventDefault() {} });
   assert.equal(page.canvas.hidden, true);
   assert.equal(page.frames.size, 0);
