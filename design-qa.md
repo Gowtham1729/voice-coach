@@ -4,20 +4,23 @@ Date: 2026-09-22. Final result: passed.
 
 ## Interactive ribbon follow-up
 
-- Inspected the real WebGL surface at desktop 1280 x 800 and the original still
-  image at phone 390 x 844. The desktop form has 18 separate lengthwise layers,
+- Inspected the real WebGL surface at desktop 1280 x 800 and the artwork-free
+  hero at phone 390 x 844. The desktop form has 18 separate lengthwise layers,
   rounded folds, tapered ends, and a diagonal silhouette based on the original art.
   The phone document remains 390 px wide with no horizontal scroll.
-- Verified pointer/click and keyboard pluck activation, plus pause/resume. The
+- Verified clicks in different parts of the ribbon produce local travelling waves,
+  with gentle floating, free ends, keyboard activation, and pause/resume. The
   paused sculpture visually remains still. Browser error/warning log was empty.
-- On mobile the canvas and controls are absent, including when resizing from desktop.
-  The original image is fully visible. A physical phone was not used for verification.
+- On mobile the entire art block is absent, including the image and caption. Its
+  layout height is zero; the next section starts around 684 px at 390 x 844.
+  A physical phone was not used for verification.
 - Five focused lifecycle tests cover initial and changing reduced-motion settings,
   absent WebGL, shader failure, pause, offscreen/hidden suspension, single animation
   loop ownership, bounded pixel density, click/keyboard inputs, context loss,
-  mobile initialization/breakpoint changes, and rendering stopping after the pluck settles.
+  mobile initialization/breakpoint changes, and distinct left/right click origins
+  based on projection of the visible sculpture.
   These use a mocked renderer; actual shader rendering was checked in the browser.
-- The original image is retained for reduced motion and graphics failures. No new
+- The original image is retained on desktop for reduced motion and graphics failures. No new
   dependencies, microphone requests, sound synthesis, or outbound data paths.
 
 ## Final-pass verification

@@ -110,7 +110,7 @@ test("missing WebGL or shader failure leaves the original image available", () =
   }
 });
 
-test("mobile keeps the original image, including after crossing the desktop breakpoint", () => {
+test("mobile never starts the effect, including after crossing the desktop breakpoint", () => {
   const page = setup({ mobile: true });
   assert.equal(page.contexts(), 0);
   assert.equal(page.frames.size, 0);
@@ -158,22 +158,24 @@ test("pause, visibility, and motion preference stop work without duplicate anima
   assert.equal(page.frames.size, 1);
 });
 
-test("click and keyboard pluck the sculpture, then rendering stops at rest", () => {
+test("left and right clicks excite different projected locations while the sculpture floats", () => {
   const page = setup();
   page.tick(100);
-  page.canvas.emit("click", { clientX: 150 });
+  page.canvas.emit("click", { clientX: 120, clientY: 340 });
+  page.canvas.emit("click", { clientX: 470, clientY: 170 });
   page.canvas.emit("keydown", { key: "Enter", repeat: false, preventDefault() {} });
   page.canvas.emit("pointermove", { pointerType: "touch" });
   page.tick(116);
   const pulses = page.values["u_pulses[0]"];
-  assert.equal(pulses[0], 0.25);
-  assert.equal(pulses[4], 0.5);
+  assert.ok(pulses[0] < 0.45, "left click starts on the left of the sculpture");
+  assert.ok(pulses[4] > 0.55, "right click starts on the right of the sculpture");
+  assert.equal(pulses[8], 0.5, "keyboard activation starts at the center");
   assert.ok(pulses.every(Number.isFinite));
   assert.deepEqual(page.values.u_tilt, [0, 0]);
   for (let time = 132; time < 2300; time += 16) page.tick(time);
-  assert.equal(page.frames.size, 0, "settled sculpture does not continuously redraw");
+  assert.equal(page.frames.size, 1, "gentle floating continues while visible");
   page.canvas.emit("pointermove", { pointerType: "mouse", clientX: 450, clientY: 200 });
-  assert.equal(page.frames.size, 1, "pointer movement wakes the spring");
+  assert.equal(page.frames.size, 1, "pointer movement does not create a second animation loop");
   page.tick(2320);
   page.canvas.emit("webglcontextlost", { preventDefault() {} });
   assert.equal(page.canvas.hidden, true);

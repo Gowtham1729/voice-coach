@@ -1390,17 +1390,8 @@ dialog::backdrop {
 }
 
 @media (max-width: 780px) {
-  .sound-ribbon,
-  .ribbon-controls {
+  .hero-art {
     display: none !important;
-  }
-
-  .ribbon-ready .sound-sculpture {
-    opacity: 1;
-  }
-
-  .ribbon-ready::before {
-    opacity: 0;
   }
 
   :root {

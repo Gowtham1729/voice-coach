@@ -1,4 +1,4 @@
-// A silent, procedural WebGL sculpture. The image remains the fallback.
+// A silent, desktop-only WebGL sculpture. Mobile omits the entire artwork.
 const vertexSource = `
   precision highp float;
   attribute vec3 a_position;
@@ -14,18 +14,16 @@ const vertexSource = `
   varying float v_layer;
 
   float displacement(float u) {
-    float vibration = 0.0;
+    float wave = sin(u * 8.0 - u_time * 1.25) * 0.055;
     for (int i = 0; i < 4; i++) {
       float age = max(u_time - u_pulses[i].y, 0.0);
-      float pluck = u_pulses[i].x * 3.141593;
-      float point = u * 3.141593;
-      // Fixed-end normal modes: a fundamental and two quieter harmonics.
-      float modes = sin(point) * sin(pluck) * sin(age * 36.0)
-        + 0.30 * sin(point * 2.0) * sin(pluck * 2.0) * sin(age * 72.0)
-        + 0.12 * sin(point * 3.0) * sin(pluck * 3.0) * sin(age * 108.0);
-      vibration += u_pulses[i].z * modes * exp(-age * 4.5);
+      float distance = abs(u - u_pulses[i].x) * 6.0;
+      float front = distance - age * 2.1;
+      // A local packet travels out in both directions and exits freely.
+      wave += u_pulses[i].z * cos(front * 4.5)
+        * exp(-front * front * 1.8 - age * 0.75);
     }
-    return vibration / (1.0 + abs(vibration) * 2.0);
+    return wave / (1.0 + abs(wave) * 1.3);
   }
 
   mat3 rotation() {
@@ -43,6 +41,8 @@ const vertexSource = `
     mat3 turn = rotation();
     v_normal = normalize(turn * a_normal);
     v_position = turn * p;
+    v_position += vec3(sin(u_time * 0.36) * 0.035,
+      sin(u_time * 0.70) * 0.09, 0.0);
     v_layer = a_layer;
     float depth = 7.5 - v_position.z;
     float focal = min(3.5, u_aspect * 2.18);
@@ -164,7 +164,7 @@ function makeMesh(gl) {
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-  return indices.length;
+  return { indexCount: indices.length, rings };
 }
 
 export function initSoundRibbon() {
@@ -174,7 +174,7 @@ export function initSoundRibbon() {
   const fallback = scene.querySelector(".sound-sculpture");
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const mobile = matchMedia("(max-width: 780px)");
-  // Keep the original art on phones, without creating a graphics context.
+  // Mobile has no artwork and must not create a graphics context.
   if (reducedMotion.matches || mobile.matches) {
     function startWhenEligible() {
       if (reducedMotion.matches || mobile.matches) return;
@@ -198,7 +198,7 @@ export function initSoundRibbon() {
     return;
   }
   gl.useProgram(program);
-  const indexCount = makeMesh(gl);
+  const { indexCount, rings } = makeMesh(gl);
   for (const [name, size, offset] of [
     ["position", 3, 0], ["normal", 3, 3], ["u", 1, 6], ["layer", 1, 7],
   ]) {
@@ -222,7 +222,6 @@ export function initSoundRibbon() {
   let visible = true;
   let paused = false;
   let lost = false;
-  let lastPluck = -10;
 
   function render() {
     const ratio = Math.min(devicePixelRatio || 1, 1.75);
@@ -254,11 +253,7 @@ export function initSoundRibbon() {
       tilt[axis] += tilt[velocity] * dt;
     }
     render();
-    const settling = Math.abs(tilt.x - tilt.targetX) + Math.abs(tilt.y - tilt.targetY)
-      + Math.abs(tilt.vx) + Math.abs(tilt.vy) > 0.0001;
-    if (settling || elapsed - lastPluck < 1.8) {
-      frame = requestAnimationFrame(animate);
-    } else previous = 0;
+    frame = requestAnimationFrame(animate);
   }
 
   function updatePlayback() {
@@ -281,13 +276,56 @@ export function initSoundRibbon() {
     }
   }
 
-  function pluck(position) {
+  function ripple(position) {
     if (paused || reducedMotion.matches || mobile.matches || lost) return;
-    const strength = 0.12;
+    const strength = 0.38;
     pulses.set([position, elapsed, strength, 0], pulseIndex * 4);
     pulseIndex = (pulseIndex + 1) % 4;
-    lastPluck = elapsed;
     wake();
+  }
+
+  function waveAt(u) {
+    let wave = Math.sin(u * 8 - elapsed * 1.25) * 0.055;
+    for (let i = 0; i < pulses.length; i += 4) {
+      const age = Math.max(elapsed - pulses[i + 1], 0);
+      const front = Math.abs(u - pulses[i]) * 6 - age * 2.1;
+      wave += pulses[i + 2] * Math.cos(front * 4.5)
+        * Math.exp(-front * front * 1.8 - age * 0.75);
+    }
+    return wave / (1 + Math.abs(wave) * 1.3);
+  }
+
+  function closestPoint(clientX, clientY) {
+    const bounds = canvas.getBoundingClientRect();
+    const aspect = bounds.width / bounds.height;
+    const focal = Math.min(3.5, aspect * 2.18);
+    const a = 0.68 + tilt.y;
+    const b = -0.22 + tilt.x;
+    let nearest = 0.5;
+    let bestDistance = Infinity;
+    // Pick against the projected sculpture, including its outer layers, not
+    // just the canvas's horizontal percentage. Tall folds remain clickable.
+    for (const { u, center, width } of rings) {
+      for (const layer of [-1, 0, 1]) {
+        const x = center[0];
+        const y = center[1] + waveAt(u);
+        const z = center[2] + layer * width;
+        const y1 = y * Math.cos(a) - z * Math.sin(a);
+        const z1 = y * Math.sin(a) + z * Math.cos(a);
+        const x2 = x * Math.cos(b) + z1 * Math.sin(b);
+        const z2 = -x * Math.sin(b) + z1 * Math.cos(b);
+        const x3 = x2 * Math.cos(0.1) - y1 * Math.sin(0.1) + Math.sin(elapsed * 0.36) * 0.035;
+        const y3 = x2 * Math.sin(0.1) + y1 * Math.cos(0.1) + Math.sin(elapsed * 0.70) * 0.09;
+        const screenX = bounds.left + (1 + x3 * focal / aspect / (7.5 - z2)) * bounds.width / 2;
+        const screenY = bounds.top + (1 - y3 * focal / (7.5 - z2)) * bounds.height / 2;
+        const distance = (screenX - clientX) ** 2 + (screenY - clientY) ** 2;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          nearest = u;
+        }
+      }
+    }
+    return nearest;
   }
 
   canvas.addEventListener("pointermove", (event) => {
@@ -305,13 +343,12 @@ export function initSoundRibbon() {
     wake();
   });
   canvas.addEventListener("click", (event) => {
-    const bounds = canvas.getBoundingClientRect();
-    pluck((event.clientX - bounds.left) / bounds.width);
+    ripple(closestPoint(event.clientX, event.clientY));
   });
   canvas.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      if (!event.repeat) pluck(0.5);
+      if (!event.repeat) ripple(0.5);
     }
   });
   pause.addEventListener("click", () => {
