@@ -14,6 +14,7 @@ assert.equal(
   "Sites static output must use the supported dist root",
 );
 const html = readFileSync(resolve(root, "index.html"), "utf8");
+const normalizedHtml = html.replace(/\s+/g, " ");
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
 const js = readFileSync(resolve(root, "app.js"), "utf8");
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
@@ -45,6 +46,30 @@ assert.ok(
   !/getUserMedia|MediaRecorder|sendBeacon/.test(js),
   "Marketing page must not record audio or send analytics",
 );
+assert.ok(!html.includes("—"), "Landing-page strings must not use em dashes");
+for (const requiredCopy of [
+  "Practice how you sound,",
+  "Record with your mic",
+  "Capture Mac audio",
+  "Import a file",
+  "There’s no YouTube URL import.",
+  "Your pauses averaged longer than this take needs,",
+  "No account, no upload, no cloud processing.",
+  "Free while in early access. No account required.",
+]) {
+  assert.ok(
+    normalizedHtml.includes(requiredCopy),
+    `Missing required v2 copy: ${requiredCopy}`,
+  );
+}
+for (const bannedClaim of [
+  "YouTube URL importer",
+  "confidence score",
+  "personality score",
+  "accent grade",
+]) {
+  assert.ok(!html.includes(bannedClaim), `Unsupported claim found: ${bannedClaim}`);
+}
 execFileSync(process.execPath, ["--check", resolve(root, "app.js")], {
   stdio: "inherit",
 });

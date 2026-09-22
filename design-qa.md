@@ -1,75 +1,54 @@
-# Landing page verification
+# Landing page v2 verification
 
 Date: 2026-09-22. Final result: passed.
 
-This is an original landing-page design, not a reproduction of a supplied page
-mockup. Visual grounding: the user-provided app tour and extracted frames in
-`website/assets/`, plus the generated sound sculpture at
-`website/assets/sound-sculpture.jpg` (1536 × 1024). Product screenshot source
-dimensions are 1112 × 720. App images preserve their native aspect ratio.
-
-Implementation evidence: browser-rendered screenshots captured in this task's
-Codex in-app browser, at the local preview on port 4175. These are recorded in the
-conversation, not saved as repository screenshot files. Inspected the hero,
-practice/Insight panel, tour, privacy section, and download modal. Screenshot
-capture used the browser viewport API; no mock browser images were substituted.
+The v2 page keeps the original cream, cobalt, and pale-green visual identity
+while replacing the poetry-first sequence with a clarity-first conversion path:
+hero, three ways to start, Insights, Mimic, one privacy proof strip, FAQ, and
+download. The user-supplied v2 brief was treated as review material. Claims were
+checked against the app and repository before implementation.
 
 ## Visual review
 
-- Typography: self-hosted DM Sans and Space Grotesk load correctly. Georgia italic
-  supplies the editorial accent. Desktop and phone headings wrap without clipping.
-- Layout: checked 1280 × 720, 1280 × 900, 768 × 1024, 390 × 844, and 320 × 740 CSS
-  viewports. Document width equals viewport width. The native screenshot method
-  initially cropped a resized tablet capture; a direct viewport screenshot and
-  DOM geometry confirmed the actual 768 px layout correctly.
-- Color: cream/cobalt/lime tokens remain consistent through the page; selected,
-  hover, and keyboard-focus states are distinguishable.
-- Assets: real tour stills retain aspect ratio; the hero uses the generated
-  sculpture rather than a code-drawn approximation. Fonts, icons, and video are
-  local site assets. The source app icon is reused.
-- Copy: the exact pause Insight matches the Swift source. Walkthrough data is
-  labeled illustrative. No customer testimonials or invented performance scores.
-  Download and tour disclose the public-release/development-build distinction.
-
-## Iterations resolved
-
-1. Hero art caused desktop horizontal overflow. Reduced art width and contained
-   decorative overflow; verified 1280/1280 and 390/390 document/viewport widths.
-2. The hero's ivory image background became a visible rectangle with multiply
-   blending. Changed to darken blending; the final saturated ribbon integrates
-   with the paper background without the rectangle.
-3. A mobile decorative caption overlapped the tour action. Put mobile artwork
-   after the copy in normal document flow; rechecked at 390 and 320 px.
-4. The initial Python server did not support reliable Safari video seeking.
-   Added a dependency-free server with byte-range responses. Verified chapter
-   seek at 18.215 seconds, readyState 4, duration 58.85 seconds, playing.
-5. Added explicit whitespace when the FAQ heading's line break is hidden on
-   mobile. Download links now open the install modal directly, retaining their
-   anchor fallback without JavaScript.
+- Desktop: inspected at 1280 x 720. The product, platform, privacy posture,
+  primary action, and tour action are visible in the first viewport.
+- Mobile: inspected at 390 x 844 and 320 x 740. Hero copy, entry cards, Insights,
+  Mimic, tour dialog, and download disclosure remain readable and usable.
+- Typography: self-hosted DM Sans and Space Grotesk load correctly. Georgia
+  italic is limited to the brand accent in the hero and Insights heading.
+- Assets: the hero retains the generated ribbed sound sculpture. Insights and
+  Mimic use real frames from the supplied app tour at their native aspect ratio.
+- Layout: section grids collapse to a single column without clipped copy or
+  controls. The illustrative Insight card remains legible at the narrow
+  breakpoint.
+- Copy: the exact v2 hero, ways-in, honesty, Insight, privacy, and early-access
+  strings are present. Landing-page copy contains no em dashes.
 
 ## Interaction checks
 
-- Record → notice → retry → record progression; selected states and panel labels.
-- Arrow-key practice tabs and native tab focus.
-- Compare / Analysis / Library image changes and pressed states.
-- Talk / pitch / interview scenario switching.
-- Tour opens, plays, seeks, displays scene captions, and pauses on close.
-- Native modal Escape behavior and focus return.
-- Privacy disclosure opens and closes; FAQ expands with its answer.
-- Header/hero download → install disclosure → correct public ZIP URL.
-- Public ZIP URL verified through GitHub API and HTTP redirect.
-- Browser console: no warnings or errors in the tested run.
-- `node scripts/check-website.mjs`: 37 references, 35 unique IDs, valid ARIA
-  targets, JavaScript syntax, and no external scripts or recording APIs.
-- `git diff --check`: passed.
-- Sites packaging initially rejected the authoring folder as a static output
-  root. Added a verified copy build to the supported `dist/` root and updated
-  the hosting manifest. No page code or appearance changed in this repair.
+- Take / notice / retry tabs update selected state, panel content, and
+  aria-labelledby; arrow keys, Home, and End are supported.
+- Tour opens, plays, seeks by chapter, and pauses when closed.
+- FAQ disclosure expands and closes other answers.
+- Download actions open the install disclosure. The release link and direct ZIP
+  target v3.2.0.
+- Native modal Escape and focus behavior remain available through the dialog
+  element.
+- Browser console inspection found no page errors during the checked flows.
 
-## Remaining limits
+## Automated evidence
 
-Responsive checks used browser viewport emulation, not physical phones. The
-Swift application was not modified or rebuilt. Its microphone, system audio,
-and analysis behavior are outside this website validation. The existing public
-app release remains ad-hoc signed and not notarized. Sites audience remains
-owner-private unless the user requests a sharing change.
+- node scripts/check-website.mjs: local references, unique IDs, ARIA targets,
+  JavaScript syntax, no external scripts, no recording or analytics APIs,
+  required v2 copy, banned claims, and the no-em-dash rule passed.
+- node scripts/build-website.mjs: passed and rebuilt the Sites dist output.
+- git diff --check: passed.
+- GitHub's release API confirmed v3.2.0 and
+  Voice-Coach-3.2.0-macOS.zip (2,157,070 bytes).
+
+## Product limits
+
+The website does not record, analyze, or upload audio. The Swift application was
+not modified or rebuilt. Its live microphone, system-audio, and analysis behavior
+remain outside this landing-page verification. The public app release is ad-hoc
+signed and not Apple-notarized.

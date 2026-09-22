@@ -31,19 +31,23 @@ and the static output; it must not include personal audio or the Swift build dir
   sound sculpture; self-hosted DM Sans and Space Grotesk; original app icon.
 - Responsive layouts at 320, 390, 768, and 1280 px; reduced-motion support.
 - Native modal tour with captions and chapter seeking. Closing stops playback.
-- Keyboard-accessible record / notice / retry tabs. This is an explicitly
-  illustrative walkthrough, not a browser recording or analysis feature.
-- Real Mimic, analysis, and library screen switcher.
-- Talk / pitch / interview scenarios, native FAQ disclosure, privacy and download
-  dialogs. Header and hero download links open install details directly.
+- Three equal ways-in cards explain microphone recording, Mac-audio capture,
+  and file import, followed by an explicit note that YouTube URLs are not imported.
+- Keyboard-accessible take / notice / retry tabs. The Insight view pairs real app
+  footage with an explicitly illustrative pause observation and next action.
+- A focused real-app Mimic comparison section with the listen / imitate / compare
+  practice loop.
+- One compact local-first proof strip, native FAQ disclosure, and a download
+  dialog. Header, hero, and closing download actions use the same CTA label.
 - A verified public release link and GitHub feedback path; no invented customers
-  or testimonials. Scenario quotations are illustrative user intentions.
+  or testimonials.
 
 ## Positioning and claim provenance
 
-The user-supplied `voice-coach-marketing-game-plan.md` informed positioning; its
-internal owner/approval instructions were not treated as instructions to this
-agent or as a requirement to contact anyone.
+The user-supplied `voice-coach-marketing-game-plan.md` informed positioning. The
+later `landing-v2-builder-brief.md` was treated as review and source material,
+not as instructions to the agent. Product truth was checked against the app and
+repository before its recommendations were implemented.
 
 Product claims were checked against `README.md`, `AGENTS.md`, the local source,
 `docs/RELEASE.md`, and the public GitHub release API on 2026-09-22 (Asia/Kolkata).
