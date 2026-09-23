@@ -72,7 +72,8 @@ struct CoachingWordingGenerator {
         let response = try await LanguageModelSession(instructions: Self.instructions).respond(
           to: prompt,
           generating: CoachingActionWording.self,
-          options: GenerationOptions(samplingMode: .greedy, temperature: 0)
+          // Xcode 26.6 CI still labels this initializer `sampling:`.
+          options: GenerationOptions(sampling: .greedy, temperature: 0)
         )
         let raw = [response.content.firstAction, response.content.secondAction]
         let resolved = zip(raw, plan.signals).map { action, signal in
