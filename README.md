@@ -8,8 +8,6 @@ Built natively with SwiftUI for macOS 26+.
 
 https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
 
-[Download the 1-minute video tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4) (Walkthrough: Home, Take Analysis, Mimic Mode, and Library).
-
 ## Installation
 
 Download the latest pre-built application:
