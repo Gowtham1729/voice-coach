@@ -31,11 +31,12 @@ The loop: Take → two practice targets → retry and compare.
 | **Insights** | Two measured practice targets on every take; Mimic uses reliable reference timing, pitch, and word emphasis |
 | **Mimic** | Reference from file or Mac audio → listen, imitate, compare, retry |
 | **Library** | Flat catalog of recordings — no folder picking |
-| **Export / coach prompt** | Export audio + JSON; **Copy coach prompt** under inspector **More** copies a prompt and data for use elsewhere |
+| **Export / AI analysis** | Export audio + JSON; **Copy AI analysis prompt + JSON** under inspector **More** or **File** (⌥⌘C) copies instructions and the selected take's JSON to paste into ChatGPT, Gemini, or another AI chat |
 
 All analysis and transcription stay on-device under `~/Library/Application Support/VoiceCoach`.
 
 Recordings, analysis, and transcripts stay on this Mac — no account, no upload, no cloud processing.
+The optional AI analysis action copies text to the clipboard; you choose whether to paste it into another service.
 
 ## How Insights work
 

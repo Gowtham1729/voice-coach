@@ -20,13 +20,15 @@ public enum CoachingActionRules {
     let folded = lower.unicodeScalars.filter {
       CharacterSet.letters.contains($0) || CharacterSet.decimalDigits.contains($0)
     }.map(String.init).joined()
+    let approvedTokens = tokens(in: signal.action)
     guard (20...150).contains(text.count),
       (5...26).contains(text.split(separator: " ").count),
       !text.contains(where: \.isNumber),
       !lower.contains("http"), !text.contains("#"), !text.contains("*"),
       denied.allSatisfy({ !lower.contains($0) }),
       quotedPhrases(in: text).allSatisfy({ signal.action.localizedCaseInsensitiveContains($0) }),
-      numberWords.intersection(tokens(in: text)).isSubset(of: tokens(in: signal.action)),
+      namedWordTargets(in: text).allSatisfy({ approvedTokens.contains($0) }),
+      numberWords.intersection(tokens(in: text)).isSubset(of: approvedTokens),
       signal.actionTerms.allSatisfy({ group in
         group.split(separator: "|").contains { term in
           lower.contains(term) || folded.contains(term)
@@ -46,6 +48,16 @@ public enum CoachingActionRules {
     let range = NSRange(text.startIndex..<text.endIndex, in: text)
     return expression.matches(in: text, range: range).compactMap { match in
       Range(match.range(at: 1), in: text).map { String(text[$0]) }
+    }
+  }
+
+  private static func namedWordTargets(in text: String) -> [String] {
+    let pattern = #"\b(?:the|a)\s+word\s+([a-z][a-z'-]*)\b"#
+    guard let expression = try? NSRegularExpression(
+      pattern: pattern, options: [.caseInsensitive]) else { return [] }
+    let range = NSRange(text.startIndex..<text.endIndex, in: text)
+    return expression.matches(in: text, range: range).compactMap { match in
+      Range(match.range(at: 1), in: text).map { String(text[$0]).lowercased() }
     }
   }
 }

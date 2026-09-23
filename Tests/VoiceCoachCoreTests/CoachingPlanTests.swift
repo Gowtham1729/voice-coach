@@ -106,6 +106,8 @@ struct CoachingPlanTests {
     #expect(CoachingActionRules.accepted(
       "Raise pitch on important relative to nearby words.", for: signal) != nil)
     #expect(CoachingActionRules.accepted(
+      "Raise pitch on the word important relative to nearby words.", for: signal) != nil)
+    #expect(CoachingActionRules.accepted(
       "Lower pitch on important relative to nearby words.", for: signal) == nil)
     #expect(CoachingActionRules.accepted(
       "Raise pitch on a different word.", for: signal) == nil)
@@ -115,6 +117,14 @@ struct CoachingPlanTests {
       "Use throat therapy to raise pitch on important.", for: signal) == nil)
     #expect(CoachingActionRules.accepted(
       "Raise pitch on important, then repeat the invented phrase 'clear signal'.", for: signal) == nil)
+
+    let placement = CoachingSignal(
+      id: "recording.pausePlacement", title: "Pause placement", observation: "No pauses detected.",
+      action: "Listen for a natural break between ideas and place one there on the next take.",
+      actionTerms: ["break"])
+    #expect(CoachingActionRules.accepted(
+      "Find a natural break between ideas and pause there on the next take for the word pause.",
+      for: placement) == nil)
   }
 
   private func makeTake(
