@@ -7,13 +7,32 @@ const vertexSource = `
   attribute float a_layer;
   uniform float u_time;
   uniform float u_aspect;
+  uniform vec2 u_tilt;
+  uniform vec4 u_pulses[4];
   varying vec3 v_normal;
   varying vec3 v_position;
   varying float v_layer;
 
+  float displacement(float u) {
+    float envelope = sin(u * 3.14159265);
+    float wave = envelope * (
+      sin(u * 10.5 - u_time * 1.05) * 0.13
+      + sin(u * 18.0 + u_time * 0.72) * 0.055
+    );
+    for (int i = 0; i < 4; i++) {
+      float age = max(u_time - u_pulses[i].y, 0.0);
+      float distance = abs(u - u_pulses[i].x) * 6.0;
+      float front = distance - age * 2.1;
+      // A local packet travels out in both directions and exits freely.
+      wave += u_pulses[i].z * cos(front * 4.5)
+        * exp(-front * front * 1.8 - age * 0.75);
+    }
+    return wave / (1.0 + abs(wave) * 1.3);
+  }
+
   mat3 rotation() {
-    float a = 0.68 + sin(u_time * 0.26) * 0.025;
-    float b = -0.22 + sin(u_time * 0.33) * 0.035;
+    float a = 0.68 + u_tilt.y + sin(u_time * 0.26) * 0.025;
+    float b = -0.22 + u_tilt.x + sin(u_time * 0.33) * 0.035;
     float c = 0.10;
     mat3 x = mat3(1,0,0, 0,cos(a),sin(a), 0,-sin(a),cos(a));
     mat3 y = mat3(cos(b),0,-sin(b), 0,1,0, sin(b),0,cos(b));
@@ -22,14 +41,9 @@ const vertexSource = `
   }
 
   void main() {
+    vec3 p = a_position + vec3(0.0, displacement(a_u), 0.0);
     float envelope = sin(a_u * 3.14159265);
-    vec3 p = a_position;
-    // Each fold travels at its own pace while the ends remain anchored.
-    p.y += envelope * (
-      sin(a_u * 10.5 - u_time * 1.05) * 0.13
-      + sin(a_u * 18.0 + u_time * 0.72) * 0.055
-      + a_layer * sin(a_u * 6.0 - u_time * 0.53) * 0.06
-    );
+    p.y += envelope * a_layer * sin(a_u * 6.0 - u_time * 0.53) * 0.06;
     p.z += envelope * (
       sin(a_u * 9.2 - u_time * 0.84) * 0.07
       + a_layer * sin(a_u * 12.5 + u_time * 0.5) * 0.04
@@ -160,12 +174,13 @@ function makeMesh(gl) {
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-  return indices.length;
+  return { indexCount: indices.length, rings };
 }
 
 export function initSoundRibbon() {
   const scene = document.querySelector(".hero-art");
   const canvas = scene.querySelector("canvas");
+  const pause = scene.querySelector("[data-pause-ribbon]");
   const fallback = scene.querySelector(".sound-sculpture");
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const mobile = matchMedia("(max-width: 780px)");
@@ -193,7 +208,7 @@ export function initSoundRibbon() {
     return;
   }
   gl.useProgram(program);
-  const indexCount = makeMesh(gl);
+  const { indexCount, rings } = makeMesh(gl);
   for (const [name, size, offset] of [
     ["position", 3, 0], ["normal", 3, 3], ["u", 1, 6], ["layer", 1, 7],
   ]) {
@@ -203,12 +218,19 @@ export function initSoundRibbon() {
   }
   gl.enable(gl.DEPTH_TEST);
   gl.clearColor(0, 0, 0, 0);
-  const timeUniform = gl.getUniformLocation(program, "u_time");
-  const aspectUniform = gl.getUniformLocation(program, "u_aspect");
+  const uniforms = Object.fromEntries(
+    ["time", "aspect", "tilt", "pulses[0]"].map((name) => [name,
+      gl.getUniformLocation(program, `u_${name}`)]),
+  );
+
+  const pulses = new Float32Array(16);
+  const tilt = { x: 0, y: 0, vx: 0, vy: 0, targetX: 0, targetY: 0 };
+  let pulseIndex = 0;
   let elapsed = 0;
   let previous = 0;
   let frame = 0;
   let visible = true;
+  let paused = false;
   let lost = false;
 
   function render() {
@@ -221,8 +243,10 @@ export function initSoundRibbon() {
       gl.viewport(0, 0, width, height);
     }
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.uniform1f(timeUniform, elapsed);
-    gl.uniform1f(aspectUniform, width / height);
+    gl.uniform1f(uniforms.time, elapsed);
+    gl.uniform1f(uniforms.aspect, width / height);
+    gl.uniform2f(uniforms.tilt, tilt.x, tilt.y);
+    gl.uniform4fv(uniforms["pulses[0]"], pulses);
     gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
   }
 
@@ -231,6 +255,13 @@ export function initSoundRibbon() {
     const dt = previous ? Math.min((now - previous) / 1000, 0.032) : 0;
     previous = now;
     elapsed += dt;
+    // Damped springs: the camera follows, then settles without a snap.
+    for (const axis of ["x", "y"]) {
+      const target = axis === "x" ? tilt.targetX : tilt.targetY;
+      const velocity = `v${axis}`;
+      tilt[velocity] += ((target - tilt[axis]) * 38 - tilt[velocity] * 12) * dt;
+      tilt[axis] += tilt[velocity] * dt;
+    }
     render();
     frame = requestAnimationFrame(animate);
   }
@@ -243,10 +274,103 @@ export function initSoundRibbon() {
     scene.classList.toggle("ribbon-ready", !still);
     canvas.hidden = still;
     fallback.setAttribute("aria-hidden", String(!still));
-    if (!still && visible && !document.hidden) {
+    if (!still && visible && !document.hidden && !paused) {
       frame = requestAnimationFrame(animate);
     }
   }
+
+  function wake() {
+    if (!frame && !paused && !reducedMotion.matches && !mobile.matches
+        && !lost && visible && !document.hidden) {
+      frame = requestAnimationFrame(animate);
+    }
+  }
+
+  function ripple(position) {
+    if (paused || reducedMotion.matches || mobile.matches || lost) return;
+    const strength = 0.38;
+    pulses.set([position, elapsed, strength, 0], pulseIndex * 4);
+    pulseIndex = (pulseIndex + 1) % 4;
+    wake();
+  }
+
+  function waveAt(u) {
+    let wave = Math.sin(u * Math.PI) * (
+      Math.sin(u * 10.5 - elapsed * 1.05) * 0.13
+      + Math.sin(u * 18 + elapsed * 0.72) * 0.055
+    );
+    for (let i = 0; i < pulses.length; i += 4) {
+      const age = Math.max(elapsed - pulses[i + 1], 0);
+      const front = Math.abs(u - pulses[i]) * 6 - age * 2.1;
+      wave += pulses[i + 2] * Math.cos(front * 4.5)
+        * Math.exp(-front * front * 1.8 - age * 0.75);
+    }
+    return wave / (1 + Math.abs(wave) * 1.3);
+  }
+
+  function closestPoint(clientX, clientY) {
+    const bounds = canvas.getBoundingClientRect();
+    const aspect = bounds.width / bounds.height;
+    const focal = Math.min(3.5, aspect * 2.18);
+    const a = 0.68 + tilt.y;
+    const b = -0.22 + tilt.x;
+    let nearest = 0.5;
+    let bestDistance = Infinity;
+    // Pick against the projected sculpture, including its outer layers, not
+    // just the canvas's horizontal percentage. Tall folds remain clickable.
+    for (const { u, center, width } of rings) {
+      for (const layer of [-1, 0, 1]) {
+        const x = center[0];
+        const y = center[1] + waveAt(u);
+        const z = center[2] + layer * width;
+        const y1 = y * Math.cos(a) - z * Math.sin(a);
+        const z1 = y * Math.sin(a) + z * Math.cos(a);
+        const x2 = x * Math.cos(b) + z1 * Math.sin(b);
+        const z2 = -x * Math.sin(b) + z1 * Math.cos(b);
+        const x3 = x2 * Math.cos(0.1) - y1 * Math.sin(0.1) + Math.sin(elapsed * 0.36) * 0.035;
+        const y3 = x2 * Math.sin(0.1) + y1 * Math.cos(0.1) + Math.sin(elapsed * 0.70) * 0.09;
+        const screenX = bounds.left + (1 + x3 * focal / aspect / (7.5 - z2)) * bounds.width / 2;
+        const screenY = bounds.top + (1 - y3 * focal / (7.5 - z2)) * bounds.height / 2;
+        const distance = (screenX - clientX) ** 2 + (screenY - clientY) ** 2;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          nearest = u;
+        }
+      }
+    }
+    return nearest;
+  }
+
+  canvas.addEventListener("pointermove", (event) => {
+    if (event.pointerType !== "mouse" || paused || mobile.matches) return;
+    const bounds = canvas.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width;
+    const y = (event.clientY - bounds.top) / bounds.height;
+    tilt.targetX = (x - 0.5) * 0.18;
+    tilt.targetY = (y - 0.5) * 0.14;
+    wake();
+  });
+  canvas.addEventListener("pointerleave", () => {
+    tilt.targetX = 0;
+    tilt.targetY = 0;
+    wake();
+  });
+  canvas.addEventListener("click", (event) => {
+    ripple(closestPoint(event.clientX, event.clientY));
+  });
+  canvas.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (!event.repeat) ripple(0.5);
+    }
+  });
+  pause.addEventListener("click", () => {
+    paused = !paused;
+    pause.setAttribute("aria-label", paused ? "Resume ribbon animation" : "Pause ribbon animation");
+    pause.dataset.paused = String(paused);
+    canvas.setAttribute("aria-disabled", String(paused));
+    updatePlayback();
+  });
   canvas.addEventListener("webglcontextlost", (event) => {
     event.preventDefault();
     lost = true;
