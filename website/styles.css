@@ -26,7 +26,7 @@
   --blue: #2848e8;
   --blue-deep: #1736c8;
   --blue-soft: #dce5ff;
-  --lime: #dff2b1;
+  --blue-pale: #e8eeff;
   --night: #171d1a;
   --white: #ffffff;
   --serif: Georgia, "Times New Roman", serif;
@@ -288,17 +288,23 @@ img {
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 28px;
+  gap: 14px;
   align-items: center;
   margin-top: 34px;
 }
 
+.hero-actions > * {
+  width: 238px;
+  min-height: 54px;
+  font-size: 15px;
+}
+
 .text-button {
   display: inline-flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  min-height: 50px;
-  padding: 7px 17px 7px 7px;
+  min-height: 54px;
+  padding: 7px 14px 7px 7px;
   border: 1px solid var(--ink);
   border-radius: 999px;
   background: transparent;
@@ -318,8 +324,8 @@ img {
 
 .small-play {
   display: grid;
-  width: 35px;
-  height: 35px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   border: 1px solid var(--ink);
   border-radius: 50%;
@@ -352,36 +358,12 @@ img {
   transform: rotate(-2deg);
 }
 
-.art-caption {
-  position: absolute;
-  right: 8%;
-  bottom: 3%;
-  padding: 8px 11px;
-  color: var(--white);
-  background: var(--blue);
-  font-family: var(--serif);
-  font-size: clamp(16px, 1.5vw, 22px);
-  font-style: italic;
-  transform: rotate(-3deg);
-  pointer-events: none;
-}
-
 .sound-ribbon {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  cursor: grab;
-  touch-action: pan-y;
-}
-
-.sound-ribbon:active {
-  cursor: grabbing;
-}
-
-.sound-ribbon:focus-visible {
-  outline-offset: -5px;
-  border-radius: 18px;
+  pointer-events: none;
 }
 
 .ribbon-ready .sound-sculpture {
@@ -404,43 +386,6 @@ img {
 
 .ribbon-ready::before {
   opacity: 1;
-}
-
-.ribbon-controls {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: none;
-  gap: 12px;
-  align-items: center;
-}
-
-.ribbon-ready .ribbon-controls {
-  display: flex;
-}
-
-.ribbon-hint {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.ribbon-pause {
-  background: var(--paper);
-}
-
-.ribbon-pause span {
-  width: 10px;
-  height: 12px;
-  border-inline: 3px solid currentColor;
-}
-
-.ribbon-pause[data-paused="true"] span {
-  width: 0;
-  height: 0;
-  margin-left: 3px;
-  border: 6px solid transparent;
-  border-right: 0;
-  border-left: 9px solid currentColor;
 }
 
 .hero-index {
@@ -728,7 +673,7 @@ img {
   margin-left: -105px;
   padding: 30px;
   border: 1px solid var(--ink);
-  background: var(--lime);
+  background: var(--blue-pale);
   box-shadow: 14px 14px 0 var(--blue);
   transform: rotate(1.4deg);
   text-align: left;
@@ -846,7 +791,7 @@ img {
 
 .take-row.active {
   color: var(--ink);
-  background: var(--lime);
+  background: var(--blue-pale);
 }
 
 .take-row > div {
@@ -942,7 +887,7 @@ img {
   bottom: -25px;
   padding: 12px 16px;
   color: var(--ink);
-  background: var(--lime);
+  background: var(--blue-pale);
   font-family: var(--display);
   font-size: 10px;
   font-weight: 700;
@@ -951,7 +896,7 @@ img {
 }
 
 .privacy-strip {
-  background: var(--lime);
+  background: var(--blue-pale);
 }
 
 .privacy-strip-inner {
@@ -1076,7 +1021,7 @@ img {
   gap: 32px;
   padding: 36px;
   color: var(--ink);
-  background: var(--lime);
+  background: var(--blue-pale);
   transform: rotate(1deg);
 }
 
@@ -1258,7 +1203,7 @@ dialog::backdrop {
   margin-block: 24px;
   padding: 20px;
   border: 1px solid var(--ink);
-  background: var(--lime);
+  background: var(--blue-pale);
 }
 
 .install-disclosure p {
@@ -1299,7 +1244,7 @@ dialog::backdrop {
   z-index: 30;
   padding: 14px;
   border: 1px solid var(--ink);
-  background: var(--lime);
+  background: var(--blue-pale);
   text-align: center;
 }
 
@@ -1454,22 +1399,6 @@ dialog::backdrop {
   .hero-index {
     font-size: 12px;
     letter-spacing: 0.02em;
-  }
-
-  .hero-art {
-    margin-top: 8px;
-    max-height: 250px;
-  }
-
-  .hero-art .sound-sculpture {
-    height: 250px;
-    object-fit: cover;
-  }
-
-  .sound-sculpture {
-    width: 100%;
-    margin-left: 0;
-    transform: none;
   }
 
   .hero-index {
@@ -1670,11 +1599,6 @@ dialog::backdrop {
 
   .trust-line {
     margin-top: 18px;
-  }
-
-  .art-caption {
-    right: 0;
-    font-size: 15px;
   }
 
   .section-kicker span:last-child {
