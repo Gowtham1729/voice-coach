@@ -93,7 +93,8 @@ https://support.apple.com/en-us/102445.
   from that tour at 21, 42, and 1 seconds. No stale `docs/screenshots/` images used.
 - `assets/tour-captions.vtt`: scene descriptions authored for the silent visual
   tour, not a claimed verbatim speech transcript.
-- `assets/app-icon.png`, `favicon.png`: converted from `Resources/AppIcon.icns`.
+- `assets/app-icon.png`, `favicon.png`: generated with the macOS icon assets
+  from the flat cobalt ribbon source (`./scripts/generate-app-icon.sh`).
 - `assets/fonts/`: DM Sans and Space Grotesk from Google Fonts; OFL licenses
   included alongside them.
 - `assets/icons/`: Phosphor regular SVG icons from the official
