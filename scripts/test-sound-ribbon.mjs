@@ -9,7 +9,6 @@ const source = readFileSync(new URL("../website/sound-ribbon.js", import.meta.ur
 function target(properties = {}) {
   const listeners = new Map();
   return Object.assign({
-    dataset: {},
     attributes: {},
     addEventListener(type, callback, options = {}) {
       const entries = listeners.get(type) || [];
@@ -41,8 +40,6 @@ function setup({ reduced = false, mobile = false, gpu = true, compile = true } =
     getProgramParameter: () => true,
     getUniformLocation: (_, name) => name,
     uniform1f: (name, value) => { values[name] = value; },
-    uniform2f: (name, ...value) => { values[name] = value; },
-    uniform4fv: (name, value) => { values[name] = [...value]; },
     drawElements: () => { draws++; },
   }, { get: (object, name) => object[name] || (() => ({})) });
   const canvas = target({
@@ -50,13 +47,12 @@ function setup({ reduced = false, mobile = false, gpu = true, compile = true } =
     getContext: () => { contexts++; return gpu ? gl : null; },
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 600, height: 450 }),
   });
-  const pause = target();
   const fallback = target();
   const classes = new Set();
   const scene = {
     classList: { toggle: (name, on) => on ? classes.add(name) : classes.delete(name) },
     querySelector: (selector) => ({
-      canvas, "[data-pause-ribbon]": pause, ".sound-sculpture": fallback,
+      canvas, ".sound-sculpture": fallback,
     })[selector],
   };
   const media = target({ matches: reduced });
@@ -78,7 +74,7 @@ function setup({ reduced = false, mobile = false, gpu = true, compile = true } =
     ResizeObserver: class { observe() {} },
   });
   return {
-    canvas, pause, fallback, media, phone, document, frames, values, classes,
+    canvas, fallback, media, phone, document, frames, values, classes,
     draws: () => draws, contexts: () => contexts,
     intersect: (visible) => intersect([{ isIntersecting: visible }]),
     tick(time) {
@@ -124,21 +120,12 @@ test("mobile never starts the effect, including after crossing the desktop break
   assert.equal(page.frames.size, 0);
   assert.equal(page.canvas.hidden, true);
   assert.equal(page.classes.has("ribbon-ready"), false);
-  page.canvas.emit("click", { clientX: 200 });
-  assert.equal(page.frames.size, 0);
 });
 
-test("pause, visibility, and motion preference stop work without duplicate animation loops", () => {
+test("visibility and motion preference stop work without duplicate animation loops", () => {
   const page = setup();
   page.tick(100);
   assert.equal(page.canvas.width, 1050, "pixel ratio is capped at 1.75");
-  page.pause.emit("click");
-  const pausedDraws = page.draws();
-  page.tick(200);
-  assert.equal(page.draws(), pausedDraws);
-  assert.equal(page.frames.size, 0);
-  assert.equal(page.pause.attributes["aria-label"], "Resume ribbon animation");
-  page.pause.emit("click");
   page.intersect(false);
   assert.equal(page.frames.size, 0);
   page.intersect(true);
@@ -158,24 +145,15 @@ test("pause, visibility, and motion preference stop work without duplicate anima
   assert.equal(page.frames.size, 1);
 });
 
-test("left and right clicks excite different projected locations while the sculpture floats", () => {
+test("the ribbon floats continuously and falls back when its context is lost", () => {
   const page = setup();
   page.tick(100);
-  page.canvas.emit("click", { clientX: 120, clientY: 340 });
-  page.canvas.emit("click", { clientX: 470, clientY: 170 });
-  page.canvas.emit("keydown", { key: "Enter", repeat: false, preventDefault() {} });
-  page.canvas.emit("pointermove", { pointerType: "touch" });
   page.tick(116);
-  const pulses = page.values["u_pulses[0]"];
-  assert.ok(pulses[0] < 0.45, "left click starts on the left of the sculpture");
-  assert.ok(pulses[4] > 0.55, "right click starts on the right of the sculpture");
-  assert.equal(pulses[8], 0.5, "keyboard activation starts at the center");
-  assert.ok(pulses.every(Number.isFinite));
-  assert.deepEqual(page.values.u_tilt, [0, 0]);
+  const firstTime = page.values.u_time;
   for (let time = 132; time < 2300; time += 16) page.tick(time);
   assert.equal(page.frames.size, 1, "gentle floating continues while visible");
-  page.canvas.emit("pointermove", { pointerType: "mouse", clientX: 450, clientY: 200 });
-  assert.equal(page.frames.size, 1, "pointer movement does not create a second animation loop");
+  assert.ok(page.values.u_time > firstTime, "animation time advances");
+  assert.ok(page.draws() > 2, "the sculpture redraws");
   page.tick(2320);
   page.canvas.emit("webglcontextlost", { preventDefault() {} });
   assert.equal(page.canvas.hidden, true);
