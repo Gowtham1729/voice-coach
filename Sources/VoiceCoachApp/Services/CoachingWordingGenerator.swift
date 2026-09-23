@@ -46,7 +46,9 @@ struct CoachingWordingGenerator {
 
   private static let instructions = """
     Rewrite two approved voice-practice exercises in plain, encouraging language.
-    Preserve each exercise's target word, direction, and relationship to a reference when present.
+    Preserve each exercise's scope, target word, direction, and relationship to a reference when present.
+    Keep the measured skill named in the approved action: pitch, pace or timing, or emphasis.
+    When an exercise covers the phrase, say "phrase" and use the named word only as a checkpoint.
     Do not add facts, numerical targets, diagnoses, emotions, or another exercise.
     One short sentence per exercise. No headings, quotes around the whole sentence, or markdown.
     """
@@ -96,9 +98,9 @@ struct CoachingWordingGenerator {
 #if canImport(FoundationModels)
   @Generable
   struct CoachingActionWording {
-    @Guide(description: "A one-sentence exercise that preserves exercise 1's target and direction")
+    @Guide(description: "A one-sentence exercise that preserves exercise 1's scope, checkpoint, and direction")
     var firstAction: String
-    @Guide(description: "A one-sentence exercise that preserves exercise 2's target and direction")
+    @Guide(description: "A one-sentence exercise that preserves exercise 2's scope, checkpoint, and direction")
     var secondAction: String
   }
 #endif

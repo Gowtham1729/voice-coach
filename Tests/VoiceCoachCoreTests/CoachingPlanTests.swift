@@ -54,6 +54,8 @@ struct CoachingPlanTests {
     #expect(plan.signals.count == 2)
     #expect(plan.signals[0].id == "mimic.timing")
     #expect(plan.signals[0].observation.contains("reference"))
+    #expect(plan.signals[0].action.contains("pace across the phrase"))
+    #expect(plan.signals[0].action.contains("transition into"))
     #expect(plan.signals[0].progress?.contains("previous attempt") == true)
     #expect(plan.signals[1].id == "mimic.pitch.4")
     #expect(plan.signals[1].observation.contains("important"))
@@ -67,6 +69,70 @@ struct CoachingPlanTests {
     let unmatchedSpan = CoachingPlanner.mimic(
       reference: reference, attempt: attempt, previous: truncatedPrevious)
     #expect(unmatchedSpan.signals[0].progress == nil)
+  }
+
+  @Test("Repeated pitch gaps become a phrase target with a word checkpoint")
+  func repeatedPitchPattern() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let reference = makeTake(starts: starts)
+    let previous = makeTake(starts: starts, pitchByWord: [0: 5, 1: 5, 2: 5, 3: 5])
+    let attempt = makeTake(starts: starts, pitchByWord: [0: 3, 1: 4, 2: 3.5, 3: 4])
+
+    let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt, previous: previous)
+
+    #expect(plan.signals[0].id == "mimic.pitchPattern")
+    #expect(plan.signals[0].observation.contains("4 of 6 measured content words"))
+    #expect(plan.signals[0].observation.contains("“speaker”"))
+    #expect(plan.signals[0].action.contains("across the phrase"))
+    #expect(plan.signals[0].action.contains("“speaker”"))
+    #expect(plan.signals[0].progress?.contains("Closer than the previous attempt") == true)
+    #expect(CoachingActionRules.accepted(
+      "Follow the reference's pitch movement across the phrase, using ‘speaker’ as a checkpoint.",
+      for: plan.signals[0]) != nil)
+    #expect(CoachingActionRules.accepted(
+      "Focus pitch only on the word speaker for the next take.",
+      for: plan.signals[0]) == nil)
+  }
+
+  @Test("Repeated energy gaps use phrase emphasis; one pitch outlier stays word specific")
+  func patternVersusWord() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let reference = makeTake(starts: starts)
+    let attempt = makeTake(
+      starts: starts, pitchByWord: [4: -5], energyByWord: [0: -5, 1: -4, 2: -4, 3: -5])
+
+    let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt)
+
+    #expect(plan.signals.map(\.id) == ["mimic.pitch.4", "mimic.emphasisPattern"]
+      || plan.signals.map(\.id) == ["mimic.emphasisPattern", "mimic.pitch.4"])
+    #expect(plan.signals.contains { $0.observation.contains("4 of 6 measured content words") })
+    #expect(plan.signals.contains { $0.title == "Pitch on “important”" })
+  }
+
+  @Test("A cluster of gaps in one short stretch is not called a phrase pattern")
+  func clusteredPitchGaps() {
+    let starts = (0..<10).map { 0.3 + Double($0) * 0.4 }
+    let tokens = ["every", "speaker", "should", "the", "a", "in", "shape", "important", "words", "on"]
+    let reference = makeTake(starts: starts, tokens: tokens)
+    let attempt = makeTake(
+      starts: starts, tokens: tokens, pitchByWord: [0: 4, 1: 4, 2: 4])
+
+    let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt)
+
+    #expect(!plan.signals.contains { $0.id == "mimic.pitchPattern" })
+    #expect(plan.signals.contains { $0.id.hasPrefix("mimic.pitch.") })
+  }
+
+  @Test("Word timing can drift locally even when total phrase length matches")
+  func unevenTimingWithZeroNetDrift() {
+    let reference = makeTake(starts: [0.3, 0.7, 1.1, 1.5, 1.9, 2.3])
+    let attempt = makeTake(starts: [0.3, 1.0, 1.1, 1.8, 1.9, 2.3])
+
+    let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt)
+
+    #expect(plan.signals[0].id == "mimic.timing")
+    #expect(plan.signals[0].observation.contains("4 transitions"))
+    #expect(plan.signals[0].action.contains("pace across the phrase"))
   }
 
   @Test("Missing or unreliable alignment never produces word-level claims")
@@ -129,7 +195,8 @@ struct CoachingPlanTests {
 
   private func makeTake(
     starts: [Double], tokens: [String] = ["Every", "speaker", "should", "shape", "important", "words"],
-    pitchAtImportant: Double = 0, energyAtSpeaker: Double = 0
+    pitchAtImportant: Double = 0, energyAtSpeaker: Double = 0,
+    pitchByWord: [Int: Double] = [:], energyByWord: [Int: Double] = [:]
   ) -> PracticeSession {
     let transcriptWords = zip(tokens, starts).map { token, start in
       TranscriptWord(word: token, start: start, end: start + 0.25, confidence: 0.98)
@@ -138,11 +205,12 @@ struct CoachingPlanTests {
       WordAnalysis(
         word: word.word, start: word.start, end: word.end,
         pitch: WordPitchMetrics(
-          medianHz: 160, relativeMedianSemitones: index == 4 ? pitchAtImportant : 0,
+          medianHz: 160,
+          relativeMedianSemitones: pitchByWord[index] ?? (index == 4 ? pitchAtImportant : 0),
           rangeSemitones: 2, startToEndSemitones: 0,
           validPitchFrames: 15, pitchCoverage: 0.9),
         loudness: WordLoudnessMetrics(
-          relativeMeanDB: index == 1 ? energyAtSpeaker : 0,
+          relativeMeanDB: energyByWord[index] ?? (index == 1 ? energyAtSpeaker : 0),
           startToEndDB: 0, activeFrameCoverage: 0.9)
       )
     }

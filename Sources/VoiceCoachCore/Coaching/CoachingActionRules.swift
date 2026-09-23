@@ -43,11 +43,14 @@ public enum CoachingActionRules {
   }
 
   private static func quotedPhrases(in text: String) -> [String] {
-    let pattern = #"["“'‘]([^"”'’]+)["”'’]"#
+    // Keep apostrophes inside words (for example, "reference's") out of quote spans.
+    let pattern = #"“([^”]+)”|‘([^’]+)’|"([^"]+)"|(?<![\p{L}\p{N}])'([^']+)'"#
     guard let expression = try? NSRegularExpression(pattern: pattern) else { return [] }
     let range = NSRange(text.startIndex..<text.endIndex, in: text)
     return expression.matches(in: text, range: range).compactMap { match in
-      Range(match.range(at: 1), in: text).map { String(text[$0]) }
+      (1...4).compactMap { group in
+        Range(match.range(at: group), in: text).map { String(text[$0]) }
+      }.first
     }
   }
 

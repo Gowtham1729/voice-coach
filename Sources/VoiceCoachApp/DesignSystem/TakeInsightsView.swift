@@ -1,7 +1,7 @@
 import SwiftUI
 import VoiceCoachCore
 
-/// Exactly two measured practice targets, followed by the unmodified metrics stack.
+/// Unmodified metrics followed by two measured practice targets.
 struct TakeInsightsView: View {
   @EnvironmentObject private var model: AppModel
   @AppStorage(InsightWordingPreference.storageKey) private var wordingEnabled =
@@ -13,7 +13,9 @@ struct TakeInsightsView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
-      SectionEyebrow(text: "Insights · practice next")
+      InspectorMetricStack(metrics: InspectorMetricItem.voiceMetrics(metrics))
+      Divider()
+      SectionEyebrow(text: "Practice next")
       if let limitation = plan.limitation {
         Text(limitation)
           .font(.caption)
@@ -24,14 +26,12 @@ struct TakeInsightsView: View {
         if index > 0 { Divider() }
         signalRow(signal, number: index + 1)
       }
-      Divider()
-      InspectorMetricStack(metrics: InspectorMetricItem.voiceMetrics(metrics))
     }
     .task(id: "\(takeID.uuidString)-\(wordingEnabled)-\(plan.signals.map(\.id).joined())") {
       model.scheduleInsightWording(for: plan, takeID: takeID)
     }
     .accessibilityElement(children: .contain)
-    .accessibilityLabel("Practice signals and metrics")
+    .accessibilityLabel("Metrics and practice next")
   }
 
   private func signalRow(_ signal: CoachingSignal, number: Int) -> some View {

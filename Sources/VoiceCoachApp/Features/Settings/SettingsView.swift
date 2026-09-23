@@ -105,7 +105,7 @@ struct SettingsView: View {
           LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
         }
       } header: {
-        Text("Insights")
+        Text("Practice next")
       } footer: {
         Text(
           "Two practice targets come from measured audio. Apple Intelligence can rephrase their exercises on this Mac."

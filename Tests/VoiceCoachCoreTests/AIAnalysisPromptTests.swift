@@ -27,6 +27,7 @@ struct AIAnalysisPromptTests {
     #expect(copiedJSON == json)
     #expect(prompt.contains("alignment.reliable"))
     #expect(prompt.contains("constant start offset"))
+    #expect(prompt.contains("repeated pattern across several reliable matched words"))
     #expect(prompt.contains("No earlier attempt is included"))
     #expect(prompt.contains("exactly two prioritized practice signals"))
   }

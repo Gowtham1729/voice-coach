@@ -153,42 +153,76 @@ public enum CoachingPlanner {
     let previousComparison = prior?.correspondenceReliable == true ? prior : nil
     var candidates: [(priority: Double, signal: CoachingSignal)] = []
 
-    if let timing = timingDrift(comparison.pairs) {
+    if let timing = timingSummary(comparison.pairs) {
       let drift = timing.driftMs
       let substantial = abs(drift) >= 250 && abs(drift) >= timing.referenceSpanMs * 0.06
+      let uneven = timing.largeTransitionCount >= 3 && timing.largeTransitionSpread >= 0.3
       let previousDrift = previousComparison.flatMap { previous -> Double? in
         guard previous.pairs.first?.referenceIndex == comparison.pairs.first?.referenceIndex,
           previous.pairs.last?.referenceIndex == comparison.pairs.last?.referenceIndex
         else { return nil }
-        return timingDrift(previous.pairs)?.driftMs
+        return timingSummary(previous.pairs)?.driftMs
       }
       let direction = drift > 0 ? "longer" : "shorter"
-      let observation = substantial
-        ? "From first to last matched word, this take ran \(number(abs(drift) / 1_000, 1)) s \(direction) than the reference."
-        : "From first to last matched word, timing was within \(number(abs(drift), 0)) ms of the reference."
-      let transition = timing.largestSlipWord
+      let observation: String
+      if substantial {
+        observation = "From first to last matched word, this take ran \(number(abs(drift) / 1_000, 1)) s \(direction) than the reference."
+      } else if uneven {
+        observation = "Word-to-word timing differed by at least 180 ms at \(timing.largeTransitionCount) transitions, although the full matched span was within \(number(abs(drift), 0)) ms of the reference."
+      } else {
+        observation = "From first to last matched word, timing was within \(number(abs(drift), 0)) ms of the reference."
+      }
+      let transition = substantial ? timing.largestSlipWord : timing.largestVariationWord
       let action: String
-      if substantial, let transition {
-        action = "Replay the transition into “\(transition)” and bring that word closer to the reference timing."
+      if (substantial || uneven), let transition {
+        action = "Match the reference pace across the phrase, using the transition into “\(transition)” as a checkpoint."
       } else {
         action = "Repeat the phrase at the reference pace, then check where the last word lands."
       }
-      candidates.append((substantial ? 6 + abs(drift) / max(500, timing.referenceSpanMs) : 0.8,
+      let driftProgress = previousDrift.map {
+        mimicProgress(previousGap: abs($0) / 1_000, currentGap: abs(drift) / 1_000,
+          unit: "s", tolerance: 0.15)
+      }
+      let priority: Double
+      let progress: String?
+      if substantial {
+        priority = 6 + abs(drift) / max(500, timing.referenceSpanMs)
+        progress = driftProgress
+      } else if uneven {
+        priority = 5 + Double(timing.largeTransitionCount) / 10
+        progress = unevenTimingProgress(current: timing, previous: previousComparison)
+      } else {
+        priority = 0.8
+        progress = driftProgress
+      }
+      candidates.append((priority,
         CoachingSignal(
           id: "mimic.timing", title: "Phrase timing", observation: observation, action: action,
-          progress: previousDrift.map {
-            mimicProgress(previousGap: abs($0) / 1_000, currentGap: abs(drift) / 1_000,
-              unit: "s", tolerance: 0.15)
-          },
+          progress: progress,
           actionTerms: transition.map {
-            [normalized($0), "timing|pace|sooner|later"]
-          } ?? ["pace|timing"]
+            [normalized($0), "timing|pace|sooner|later", "phrase|across|throughout"]
+          } ?? ["pace|timing", "phrase|across|throughout"]
         )))
     }
 
-    if let pitch = strongestWordGap(
-      comparison.pairs, reference: reference, attempt: attempt, kind: .pitch
-    ) {
+    let pitchGaps = wordGaps(
+      comparison.pairs, reference: reference, attempt: attempt, kind: .pitch)
+    if let pattern = repeatedPattern(
+      in: pitchGaps, matchedWordCount: comparison.pairs.count, threshold: 2.5) {
+      let examples = Array(pattern.sorted { abs($0.delta) > abs($1.delta) }.prefix(2))
+      let medianGap = median(pattern.map { abs($0.delta) })
+      let anchor = examples[0].pair.word
+      let exampleText = patternExampleText(examples, unit: "st")
+      candidates.append((4.5 + medianGap / 3, CoachingSignal(
+        id: "mimic.pitchPattern", title: "Pitch across the phrase",
+        observation: "Relative pitch differed by at least 2.5 st on \(pattern.count) of \(pitchGaps.count) measured content words; \(exampleText).",
+        action: "Follow the reference's pitch movement across the phrase, using “\(anchor)” as a checkpoint.",
+        progress: patternProgress(
+          pattern, previous: previous, previousComparison: previousComparison,
+          reference: reference, kind: .pitch, unit: "st", tolerance: 0.5),
+        actionTerms: [normalized(anchor), "pitch", "phrase|across|throughout"]
+      )))
+    } else if let pitch = pitchGaps.max(by: { abs($0.delta) < abs($1.delta) }) {
       let delta = pitch.delta
       let word = pitch.pair.word
       let needsAdjustment = abs(delta) >= 2.5
@@ -218,9 +252,24 @@ public enum CoachingPlanner {
       )))
     }
 
-    if let energy = strongestWordGap(
-      comparison.pairs, reference: reference, attempt: attempt, kind: .energy
-    ) {
+    let energyGaps = wordGaps(
+      comparison.pairs, reference: reference, attempt: attempt, kind: .energy)
+    if let pattern = repeatedPattern(
+      in: energyGaps, matchedWordCount: comparison.pairs.count, threshold: 3.5) {
+      let examples = Array(pattern.sorted { abs($0.delta) > abs($1.delta) }.prefix(2))
+      let medianGap = median(pattern.map { abs($0.delta) })
+      let anchor = examples[0].pair.word
+      let exampleText = patternExampleText(examples, unit: "dB")
+      candidates.append((3.5 + medianGap / 4, CoachingSignal(
+        id: "mimic.emphasisPattern", title: "Emphasis across the phrase",
+        observation: "Relative word energy differed by at least 3.5 dB on \(pattern.count) of \(energyGaps.count) measured content words; \(exampleText).",
+        action: "Follow the reference's emphasis across the phrase, using “\(anchor)” as a checkpoint.",
+        progress: patternProgress(
+          pattern, previous: previous, previousComparison: previousComparison,
+          reference: reference, kind: .energy, unit: "dB", tolerance: 1),
+        actionTerms: [normalized(anchor), "emphasis|stress", "phrase|across|throughout"]
+      )))
+    } else if let energy = energyGaps.max(by: { abs($0.delta) < abs($1.delta) }) {
       let delta = energy.delta
       let word = energy.pair.word
       let needsAdjustment = abs(delta) >= 3.5
@@ -262,17 +311,74 @@ public enum CoachingPlanner {
   }
 
   private enum WordGapKind { case pitch, energy }
+  private struct WordGap {
+    let pair: MimicWordPair
+    let delta: Double
+  }
 
-  private static func strongestWordGap(
+  private static func wordGaps(
     _ pairs: [MimicWordPair], reference: PracticeSession, attempt: PracticeSession,
     kind: WordGapKind
-  ) -> (pair: MimicWordPair, delta: Double)? {
-    pairs.compactMap { pair -> (pair: MimicWordPair, delta: Double)? in
+  ) -> [WordGap] {
+    pairs.compactMap { pair -> WordGap? in
       guard isPracticeWord(pair.word),
         let delta = validDelta(pair, reference: reference, attempt: attempt, kind: kind)
       else { return nil }
-      return (pair, delta)
-    }.max { abs($0.delta) < abs($1.delta) }
+      return WordGap(pair: pair, delta: delta)
+    }
+  }
+
+  /// A phrase-level claim needs several eligible words spread across the matched phrase.
+  private static func repeatedPattern(
+    in gaps: [WordGap], matchedWordCount: Int, threshold: Double
+  ) -> [WordGap]? {
+    let strong = gaps.filter { abs($0.delta) >= threshold }
+    guard strong.count >= 3, strong.count * 2 >= gaps.count,
+      let first = strong.first, let last = strong.last
+    else { return nil }
+    let spread = Double(last.pair.referenceIndex - first.pair.referenceIndex)
+      / Double(max(1, matchedWordCount - 1))
+    return spread >= 0.4 ? strong : nil
+  }
+
+  private static func patternExampleText(_ gaps: [WordGap], unit: String) -> String {
+    gaps.map { gap in
+      "“\(gap.pair.word)” was \(number(abs(gap.delta), 1)) \(unit) \(gap.delta < 0 ? "below" : "above") the reference"
+    }.joined(separator: "; ")
+  }
+
+  private static func patternProgress(
+    _ pattern: [WordGap], previous: PracticeSession?, previousComparison: MimicComparison?,
+    reference: PracticeSession, kind: WordGapKind, unit: String, tolerance: Double
+  ) -> String? {
+    guard let previous, let previousComparison else { return nil }
+    let priorByIndex = Dictionary(
+      uniqueKeysWithValues: previousComparison.pairs.map { ($0.referenceIndex, $0) })
+    let matched = pattern.compactMap { current -> (Double, Double)? in
+      guard let pair = priorByIndex[current.pair.referenceIndex],
+        let priorDelta = validDelta(pair, reference: reference, attempt: previous, kind: kind)
+      else { return nil }
+      return (abs(priorDelta), abs(current.delta))
+    }
+    guard matched.count >= 2, matched.count * 2 >= pattern.count else { return nil }
+    let priorGap = median(matched.map(\.0))
+    let currentGap = median(matched.map(\.1))
+    let trend: String
+    if priorGap - currentGap >= tolerance {
+      trend = "Closer than the previous attempt"
+    } else if currentGap - priorGap >= tolerance {
+      trend = "Farther from the reference than the previous attempt"
+    } else {
+      trend = "Similar to the previous attempt"
+    }
+    return "\(trend): median gap across \(matched.count) words \(number(priorGap, 1)) → \(number(currentGap, 1)) \(unit)."
+  }
+
+  private static func median(_ values: [Double]) -> Double {
+    let sorted = values.sorted()
+    let middle = sorted.count / 2
+    return sorted.count.isMultiple(of: 2)
+      ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
   }
 
   private static func validDelta(
@@ -307,9 +413,17 @@ public enum CoachingPlanner {
     }
   }
 
-  private static func timingDrift(_ pairs: [MimicWordPair])
-    -> (driftMs: Double, referenceSpanMs: Double, largestSlipWord: String?)?
-  {
+  private struct TimingSummary {
+    let driftMs: Double
+    let referenceSpanMs: Double
+    let largestSlipWord: String?
+    let largestVariationWord: String?
+    let largeTransitionCount: Int
+    let largeTransitionSpread: Double
+    let referenceIndices: [Int]
+  }
+
+  private static func timingSummary(_ pairs: [MimicWordPair]) -> TimingSummary? {
     guard let first = pairs.first, let last = pairs.last else { return nil }
     let referenceSpan = (last.reference.end - first.reference.start) * 1_000
     let attemptSpan = (last.attempt.end - first.attempt.start) * 1_000
@@ -326,7 +440,30 @@ public enum CoachingPlanner {
     let slipWord = largest.flatMap {
       directionalSlip(at: $0) >= 180 ? pairs[$0].word : nil
     }
-    return (drift, referenceSpan, slipWord)
+    let largeTransitions = offsets.indices.dropFirst().filter {
+      abs(offsets[$0] - offsets[$0 - 1]) >= 180
+    }
+    let largestVariation = offsets.indices.dropFirst().max {
+      abs(offsets[$0] - offsets[$0 - 1]) < abs(offsets[$1] - offsets[$1 - 1])
+    }
+    let spread = largeTransitions.first.flatMap { first in
+      largeTransitions.last.map { Double($0 - first) / Double(max(1, pairs.count - 1)) }
+    } ?? 0
+    return TimingSummary(
+      driftMs: drift, referenceSpanMs: referenceSpan,
+      largestSlipWord: slipWord,
+      largestVariationWord: largestVariation.map { pairs[$0].word },
+      largeTransitionCount: largeTransitions.count, largeTransitionSpread: spread,
+      referenceIndices: pairs.map(\.referenceIndex))
+  }
+
+  private static func unevenTimingProgress(
+    current: TimingSummary, previous: MimicComparison?
+  ) -> String? {
+    guard let previous, previous.pairs.map(\.referenceIndex) == current.referenceIndices,
+      let priorTiming = timingSummary(previous.pairs)
+    else { return nil }
+    return "Previous attempt: \(priorTiming.largeTransitionCount) large timing transitions; now \(current.largeTransitionCount)."
   }
 
   private static let functionWords: Set<String> = [
