@@ -14,6 +14,8 @@ struct SettingsView: View {
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
   @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
   @AppStorage("voiceCoach.autoGenerateTitles") private var autoGenerateTitles = false
+  @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording =
+    InsightWordingPreference.default
 
   private var transcriptionBusy: Bool {
     model.systemTranscriptionStatus.isBusy
@@ -35,6 +37,9 @@ struct SettingsView: View {
       model.refreshSystemTranscriptionStatus()
       if autoGenerateTitles {
         SmartTitleGenerator.prewarmIfAvailable()
+      }
+      if rewriteInsightWording {
+        CoachingWordingGenerator.prewarmIfAvailable()
       }
     }
   }
@@ -86,6 +91,25 @@ struct SettingsView: View {
             Text(intelligenceStatus.settingsFooter)
           }
         }
+      }
+
+      Section {
+        Toggle("Personalize exercises on device", isOn: $rewriteInsightWording)
+          .onChange(of: rewriteInsightWording) { _, enabled in
+            if enabled {
+              CoachingWordingGenerator.prewarmIfAvailable()
+              model.rescheduleInsightWordingForSelection()
+            }
+          }
+        if rewriteInsightWording {
+          LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
+        }
+      } header: {
+        Text("Practice next")
+      } footer: {
+        Text(
+          "Two practice targets come from measured audio. Apple Intelligence can rephrase their exercises on this Mac."
+        )
       }
     }
     .settingsPaneChrome()
@@ -255,7 +279,18 @@ struct SettingsView: View {
               .foregroundStyle(.secondary)
           }
         }
+        HStack {
+          Text("On-device insight wording")
+          Spacer()
+          Image(systemName: rewriteInsightWording ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(Studio.accent)
+        }
         Text("Recordings stay on this Mac. Titles use Apple Intelligence when enabled.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        Text(
+          "Coaching decisions are deterministic. On supported devices, wording may be rewritten on device."
+        )
         .font(.caption)
         .foregroundStyle(.secondary)
       }

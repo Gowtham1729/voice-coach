@@ -22,24 +22,25 @@ Apple on-device transcription is default. Optional Parakeet (~714 MB) under **Se
 
 ## Features
 
-The loop: Take → one next step → Mimic. Retry until it lands.
+The loop: Take → two practice targets → retry and compare.
 
 | Area | What you get |
 | --- | --- |
 | **Home** | One-tap **Record**, import audio/video (normalized to local WAV), Recents |
 | **Takes** | Stacked retries (Take 1, Take 2, …), sticky timeline, transcript word seek |
-| **Hybrid Insights** | One plain next-step when pauses or pitch stand out — metrics stay quieter underneath |
+| **Practice next** | Two measured practice targets after the metrics; Mimic uses reliable reference timing, pitch, and word emphasis |
 | **Mimic** | Reference from file or Mac audio → listen, imitate, compare, retry |
 | **Library** | Flat catalog of recordings — no folder picking |
-| **Export / coach notes** | Export audio + JSON; coach notes live under inspector **More** |
+| **Export / AI analysis** | Export audio + JSON; **Copy AI analysis prompt + JSON** under inspector **More** or **File** (⌥⌘C) copies instructions and the selected take's JSON to paste into ChatGPT, Gemini, or another AI chat |
 
 All analysis and transcription stay on-device under `~/Library/Application Support/VoiceCoach`.
 
 Recordings, analysis, and transcripts stay on this Mac — no account, no upload, no cloud processing.
+The optional AI analysis action copies text to the clipboard; you choose whether to paste it into another service.
 
-## How Hybrid Insights work
+## How Practice next works
 
-One clear next step when pauses or pitch stand out. Metrics stay quieter underneath.
+Each take shows two observations with an action to try next. Ordinary recordings use measured pacing, pitch, and recording quality without treating normal variation as a defect. Mimic first checks phrase duration and word spacing, then repeated pitch or emphasis differences across reliable matched words. A broad pattern uses a specific word as a replay checkpoint; when no repeated pattern is supported, a single word can be the target. These thresholds prioritize practice and do not rate a voice against a universal ideal. When alignment or quality is poor, the app says so and uses take-only targets. Change since a comparable earlier take is computed from retained takes, so deleting a take updates the comparison. Apple Intelligence may rephrase the two exercises locally; measured facts and target selection do not depend on it.
 
 ## Privacy
 

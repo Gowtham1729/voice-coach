@@ -14,6 +14,81 @@ private func check(_ condition: @autoclosure () -> Bool, _ message: String) thro
   if !condition() { throw CheckFailed(message: message) }
 }
 
+private func coachingMetrics(
+  internalPauseCount: Int = 0,
+  meanInternalPauseMs: Double = 0,
+  pitchRangeSemitones: Double? = 8.0,
+  phraseDecayDB: Double = -1.0
+) -> VoiceMetrics {
+  VoiceMetrics(
+    duration: 1.5,
+    activeSpeechDuration: 1.5,
+    sampleRateHz: 16_000,
+    noiseFloorDBFS: -55,
+    snrDB: 20,
+    clippingPercent: 0,
+    nonSpeechRatio: 0,
+    internalPauseCount: internalPauseCount,
+    internalPauseTotalMs: Double(internalPauseCount) * meanInternalPauseMs,
+    meanInternalPauseMs: meanInternalPauseMs,
+    medianInternalPauseMs: meanInternalPauseMs,
+    longestInternalPauseMs: meanInternalPauseMs,
+    leadingSilenceMs: 0,
+    trailingSilenceMs: 0,
+    meanLoudnessDBFS: -20,
+    loudnessDynamicRangeDB: 6,
+    loudnessStandardDeviationDB: 1.5,
+    phraseStartDBFS: -19,
+    phraseEndDBFS: -21,
+    phraseDecayDB: phraseDecayDB,
+    medianPitchHz: 160,
+    pitchLowHz: 145,
+    pitchHighHz: 180,
+    pitchVariationHz: 8,
+    pitchRangeSemitones: pitchRangeSemitones,
+    pitchStandardDeviationSemitones: 1.2,
+    pitchInstabilityPercent: 2,
+    hnrDB: 18,
+    cppDB: 12
+  )
+}
+
+private func verifyCoachingPlan() throws {
+  let ordinary = CoachingPlanner.recording(current: coachingMetrics(
+    internalPauseCount: 5,
+    meanInternalPauseMs: 288,
+    pitchRangeSemitones: 9.22
+  ))
+  try check(ordinary.signals.count == 2, "Ordinary take did not receive two practice signals")
+  try check(
+    ordinary.signals.contains(where: { $0.id == "recording.pausePlacement" }),
+    "Short pauses were incorrectly treated as long breaks"
+  )
+  try check(
+    ordinary.signals.contains(where: { $0.id == "recording.pitchShape" }),
+    "Measured pitch shape did not become a practice target"
+  )
+
+  let longPauses = CoachingPlanner.recording(current: coachingMetrics(
+    internalPauseCount: 4,
+    meanInternalPauseMs: 890,
+    pitchRangeSemitones: 10
+  ))
+  try check(
+    longPauses.signals.contains(where: { $0.id == "recording.longPauses" }),
+    "Long pause signal was lost"
+  )
+  let sample = CoachingSignal(
+    id: "mimic.pitch", title: "Pitch", observation: "Measured pitch differed.",
+    action: "Lift pitch on the key word.",
+    actionTerms: ["pitch", "lift|raise|higher"]
+  )
+  try check(
+    CoachingActionRules.accepted("Raise pitch exactly 5 semitones.", for: sample) == nil,
+    "Model wording accepted an invented numerical target"
+  )
+}
+
 #if canImport(AVFoundation)
   private func writeTestWAV(samples: [Float], sampleRate: Double, to url: URL) throws {
     guard
@@ -445,6 +520,8 @@ do {
     "Structured report contains cpp_db when it should be excluded")
   try check(
     !compactReport.contains("cpp_db"), "Compact report contains cpp_db when it should be excluded")
+
+  try verifyCoachingPlan()
 
   // Keep word-level JSON responsive for long takes (copy/export path).
   let emptyPitch = WordPitchMetrics(

@@ -41,13 +41,11 @@ struct MimicInspector: View {
       }
     } content: {
       VStack(alignment: .leading, spacing: 14) {
-        TakeInsightsView(metrics: metrics)
-
-        if !model.mimicCompareAlignmentReliable {
-          Text("Word comparison is limited. Coach notes use recording metrics.")
-            .font(.caption)
-            .foregroundStyle(Studio.secondary)
-        }
+        TakeInsightsView(
+          takeID: take.id,
+          metrics: metrics,
+          plan: model.coachingPlan(for: take, in: session)
+        )
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     } footer: {
@@ -64,7 +62,8 @@ struct MimicInspector: View {
 
         HStack(spacing: 8) {
           Menu {
-            Button("Copy coach notes", systemImage: "doc.on.doc", action: model.copyMimicCoachPrompt)
+            Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyMimicAIAnalysisPrompt)
+              .help("Copies instructions and the comparison JSON. Voice Coach does not send it.")
             Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
           } label: {
             Image(systemName: "ellipsis")

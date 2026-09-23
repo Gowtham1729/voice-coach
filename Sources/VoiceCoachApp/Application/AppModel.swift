@@ -69,6 +69,9 @@ final class AppModel: ObservableObject {
   var pendingCaptureIsNewSession = false
   var pendingImportSourceURL: URL?
 
+  @Published var insightActionOverrides: [String: String] = [:]
+  var insightAttemptedKeys: Set<String> = []
+
   init(
     storageRoot: URL? = nil,
     loadPersistedData: Bool = true,

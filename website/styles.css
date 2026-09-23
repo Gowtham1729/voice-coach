@@ -724,7 +724,6 @@ img {
   box-shadow: 14px 14px 0 var(--blue);
   transform: rotate(1.4deg);
   text-align: left;
-  cursor: pointer;
 }
 
 .tip-heading {

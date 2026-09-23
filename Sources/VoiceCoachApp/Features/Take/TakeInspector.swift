@@ -28,7 +28,11 @@ struct TakeInspector: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
 
-            TakeInsightsView(metrics: take.result.metrics)
+            TakeInsightsView(
+              takeID: take.id,
+              metrics: take.result.metrics,
+              plan: model.coachingPlan(for: take, in: session)
+            )
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         } footer: {
@@ -55,7 +59,8 @@ struct TakeInspector: View {
 
       HStack(spacing: 8) {
         Menu {
-          Button("Copy coach notes", systemImage: "doc.on.doc", action: model.copyAICoachPrompt)
+          Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyAIAnalysisPrompt)
+            .help("Copies instructions and this take's JSON. Voice Coach does not send it.")
           Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyReport)
         } label: {
           Image(systemName: "ellipsis")
