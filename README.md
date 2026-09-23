@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
 
 ## Download
 
-**[Voice Coach 3.3.1 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.3.1)** — zip, move to Applications. If Gatekeeper blocks: right-click → **Open**.
+**[Voice Coach 3.3.2 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.3.2)** — zip, move to Applications. If Gatekeeper blocks: right-click → **Open**.
 
 Try the tour above, then install — same local-first app, no signup.
 

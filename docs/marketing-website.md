@@ -77,7 +77,7 @@ The pause and pitch Insight words come from
 em dashes to follow the landing-page typography rule. Sample measurements and
 practice takes are explicitly illustrative.
 
-The latest public release verified in this task was v3.3.1.
+The download copy and links target the v3.3.2 release.
 The download is available at no charge; “Free download” does not promise an
 open-source license or future pricing. It is ad-hoc signed, not notarized. The
 tour shows a development build and the page discloses that some screens may be
@@ -93,8 +93,9 @@ https://support.apple.com/en-us/102445.
   from that tour at 21, 42, and 1 seconds. No stale `docs/screenshots/` images used.
 - `assets/tour-captions.vtt`: scene descriptions authored for the silent visual
   tour, not a claimed verbatim speech transcript.
-- `assets/app-icon.png`, `favicon.png`: generated with the macOS icon assets
-  from the flat cobalt ribbon source (`./scripts/generate-app-icon.sh`).
+- `assets/app-icon.png`, `favicon.png`, `brand-mark.png`: generated from the flat
+  cobalt ribbon source (`./scripts/generate-app-icon.sh`). The wordmark uses the
+  transparent mark; the download preview uses the macOS app icon.
 - `assets/fonts/`: DM Sans and Space Grotesk from Google Fonts; OFL licenses
   included alongside them.
 - `assets/icons/`: Phosphor regular SVG icons from the official

@@ -50,6 +50,25 @@ func drawRibbonStripe(in context: CGContext, index: Int, count: Int) {
     }
 }
 
+func drawRibbon(in context: CGContext) {
+    let blues: [(CGFloat, CGFloat, CGFloat)] = [
+        (0.07, 0.25, 0.78), (0.08, 0.31, 0.86), (0.09, 0.38, 0.93),
+        (0.07, 0.34, 0.91), (0.05, 0.28, 0.84),
+    ]
+    for (index, blue) in blues.enumerated() {
+        context.setStrokeColor(CGColor(red: blue.0, green: blue.1, blue: blue.2, alpha: 1))
+        drawRibbonStripe(in: context, index: index, count: blues.count)
+    }
+}
+
+func pngData(for image: CGImage) -> Data {
+    let output = NSMutableData()
+    let destination = CGImageDestinationCreateWithData(output, UTType.png.identifier as CFString, 1, nil)!
+    CGImageDestinationAddImage(destination, image, nil)
+    precondition(CGImageDestinationFinalize(destination))
+    return output as Data
+}
+
 func renderIcon(size: Int) -> Data {
     let pixels = size * size * 4
     var buffer = [UInt8](repeating: 0, count: pixels)
@@ -73,22 +92,29 @@ func renderIcon(size: Int) -> Data {
         context.setLineWidth(3)
         context.strokePath()
 
-        let blues: [(CGFloat, CGFloat, CGFloat)] = [
-            (0.07, 0.25, 0.78), (0.08, 0.31, 0.86), (0.09, 0.38, 0.93),
-            (0.07, 0.34, 0.91), (0.05, 0.28, 0.84),
-        ]
-        for (index, blue) in blues.enumerated() {
-            context.setStrokeColor(CGColor(red: blue.0, green: blue.1, blue: blue.2, alpha: 1))
-            drawRibbonStripe(in: context, index: index, count: blues.count)
-        }
+        drawRibbon(in: context)
         return context.makeImage()!
     }
 
-    let output = NSMutableData()
-    let destination = CGImageDestinationCreateWithData(output, UTType.png.identifier as CFString, 1, nil)!
-    CGImageDestinationAddImage(destination, image, nil)
-    precondition(CGImageDestinationFinalize(destination))
-    return output as Data
+    return pngData(for: image)
+}
+
+func renderBrandMark() -> Data {
+    let width = 800
+    let height = 330
+    var buffer = [UInt8](repeating: 0, count: width * height * 4)
+    let image: CGImage = buffer.withUnsafeMutableBytes { bytes in
+        let context = CGContext(data: bytes.baseAddress, width: width, height: height,
+                                bitsPerComponent: 8, bytesPerRow: width * 4,
+                                space: CGColorSpaceCreateDeviceRGB(),
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        context.setAllowsAntialiasing(true)
+        context.setShouldAntialias(true)
+        context.translateBy(x: -110, y: -340)
+        drawRibbon(in: context)
+        return context.makeImage()!
+    }
+    return pngData(for: image)
 }
 
 func appendBigEndian(_ value: UInt32, to data: inout Data) {
@@ -114,3 +140,4 @@ try pngBySize[1024]!.write(to: root.appendingPathComponent("Resources/AppIcon.pn
 try icon.write(to: root.appendingPathComponent("Resources/AppIcon.icns"))
 try pngBySize[1024]!.write(to: root.appendingPathComponent("website/assets/app-icon.png"))
 try pngBySize[128]!.write(to: root.appendingPathComponent("website/assets/favicon.png"))
+try renderBrandMark().write(to: root.appendingPathComponent("website/assets/brand-mark.png"))
