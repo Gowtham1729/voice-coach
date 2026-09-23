@@ -14,7 +14,7 @@ private func check(_ condition: @autoclosure () -> Bool, _ message: String) thro
   if !condition() { throw CheckFailed(message: message) }
 }
 
-private func insightMetrics(
+private func coachingMetrics(
   internalPauseCount: Int = 0,
   meanInternalPauseMs: Double = 0,
   pitchRangeSemitones: Double? = 8.0,
@@ -53,137 +53,39 @@ private func insightMetrics(
   )
 }
 
-private final class SelfTestInsightGenerator: InsightCopyGenerating, @unchecked Sendable {
-  let availability: InsightCopyAvailability
-  let rewriteResult: InsightCopyRewrite?
+private func verifyCoachingPlan() throws {
+  let ordinary = CoachingPlanner.recording(current: coachingMetrics(
+    internalPauseCount: 5,
+    meanInternalPauseMs: 288,
+    pitchRangeSemitones: 9.22
+  ))
+  try check(ordinary.signals.count == 2, "Ordinary take did not receive two practice signals")
+  try check(
+    ordinary.signals.contains(where: { $0.id == "recording.pausePlacement" }),
+    "Short pauses were incorrectly treated as long breaks"
+  )
+  try check(
+    ordinary.signals.contains(where: { $0.id == "recording.pitchShape" }),
+    "Measured pitch shape did not become a practice target"
+  )
 
-  init(availability: InsightCopyAvailability, rewrite: InsightCopyRewrite? = nil) {
-    self.availability = availability
-    self.rewriteResult = rewrite
-  }
-
-  func rewrite(_: HeroPacket) async -> InsightCopyRewrite? {
-    rewriteResult
-  }
-}
-
-private func verifyInsightCopyLayer() async throws {
-  let pauseMetrics = insightMetrics(
+  let longPauses = CoachingPlanner.recording(current: coachingMetrics(
     internalPauseCount: 4,
-    meanInternalPauseMs: 890.0,
-    pitchRangeSemitones: 10.0
-  )
-  let pitchMetrics = insightMetrics(pitchRangeSemitones: 2.1)
-  let pauseFrozen = CoachObservation.from(metrics: pauseMetrics)
-  let pitchFrozen = CoachObservation.from(metrics: pitchMetrics)
-
-  try check(pauseFrozen != nil, "Pause fixture did not produce a hero")
+    meanInternalPauseMs: 890,
+    pitchRangeSemitones: 10
+  ))
   try check(
-    pauseFrozen?.summary
-      == "Your pauses averaged longer than this take needs — especially mid-phrase.",
-    "Pause frozen observation drifted"
+    longPauses.signals.contains(where: { $0.id == "recording.longPauses" }),
+    "Long pause signal was lost"
   )
-  try check(
-    pauseFrozen?.action == "On the next take, aim for shorter gaps between phrases.",
-    "Pause frozen action drifted"
+  let sample = CoachingSignal(
+    id: "mimic.pitch", title: "Pitch", observation: "Measured pitch differed.",
+    action: "Lift pitch on the key word.",
+    actionTerms: ["pitch", "lift|raise|higher"]
   )
   try check(
-    pitchFrozen?.summary
-      == "Your pitch stayed in a narrow range — the line sounds flat.",
-    "Pitch frozen observation drifted"
-  )
-
-  let nilGenerator = InsightCopyResolver(generator: nil)
-  let nilPause = await nilGenerator.resolve(metrics: pauseMetrics)
-  let nilPitch = await nilGenerator.resolve(metrics: pitchMetrics)
-  try check(nilPause == pauseFrozen, "Nil generator did not fail-close to frozen pause copy")
-  try check(nilPitch == pitchFrozen, "Nil generator did not fail-close to frozen pitch copy")
-
-  let unavailable = InsightCopyResolver(
-    generator: SelfTestInsightGenerator(availability: .unavailable)
-  )
-  let unavailablePause = await unavailable.resolve(metrics: pauseMetrics)
-  try check(
-    unavailablePause == pauseFrozen,
-    "Unavailable generator did not fail-close to frozen copy"
-  )
-
-  let rejected = InsightCopyResolver(
-    generator: SelfTestInsightGenerator(
-      availability: .available,
-      rewrite: InsightCopyRewrite(
-        observation: "Medical anxiety with 890 ms pauses.",
-        action: "Please fix your throat."
-      )
-    )
-  )
-  let rejectedPause = await rejected.resolve(metrics: pauseMetrics)
-  try check(rejectedPause == pauseFrozen, "Sanitize reject did not fail-close to frozen copy")
-
-  let worriedRejected = InsightCopyResolver(
-    generator: SelfTestInsightGenerator(
-      availability: .available,
-      rewrite: InsightCopyRewrite(
-        observation: "You sounded worried when pauses ran long between phrases.",
-        action: "On the next take, keep gaps between phrases shorter."
-      )
-    )
-  )
-  let worriedPause = await worriedRejected.resolve(metrics: pauseMetrics)
-  try check(worriedPause == pauseFrozen, "Worried euphemism did not fail-close to frozen copy")
-
-  let confidenceRejected = InsightCopyResolver(
-    generator: SelfTestInsightGenerator(
-      availability: .available,
-      rewrite: InsightCopyRewrite(
-        observation: "You lacked confidence when pauses ran long between phrases.",
-        action: "On the next take, keep gaps between phrases shorter."
-      )
-    )
-  )
-  let confidencePause = await confidenceRejected.resolve(metrics: pauseMetrics)
-  try check(
-    confidencePause == pauseFrozen,
-    "Lacked confidence euphemism did not fail-close to frozen copy"
-  )
-
-  let acceptedPause = ContentFrozenAcceptedRewrite.pause
-  let accepted = InsightCopyResolver(
-    generator: SelfTestInsightGenerator(availability: .available, rewrite: acceptedPause)
-  )
-  let rewritten = await accepted.resolve(metrics: pauseMetrics)
-  try check(
-    rewritten?.summary == acceptedPause.observation,
-    "Accepted pause rewrite was not shown"
-  )
-  try check(
-    rewritten?.action == acceptedPause.action,
-    "Accepted pause rewrite action was not shown"
-  )
-
-  let acceptedPitch = ContentFrozenAcceptedRewrite.pitch
-  let acceptedPitchResolver = InsightCopyResolver(
-    generator: SelfTestInsightGenerator(availability: .available, rewrite: acceptedPitch)
-  )
-  let rewrittenPitch = await acceptedPitchResolver.resolve(metrics: pitchMetrics)
-  try check(
-    rewrittenPitch?.summary == acceptedPitch.observation,
-    "Accepted pitch rewrite was not shown"
-  )
-  try check(
-    rewrittenPitch?.action == acceptedPitch.action,
-    "Accepted pitch rewrite action was not shown"
-  )
-
-  guard let pausePacket = HeroPacket.from(metrics: pauseMetrics) else {
-    throw CheckFailed(message: "Pause fixture missing HeroPacket")
-  }
-  let prompt = InsightCopyPrompt.userMessage(for: pausePacket)
-  try check(!prompt.contains("890"), "Insight prompt leaked raw pause duration")
-  try check(!prompt.contains("VoiceMetrics"), "Insight prompt mentioned VoiceMetrics")
-  try check(
-    HeroPacket.from(metrics: insightMetrics(phraseDecayDB: -8.0)) == nil,
-    "Phrase-end became an Insight hero"
+    CoachingActionRules.accepted("Raise pitch exactly 5 semitones.", for: sample) == nil,
+    "Model wording accepted an invented numerical target"
   )
 }
 
@@ -619,7 +521,7 @@ do {
   try check(
     !compactReport.contains("cpp_db"), "Compact report contains cpp_db when it should be excluded")
 
-  try await verifyInsightCopyLayer()
+  try verifyCoachingPlan()
 
   // Keep word-level JSON responsive for long takes (copy/export path).
   let emptyPitch = WordPitchMetrics(

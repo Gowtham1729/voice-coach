@@ -1,65 +1,60 @@
 import Foundation
 import VoiceCoachCore
+import VoiceCoachSession
 
 extension AppModel {
-  /// Sync Hybrid Insights copy. Nil only when no pause/pitch hero qualifies.
-  /// Preference off / model miss / rejected rewrite → frozen catalog strings.
-  func displayedInsight(for metrics: VoiceMetrics) -> CoachObservation? {
-    _ = insightCopyRevision
-    guard let packet = HeroPacket.from(metrics: metrics) else { return nil }
-    let key = packet.cacheKey(locale: Locale.current.identifier)
-    if let override = insightCopyByKey[key] {
-      return override
+  func coachingPlan(for take: PracticeSession, in session: CoachingSession) -> CoachingPlan {
+    let earlierTakes = session.takes.prefix { $0.id != take.id }
+    let previous = earlierTakes.last
+    if let reference = session.mimicReference?.take {
+      let style = session.mimicAttemptStyles?[take.id] ?? session.mimicStyle
+      let comparablePrevious = earlierTakes.last { prior in
+        (session.mimicAttemptStyles?[prior.id] ?? session.mimicStyle) == style
+      }
+      return CoachingPlanner.mimic(
+        reference: reference, attempt: take, previous: comparablePrevious)
     }
-    if let persisted = insightResolverCache.observation(for: key) {
-      return persisted
-    }
-    return packet.frozen
+    // Different ordinary recordings are not assumed to be the same exercise.
+    let comparablePrevious = session.isRetryStack && !session.trimmedPrompt.isEmpty
+      ? previous?.result.metrics : nil
+    return CoachingPlanner.recording(
+      current: take.result.metrics, previous: comparablePrevious)
   }
 
-  /// Optional on-device rewrite. No-ops when preference is off or no hero qualifies.
-  /// Remembers attempts so fail-closed visits do not re-hit the model; use
-  /// `rescheduleInsightWordingForSelection` after enabling the preference.
-  func scheduleInsightWording(for metrics: VoiceMetrics) {
-    guard InsightWordingPreference.isEnabled else { return }
-    guard let packet = HeroPacket.from(metrics: metrics) else { return }
-    let key = packet.cacheKey(locale: Locale.current.identifier)
+  func displayedAction(for signal: CoachingSignal, takeID: UUID) -> String {
+    guard InsightWordingPreference.isEnabled else { return signal.action }
+    return insightActionOverrides[actionKey(for: signal, takeID: takeID)] ?? signal.action
+  }
 
-    if insightCopyByKey[key] != nil { return }
-
-    if let persisted = insightResolverCache.observation(for: key) {
-      insightCopyByKey[key] = persisted
-      insightCopyRevision += 1
-      return
-    }
-
-    if insightAttemptedKeys.contains(key) || insightInFlightKeys.contains(key) {
-      return
-    }
+  func scheduleInsightWording(for plan: CoachingPlan, takeID: UUID) {
+    guard InsightWordingPreference.isEnabled, plan.signals.count == 2 else { return }
+    let key = planKey(for: plan, takeID: takeID)
+    guard !insightAttemptedKeys.contains(key) else { return }
     insightAttemptedKeys.insert(key)
-    insightInFlightKeys.insert(key)
 
-    let resolver = insightResolver
     Task.detached(priority: .utility) { [weak self] in
-      let resolved = await resolver.resolve(packet: packet)
+      let rewrites = await CoachingWordingGenerator().rewriteActions(for: plan)
       await MainActor.run {
-        guard let self else { return }
-        self.insightInFlightKeys.remove(key)
-        // Persist only accepted rewrites in memory; frozen stays the sync fallback.
-        guard resolved != packet.frozen else { return }
-        self.insightCopyByKey[key] = resolved
-        self.insightCopyRevision += 1
+        guard let self, let rewrites else { return }
+        for (signal, rewrite) in zip(plan.signals, rewrites) {
+          self.insightActionOverrides[self.actionKey(for: signal, takeID: takeID)] = rewrite
+        }
       }
     }
   }
 
   func rescheduleInsightWordingForSelection() {
-    guard let metrics = selectedTake?.result.metrics else { return }
-    if let packet = HeroPacket.from(metrics: metrics) {
-      let key = packet.cacheKey(locale: Locale.current.identifier)
-      insightAttemptedKeys.remove(key)
-      insightInFlightKeys.remove(key)
-    }
-    scheduleInsightWording(for: metrics)
+    guard let take = selectedTake, let session = selectedSession else { return }
+    let plan = coachingPlan(for: take, in: session)
+    insightAttemptedKeys.remove(planKey(for: plan, takeID: take.id))
+    scheduleInsightWording(for: plan, takeID: take.id)
+  }
+
+  private func actionKey(for signal: CoachingSignal, takeID: UUID) -> String {
+    "\(takeID.uuidString)|\(signal.id)|\(signal.action)"
+  }
+
+  private func planKey(for plan: CoachingPlan, takeID: UUID) -> String {
+    "\(takeID.uuidString)|" + plan.signals.map { "\($0.id)|\($0.action)" }.joined(separator: "|")
   }
 }

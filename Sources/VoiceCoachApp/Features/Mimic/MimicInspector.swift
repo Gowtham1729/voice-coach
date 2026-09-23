@@ -5,7 +5,6 @@ import VoiceCoachSession
 struct MimicInspector: View {
   @EnvironmentObject private var model: AppModel
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
-  @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording = false
   @State private var takePendingDelete: UUID?
 
   var body: some View {
@@ -43,20 +42,10 @@ struct MimicInspector: View {
     } content: {
       VStack(alignment: .leading, spacing: 14) {
         TakeInsightsView(
-          metrics: metrics,
-          observation: model.displayedInsight(for: metrics)
-        )
-        .insightWordingTask(
           takeID: take.id,
           metrics: metrics,
-          wordingEnabled: rewriteInsightWording
-        ) { model.scheduleInsightWording(for: $0) }
-
-        if !model.mimicCompareAlignmentReliable {
-          Text("Word comparison is limited. Coach notes use recording metrics.")
-            .font(.caption)
-            .foregroundStyle(Studio.secondary)
-        }
+          plan: model.coachingPlan(for: take, in: session)
+        )
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     } footer: {
@@ -73,7 +62,7 @@ struct MimicInspector: View {
 
         HStack(spacing: 8) {
           Menu {
-            Button("Copy coach notes", systemImage: "doc.on.doc", action: model.copyMimicCoachPrompt)
+            Button("Copy coach prompt", systemImage: "doc.on.doc", action: model.copyMimicCoachPrompt)
             Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
           } label: {
             Image(systemName: "ellipsis")

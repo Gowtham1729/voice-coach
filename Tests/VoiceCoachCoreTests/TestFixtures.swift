@@ -100,28 +100,3 @@ enum CoreTestFixtures {
     )
   }
 }
-
-final class StubInsightCopyGenerator: InsightCopyGenerating, @unchecked Sendable {
-  var availability: InsightCopyAvailability
-  var rewriteResult: InsightCopyRewrite?
-  private(set) var rewriteCalls = 0
-
-  init(
-    availability: InsightCopyAvailability = .available,
-    rewriteResult: InsightCopyRewrite? = nil
-  ) {
-    self.availability = availability
-    self.rewriteResult = rewriteResult
-  }
-
-  func rewrite(_ packet: HeroPacket) async -> InsightCopyRewrite? {
-    rewriteCalls += 1
-    return rewriteResult
-  }
-}
-
-enum InsightCopyTestSamples {
-  static let pauseRewrite = ContentFrozenAcceptedRewrite.pause
-  static let pitchRewrite = ContentFrozenAcceptedRewrite.pitch
-}
-

@@ -190,7 +190,6 @@ extension AppModel {
 
         finishAnalyzeCleanup()
         append(take)
-        scheduleInsightWording(for: take.result.metrics)
         transcriptionNotice = notice
         maybeScheduleSmartTitleAfterStandaloneSave(
           captureIsNewSession: captureIsNewSession,

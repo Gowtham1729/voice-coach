@@ -69,13 +69,8 @@ final class AppModel: ObservableObject {
   var pendingCaptureIsNewSession = false
   var pendingImportSourceURL: URL?
 
-  let insightResolverCache: PersistedInsightCopyCache
-  let insightResolver: InsightCopyResolver
-  /// Accepted rewrites only (never frozen fail-closed copy). Display falls back to `HeroPacket.frozen`.
-  @Published var insightCopyByKey: [InsightCopyCacheKey: CoachObservation] = [:]
-  @Published var insightCopyRevision = 0
-  var insightAttemptedKeys: Set<InsightCopyCacheKey> = []
-  var insightInFlightKeys: Set<InsightCopyCacheKey> = []
+  @Published var insightActionOverrides: [String: String] = [:]
+  var insightAttemptedKeys: Set<String> = []
 
   init(
     storageRoot: URL? = nil,
@@ -87,13 +82,6 @@ final class AppModel: ObservableObject {
       recorder = dependencies.recorder
       systemAudioCapture = dependencies.systemAudioCapture
       store = dependencies.sessionStore
-      insightResolverCache = PersistedInsightCopyCache()
-      insightResolver = InsightCopyResolver(
-        generator: InsightCopyGenerator(),
-        cache: insightResolverCache,
-        localeIdentifier: { Locale.current.identifier },
-        isEnabled: { InsightWordingPreference.isEnabled }
-      )
     } catch {
       fatalError("Voice Coach could not open local storage: \(error.localizedDescription)")
     }

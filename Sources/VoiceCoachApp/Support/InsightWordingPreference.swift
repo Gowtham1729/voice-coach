@@ -1,10 +1,9 @@
 import Foundation
 
-/// Preference for optional on-device Insight wording rewrites.
-/// Default is off when the key is unset (do not use raw `bool(forKey:)`).
+/// Preference for optional on-device exercise wording.
 enum InsightWordingPreference {
   static let storageKey = "voiceCoach.rewriteInsightWording"
-  static let `default` = false
+  static let `default` = true
 
   static func load(defaults: UserDefaults = .standard) -> Bool {
     guard defaults.object(forKey: storageKey) != nil else { return `default` }

@@ -56,18 +56,18 @@ for (const requiredCopy of [
   "Capture Mac audio",
   "Import a file",
   "There’s no YouTube URL import.",
-  "Your pauses averaged longer than this take needs,",
+  "TWO PRACTICE TARGETS",
+  "Hear where your breaks fall. Place the next one between ideas.",
   "No account, no upload, no cloud processing.",
   "Free while in early access. No account required.",
   "Is this an AI speech coach?",
-  "No. It’s a private practice studio. Core Insights use acoustic rules (pauses and pitch). The practice loop does not require sending your voice to a cloud AI service.",
+  "Two practice signals come from on-device acoustic analysis and, in Mimic, reliable reference matching.",
   "System audio access is needed when you capture Mac audio.",
-  "Your pitch stayed in a narrow range, the line sounds flat.",
-  "On the next take, vary pitch more on the key words.",
+  "Choose a key word for a pitch lift, then compare it with the words around it.",
 ]) {
   assert.ok(
     normalizedHtml.includes(requiredCopy),
-    `Missing required v2 copy: ${requiredCopy}`,
+    `Missing required product copy: ${requiredCopy}`,
   );
 }
 assert.equal(

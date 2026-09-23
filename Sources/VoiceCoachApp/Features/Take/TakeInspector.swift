@@ -5,7 +5,6 @@ import VoiceCoachSession
 struct TakeInspector: View {
   @EnvironmentObject private var model: AppModel
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmBeforeDelete = true
-  @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording = false
   @State private var takePendingDelete: UUID?
 
   var body: some View {
@@ -30,14 +29,10 @@ struct TakeInspector: View {
             }
 
             TakeInsightsView(
-              metrics: take.result.metrics,
-              observation: model.displayedInsight(for: take.result.metrics)
-            )
-            .insightWordingTask(
               takeID: take.id,
               metrics: take.result.metrics,
-              wordingEnabled: rewriteInsightWording
-            ) { model.scheduleInsightWording(for: $0) }
+              plan: model.coachingPlan(for: take, in: session)
+            )
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         } footer: {
@@ -64,7 +59,7 @@ struct TakeInspector: View {
 
       HStack(spacing: 8) {
         Menu {
-          Button("Copy coach notes", systemImage: "doc.on.doc", action: model.copyAICoachPrompt)
+          Button("Copy coach prompt", systemImage: "doc.on.doc", action: model.copyAICoachPrompt)
           Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyReport)
         } label: {
           Image(systemName: "ellipsis")

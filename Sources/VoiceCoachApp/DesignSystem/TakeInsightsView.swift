@@ -1,68 +1,64 @@
 import SwiftUI
 import VoiceCoachCore
 
-/// Plain observation hero block displaying primary coaching feedback above metrics.
-struct CoachObservationBlock: View {
-  let observation: CoachObservation
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      SectionEyebrow(text: observation.eyebrow)
-      VStack(alignment: .leading, spacing: 8) {
-        Text(observation.summary)
-          .font(.callout)
-          .foregroundStyle(Studio.ink)
-          .fixedSize(horizontal: false, vertical: true)
-        Text(observation.action)
-          .font(.callout)
-          .foregroundStyle(Studio.ink)
-          .fixedSize(horizontal: false, vertical: true)
-      }
-    }
-  }
-}
-
-/// Shared insights view used by TakeInspector and MimicInspector compare content
-/// to maintain a synchronous visual hierarchy (Hero observation above quieter metrics stack).
-///
-/// Caller passes `displayedInsight` when the optional wording layer is wired. Metrics always
-/// render. Missing / rejected wording uses frozen `CoachObservation` — same card, no AI chrome.
+/// Exactly two measured practice targets, followed by the unmodified metrics stack.
 struct TakeInsightsView: View {
-  let metrics: VoiceMetrics
-  let observation: CoachObservation?
+  @EnvironmentObject private var model: AppModel
+  @AppStorage(InsightWordingPreference.storageKey) private var wordingEnabled =
+    InsightWordingPreference.default
 
-  init(metrics: VoiceMetrics, observation: CoachObservation? = nil) {
-    self.metrics = metrics
-    self.observation = observation ?? CoachObservation.from(metrics: metrics)
-  }
+  let takeID: UUID
+  let metrics: VoiceMetrics
+  let plan: CoachingPlan
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
-      if let observation {
-        CoachObservationBlock(observation: observation)
+      SectionEyebrow(text: "Insights · practice next")
+      if let limitation = plan.limitation {
+        Text(limitation)
+          .font(.caption)
+          .foregroundStyle(Studio.secondary)
+          .fixedSize(horizontal: false, vertical: true)
       }
+      ForEach(Array(plan.signals.enumerated()), id: \.element.id) { index, signal in
+        if index > 0 { Divider() }
+        signalRow(signal, number: index + 1)
+      }
+      Divider()
       InspectorMetricStack(metrics: InspectorMetricItem.voiceMetrics(metrics))
     }
+    .task(id: "\(takeID.uuidString)-\(wordingEnabled)-\(plan.signals.map(\.id).joined())") {
+      model.scheduleInsightWording(for: plan, takeID: takeID)
+    }
     .accessibilityElement(children: .contain)
-    .accessibilityLabel("Insights")
+    .accessibilityLabel("Practice signals and metrics")
   }
-}
 
-extension View {
-  /// Schedules optional Insight wording when the take or preference changes.
-  func insightWordingTask(
-    takeID: UUID,
-    metrics: VoiceMetrics,
-    wordingEnabled: Bool,
-    schedule: @escaping (VoiceMetrics) -> Void
-  ) -> some View {
-    task(id: InsightWordingTaskID(takeID: takeID, wordingEnabled: wordingEnabled)) {
-      schedule(metrics)
+  private func signalRow(_ signal: CoachingSignal, number: Int) -> some View {
+    HStack(alignment: .top, spacing: 10) {
+      Text(String(format: "%02d", number))
+        .font(.caption.monospacedDigit().weight(.semibold))
+        .foregroundStyle(Studio.accent)
+        .frame(width: 22, alignment: .leading)
+      VStack(alignment: .leading, spacing: 5) {
+        Text(signal.title)
+          .font(.callout.weight(.semibold))
+          .foregroundStyle(Studio.ink)
+        Text(signal.observation)
+          .font(.caption)
+          .foregroundStyle(Studio.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+        Text(model.displayedAction(for: signal, takeID: takeID))
+          .font(.callout)
+          .foregroundStyle(Studio.ink)
+          .fixedSize(horizontal: false, vertical: true)
+        if let progress = signal.progress {
+          Text(progress)
+            .font(.caption)
+            .foregroundStyle(Studio.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+      }
     }
   }
-}
-
-private struct InsightWordingTaskID: Hashable {
-  let takeID: UUID
-  let wordingEnabled: Bool
 }

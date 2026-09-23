@@ -22,24 +22,24 @@ Apple on-device transcription is default. Optional Parakeet (~714 MB) under **Se
 
 ## Features
 
-The loop: Take → one next step → Mimic. Retry until it lands.
+The loop: Take → two practice targets → retry and compare.
 
 | Area | What you get |
 | --- | --- |
 | **Home** | One-tap **Record**, import audio/video (normalized to local WAV), Recents |
 | **Takes** | Stacked retries (Take 1, Take 2, …), sticky timeline, transcript word seek |
-| **Hybrid Insights** | One plain next-step when pauses or pitch stand out — metrics stay quieter underneath |
+| **Insights** | Two measured practice targets on every take; Mimic uses reliable reference timing, pitch, and word emphasis |
 | **Mimic** | Reference from file or Mac audio → listen, imitate, compare, retry |
 | **Library** | Flat catalog of recordings — no folder picking |
-| **Export / coach notes** | Export audio + JSON; coach notes live under inspector **More** |
+| **Export / coach prompt** | Export audio + JSON; **Copy coach prompt** under inspector **More** copies a prompt and data for use elsewhere |
 
 All analysis and transcription stay on-device under `~/Library/Application Support/VoiceCoach`.
 
 Recordings, analysis, and transcripts stay on this Mac — no account, no upload, no cloud processing.
 
-## How Hybrid Insights work
+## How Insights work
 
-One clear next step when pauses or pitch stand out. Metrics stay quieter underneath.
+Each take shows two observations with an action to try next. Ordinary recordings use measured pacing, pitch, and recording quality without treating normal variation as a defect. Mimic prioritizes reliable reference-relative timing and voiced word-level pitch or emphasis; when alignment or quality is poor, it says so and uses take-only targets. Change since a comparable earlier take is computed from the retained takes, so deleting a take updates the comparison. Apple Intelligence may rephrase the two exercises locally; measured facts and target selection do not depend on it.
 
 ## Privacy
 

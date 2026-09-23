@@ -61,6 +61,7 @@ If macOS refuses the toolchain with an Xcode license error, the human must run `
 | Change | Minimum check |
 | --- | --- |
 | `VoiceCoachCore` / report shape | `./scripts/test.sh --all` |
+| Insight selection / progress | `./scripts/test.sh --all`; verify Take and Mimic Compare previews |
 | `VoiceCoachSession` / persistence | `./scripts/test.sh`; add or update a focused persistence test |
 | App UI / layout / charts / Home/Library/Take | `./scripts/render-previews.sh` when feasible (macOS); otherwise say UI was not visually verified |
 | Persistence / SessionStore | Prefer preview path (it round-trips a fixture library) or exercise save/load carefully |
@@ -102,6 +103,7 @@ Root: `~/Library/Application Support/VoiceCoach/`
 | Task | Start here |
 | --- | --- |
 | Pitch / pauses / HNR / CPP / spectrogram | `Sources/VoiceCoachCore/Analysis/` |
+| Two practice signals / retry progress | `Sources/VoiceCoachCore/Coaching/CoachingPlan.swift` |
 | Per-word pitch/loudness | `Sources/VoiceCoachCore/Analysis/WordAcousticAnalyzer.swift` |
 | JSON export shape | `Sources/VoiceCoachCore/Reports/ReportFormatter.swift` + report tests + SelfTest |
 | Apple / Parakeet transcription | `Sources/VoiceCoachCore/Transcription/`, `scripts/setup-transcription.sh` |

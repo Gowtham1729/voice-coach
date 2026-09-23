@@ -14,7 +14,8 @@ struct SettingsView: View {
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
   @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
   @AppStorage("voiceCoach.autoGenerateTitles") private var autoGenerateTitles = false
-  @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording = false
+  @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording =
+    InsightWordingPreference.default
 
   private var transcriptionBusy: Bool {
     model.systemTranscriptionStatus.isBusy
@@ -38,7 +39,7 @@ struct SettingsView: View {
         SmartTitleGenerator.prewarmIfAvailable()
       }
       if rewriteInsightWording {
-        InsightCopyGenerator.prewarmIfAvailable()
+        CoachingWordingGenerator.prewarmIfAvailable()
       }
     }
   }
@@ -93,21 +94,21 @@ struct SettingsView: View {
       }
 
       Section {
-        Toggle("On-device insight wording", isOn: $rewriteInsightWording)
+        Toggle("Personalize exercises on device", isOn: $rewriteInsightWording)
           .onChange(of: rewriteInsightWording) { _, enabled in
             if enabled {
-              InsightCopyGenerator.prewarmIfAvailable()
+              CoachingWordingGenerator.prewarmIfAvailable()
               model.rescheduleInsightWordingForSelection()
             }
           }
         if rewriteInsightWording {
-          LabeledContent("Apple Intelligence", value: InsightCopyGenerator.status.settingsLabel)
+          LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
         }
       } header: {
         Text("Insights")
       } footer: {
         Text(
-          "Coaching decisions are deterministic. On supported devices, wording may be rewritten on device."
+          "Two practice targets come from measured audio. Apple Intelligence can rephrase their exercises on this Mac."
         )
       }
     }

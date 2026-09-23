@@ -119,16 +119,6 @@ insightTabs.forEach((tab) => {
 
 supportTabKeys(insightTabs, (tab) => showInsight(tab.dataset.insight));
 
-const tipToggle = $("[data-tip-toggle]");
-tipToggle.addEventListener("click", () => {
-  const showPitch = $("[data-tip='pitch']").hidden;
-  const nextExample = showPitch ? "pause" : "pitch";
-  tipToggle.setAttribute("aria-label", `Show ${nextExample} example`);
-  $$("[data-tip]").forEach((example) => {
-    example.hidden = example.dataset.tip !== (showPitch ? "pitch" : "pause");
-  });
-});
-
 const mobileMenu = $(".mobile-menu");
 $$("a", mobileMenu).forEach((link) => {
   link.addEventListener("click", () => {
