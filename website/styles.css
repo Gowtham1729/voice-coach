@@ -363,7 +363,17 @@ img {
   inset: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.sound-ribbon:active {
+  cursor: grabbing;
+}
+
+.sound-ribbon:focus-visible {
+  outline-offset: -5px;
+  border-radius: 18px;
 }
 
 .ribbon-ready .sound-sculpture {
@@ -386,6 +396,36 @@ img {
 
 .ribbon-ready::before {
   opacity: 1;
+}
+
+.ribbon-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: none;
+}
+
+.ribbon-ready .ribbon-controls {
+  display: block;
+}
+
+.ribbon-pause {
+  background: var(--paper);
+}
+
+.ribbon-pause span {
+  width: 10px;
+  height: 12px;
+  border-inline: 3px solid currentColor;
+}
+
+.ribbon-pause[data-paused="true"] span {
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border: 6px solid transparent;
+  border-right: 0;
+  border-left: 9px solid currentColor;
 }
 
 .hero-index {

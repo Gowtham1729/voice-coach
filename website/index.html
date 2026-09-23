@@ -117,9 +117,18 @@
           />
           <canvas
             class="sound-ribbon"
-            aria-hidden="true"
+            role="button"
+            tabindex="0"
+            aria-label="Send a wave through the sound sculpture"
             hidden
           ></canvas>
+          <div class="ribbon-controls">
+            <button
+              class="icon-button ribbon-pause"
+              data-pause-ribbon
+              aria-label="Pause ribbon animation"
+            ><span aria-hidden="true"></span></button>
+          </div>
         </div>
         <div class="hero-index" aria-hidden="true">
           <span>VC / 01</span>
