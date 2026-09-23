@@ -1,107 +1,132 @@
 # Voice Coach
 
-Practice your voice on this Mac — record, Mimic a reference, and get a clear next step. Local-first for **macOS 26+**. Nothing is uploaded.
+A private voice practice studio for macOS. Record a take, see two measured practice targets, and refine your delivery on an interactive timeline without uploading audio to the cloud.
 
-For speakers who practice on their Mac — talks, pitches, interviews — and want one clear next step without uploading audio.
+Built natively with SwiftUI for macOS 26+.
 
 ## Demo
 
 https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
 
-[Download the ~1 min tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4) — Home → Take → Mimic → Library.
+[Download the 1-minute video tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4) (Walkthrough: Home, Take Analysis, Mimic Mode, and Library).
 
-## Download
+## Installation
 
-**[Voice Coach 3.3.2 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.3.2)** — zip, move to Applications. If Gatekeeper blocks: right-click → **Open**.
+Download the latest pre-built application:
+* **[Voice Coach 3.3.2 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.3.2)** (Universal ZIP)
 
-Try the tour above, then install — same local-first app, no signup.
+### Setup Steps
+1. Unzip the downloaded file and move `Voice Coach.app` to your `/Applications` folder.
+2. Launch the app. Because releases are currently ad-hoc signed, macOS Gatekeeper may prompt you on first run. If blocked, right-click `Voice Coach.app` in Finder and select **Open**.
 
-Apple on-device transcription is default. Optional Parakeet (~714 MB) under **Settings → Transcription**.
+**System Requirements:** macOS 26.0 or later (Apple Silicon recommended).
 
-> Tagged releases are built by GitHub Actions (`v*` tags). See [`docs/RELEASE.md`](docs/RELEASE.md).
+**Speech Transcription:**
+Apple on-device speech transcription is enabled by default. If you prefer high-accuracy offline transcription with detailed word timings, an optional Parakeet model (~714 MB) can be installed inside the app under **Settings > Transcription**, or via `./scripts/setup-transcription.sh`.
 
-## Features
+## How It Works
 
-The loop: Take → two practice targets → retry and compare.
+Voice Coach focuses on deliberate practice through a rapid loop: capture a take, review two concrete signals, and adjust on the next attempt.
 
-| Area | What you get |
-| --- | --- |
-| **Home** | One-tap **Record**, import audio/video (normalized to local WAV), Recents |
-| **Takes** | Stacked retries (Take 1, Take 2, …), sticky timeline, transcript word seek |
-| **Practice next** | Two measured practice targets after the metrics; Mimic uses reliable reference timing, pitch, and word emphasis |
-| **Mimic** | Reference from file or Mac audio → listen, imitate, compare, retry |
-| **Library** | Flat catalog of recordings — no folder picking |
-| **Export / AI analysis** | Export audio + JSON; **Copy AI analysis prompt + JSON** under inspector **More** or **File** (⌥⌘C) copies instructions and the selected take's JSON to paste into ChatGPT, Gemini, or another AI chat |
+### 1. Three Ways to Practice
+* **Microphone**: Record rehearsed talks, pitches, presentations, or interview answers.
+* **Mac System Audio**: Capture audio playing directly from your Mac (talks, podcasts, or browser clips) without complex virtual audio cables.
+* **File Import**: Bring in existing audio or video files. Imported media is automatically normalized to 48 kHz mono WAV locally.
 
-All analysis and transcription stay on-device under `~/Library/Application Support/VoiceCoach`.
+### 2. Two Concrete Practice Targets
+Instead of arbitrary scores, Voice Coach isolates two specific acoustic targets for your next attempt:
+* **Pacing and Pauses**: Visualizes phrase duration, speaking cadence, and silence gaps, helping you place deliberate pauses between key ideas.
+* **Pitch and Emphasis**: Highlights pitch contours across 24 checkpoints to help you sustain vocal energy or add intentional inflection to key words.
 
-Recordings, analysis, and transcripts stay on this Mac — no account, no upload, no cloud processing.
-The optional AI analysis action copies text to the clipboard; you choose whether to paste it into another service.
+### 3. Mimic Mode (Practice with a Reference)
+Mimic mode lets you study how another speaker delivers a phrase:
+1. **Listen**: Set an imported file or captured system audio as your reference model.
+2. **Imitate**: Record your attempt right alongside it.
+3. **Compare**: Inspect side-by-side pitch curves, rhythm alignments, and word-level emphasis to hear where your delivery differs.
 
-## How Practice next works
+### 4. Stacked Takes and Timeline Scrubbing
+All attempts in a session stay grouped together (`Take 1`, `Take 2`, etc.). You can scrub the waveform, click any transcribed word to jump playback directly to that moment, and hear your improvement from one take to the next.
 
-Each take shows two observations with an action to try next. Ordinary recordings use measured pacing, pitch, and recording quality without treating normal variation as a defect. Mimic first checks phrase duration and word spacing, then repeated pitch or emphasis differences across reliable matched words. A broad pattern uses a specific word as a replay checkpoint; when no repeated pattern is supported, a single word can be the target. These thresholds prioritize practice and do not rate a voice against a universal ideal. When alignment or quality is poor, the app says so and uses take-only targets. Change since a comparable earlier take is computed from retained takes, so deleting a take updates the comparison. Apple Intelligence may rephrase the two exercises locally; measured facts and target selection do not depend on it.
+### 5. Optional AI Analysis (Clipboard Export)
+If you want qualitative script feedback or presentation advice, use **File > Copy AI analysis prompt + JSON** (or press `⌥⌘C`). This formats your acoustic metrics into a structured prompt on your clipboard so you can paste it into ChatGPT, Gemini, Claude, or any LLM of your choice. Voice Coach never contacts external AI APIs on its own.
 
-## Privacy
+## What It Measures
 
-- Microphone access is requested only when you record
-- Analysis and optional Parakeet transcription run locally
-- The library index is written atomically
-- Deleting a recording removes its audio and analysis; deleting a Mimic removes its reference and attempts
+Voice Coach extracts objective acoustic properties to guide practice. It does not provide medical evaluations, diagnose speech conditions, or rate accents.
 
-## What it measures
+* **Pauses and Cadence**: Pause counts, average duration, speaking rate, and pause placement between clauses.
+* **Pitch Dynamics**: Pitch range in semitones, fundamental frequency (F0) contours, and phrase-ending inflection.
+* **Vocal Energy**: Loudness dynamics and phrase-ending energy drop-offs.
+* **Recording Quality**: Harmonics-to-Noise Ratio (HNR), Signal-to-Noise Ratio (SNR), and clipping alerts.
+* **Word Alignment**: Synchronized word timestamps when on-device transcription is available.
 
-Acoustic coaching signals — **not** medical measurements.
+## Privacy by Design
 
-- Pauses, pitch range, loudness, and phrase-end energy
-- Noise / SNR / clipping (recording hygiene)
-- On-device transcript with word timing when available
+Voice Coach runs entirely on your Mac. It requires no user account, collects no telemetry, and makes no network requests.
 
-## Develop from source
+* **Local Storage**: All recordings, transcripts, and acoustic metrics live exclusively in:
+  ```
+  ~/Library/Application Support/VoiceCoach/
+  ```
+* **Explicit Permissions**: Microphone access is requested only when you click record. System audio capture access is requested only when capturing Mac output.
+* **Clean Deletion**: Deleting a take or session permanently purges the underlying WAV and analysis files from disk.
+* **Zero Network Traffic**: Audio analysis and speech transcription execute on-device using local machine learning and Core Audio DSP.
 
-Requires macOS 26+ and Xcode 26.x (CI pins **Xcode 26.6**).
+## Development
 
+### Prerequisites
+* macOS 26.0+
+* Xcode 26.x (CI builds on Xcode 26.6)
+* Swift 6.2
+
+### Quick Start
+To build, ad-hoc sign, and launch the app in development mode:
 ```sh
 ./script/build_and_run.sh
 ```
 
-Builds, ad-hoc signs, and launches the app. Useful flags: `--debug`, `--logs`, `--telemetry`, `--verify`.
+Supported runner flags: `--debug`, `--logs`, `--telemetry`, `--verify`.
 
+### Testing and Building
 ```sh
-./scripts/build-app.sh          # app bundle only → build/Voice Coach.app
-./scripts/test.sh               # unit tests
-./scripts/test.sh --all         # units + self-test (same soft gate as CI)
-./scripts/render-previews.sh    # synthetic layout proofs (local; not CI)
-```
+# Run fast contract and acoustic verification suite
+./scripts/test.sh --self-test
 
-Optional Parakeet setup (Apple Silicon):
+# Run unit tests (Core DSP and Session persistence)
+./scripts/test.sh
 
-```sh
+# Run full test suite (same gate as CI)
+./scripts/test.sh --all
+
+# Build release application bundle (outputs to build/Voice Coach.app)
+./scripts/build-app.sh
+
+# Render synthetic UI layout proofs
+./scripts/render-previews.sh
+
+# Download and configure offline Parakeet ASR model (Apple Silicon)
 ./scripts/setup-transcription.sh
 ```
 
-Or download from **Settings → Transcription** in the app. Override the binary with `VOICE_COACH_NEMO_SPEECH_PATH` if needed.
+If macOS indicates the Xcode license has not been accepted, run `sudo xcodebuild -license` in your terminal.
 
-If macOS reports the Xcode license is not accepted, run `sudo xcodebuild -license` once and accept it.
+### Architecture
 
-### Package layout
+The project is structured into three primary packages:
 
-| Target | Role |
+| Target | Description |
 | --- | --- |
-| `VoiceCoachCore` | Analysis, transcription, metrics, coach observation |
-| `VoiceCoachSession` | Session domain and persistence |
-| `VoiceCoachApp` | macOS UI and platform services |
+| `VoiceCoachCore` | Signal processing, acoustic analysis, metric extraction, and transcription interfaces. |
+| `VoiceCoachSession` | Session data structures, SQLite/JSON persistence layer, and schema migrations. |
+| `VoiceCoachApp` | macOS SwiftUI interface, Core Audio capture engine, and interactive timeline components. |
+| `VoiceCoachSelfTest` | Automated smoke and contract suite enforcing acoustic invariants and report schemas. |
 
-See [`docs/architecture/README.md`](docs/architecture/README.md) before adding a cross-cutting feature.
+For architectural boundaries and design principles, see [`docs/architecture/README.md`](docs/architecture/README.md).
 
 ## Releases
 
-1. Bump both `Info.plist` version keys in a PR; wait for green CI `test`.
-2. Merge, then push an annotated `vX.Y.Z` tag.
-3. The **Release** workflow builds the zip and attaches it to the GitHub Release.
-
-Details: [`docs/RELEASE.md`](docs/RELEASE.md).
+Tagged releases (`v*`) are built and verified automatically by GitHub Actions. For the release process and checklist, see [`docs/RELEASE.md`](docs/RELEASE.md).
 
 ## License
 
-See repository license / release notes for distribution terms of prebuilt zips.
+See release notes and repository terms for distribution details.
