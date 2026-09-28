@@ -77,7 +77,7 @@ The pause and pitch Insight words come from
 em dashes to follow the landing-page typography rule. Sample measurements and
 practice takes are explicitly illustrative.
 
-The download copy and links target the v3.3.2 release.
+The download copy and links target the v3.3.3 release.
 The download is available at no charge; “Free download” does not promise an
 open-source license or future pricing. It is ad-hoc signed, not notarized. The
 tour shows a development build and the page discloses that some screens may be

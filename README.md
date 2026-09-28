@@ -11,7 +11,7 @@ https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
 ## Installation
 
 Download the latest pre-built application:
-* **[Voice Coach 3.3.2 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.3.2)** (Universal ZIP)
+* **[Voice Coach 3.3.3 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.3.3)** (Universal ZIP)
 
 ### Setup Steps
 1. Unzip the downloaded file and move `Voice Coach.app` to your `/Applications` folder.
