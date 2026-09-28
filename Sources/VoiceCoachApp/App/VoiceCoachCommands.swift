@@ -3,8 +3,13 @@ import VoiceCoachSession
 
 struct VoiceCoachCommands: Commands {
   @ObservedObject var model: AppModel
+  let updater: AppUpdater
 
   var body: some Commands {
+    CommandGroup(after: .appInfo) {
+      Button("Check for Updates…") { updater.checkForUpdates() }
+    }
+
     CommandGroup(replacing: .newItem) {
       Button("Record") { model.startHomeRecording() }
         .keyboardShortcut("n", modifiers: .command)
