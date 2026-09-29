@@ -1,4 +1,4 @@
-# Tag-triggered Free-tier release: ad-hoc signed zip, no Developer ID / notarization.
+# Tag-triggered Free-tier release: ad-hoc signed zip and Sparkle appcast.
 # Package.swift is swift-tools-version 6.2 with platforms: [.macOS(.v26)].
 # scripts/test.sh is zsh and prefers /Applications/Xcode.app when present.
 #
@@ -7,7 +7,7 @@
 # on a separate `xcode-27` runner image — not used here.
 #
 # Intentionally not in this workflow: render-previews, Peekaboo, Apple
-# Developer ID, notarization, or any signing secrets.
+# Developer ID, or notarization. Sparkle's separate EdDSA key is required.
 name: Release
 
 on:
@@ -47,11 +47,16 @@ jobs:
             TAG="${GITHUB_REF_NAME}"
             VERSION="${TAG#v}"
           else
-            TAG=""
-            VERSION="dry-run"
+            VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+            TAG="v${VERSION}"
           fi
           if [[ -z "${VERSION}" || "${VERSION}" == "${TAG}" ]]; then
             echo "Expected a v* tag with a version after v (got '${GITHUB_REF_NAME}')" >&2
+            exit 1
+          fi
+          PLIST_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+          if [[ "${VERSION}" != "${PLIST_VERSION}" ]]; then
+            echo "Tag version ${VERSION} does not match app version ${PLIST_VERSION}" >&2
             exit 1
           fi
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
@@ -78,12 +83,37 @@ jobs:
           test -f "${ZIP}"
           ls -lh "${ZIP}"
 
+      - name: Generate signed Sparkle appcast
+        env:
+          SPARKLE_ED25519_PRIVATE_KEY: ${{ secrets.SPARKLE_ED25519_PRIVATE_KEY }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SPARKLE_ED25519_PRIVATE_KEY}" ]]; then
+            echo "Missing SPARKLE_ED25519_PRIVATE_KEY GitHub Actions secret" >&2
+            exit 1
+          fi
+          mkdir -p release-assets
+          mv "Voice-Coach-${VERSION}-macOS.zip" release-assets/
+          SPARKLE_BIN=".build/artifacts/sparkle/Sparkle/bin"
+          printf '%s' "${SPARKLE_ED25519_PRIVATE_KEY}" | \
+            "${SPARKLE_BIN}/generate_appcast" \
+              --ed-key-file - \
+              --download-url-prefix "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" \
+              --maximum-deltas 0 \
+              -o "$PWD/release-assets/appcast.xml" \
+              release-assets
+          printf '%s' "${SPARKLE_ED25519_PRIVATE_KEY}" | \
+            "${SPARKLE_BIN}/sign_update" --ed-key-file - --verify release-assets/appcast.xml
+          xmllint --noout release-assets/appcast.xml
+
       - name: Upload zip (dry-run artifact)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
           name: Voice-Coach-${{ steps.version.outputs.version }}-macOS
-          path: Voice-Coach-${{ steps.version.outputs.version }}-macOS.zip
+          path: release-assets/
           if-no-files-found: error
 
       - name: Create GitHub Release
@@ -94,7 +124,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          ZIP="Voice-Coach-${VERSION}-macOS.zip"
+          ZIP="release-assets/Voice-Coach-${VERSION}-macOS.zip"
           NOTES="$(mktemp)"
           TAG_MSG="$(git tag -l --format='%(contents)' "${TAG}" | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d')"
           TAG_MSG="${TAG_MSG%"${TAG_MSG##*[![:space:]]}"}"
@@ -113,7 +143,7 @@ jobs:
             fi
             echo "<!-- Editors: add changelog notes for this tag (see v3.2.0 for tone). -->"
           } > "${NOTES}"
-          gh release create "${TAG}" "${ZIP}" \
+          gh release create "${TAG}" "${ZIP}" release-assets/appcast.xml \
             --title "Voice Coach ${VERSION}" \
             --notes-file "${NOTES}" \
             --verify-tag

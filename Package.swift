@@ -10,6 +10,9 @@ let package = Package(
     .executable(name: "VoiceCoachApp", targets: ["VoiceCoachApp"]),
     .executable(name: "VoiceCoachSelfTest", targets: ["VoiceCoachSelfTest"]),
   ],
+  dependencies: [
+    .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0"),
+  ],
   targets: [
     .target(name: "VoiceCoachCore"),
     .target(
@@ -18,7 +21,13 @@ let package = Package(
     ),
     .executableTarget(
       name: "VoiceCoachApp",
-      dependencies: ["VoiceCoachCore", "VoiceCoachSession"]
+      dependencies: [
+        "VoiceCoachCore", "VoiceCoachSession",
+        .product(name: "Sparkle", package: "Sparkle"),
+      ],
+      linkerSettings: [
+        .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"]),
+      ]
     ),
     .executableTarget(
       name: "VoiceCoachSelfTest",

@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct VoiceCoachApplication: App {
   @StateObject private var model = AppModel()
+  @StateObject private var updater = AppUpdater()
 
   init() {
     #if DEBUG
@@ -21,7 +22,7 @@ struct VoiceCoachApplication: App {
     }
     .defaultSize(width: 1240, height: 800)
     .commands {
-      VoiceCoachCommands(model: model)
+      VoiceCoachCommands(model: model, updater: updater)
     }
 
     Settings {

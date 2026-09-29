@@ -1,10 +1,10 @@
 # Releasing Voice Coach
 
-Phase 1b (this document): **GitHub Free, ad-hoc signed** zips. Pushing a `v*` semver tag runs [`.github/workflows/release.yml`](../.github/workflows/release.yml) on `macos-26`: tests, `build-app.sh`, zip, GitHub Release with the zip attached. There is no Developer ID signing or notarization.
+GitHub Releases host the **ad-hoc signed** app zip and a signed [Sparkle](https://sparkle-project.org/documentation/) appcast. Pushing a `v*` semver tag runs [`.github/workflows/release.yml`](../.github/workflows/release.yml) on `macos-26`: tests, `build-app.sh`, zip, sign the update feed, and publish both assets. There is no Developer ID signing or notarization.
 
 ## Soft gate
 
-This is a GitHub Free **private** repo, so branch protection / required checks are unavailable. Treat CI job `test` as a team gate anyway: wait for green before merging to `main` and before cutting a release. Peekaboo stays a live Mac check after CI, not an Actions job.
+Treat CI job `test` as a release gate: wait for green before merging to `main` and before cutting a release. Peekaboo stays a live Mac check after CI, not an Actions job.
 
 ## Versioning
 
@@ -25,9 +25,9 @@ Do not ship from a red `test` run. `render-previews` and Peekaboo are not CI; ru
 
 ## Who cuts the release
 
-The **repo owner** bumps `Info.plist` in a PR, waits for green `test`, merges, and tags the merge commit. Actions builds the zip and attaches it to the GitHub Release. Edit the release body with the changelog (the workflow leaves an ad-hoc / Gatekeeper stub plus the tag message). Update the README **Download** link to the new tag in the version-bump PR or immediately after.
+The **repo owner** bumps `Info.plist` in a PR, waits for green `test`, merges, and tags the merge commit. Actions builds the zip and signed `appcast.xml` and attaches both to the GitHub Release. Edit the release body with the changelog (the workflow leaves an ad-hoc / Gatekeeper stub plus the tag message). Update the README **Download** link to the new tag in the version-bump PR or immediately after.
 
-If Actions fails, fall back to the manual zip steps below and attach the zip yourself.
+If Actions fails, repair the release job or create both assets with Sparkle's tools before publishing. A zip alone will not reach existing app installations through auto-update.
 
 ## Build the zip
 
@@ -39,7 +39,7 @@ ditto -c -k --sequesterRsrc --keepParent \
   "Voice-Coach-X.Y.Z-macOS.zip"
 ```
 
-To exercise the job without publishing a GitHub Release, use **Actions → Release → Run workflow** (`workflow_dispatch` dry-run; zip is uploaded as a workflow artifact).
+To exercise the job without publishing a GitHub Release, use **Actions → Release → Run workflow** (`workflow_dispatch` dry-run; zip and appcast are uploaded as workflow artifacts).
 
 Manual fallback, on a Mac with Xcode 26.x (same major as CI: 26.6 today):
 
@@ -64,10 +64,17 @@ The zip is **ad-hoc signed** (`codesign --sign -` in `build-app.sh`), not Develo
 
 1. Bump both plist keys in a PR, wait for green `test`, merge.
 2. Tag the merge commit: `git tag -a vX.Y.Z -m "Voice Coach X.Y.Z"` and push the tag.
-3. Wait for the **Release** workflow on that tag. It creates the GitHub Release and attaches `Voice-Coach-X.Y.Z-macOS.zip`.
+3. Wait for the **Release** workflow on that tag. It creates the GitHub Release and attaches `Voice-Coach-X.Y.Z-macOS.zip` and `appcast.xml`.
 4. Edit the release body with the changelog (see `v3.2.0` for tone). The workflow already includes the ad-hoc / Gatekeeper / no-Parakeet notes.
-5. If the workflow fails, build the zip locally (above) and attach it to the GitHub Release yourself.
+5. If the workflow fails, fix it before publishing. Both release assets must be present and signed for in-app updates.
 
-## Phase 2 (not implemented)
+## Sparkle signing key and update checks
 
-Developer ID signing, Apple notarization, and staple are **out of scope**. No signing certificates, notarization secrets, or Sparkle live in this repo.
+- `Resources/Info.plist` contains only the public EdDSA key. The private key is in the macOS login Keychain under account `com.gowtham.voicecoach`; back it up securely. Never commit or paste it into a workflow file.
+- The release job requires repository secret `SPARKLE_ED25519_PRIVATE_KEY`, containing the base64 private key exported by Sparkle's `generate_keys --account com.gowtham.voicecoach -x <secure-file>`. Configure this in GitHub Actions before the first updater-enabled release. The job fails rather than publish a zip without an appcast when the secret is missing.
+- The app checks `https://github.com/Gowtham1729/voice-coach/releases/latest/download/appcast.xml` automatically and provides **Voice Coach → Check for Updates…**. Sparkle verifies the signed feed and ZIP before installation. The GitHub repository and release assets must stay public for this URL to work.
+- Run a `workflow_dispatch` dry-run, then test an installed older updater-enabled build against a newer signed release. Existing versions without Sparkle need one manual upgrade to receive this feature. Keep the app in Applications, not a read-only disk image.
+
+## Distribution limitation
+
+Developer ID signing, Apple notarization, and staple are **out of scope**. First install can still be blocked by Gatekeeper; users may need **right-click → Open**. The ad-hoc signed update flow must be validated on a separate installed build before calling it seamless.

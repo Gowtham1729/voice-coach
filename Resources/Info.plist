@@ -19,11 +19,21 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-	<string>3.3.3</string>
+    <string>3.3.4</string>
     <key>CFBundleVersion</key>
-	<string>10</string>
+    <string>11</string>
+    <key>SUFeedURL</key>
+    <string>https://github.com/Gowtham1729/voice-coach/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>pJDfJ4M7PGMn/2y2IsaNC9w1xjzF+nsHoHstbEMkKik=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUVerifyUpdateBeforeExtraction</key>
+    <true/>
+    <key>SURequireSignedFeed</key>
+    <true/>
     <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
+    <string>26.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
