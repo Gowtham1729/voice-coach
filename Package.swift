@@ -43,3 +43,12 @@ let package = Package(
     ),
   ]
 )
+
+#if os(macOS)
+  package.targets.append(
+    .testTarget(
+      name: "VoiceCoachAppTests",
+      dependencies: ["VoiceCoachApp", "VoiceCoachCore", "VoiceCoachSession"]
+    )
+  )
+#endif

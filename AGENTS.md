@@ -14,6 +14,7 @@ Local-first **macOS 26+** SwiftUI voice practice studio (Swift 6.2). Record/impo
 | Session domain / persistence | `Sources/VoiceCoachSession/` | Foundation-only library over `VoiceCoachCore` |
 | App coordination / UI / capture | `Sources/VoiceCoachApp/` | macOS-only; organized by App, Application, Features, Services, and DesignSystem |
 | Unit suites | `Tests/VoiceCoachCoreTests/`, `Tests/VoiceCoachSessionTests/` | Swift Testing coverage for pure contracts and persistence |
+| App coordination tests | `Tests/VoiceCoachAppTests/` | macOS-only recording save/rejection checks with synthetic WAVs and injected transcription |
 | Integration contract suite | `Sources/VoiceCoachSelfTest/main.swift` | Cross-platform acoustic/report smoke and live helpers |
 | App bundle resources | `Resources/` | Packaged by `scripts/build-app.sh` |
 | Marketing website | `website/` | Build/check: `node scripts/build-website.mjs`; preview: `node scripts/serve-website.mjs`; Sites config: `.openai/hosting.json` |
@@ -75,7 +76,7 @@ Keep `VoiceCoachSelfTest` as the integration/contract smoke. Put deterministic u
 - **Not medical:** HNR/CPP and related metrics are acoustic coaching signals. UI/settings/coach copy must not diagnose or claim diaphragm proof. Report JSON must not contain subjective coaching language (`baseline`, `throat`, `please` — SelfTest enforces).
 - **Platform:** `Package.swift` targets **macOS 26** for Liquid Glass APIs. Do not lower the SPM platform to match `Resources/Info.plist` `LSMinimumSystemVersion` (currently 14.0) without an explicit product decision.
 - **Materials:** System chrome may use Liquid Glass (`.glass` / `.glassProminent` / `ControlGlass`). Content panels stay on standard materials (`.desktopPanel` / `.studioCard` → regularMaterial), not glass. Honor Reduce Transparency / Reduce Motion via existing `Studio` / `StudioMotion` helpers.
-- **Analysis without ASR:** Transcription failure is soft — take still saves with notice; do not hard-fail the record/import pipeline when `nemo-speech` is missing.
+- **Recording validation:** Missing/empty/near-silent audio and successful transcription with no recognized text or words must fail before saving; rejected captures leave no new library entry or temporary audio. Technical transcription failure is soft — valid audio still saves with a notice/error; do not hard-fail the record/import pipeline when `nemo-speech` is missing.
 
 ## Report / analysis contracts (easy to get wrong)
 

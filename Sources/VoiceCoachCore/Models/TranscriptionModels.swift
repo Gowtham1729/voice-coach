@@ -18,6 +18,11 @@ public struct TranscriptionResult: Codable, Sendable, Equatable {
   public let text: String
   public let words: [TranscriptWord]
 
+  public var hasRecognizedSpeech: Bool {
+    !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      || words.contains { !$0.word.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+  }
+
   public init(text: String, words: [TranscriptWord]) {
     self.text = text
     self.words = words

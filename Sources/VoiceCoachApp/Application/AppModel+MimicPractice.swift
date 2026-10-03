@@ -91,13 +91,16 @@ extension AppModel {
               from: draft.url, to: destinationURL, start: start, end: end)
             return try AudioAnalyzer().analyze(url: destinationURL)
           }.value
+          try RecordingValidation.validateAudio(acoustic)
           var transcription: TranscriptionResult?
           var words: [WordAnalysis] = []
           do {
-            let outcome = try await TranscriptionService(preferredEngine: preferredEngine)
-              .transcribe(url: destinationURL)
+            let outcome = try await transcribe(destinationURL, preferredEngine)
+            try RecordingValidation.validateTranscription(outcome.result)
             transcription = outcome.result
             words = WordAcousticAnalyzer().analyze(transcription: outcome.result, result: acoustic)
+          } catch TranscriptionError.noSpeechRecognized {
+            throw TranscriptionError.noSpeechRecognized
           } catch {
             transcriptionNotice = Self.userFacingMessage(
               error, fallback: "Transcription failed.")
