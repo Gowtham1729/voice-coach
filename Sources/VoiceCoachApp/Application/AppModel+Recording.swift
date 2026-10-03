@@ -149,7 +149,7 @@ extension AppModel {
     analyze(url: url, takeID: takeID)
   }
 
-  // MARK: - Mimic reference Mac audio
+  // MARK: - Recording analysis
 
   @discardableResult
   func analyze(url: URL, takeID: UUID, source: TakeSource = .recorded) -> Task<Void, Never> {
@@ -165,23 +165,11 @@ extension AppModel {
         }.value
         try RecordingValidation.validateAudio(acoustic)
 
-        var transcription: TranscriptionResult?
-        var words: [WordAnalysis] = []
-        var notice: String?
-        do {
-          let outcome = try await transcribe(url, preferredEngine)
-          try RecordingValidation.validateTranscription(outcome.result)
-          transcription = outcome.result
-          words = WordAcousticAnalyzer().analyze(
-            transcription: outcome.result,
-            result: acoustic
-          )
-          notice = outcome.notice
-        } catch TranscriptionError.noSpeechRecognized {
-          throw TranscriptionError.noSpeechRecognized
-        } catch {
-          notice = Self.userFacingMessage(error, fallback: "Transcription failed.")
-        }
+        let (transcription, notice) = try await transcribeForAnalysis(
+          url: url, engine: preferredEngine)
+        let words = transcription.map {
+          WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
+        } ?? []
 
         let take = PracticeSession(
           id: takeID,
@@ -196,7 +184,7 @@ extension AppModel {
         append(take)
         transcriptionNotice = notice
         if transcription == nil, let notice,
-          sessions.contains(where: { $0.takes.contains(where: { $0.id == takeID }) })
+          sessions.contains(where: { session in session.takes.contains { $0.id == takeID } })
         {
           presentError(
             title: "Transcription failed",
@@ -234,6 +222,22 @@ extension AppModel {
         finishAnalyzeCleanup()
       }
     }
+  }
+
+  /// Empty recognition rejects the take; technical failures keep its audio usable.
+  func transcribeForAnalysis(
+    url: URL, engine: TranscriptionEnginePreference
+  ) async throws -> (transcription: TranscriptionResult?, notice: String?) {
+    let outcome: TranscriptionOutcome
+    do {
+      outcome = try await transcribe(url, engine)
+    } catch TranscriptionError.noSpeechRecognized {
+      throw TranscriptionError.noSpeechRecognized
+    } catch {
+      return (nil, Self.userFacingMessage(error, fallback: "Transcription failed."))
+    }
+    try RecordingValidation.validateTranscription(outcome.result)
+    return (outcome.result, outcome.notice)
   }
 
   private func rejectRecording(
