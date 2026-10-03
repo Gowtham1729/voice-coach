@@ -70,6 +70,8 @@ public struct TranscriptionService: Sendable {
       do {
         let result = try await AppleSpeechTranscriber(locale: locale).transcribe(url: url)
         return TranscriptionOutcome(result: result, engine: .system)
+      } catch TranscriptionError.noSpeechRecognized {
+        throw TranscriptionError.noSpeechRecognized
       } catch {
         guard TranscriptionSetupService.currentStatus().isReady else { throw error }
         let result = try NemoSpeechTranscriber().transcribe(url: url)

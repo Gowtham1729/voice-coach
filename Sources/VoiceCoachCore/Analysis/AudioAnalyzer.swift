@@ -6,11 +6,13 @@ import Foundation
 
 public enum AnalysisError: LocalizedError {
   case emptyRecording
+  case silentRecording
   case unreadableAudio
 
   public var errorDescription: String? {
     switch self {
     case .emptyRecording: "This recording is empty."
+    case .silentRecording: "No audio detected. Check your microphone or audio source and try again."
     case .unreadableAudio: "This audio file couldn’t be decoded."
     }
   }
@@ -21,6 +23,16 @@ public struct AudioAnalyzer: Sendable {
 
   #if canImport(AVFoundation)
     public func analyze(url: URL) throws -> AnalysisResult {
+      do {
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        if (attributes[.size] as? NSNumber)?.int64Value == 0 {
+          throw AnalysisError.emptyRecording
+        }
+      } catch let error as CocoaError
+        where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile
+      {
+        throw AnalysisError.emptyRecording
+      }
       let file = try AVAudioFile(forReading: url)
       let format = file.processingFormat
       guard file.length > 0,
