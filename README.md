@@ -11,13 +11,13 @@ https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
 ## Installation
 
 Download the latest pre-built application:
-* **[Voice Coach 3.3.5 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.3.5)** (ZIP)
+* **[Latest Voice Coach for macOS](https://github.com/Gowtham1729/voice-coach/releases/latest/download/Voice-Coach-macOS.zip)** (ZIP) · [Release notes](https://github.com/Gowtham1729/voice-coach/releases/latest)
 
 ### Setup Steps
 1. Unzip the downloaded file and move `Voice Coach.app` to your `/Applications` folder.
 2. Launch the app. Because releases are currently ad-hoc signed, macOS Gatekeeper may prompt you on first run. If blocked, right-click `Voice Coach.app` in Finder and select **Open**.
 
-Version 3.3.4 introduced in-app update checks. If you already have 3.3.4 installed, use **Voice Coach > Check for Updates…** or wait for an automatic update check to receive 3.3.5. Older releases need one manual installation of an updater-enabled version.
+Version 3.3.4 introduced in-app update checks. If you already have 3.3.4 or newer installed, use **Voice Coach > Check for Updates…** or wait for an automatic update check to receive new releases. Older releases need one manual installation of an updater-enabled version.
 
 **System Requirements:** macOS 26.0 or later (Apple Silicon recommended).
 
