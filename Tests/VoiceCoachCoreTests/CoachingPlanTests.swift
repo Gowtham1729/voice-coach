@@ -28,8 +28,10 @@ struct CoachingPlanTests {
       snrDB: 3.9, internalPauseCount: 3, meanInternalPauseMs: 410,
       pitchRangeSemitones: 0.3))
     #expect(severeNoise.signals.isEmpty)
-    #expect(severeNoise.notice?.contains("3.9 dB") == true)
-    #expect(severeNoise.notice?.contains("unreliable") == true)
+    #expect(
+      severeNoise.notice
+        == "Speech was 3.9 dB above the measured noise floor. Pitch and pause estimates may be unreliable."
+    )
 
     let unmeasured = CoachingPlanner.recording(current: CoreTestFixtures.metrics(
       snrDB: .nan, clippingPercent: .nan))

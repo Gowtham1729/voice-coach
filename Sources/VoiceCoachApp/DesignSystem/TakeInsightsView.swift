@@ -14,16 +14,16 @@ struct TakeInsightsView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
       InspectorMetricStack(metrics: InspectorMetricItem.voiceMetrics(metrics))
-      if plan.signals.isEmpty {
-        if let notice = plan.notice { noticeText(notice) }
-      } else {
+      if !plan.signals.isEmpty {
         Divider()
         SectionEyebrow(text: "Practice next")
-        if let notice = plan.notice { noticeText(notice) }
-        ForEach(Array(plan.signals.enumerated()), id: \.element.id) { index, signal in
-          if index > 0 { Divider() }
-          signalRow(signal, number: index + 1)
-        }
+      }
+      if let notice = plan.notice {
+        noticeText(notice)
+      }
+      ForEach(Array(plan.signals.enumerated()), id: \.element.id) { index, signal in
+        if index > 0 { Divider() }
+        signalRow(signal, number: index + 1)
       }
     }
     .task(id: "\(takeID.uuidString)-\(wordingEnabled)-\(plan.signals.map(\.id).joined())") {

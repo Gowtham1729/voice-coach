@@ -45,20 +45,27 @@ public enum CoachingPlanner {
   private static func recordingNotice(_ metrics: VoiceMetrics) -> String? {
     let clipping = metrics.clippingPercent
     let snr = metrics.snrDB
-    let severe = !snr.isFinite || snr < 6 || !clipping.isFinite || clipping >= 3
+    let estimatesUnreliable = !snr.isFinite || snr < 6 || !clipping.isFinite || clipping >= 3
     if clipping.isFinite, clipping >= 1 {
-      let measured = "\(number(clipping, 1))% of this take's samples clipped."
-      return severe ? "\(measured) Pitch and pause estimates may be unreliable." : measured
+      return qualityNotice(
+        "\(number(clipping, 1))% of this take's samples clipped.",
+        estimatesUnreliable: estimatesUnreliable)
     }
     if snr.isFinite, snr < 10 {
-      let measured = "Speech was \(number(snr, 1)) dB above the measured noise floor."
-      return severe ? "\(measured) Pitch and pause estimates may be unreliable." : measured
+      return qualityNotice(
+        "Speech was \(number(snr, 1)) dB above the measured noise floor.",
+        estimatesUnreliable: estimatesUnreliable)
     }
-    guard severe else { return nil }
+    guard estimatesUnreliable else { return nil }
     if !clipping.isFinite, !snr.isFinite {
       return "This take did not provide a dependable recording-quality measurement."
     }
     return "Pitch and pause estimates may be unreliable at this recording quality."
+  }
+
+  private static func qualityNotice(_ measured: String, estimatesUnreliable: Bool) -> String {
+    guard estimatesUnreliable else { return measured }
+    return "\(measured) Pitch and pause estimates may be unreliable."
   }
 
   public static func mimic(
