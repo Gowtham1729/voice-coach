@@ -152,6 +152,7 @@ extension AppModel {
       return
     }
     do {
+      removeSessionChats(sessionID: id)
       try store.deleteSessionData(sessionID: id)
       toastMessage = deleteMessage(wasMimic: wasMimic, attemptCount: attemptCount)
     } catch {
@@ -237,6 +238,7 @@ extension AppModel {
       return
     }
 
+    removeSessionChats(sessionID: sessionID, takeID: takeID)
     try? store.deleteTakeAnalysis(sessionID: sessionID, takeID: takeID)
     try? FileManager.default.removeItem(at: removed.audioURL)
     if reportCache?.takeID == takeID { reportCache = nil }

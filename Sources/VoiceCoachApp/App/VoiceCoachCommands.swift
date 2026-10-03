@@ -61,6 +61,12 @@ struct VoiceCoachCommands: Commands {
       .disabled(
         !model.isMimicWorkspace || model.isAnalyzing || model.isRequestingPermission
           || (!model.isRecording && (model.isPlaying || model.mimicPhase != .ready)))
+
+      if model.showsExperimentalAsk {
+        Button("Ask") { model.revealSessionChat() }
+          .keyboardShortcut("a", modifiers: [.command, .shift])
+          .disabled(!model.destination.isWorkspace)
+      }
     }
   }
 

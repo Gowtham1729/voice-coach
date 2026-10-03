@@ -42,6 +42,8 @@
       try store.save(sessions, analysisTakeIDs: nil)
       try assertThinLibraryLayout(store: store, sessions: sessions)
 
+      let previewDefaults = UserDefaults(suiteName: "VoiceCoachPreview-\(UUID().uuidString)")!
+      previewDefaults.set(false, forKey: ExperimentalFeaturesPreference.storageKey)
       let model = AppModel(storageRoot: fixtureRoot)
       precondition(model.sessions == sessions.sorted { $0.updatedAt > $1.updatedAt })
       precondition(model.totalTakeCount == sessions.reduce(0) { $0 + $1.takeCount })
@@ -77,6 +79,7 @@
       func render(_ name: String, width: CGFloat = 1440, height: CGFloat = 920) throws {
         let view = ContentView()
           .environmentObject(model)
+          .defaultAppStorage(previewDefaults)
           .environment(\.studioSnapshot, true)
           .frame(width: width, height: height)
         let renderer = ImageRenderer(content: view)
@@ -90,6 +93,7 @@
       func renderSettings(_ name: String, width: CGFloat = 520, height: CGFloat = 420) throws {
         let view = SettingsView()
           .environmentObject(model)
+          .defaultAppStorage(previewDefaults)
           .environment(\.studioSnapshot, true)
           .frame(width: width, height: height)
         let renderer = ImageRenderer(content: view)
@@ -100,11 +104,42 @@
         try png.write(to: output.appendingPathComponent(name + ".png"))
       }
 
+      func renderChat(_ name: String, context: SessionChatContext, width: CGFloat = 320) throws {
+        let conversation = model.conversation(for: context)
+        let quote = context.passages.first?.text
+        conversation.replaceForPreview(exchanges: [
+          .init(
+            question: "What does this line mean?",
+            quotedLine: quote,
+            answer: "Here, the line is a short break that lets an idea settle.",
+            practiceLine: nil
+          ),
+          .init(
+            question: "Give me a more natural way to say this.",
+            quotedLine: quote,
+            answer: "This keeps the meaning and sounds more like something you would say.",
+            practiceLine: "A quiet moment lets the idea settle."
+          ),
+        ])
+        let view = SessionChatInspector(conversation: conversation)
+          .environmentObject(model)
+          .environment(\.studioSnapshot, true)
+          .frame(width: width, height: 820, alignment: .topLeading)
+          .background(Studio.inspector)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 1
+        guard let image = renderer.cgImage,
+          let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+        else { throw NSError(domain: "VoiceCoachPreview", code: 5) }
+        try png.write(to: output.appendingPathComponent(name + ".png"))
+      }
+
       func renderCreateSession(
         _ name: String, mode: PracticeMode = .general, width: CGFloat = 720, height: CGFloat = 760
       ) throws {
         let view = CreateSessionView(initialMode: mode)
           .environmentObject(model)
+          .defaultAppStorage(previewDefaults)
           .environment(\.studioSnapshot, true)
           .frame(width: width, height: height)
           .background(Studio.background)
@@ -129,6 +164,16 @@
         model.openTake(sessionID: model.sessions[0].id, takeID: latest.id)
       }
       try render("04-take", height: 1_360)
+      previewDefaults.set(true, forKey: ExperimentalFeaturesPreference.storageKey)
+      previewDefaults.set(InspectorPane.ask.rawValue, forKey: InspectorPane.storageKey)
+      try render("15-recording-chat", height: 980)
+      if let session = model.selectedSession, let take = model.selectedTake,
+        let context = model.sessionChatContext(session: session, take: take)
+      {
+        try renderChat("16-recording-chat-expanded", context: context)
+      }
+      previewDefaults.set(InspectorPane.details.rawValue, forKey: InspectorPane.storageKey)
+      previewDefaults.set(false, forKey: ExperimentalFeaturesPreference.storageKey)
       model.destination = .library
       try render("05-library")
       model.destination = .mimics
@@ -136,10 +181,13 @@
       model.transcriptionEngine = .system
       model.transcriptionLocaleIdentifier = "ja_JP"
       model.systemTranscriptionStatus = .ready(localeIdentifier: "ja_JP")
-      try renderSettings("07-settings", height: 560)
+      try renderSettings("07-settings", height: 680)
       model.transcriptionEngine = .parakeet
-      try renderSettings("07b-settings-parakeet", height: 560)
+      try renderSettings("07b-settings-parakeet", height: 680)
       model.transcriptionEngine = .system
+      previewDefaults.set(true, forKey: ExperimentalFeaturesPreference.storageKey)
+      try renderSettings("19-settings-experiments", height: 680)
+      previewDefaults.set(false, forKey: ExperimentalFeaturesPreference.storageKey)
       model.destination = .home
       model.selectedSessionID = nil
       model.selectedTakeID = nil
@@ -162,6 +210,14 @@
           model.selectTake(attempt.id)
           model.mimicWorkspaceMode = .compare
           try render("10-mimic-compare")
+          previewDefaults.set(true, forKey: ExperimentalFeaturesPreference.storageKey)
+          previewDefaults.set(InspectorPane.ask.rawValue, forKey: InspectorPane.storageKey)
+          try render("17-mimic-chat", height: 980)
+          if let context = model.sessionChatContext(session: mimic, take: attempt) {
+            try renderChat("18-mimic-chat-expanded", context: context)
+          }
+          previewDefaults.set(InspectorPane.details.rawValue, forKey: InspectorPane.storageKey)
+          previewDefaults.set(false, forKey: ExperimentalFeaturesPreference.storageKey)
           if let reference = mimic.mimicReference?.take {
             let view = MimicComparisonView(
               reference: reference, attempt: attempt,
@@ -245,7 +301,7 @@
       }
 
       print(
-        "Rendered 15 app previews; v1 migration backup and v2 persistence round-trip passed. Output: \(output.path)"
+        "Rendered app and experimental chat previews; v1 migration backup and v2 persistence round-trip passed. Output: \(output.path)"
       )
       exit(0)
     } catch {

@@ -260,7 +260,9 @@ struct RecordingCreationTests {
   ) throws -> AppModel {
     let dependencies = AppDependencies(
       recorder: AudioRecorder(), systemAudioCapture: SystemAudioCapture(),
-      sessionStore: try SessionStore(rootURL: root), transcribe: transcribe)
+      sessionStore: try SessionStore(rootURL: root),
+      sessionChatResponder: LocalSessionChatResponder(),
+      transcribe: transcribe)
     return AppModel(loadPersistedData: false, dependencies: dependencies)
   }
 

@@ -50,6 +50,13 @@ All attempts in a session stay grouped together (`Take 1`, `Take 2`, etc.). You 
 ### 5. Optional AI Analysis (Clipboard Export)
 If you want qualitative script feedback or presentation advice, use **File > Copy AI analysis prompt + JSON** (or press `⌥⌘C`). This formats your acoustic metrics into a structured prompt on your clipboard so you can paste it into ChatGPT, Gemini, Claude, or any LLM of your choice. Voice Coach never contacts external AI APIs on its own.
 
+### 6. Experimental On-Device Chat
+Enable **Settings > Experiments > Enable experimental features**, open a recording or Mimic, and choose **Ask** in the inspector. Ask what a line means, for a clearer way to say it, for a translation, or how to practise it. Click a word in the transcript to point Ask at that sentence. A useful reply includes a line you can copy and say.
+
+Chat uses Apple's on-device model and requires available Apple Intelligence. Each recording or selected Mimic attempt has a separate temporary conversation; the Mimic reference is included with its attempt. Chats survive navigation while the app is open, but clear when you quit, clear the chat, delete the recording, or turn experiments off. Follow-ups use the latest two exchanges. A question is sent with the selected line, not the whole library.
+
+The model answers from the transcript. It does not hear the recording, so it will not judge how a voice sounds. AI answers may be wrong. Check a line before you practise it. Original transcripts and measured practice targets are preserved.
+
 ## What It Measures
 
 Voice Coach extracts objective acoustic properties to guide practice. It does not provide medical evaluations, diagnose speech conditions, or rate accents.
@@ -97,6 +104,9 @@ Supported runner flags: `--debug`, `--logs`, `--telemetry`, `--verify`.
 
 # Run full test suite (same gate as CI)
 ./scripts/test.sh --all
+
+# Optional real on-device chat smoke (synthetic text; Apple Intelligence must be ready)
+VOICE_COACH_TEST_LOCAL_CHAT=1 ./scripts/test.sh --unit --filter liveDeviceModelSmoke
 
 # Build release application bundle (outputs to build/Voice Coach.app)
 ./scripts/build-app.sh

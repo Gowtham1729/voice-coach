@@ -33,6 +33,7 @@ extension TakeView {
         ) { index, word in
           selectedWordIndex = selectedWordIndex == index ? nil : index
           model.seek(to: word.start)
+          if selectedWordIndex != nil { focusChat(onWord: index, in: take) }
         }
       } else {
         ContentUnavailableView(

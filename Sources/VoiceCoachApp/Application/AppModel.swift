@@ -55,6 +55,7 @@ final class AppModel: ObservableObject {
   let store: any SessionStoring
   let transcribe:
     @Sendable (URL, TranscriptionEnginePreference, Locale?) async throws -> TranscriptionOutcome
+  let sessionChatResponder: any SessionChatResponding
   var timer: Timer?
   var playbackTimer: Timer?
   var mimicReferenceCaptureTimer: Timer?
@@ -76,6 +77,19 @@ final class AppModel: ObservableObject {
 
   @Published var insightActionOverrides: [String: String] = [:]
   var insightAttemptedKeys: Set<String> = []
+  var sessionChats: [SessionChatContext.Scope: SessionChatConversation] = [:]
+  var pendingChatFocus: [SessionChatContext.Scope: String] = [:]
+  @Published var askInspectorNonce = 0
+  @Published private(set) var experimentsRevision = 0
+
+  /// Reads `experimentsRevision` so the Practice menu refreshes after the Settings toggle.
+  var showsExperimentalAsk: Bool {
+    experimentsRevision >= 0 && ExperimentalFeaturesPreference.isEnabled
+  }
+
+  func noteExperimentalFeaturesChanged() {
+    experimentsRevision += 1
+  }
 
   init(
     storageRoot: URL? = nil,
@@ -88,6 +102,7 @@ final class AppModel: ObservableObject {
       systemAudioCapture = dependencies.systemAudioCapture
       store = dependencies.sessionStore
       transcribe = dependencies.transcribe
+      sessionChatResponder = dependencies.sessionChatResponder
     } catch {
       fatalError("Voice Coach could not open local storage: \(error.localizedDescription)")
     }

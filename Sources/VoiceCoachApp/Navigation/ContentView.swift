@@ -6,6 +6,9 @@ struct ContentView: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @SceneStorage("voiceCoach.inspectorPresented") private var inspectorPresented = true
+  @AppStorage(ExperimentalFeaturesPreference.storageKey) private var experimentsEnabled =
+    ExperimentalFeaturesPreference.default
+  @AppStorage(InspectorPane.storageKey) private var inspectorPane = InspectorPane.details.rawValue
 
   var body: some View {
     shell
@@ -57,6 +60,11 @@ struct ContentView: View {
           .toolbar { workspaceToolbar }
         }
         .navigationSplitViewStyle(.balanced)
+        .onChange(of: model.askInspectorNonce) { _, nonce in
+          guard nonce > 0 else { return }
+          inspectorPresented = true
+          inspectorPane = InspectorPane.ask.rawValue
+        }
       }
     }
   }
@@ -110,10 +118,75 @@ struct ContentView: View {
 
   @ViewBuilder
   private var contextualInspector: some View {
-    if model.showsTakeInspector {
+    VStack(spacing: 0) {
+      if showsAsk {
+        inspectorModeSwitch
+      }
+      inspectorBody
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+  }
+
+  @ViewBuilder
+  private var inspectorModeSwitch: some View {
+    if snapshot {
+      HStack(spacing: 0) {
+        snapshotSegment("Details", selected: selectedPane == .details)
+        snapshotSegment("Ask", selected: selectedPane == .ask)
+      }
+      .frame(width: 268)
+      .background(Studio.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+      .padding(.top, 12)
+      .padding(.bottom, 4)
+      .accessibilityElement(children: .combine)
+      .accessibilityLabel("Inspector")
+    } else {
+      Picker("Inspector", selection: $inspectorPane) {
+        Text("Details").tag(InspectorPane.details.rawValue)
+        Text("Ask").tag(InspectorPane.ask.rawValue)
+      }
+      .pickerStyle(.segmented)
+      .labelsHidden()
+      .frame(width: 268)
+      .padding(.top, 12)
+      .padding(.bottom, 4)
+      .accessibilityLabel("Inspector")
+    }
+  }
+
+  private func snapshotSegment(_ title: String, selected: Bool) -> some View {
+    Text(title)
+      .font(.caption.weight(.semibold))
+      .frame(maxWidth: .infinity)
+      .padding(.vertical, 5)
+      .background(selected ? Studio.accent.opacity(0.18) : Color.clear)
+  }
+
+  @ViewBuilder
+  private var inspectorBody: some View {
+    if showsAsk, selectedPane == .ask, let context = chatContext {
+      SessionChatInspector(conversation: model.conversation(for: context))
+    } else if model.showsTakeInspector {
       TakeInspector()
     } else {
       MimicInspector()
+    }
+  }
+
+  private var showsAsk: Bool { experimentsEnabled && chatContext != nil }
+
+  private var selectedPane: InspectorPane {
+    InspectorPane(rawValue: inspectorPane) ?? .details
+  }
+
+  private var chatContext: SessionChatContext? {
+    guard experimentsEnabled, let session = model.selectedSession else { return nil }
+    switch model.destination {
+    case .take, .practice:
+      return model.sessionChatContext(session: session, take: model.selectedTake)
+    case .home, .mimicStart, .library, .mimics:
+      return nil
     }
   }
 
@@ -264,4 +337,10 @@ struct ContentView: View {
   private var errorBinding: Binding<Bool> {
     Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.clearError() } })
   }
+}
+
+enum InspectorPane: String {
+  static let storageKey = "voiceCoach.inspectorPane"
+  case details
+  case ask
 }

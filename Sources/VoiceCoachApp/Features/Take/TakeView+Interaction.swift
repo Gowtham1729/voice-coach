@@ -47,6 +47,15 @@ extension TakeView {
 
     selectedWordIndex = target
     model.seek(to: words[target].start)
+    focusChat(onWord: target, in: take)
+  }
+
+  func focusChat(onWord index: Int, in take: PracticeSession) {
+    guard let session = model.selectedSession, let transcription = take.transcription,
+      let sentence = SessionChatPassages.sentence(
+        containingWordAt: index, words: transcription.words, text: transcription.text)
+    else { return }
+    model.focusSessionChat(sentence, session: session, take: take)
   }
 
   func steppedWordIndex(words: [TranscriptWord], by delta: Int) -> Int? {
