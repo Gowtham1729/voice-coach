@@ -15,6 +15,14 @@ assert.equal(
 );
 const html = readFileSync(resolve(root, "index.html"), "utf8");
 const normalizedHtml = html.replace(/\s+/g, " ");
+assert.ok(
+  html.includes('href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Voice-Coach-macOS.zip"'),
+  "Website download must follow GitHub's latest release",
+);
+assert.ok(
+  !/releases\/(?:tag|download)\/v\d/.test(html),
+  "Website links must not pin an old release",
+);
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
 const modules = readdirSync(root).filter((file) => file.endsWith(".js"));
 const js = modules.map((file) => readFileSync(resolve(root, file), "utf8")).join("\n");

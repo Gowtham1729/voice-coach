@@ -108,6 +108,16 @@ jobs:
             "${SPARKLE_BIN}/sign_update" --ed-key-file - --verify release-assets/appcast.xml
           xmllint --noout release-assets/appcast.xml
 
+      - name: Add stable website download
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          cp "release-assets/Voice-Coach-${VERSION}-macOS.zip" \
+            release-assets/Voice-Coach-macOS.zip
+          cmp "release-assets/Voice-Coach-${VERSION}-macOS.zip" \
+            release-assets/Voice-Coach-macOS.zip
+
       - name: Upload zip (dry-run artifact)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
@@ -143,7 +153,7 @@ jobs:
             fi
             echo "<!-- Editors: add changelog notes for this tag (see v3.2.0 for tone). -->"
           } > "${NOTES}"
-          gh release create "${TAG}" "${ZIP}" release-assets/appcast.xml \
+          gh release create "${TAG}" "${ZIP}" release-assets/Voice-Coach-macOS.zip release-assets/appcast.xml \
             --title "Voice Coach ${VERSION}" \
             --notes-file "${NOTES}" \
             --verify-tag

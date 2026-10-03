@@ -77,12 +77,15 @@ The pause and pitch Insight words come from
 em dashes to follow the landing-page typography rule. Sample measurements and
 practice takes are explicitly illustrative.
 
-The download copy and links target the v3.3.4 release.
+The download button uses GitHub's `/releases/latest/download/Voice-Coach-macOS.zip`
+redirect, and release notes use `/releases/latest`. Every release publishes the
+stable ZIP filename alongside its versioned archive. The page says “Latest
+release” so future releases update the download destination without a Site
+deployment or a version-string edit.
 The download is available at no charge; “Free download” does not promise an
 open-source license or future pricing. It is ad-hoc signed, not notarized. The
 tour shows a development build and the page discloses that some screens may be
-ahead of the public release. Update these strings and URLs together when a new
-release ships. Install help links to Apple's official guidance at
+ahead of the public release. Install help links to Apple's official guidance at
 https://support.apple.com/en-us/102445.
 
 ## Asset provenance
