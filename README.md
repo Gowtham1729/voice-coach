@@ -1,6 +1,6 @@
 # Voice Coach
 
-A private voice practice studio for macOS. Record a take, see two measured practice targets, and refine your delivery on an interactive timeline without uploading audio to the cloud.
+A private voice practice studio for macOS. Record a take, review its measured delivery, and refine it on an interactive timeline without uploading audio to the cloud. Mimic adds practice targets measured against a reference.
 
 Built natively with SwiftUI for macOS 26+.
 
@@ -26,23 +26,21 @@ Apple on-device speech transcription is enabled by default. If you prefer high-a
 
 ## How It Works
 
-Voice Coach focuses on deliberate practice through a rapid loop: capture a take, review two concrete signals, and adjust on the next attempt.
+Voice Coach focuses on deliberate practice through a rapid loop: capture a take, review the recording, and adjust on the next attempt. Mimic names differences from a reference.
 
 ### 1. Three Ways to Practice
 * **Microphone**: Record rehearsed talks, pitches, presentations, or interview answers.
 * **Mac System Audio**: Capture audio playing directly from your Mac (talks, podcasts, or browser clips) without complex virtual audio cables.
 * **File Import**: Bring in existing audio or video files. Imported media is automatically normalized to 48 kHz mono WAV locally.
 
-### 2. Two Concrete Practice Targets
-Instead of arbitrary scores, Voice Coach isolates two specific acoustic targets for your next attempt:
-* **Pacing and Pauses**: Visualizes phrase duration, speaking cadence, and silence gaps, helping you place deliberate pauses between key ideas.
-* **Pitch and Emphasis**: Highlights pitch contours across 24 checkpoints to help you sustain vocal energy or add intentional inflection to key words.
+### 2. Review a Recording
+A free recording shows measured pauses, pitch, loudness, and clarity on the timeline. It does not assign practice exercises. A clipped or noisy take includes a short note that those estimates may be unreliable.
 
 ### 3. Mimic Mode (Practice with a Reference)
 Mimic mode lets you study how another speaker delivers a phrase:
 1. **Listen**: Set an imported file or captured system audio as your reference model.
 2. **Imitate**: Record your attempt right alongside it.
-3. **Compare**: Inspect side-by-side pitch curves, rhythm alignments, and word-level emphasis to hear where your delivery differs.
+3. **Compare**: Inspect side-by-side pitch curves, rhythm alignments, and word-level emphasis. When the words line up, two practice targets name a difference from the reference.
 
 ### 4. Stacked Takes and Timeline Scrubbing
 All attempts in a session stay grouped together (`Take 1`, `Take 2`, etc.). You can scrub the waveform, click any transcribed word to jump playback directly to that moment, and hear your improvement from one take to the next.

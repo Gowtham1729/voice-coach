@@ -103,7 +103,7 @@ Root: `~/Library/Application Support/VoiceCoach/`
 | Task | Start here |
 | --- | --- |
 | Pitch / pauses / HNR / CPP / spectrogram | `Sources/VoiceCoachCore/Analysis/` |
-| Two practice signals / retry progress | `Sources/VoiceCoachCore/Coaching/CoachingPlan.swift` |
+| Mimic practice signals | `Sources/VoiceCoachCore/Coaching/CoachingPlan.swift` |
 | Per-word pitch/loudness | `Sources/VoiceCoachCore/Analysis/WordAcousticAnalyzer.swift` |
 | JSON export shape | `Sources/VoiceCoachCore/Reports/ReportFormatter.swift` + report tests + SelfTest |
 | Apple / Parakeet transcription | `Sources/VoiceCoachCore/Transcription/`, `scripts/setup-transcription.sh` |
