@@ -1,13 +1,14 @@
 import Foundation
 
-/// Two evidence-backed practice targets. This is a view model, never part of report JSON.
+/// Mimic practice targets, or a short notice when a take cannot support them.
+/// This is a view model, never part of report JSON.
 public struct CoachingPlan: Equatable, Sendable {
   public let signals: [CoachingSignal]
-  public let limitation: String?
+  public let notice: String?
 
-  public init(signals: [CoachingSignal], limitation: String? = nil) {
+  public init(signals: [CoachingSignal] = [], notice: String? = nil) {
     self.signals = signals
-    self.limitation = limitation
+    self.notice = notice
   }
 }
 
@@ -33,104 +34,31 @@ public struct CoachingSignal: Equatable, Sendable {
   }
 }
 
-/// Computes coaching from the current audio and, when comparable, the previous retained take.
-/// Thresholds select which measured difference deserves attention; they are not norms for a voice.
+/// Selects Mimic practice targets from a reference comparison.
+/// A free recording has no practice targets. It carries a notice only when clipping
+/// or noise makes pitch and pause estimates hard to trust.
 public enum CoachingPlanner {
-  public static func recording(
-    current: VoiceMetrics, previous: VoiceMetrics? = nil
-  ) -> CoachingPlan {
-    var candidates: [(priority: Double, signal: CoachingSignal)] = []
+  public static func recording(current: VoiceMetrics) -> CoachingPlan {
+    CoachingPlan(notice: recordingNotice(current))
+  }
 
-    if current.clippingPercent.isFinite, current.clippingPercent >= 1 {
-      candidates.append((10, CoachingSignal(
-        id: "recording.clipping", title: "Recording level",
-        observation: "\(number(current.clippingPercent, 1))% of this take's samples clipped.",
-        action: "Move a little farther from the microphone or lower input gain, then record again.",
-        progress: change(current.clippingPercent, previous?.clippingPercent, unit: "% clipping"),
-        actionTerms: ["microphone"]
-      )))
-    } else if current.snrDB.isFinite, current.snrDB < 10 {
-      candidates.append((10, CoachingSignal(
-        id: "recording.noise", title: "Recording noise",
-        observation: "Speech was \(number(current.snrDB, 1)) dB above the measured noise floor.",
-        action: "Try a quieter spot or move closer to the microphone, then record again.",
-        progress: change(current.snrDB, previous?.snrDB, unit: "dB SNR"),
-        actionTerms: ["microphone"]
-      )))
+  private static func recordingNotice(_ metrics: VoiceMetrics) -> String? {
+    let clipping = metrics.clippingPercent
+    let snr = metrics.snrDB
+    let severe = !snr.isFinite || snr < 6 || !clipping.isFinite || clipping >= 3
+    if clipping.isFinite, clipping >= 1 {
+      let measured = "\(number(clipping, 1))% of this take's samples clipped."
+      return severe ? "\(measured) Pitch and pause estimates may be unreliable." : measured
     }
-
-    if !current.snrDB.isFinite || current.snrDB < 6
-      || !current.clippingPercent.isFinite || current.clippingPercent >= 3
-    {
-      let quality = candidates.first?.signal ?? CoachingSignal(
-        id: "recording.quality", title: "Recording quality",
-        observation: "This take did not provide a dependable recording-quality measurement.",
-        action: "Check the microphone setup and record the same phrase again.",
-        actionTerms: ["record"]
-      )
-      return CoachingPlan(signals: [quality, CoachingSignal(
-        id: "recording.retry", title: "Listen back",
-        observation: "Pitch and pause estimates may be unreliable at this recording quality.",
-        action: "Listen for masked or distorted words, then record the same phrase again.",
-        actionTerms: ["listen", "record"]
-      )])
+    if snr.isFinite, snr < 10 {
+      let measured = "Speech was \(number(snr, 1)) dB above the measured noise floor."
+      return severe ? "\(measured) Pitch and pause estimates may be unreliable." : measured
     }
-
-    let pauseCount = max(0, current.internalPauseCount)
-    let pauseMean = current.meanInternalPauseMs
-    if pauseCount >= 2, pauseMean.isFinite, pauseMean >= 700 {
-      candidates.append((4 + pauseMean / 700, CoachingSignal(
-        id: "recording.longPauses", title: "Long breaks",
-        observation: "\(pauseCount) internal pauses averaged \(number(pauseMean, 0)) ms.",
-        action: "Try joining the words within each phrase, then leave a deliberate break between ideas.",
-        progress: change(pauseMean, previous?.meanInternalPauseMs, unit: "ms average pause"),
-        actionTerms: ["phrase"]
-      )))
-    } else {
-      let observation: String
-      if pauseCount == 0 {
-        observation = "No internal pauses were detected in this take."
-      } else if pauseMean.isFinite {
-        observation = "\(pauseCount) internal pauses averaged \(number(pauseMean, 0)) ms."
-      } else {
-        observation = "Pause timing could not be measured reliably in this take."
-      }
-      candidates.append((1, CoachingSignal(
-        id: "recording.pausePlacement", title: "Pause placement",
-        observation: observation,
-        action: "Listen for a natural break between ideas and place one there on the next take.",
-        actionTerms: ["break"]
-      )))
+    guard severe else { return nil }
+    if !clipping.isFinite, !snr.isFinite {
+      return "This take did not provide a dependable recording-quality measurement."
     }
-
-    if let range = current.pitchRangeSemitones, range.isFinite, range >= 0 {
-      if range <= 3 {
-        candidates.append((4 + (3 - range) / 3, CoachingSignal(
-          id: "recording.narrowPitch", title: "Pitch movement",
-          observation: "Measured pitch spanned \(number(range, 1)) semitones in this take.",
-          action: "Choose one key word to lift in pitch, then let the phrase settle naturally.",
-          progress: change(range, previous?.pitchRangeSemitones, unit: "st pitch range"),
-          actionTerms: ["pitch"]
-        )))
-      } else {
-        candidates.append((1, CoachingSignal(
-          id: "recording.pitchShape", title: "Pitch shape",
-          observation: "Measured pitch spanned \(number(range, 1)) semitones in this take.",
-          action: "Choose a key word for a deliberate pitch lift, then compare it with the surrounding words.",
-          actionTerms: ["pitch"]
-        )))
-      }
-    } else {
-      candidates.append((1, CoachingSignal(
-        id: "recording.expression", title: "Word emphasis",
-        observation: "This take did not yield enough voiced pitch data for a pitch target.",
-        action: "Pick one important word and make it stand out relative to its neighbors on the next take.",
-        actionTerms: ["word"]
-      )))
-    }
-
-    candidates.sort { $0.priority > $1.priority }
-    return CoachingPlan(signals: Array(candidates.prefix(2).map(\.signal)))
+    return "Pitch and pause estimates may be unreliable at this recording quality."
   }
 
   public static func mimic(
@@ -138,15 +66,14 @@ public enum CoachingPlanner {
   ) -> CoachingPlan {
     let comparison = MimicComparison.compare(reference: reference, attempt: attempt)
     guard comparison.correspondenceReliable, comparison.pairs.count >= 5 else {
-      let limitation: String
+      let notice: String
       switch comparison.status {
       case .poorSnr, .clipping:
-        limitation = "Reference comparison is limited by recording quality. These targets use this take only."
+        notice = "Reference comparison is limited by recording quality."
       default:
-        limitation = "Word matching is too limited for reference claims. These targets use this take only."
+        notice = "Word matching is too limited for a reference comparison."
       }
-      let general = recording(current: attempt.result.metrics)
-      return CoachingPlan(signals: general.signals, limitation: limitation)
+      return CoachingPlan(notice: notice)
     }
 
     let prior = previous.map { MimicComparison.compare(reference: reference, attempt: $0) }
@@ -300,14 +227,7 @@ public enum CoachingPlanner {
     }
 
     candidates.sort { $0.priority > $1.priority }
-    var signals = Array(candidates.prefix(2).map(\.signal))
-    if signals.count < 2 {
-      let general = recording(current: attempt.result.metrics)
-      for signal in general.signals where signals.count < 2 && !signals.contains(where: { $0.id == signal.id }) {
-        signals.append(signal)
-      }
-    }
-    return CoachingPlan(signals: signals)
+    return CoachingPlan(signals: Array(candidates.prefix(2).map(\.signal)))
   }
 
   private enum WordGapKind { case pitch, energy }
@@ -484,11 +404,6 @@ public enum CoachingPlanner {
 
   private static func number(_ value: Double, _ digits: Int) -> String {
     String(format: "%.*f", digits, value)
-  }
-
-  private static func change(_ current: Double, _ previous: Double?, unit: String) -> String? {
-    guard let previous, previous.isFinite, current.isFinite else { return nil }
-    return "Previous attempt: \(number(previous, 1)) \(unit); now \(number(current, 1))."
   }
 
   private static func mimicProgress(

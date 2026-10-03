@@ -1,7 +1,7 @@
 import SwiftUI
 import VoiceCoachCore
 
-/// Unmodified metrics followed by two measured practice targets.
+/// Metrics for every take. Practice targets appear only for a Mimic comparison.
 struct TakeInsightsView: View {
   @EnvironmentObject private var model: AppModel
   @AppStorage(InsightWordingPreference.storageKey) private var wordingEnabled =
@@ -14,24 +14,30 @@ struct TakeInsightsView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
       InspectorMetricStack(metrics: InspectorMetricItem.voiceMetrics(metrics))
-      Divider()
-      SectionEyebrow(text: "Practice next")
-      if let limitation = plan.limitation {
-        Text(limitation)
-          .font(.caption)
-          .foregroundStyle(Studio.secondary)
-          .fixedSize(horizontal: false, vertical: true)
-      }
-      ForEach(Array(plan.signals.enumerated()), id: \.element.id) { index, signal in
-        if index > 0 { Divider() }
-        signalRow(signal, number: index + 1)
+      if plan.signals.isEmpty {
+        if let notice = plan.notice { noticeText(notice) }
+      } else {
+        Divider()
+        SectionEyebrow(text: "Practice next")
+        if let notice = plan.notice { noticeText(notice) }
+        ForEach(Array(plan.signals.enumerated()), id: \.element.id) { index, signal in
+          if index > 0 { Divider() }
+          signalRow(signal, number: index + 1)
+        }
       }
     }
     .task(id: "\(takeID.uuidString)-\(wordingEnabled)-\(plan.signals.map(\.id).joined())") {
       model.scheduleInsightWording(for: plan, takeID: takeID)
     }
     .accessibilityElement(children: .contain)
-    .accessibilityLabel("Metrics and practice next")
+    .accessibilityLabel(plan.signals.isEmpty ? "Metrics" : "Metrics and practice next")
+  }
+
+  private func noticeText(_ notice: String) -> some View {
+    Text(notice)
+      .font(.caption)
+      .foregroundStyle(Studio.secondary)
+      .fixedSize(horizontal: false, vertical: true)
   }
 
   private func signalRow(_ signal: CoachingSignal, number: Int) -> some View {

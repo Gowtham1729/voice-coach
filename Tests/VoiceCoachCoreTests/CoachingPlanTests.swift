@@ -4,37 +4,36 @@ import VoiceCoachCore
 
 @Suite("Coaching plan")
 struct CoachingPlanTests {
-  @Test("A normal take still offers two factual practice targets")
-  func ordinaryTakeWithoutHero() {
+  @Test("A usable recording has metrics only, with no practice targets")
+  func ordinaryRecording() {
     let metrics = CoreTestFixtures.metrics(
       duration: 12.12, internalPauseCount: 5, meanInternalPauseMs: 288,
       pitchRangeSemitones: 9.22)
 
     let plan = CoachingPlanner.recording(current: metrics)
 
-    #expect(plan.signals.count == 2)
-    #expect(Set(plan.signals.map(\.id)) == ["recording.pausePlacement", "recording.pitchShape"])
-    #expect(plan.signals.contains { $0.observation.contains("288") })
-    #expect(plan.signals.contains { $0.observation.contains("9.2") })
-    #expect(plan.signals.allSatisfy { !$0.action.isEmpty })
+    #expect(plan.signals.isEmpty)
+    #expect(plan.notice == nil)
   }
 
-  @Test("Recording quality displaces a neutral target, not both targets")
+  @Test("A poor recording is a notice, not a practice exercise")
   func poorRecording() {
-    let metrics = CoreTestFixtures.metrics(
+    let clipped = CoachingPlanner.recording(current: CoreTestFixtures.metrics(
       clippingPercent: 2.5, internalPauseCount: 3,
-      meanInternalPauseMs: 900, pitchRangeSemitones: 8)
-    let plan = CoachingPlanner.recording(current: metrics)
-
-    #expect(plan.signals.count == 2)
-    #expect(plan.signals[0].id == "recording.clipping")
-    #expect(plan.signals[1].id == "recording.longPauses")
+      meanInternalPauseMs: 900, pitchRangeSemitones: 8))
+    #expect(clipped.signals.isEmpty)
+    #expect(clipped.notice == "2.5% of this take's samples clipped.")
 
     let severeNoise = CoachingPlanner.recording(current: CoreTestFixtures.metrics(
       snrDB: 3.9, internalPauseCount: 3, meanInternalPauseMs: 410,
       pitchRangeSemitones: 0.3))
-    #expect(severeNoise.signals.map(\.id) == ["recording.noise", "recording.retry"])
-    #expect(!severeNoise.signals.contains { $0.id == "recording.narrowPitch" })
+    #expect(severeNoise.signals.isEmpty)
+    #expect(severeNoise.notice?.contains("3.9 dB") == true)
+    #expect(severeNoise.notice?.contains("unreliable") == true)
+
+    let unmeasured = CoachingPlanner.recording(current: CoreTestFixtures.metrics(
+      snrDB: .nan, clippingPercent: .nan))
+    #expect(unmeasured.notice == "This take did not provide a dependable recording-quality measurement.")
   }
 
   @Test("Reliable Mimic feedback uses reference timing and voiced word pitch")
@@ -144,9 +143,8 @@ struct CoachingPlanTests {
 
     let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt)
 
-    #expect(plan.signals.count == 2)
-    #expect(plan.limitation != nil)
-    #expect(plan.signals.allSatisfy { $0.id.hasPrefix("recording.") })
+    #expect(plan.signals.isEmpty)
+    #expect(plan.notice == "Word matching is too limited for a reference comparison.")
   }
 
   @Test("Close Mimic matches are maintained, not corrected in the wrong direction")
