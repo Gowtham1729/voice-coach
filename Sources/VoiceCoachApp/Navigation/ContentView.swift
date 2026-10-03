@@ -130,18 +130,6 @@ struct ContentView: View {
 
     ToolbarSpacer(.flexible)
 
-    if showsNewRecording {
-      ToolbarItem(placement: .primaryAction) {
-        Button {
-          model.startHomeRecording()
-        } label: {
-          Label("Record", systemImage: "plus")
-        }
-        .help("Record")
-        .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
-      }
-    }
-
     if inspectorEligible {
       ToolbarItem {
         Button {
@@ -159,13 +147,6 @@ struct ContentView: View {
 
   private var showInspector: Bool {
     inspectorPresented && inspectorEligible
-  }
-
-  private var showsNewRecording: Bool {
-    switch model.destination {
-    case .home, .library, .mimics: true
-    case .practice, .mimicStart, .take: false
-    }
   }
 
   private var showsBackButton: Bool {
