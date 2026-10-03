@@ -145,16 +145,16 @@ struct MimicWorkspace: View {
       snapshot || FileManager.default.fileExists(atPath: reference.take.audioURL.path)
     return HStack(spacing: 12) {
       Button {
-        if model.isPlaying { model.stopPlayback() } else { model.playMimicReference() }
+        model.toggleMimicPlayback()
       } label: {
         Image(
           systemName: model.isPlaying && model.mimicPlaybackSource == .reference
-            ? "stop.fill" : "play.fill"
+            ? "pause.fill" : "play.fill"
         )
         .frame(width: 30, height: 30)
       }
       .buttonStyle(.bordered)
-      .help("Play reference")
+      .help(model.isPlaying ? "Pause reference" : "Play reference")
       .disabled(
         !audioAvailable || model.isRecording || model.isAnalyzing || model.mimicPhase == .countIn(1)
           || model.mimicPhase == .countIn(2))
@@ -189,7 +189,8 @@ struct MimicWorkspace: View {
       if let transcription = reference.take.transcription {
         MimicTranscriptText(
           transcription: transcription,
-          activeIndex: model.isPlaying && model.mimicPlaybackSource == .reference
+          activeIndex: (model.isPlaying || model.playbackTime > 0)
+            && model.mimicPlaybackSource == .reference
             ? transcription.words.firstIndex(where: {
               model.playbackTime >= $0.start && model.playbackTime < $0.end
             }) : nil,
