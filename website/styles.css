@@ -264,6 +264,11 @@ img {
   text-transform: uppercase;
 }
 
+.demo-label.sentence-case {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .eyebrow {
   display: flex;
   gap: 10px;
@@ -593,7 +598,7 @@ img {
   --insight-index: 0;
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   border-bottom: 1px solid var(--ink);
   isolation: isolate;
 }
@@ -603,7 +608,7 @@ img {
   position: absolute;
   z-index: 0;
   inset: 0 auto 0 0;
-  width: calc(100% / 4);
+  width: calc(100% / 3);
   background: var(--blue);
   pointer-events: none;
   transform: translateX(calc(var(--insight-index) * 100%));
@@ -1567,7 +1572,7 @@ dialog[open]::backdrop {
   }
 
   .insight-tabs {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .insight-tabs button {

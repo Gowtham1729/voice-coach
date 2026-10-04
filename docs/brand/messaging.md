@@ -10,7 +10,7 @@
 
 ## Product description
 
-Ichido is a native Mac app for private speaking practice. Record yourself, practise with a reference, and explore the words behind a phrase. Review measured delivery, replay a moment, and keep another take alongside it. Audio, transcripts, and analysis stay on your Mac.
+Ichido is a native Mac app for private speaking practice. Record yourself, practice with a reference, and explore the words behind a phrase. Review measured delivery, replay a moment, and keep another take alongside it. Audio, transcripts, and analysis stay on your Mac.
 
 ## Short descriptions
 
@@ -23,7 +23,7 @@ Ichido is a native Mac app for private speaking practice. Record yourself, pract
 
 Use **Ichido** in prose and **ichido.** in the website wordmark. Keep the period as visual punctuation, outside product names, file names, and sentences where it would confuse readers. Ichido means one time; the story is inspired by mō ichido, once more. Do not claim that Ichido alone translates to “again” or “once more.” It is a multilingual practice product, rather than a Japanese-only course.
 
-Use **Practice** for the app sidebar, **Reference practice** for the feature, and **Words** for the language inspector. Reference-practice modes are **Listen & Repeat** and **Speak Along**. The website sequence Listen → Understand → Repeat → Compare is the marketing page. The app sequence is Listen → Repeat → Compare. A take is one recorded attempt. A reference is the audio someone chooses to practise with. Historical release files and internal Swift names may still contain Voice Coach or Mimic for compatibility.
+Use **Practice** for the app sidebar, **Reference practice** for the feature, and **Words** for the language inspector. Reference-practice modes are **Listen & Repeat** and **Speak Along**. The website sequence Listen → Repeat → Compare is the marketing page. The app sequence is Listen → Repeat → Compare. A take is one recorded attempt. A reference is the audio someone chooses to practice with. Historical release files and internal Swift names may still contain Voice Coach or Mimic for compatibility.
 
 ### Shared product terms
 
@@ -45,7 +45,7 @@ Use this guide for the app, website, README, and release notes. Marketing may ex
 | Settings → Transcription | Choose the speech engine and spoken language. |
 | Settings → Experiments | Enable Words. |
 
-The website’s **Understand** step introduces **Words**; it is optional and does not name another app feature. Keep **Your private speaking room.** as the shared descriptor and **Your words. Your voice. One more try.** as the website headline.
+The website’s experimental section introduces **Words**; it is optional and does not name another app feature. Keep **Your private speaking room.** as the shared descriptor and **Your words. Your voice. One more try.** as the website headline.
 
 ## Interface writing
 
