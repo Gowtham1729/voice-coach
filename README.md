@@ -22,7 +22,9 @@ Version 3.3.4 adds in-app update checks. Install this version manually once if y
 **System Requirements:** macOS 26.0 or later (Apple Silicon recommended).
 
 **Speech Transcription:**
-Apple on-device speech transcription is enabled by default. If you prefer high-accuracy offline transcription with detailed word timings, an optional Parakeet model (~714 MB) can be installed inside the app under **Settings > Transcription**, or via `./scripts/setup-transcription.sh`.
+Apple on-device speech transcription is enabled by default. Choose the spoken language in **Settings > Transcription**, then use **Download Language…** if its Apple model is missing. This does not change your Mac’s language. New sessions retain their speech language for subsequent takes. Existing transcripts can be regenerated using **Re-transcribe** on a take or **Transcript > Re-transcribe** on a Mimic reference.
+
+Parakeet is an optional local model (~714 MB), installable from the same settings pane or via `./scripts/setup-transcription.sh`. The bundled v3 model automatically recognizes 25 European languages, including French, but does not support Japanese. Its language control shows **Automatic**; Apple’s saved language preference does not steer it. Known unsupported session languages are rejected before transcription. Voice Coach uses the selected engine and reports failures without silently switching models. Audio analysis and saving still work when transcription is unavailable.
 
 ## How It Works
 

@@ -4,6 +4,7 @@ public enum TranscriptionError: LocalizedError, Sendable {
   case runtimeUnavailable
   case systemUnavailable(String)
   case systemLocaleUnsupported(String)
+  case modelLanguageUnsupported(String)
   case systemAssetsUnavailable(String)
   case launchFailed(String)
   case recognitionFailed(String)
@@ -14,13 +15,16 @@ public enum TranscriptionError: LocalizedError, Sendable {
     case .runtimeUnavailable:
       return
         "Parakeet isn’t installed. Open Settings → Transcription to download it (~714 MB), or use System."
-    case .systemUnavailable:
-      return "System transcription isn’t available."
+    case .systemUnavailable(let detail):
+      return detail
     case .systemLocaleUnsupported(let identifier):
       return
-        "System transcription doesn’t support \(identifier). Choose another language in System Settings, or install Parakeet in Settings → Transcription."
-    case .systemAssetsUnavailable:
-      return "System speech model isn’t ready."
+        "Apple speech transcription doesn’t support \(identifier) on this Mac. Choose a supported speech language in Voice Coach Settings → Transcription."
+    case .modelLanguageUnsupported(let identifier):
+      return
+        "This Parakeet model doesn’t support \(TranscriptionLanguagePreference.displayName(for: identifier)). Choose Apple in Settings → Transcription."
+    case .systemAssetsUnavailable(let detail):
+      return detail
     case .launchFailed:
       return "Couldn’t start transcription."
     case .recognitionFailed(let detail):
@@ -38,6 +42,14 @@ public enum TranscriptionError: LocalizedError, Sendable {
 /// Audio is passed as a local file path and never uploaded by Voice Coach.
 public struct NemoSpeechTranscriber: Sendable {
   public static let defaultModel = "nvidia/parakeet-tdt-0.6b-v3"
+
+  public static func supports(locale: Locale) -> Bool {
+    guard let language = locale.language.languageCode?.identifier else { return false }
+    return [
+      "bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el", "hu", "it",
+      "lv", "lt", "mt", "pl", "pt", "ro", "ru", "sk", "sl", "es", "sv", "uk",
+    ].contains(language)
+  }
 
   public let executableURL: URL?
   public let modelIdentifier: String

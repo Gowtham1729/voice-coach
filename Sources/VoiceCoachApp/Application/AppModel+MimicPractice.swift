@@ -78,6 +78,8 @@ extension AppModel {
     let sessionID = UUID()
     let referenceID = UUID()
     let preferredEngine = transcriptionEngine
+    let locale = newSessionTranscriptionLocale
+    transcriptionNotice = nil
     // Precedence for titles: user-entered name > LLM > sourceName.
     let trimmedUserName = name.trimmingCharacters(in: .whitespacesAndNewlines)
     let userProvidedCustomName = !trimmedUserName.isEmpty && trimmedUserName != draft.sourceName
@@ -94,9 +96,12 @@ extension AppModel {
           var transcription: TranscriptionResult?
           var words: [WordAnalysis] = []
           do {
-            let outcome = try await TranscriptionService(preferredEngine: preferredEngine)
-              .transcribe(url: destinationURL)
+            let outcome = try await TranscriptionService(
+              preferredEngine: preferredEngine, locale: locale
+            )
+            .transcribe(url: destinationURL)
             transcription = outcome.result
+            transcriptionNotice = outcome.notice
             words = WordAcousticAnalyzer().analyze(transcription: outcome.result, result: acoustic)
           } catch {
             transcriptionNotice = Self.userFacingMessage(
@@ -119,7 +124,8 @@ extension AppModel {
             mimicReference: MimicReference(
               sourceName: fallbackName, take: referenceTake,
               sourceStart: start, sourceEnd: end
-            ), mimicStyle: .listenAndRepeat, mimicAttemptStyles: [:]
+            ), mimicStyle: .listenAndRepeat, mimicAttemptStyles: [:],
+            transcriptionLocaleIdentifier: locale?.identifier
           )
           sessions.insert(session, at: 0)
           guard persist(analysisTakeIDs: [referenceID]) else {

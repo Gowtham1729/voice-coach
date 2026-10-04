@@ -30,6 +30,9 @@ final class AppModel: ObservableObject {
   @Published var systemTranscriptionStatus: SystemTranscriptionStatus = .unavailable(
     "Checking speech…")
   @Published var transcriptionEngine: TranscriptionEnginePreference = .load()
+  @Published var transcriptionLocaleIdentifier = TranscriptionLanguagePreference.load()
+  @Published var supportedSpeechLocales: [String] = []
+  @Published var isCheckingSpeechLanguages = false
   @Published var mimicDraft: MimicReferenceDraft?
   @Published var mimicIsPreparing = false
   @Published var mimicPhase: MimicPhase = .ready

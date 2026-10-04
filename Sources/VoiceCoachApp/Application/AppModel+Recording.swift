@@ -154,6 +154,9 @@ extension AppModel {
   func analyze(url: URL, takeID: UUID, source: TakeSource = .recorded) {
     isAnalyzing = true
     let preferredEngine = transcriptionEngine
+    let locale =
+      selectedSession?.transcriptionLocaleIdentifier.map(Locale.init(identifier:))
+      ?? newSessionTranscriptionLocale
     let captureIsNewSession = pendingCaptureIsNewSession
     let captureImportURL = pendingImportSourceURL
     let captureSessionID = selectedSessionID
@@ -167,8 +170,10 @@ extension AppModel {
         var words: [WordAnalysis] = []
         var notice: String?
         do {
-          let outcome = try await TranscriptionService(preferredEngine: preferredEngine)
-            .transcribe(url: url)
+          let outcome = try await TranscriptionService(
+            preferredEngine: preferredEngine, locale: locale
+          )
+          .transcribe(url: url)
           transcription = outcome.result
           words = WordAcousticAnalyzer().analyze(
             transcription: outcome.result,
@@ -189,7 +194,7 @@ extension AppModel {
         )
 
         finishAnalyzeCleanup()
-        append(take)
+        append(take, localeIdentifier: locale?.identifier)
         transcriptionNotice = notice
         maybeScheduleSmartTitleAfterStandaloneSave(
           captureIsNewSession: captureIsNewSession,
@@ -286,16 +291,19 @@ extension AppModel {
     renameSession(sessionID, to: suggested)
   }
 
-  func append(_ take: PracticeSession) {
+  func append(_ take: PracticeSession, localeIdentifier: String? = nil) {
     guard let selectedSessionID else { return }
 
     if pendingCaptureIsNewSession, !sessions.contains(where: { $0.id == selectedSessionID }) {
-      appendStandalone(take, sessionID: selectedSessionID)
+      appendStandalone(take, sessionID: selectedSessionID, localeIdentifier: localeIdentifier)
       return
     }
 
     guard let index = sessions.firstIndex(where: { $0.id == selectedSessionID }) else { return }
     let previousSessions = sessions
+    if sessions[index].transcriptionLocaleIdentifier == nil {
+      sessions[index].transcriptionLocaleIdentifier = localeIdentifier
+    }
     var recordingsToReplace: [URL] = []
     if sessions[index].keepsRecordings || sessions[index].mode == .mimic {
       sessions[index].takes.append(take)
@@ -341,7 +349,9 @@ extension AppModel {
     }
   }
 
-  private func appendStandalone(_ take: PracticeSession, sessionID: UUID) {
+  private func appendStandalone(
+    _ take: PracticeSession, sessionID: UUID, localeIdentifier: String?
+  ) {
     let name: String
     if let source = pendingImportSourceURL {
       name = source.deletingPathExtension().lastPathComponent
@@ -354,7 +364,8 @@ extension AppModel {
       mode: .general,
       prompt: "",
       keepsRecordings: true,
-      takes: [take]
+      takes: [take],
+      transcriptionLocaleIdentifier: localeIdentifier
     )
     sessions.insert(session, at: 0)
     selectedTakeID = take.id

@@ -9,6 +9,13 @@ extension TakeView {
       HStack(spacing: 12) {
         SectionEyebrow(text: "Words")
         Spacer()
+        if !snapshot {
+          Button("Re-transcribe", systemImage: "arrow.triangle.2.circlepath") {
+            model.retranscribeSelectedTake()
+          }
+          .disabled(model.isRecording || model.isAnalyzing)
+          .help("Uses the speech language and engine selected in Settings → Transcription.")
+        }
         if let transcription = take.transcription {
           Text("\(transcription.words.count) words")
             .font(.caption)

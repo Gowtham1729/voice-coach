@@ -39,6 +39,7 @@ private struct StoredSession: Codable {
   var mimicStyle: MimicStyle?
   var mimicAttemptStyles: [UUID: MimicStyle]?
   var archived: Bool?
+  var transcriptionLocaleIdentifier: String?
 }
 
 private struct StoredTake: Codable {
@@ -233,7 +234,8 @@ package final class SessionStore: SessionStoring {
       },
       mimicStyle: session.mimicStyle,
       mimicAttemptStyles: session.mimicAttemptStyles,
-      archived: session.archived ? true : nil
+      archived: session.archived ? true : nil,
+      transcriptionLocaleIdentifier: session.transcriptionLocaleIdentifier
     )
   }
 
@@ -266,6 +268,7 @@ package final class SessionStore: SessionStoring {
       },
       mimicStyle: stored.mimicStyle,
       mimicAttemptStyles: stored.mimicAttemptStyles,
+      transcriptionLocaleIdentifier: stored.transcriptionLocaleIdentifier,
       archived: stored.archived ?? false
     )
   }

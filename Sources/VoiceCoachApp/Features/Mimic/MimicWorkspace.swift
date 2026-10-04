@@ -38,6 +38,11 @@ struct MimicWorkspace: View {
           VStack(alignment: .leading, spacing: 18) {
             heading(session)
             referenceStrip(reference)
+            if let notice = model.transcriptionNotice {
+              Label(notice, systemImage: "info.circle")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            }
             if model.mimicWorkspaceMode == .compare, let attempt = model.selectedTake {
               MimicComparisonView(
                 reference: reference.take, attempt: attempt,
@@ -79,13 +84,19 @@ struct MimicWorkspace: View {
   }
 
   private func heading(_ session: CoachingSession) -> some View {
-    let currentTakeIndex = session.takes.firstIndex(where: {
-      $0.id == (model.selectedTakeID ?? session.latestTake?.id)
-    }) ?? 0
+    let currentTakeIndex =
+      session.takes.firstIndex(where: {
+        $0.id == (model.selectedTakeID ?? session.latestTake?.id)
+      }) ?? 0
 
     return HStack(spacing: 12) {
       Label("Mimic", systemImage: "waveform.path")
         .font(.callout.weight(.medium))
+      if let locale = session.transcriptionLocaleIdentifier {
+        Text(TranscriptionLanguagePreference.displayName(for: locale))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
       Spacer()
       if !session.takes.isEmpty {
         if snapshot {
@@ -166,6 +177,21 @@ struct MimicWorkspace: View {
           .lineLimit(1)
       }
       Spacer()
+      if !snapshot {
+        Menu {
+          Button(
+            model.transcriptionEngine == .system
+              ? "Re-transcribe in \(TranscriptionLanguagePreference.displayName(for: model.transcriptionLocale.identifier))"
+              : "Re-transcribe with Parakeet"
+          ) {
+            model.retranscribeMimicReference()
+          }
+          SettingsLink { Text("Transcription Settings…") }
+        } label: {
+          Label("Transcript", systemImage: "text.bubble")
+        }
+        .disabled(!audioAvailable || model.isRecording || model.isAnalyzing)
+      }
       Text(vcDuration(reference.take.result.metrics.duration))
         .font(.caption.monospacedDigit())
         .foregroundStyle(Studio.secondary)
@@ -201,7 +227,8 @@ struct MimicWorkspace: View {
       } else {
         ContentUnavailableView(
           "Transcript Unavailable", systemImage: "text.quote",
-          description: Text("Listen and record without a transcript. Word comparison won’t be available.")
+          description: Text(
+            "Listen and record without a transcript. Word comparison won’t be available.")
         )
         .frame(maxWidth: .infinity, minHeight: 130)
       }

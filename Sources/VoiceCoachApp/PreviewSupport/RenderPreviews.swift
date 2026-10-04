@@ -134,8 +134,12 @@
       model.destination = .mimics
       try render("06-mimics")
       model.transcriptionEngine = .system
-      model.systemTranscriptionStatus = .ready(localeIdentifier: "en_US")
-      try renderSettings("07-settings")
+      model.transcriptionLocaleIdentifier = "ja_JP"
+      model.systemTranscriptionStatus = .ready(localeIdentifier: "ja_JP")
+      try renderSettings("07-settings", height: 560)
+      model.transcriptionEngine = .parakeet
+      try renderSettings("07b-settings-parakeet", height: 560)
+      model.transcriptionEngine = .system
       model.destination = .home
       model.selectedSessionID = nil
       model.selectedTakeID = nil

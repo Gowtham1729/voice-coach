@@ -21,9 +21,17 @@ public struct AppleSpeechTranscriber: Sendable {
   public static func isAvailable() async -> Bool {
     #if canImport(Speech)
       guard SpeechTranscriber.isAvailable else { return false }
-      return await resolveLocale(for: .current) != nil
+      return !(await SpeechTranscriber.supportedLocales).isEmpty
     #else
       false
+    #endif
+  }
+
+  public static func supportedLocales() async -> [Locale] {
+    #if canImport(Speech)
+      return await SpeechTranscriber.supportedLocales
+    #else
+      return []
     #endif
   }
 
@@ -88,7 +96,11 @@ public struct AppleSpeechTranscriber: Sendable {
         throw TranscriptionError.systemLocaleUnsupported(locale.identifier)
       }
 
-      try await Self.installAssetsIfNeeded(for: resolvedLocale)
+      guard await Self.currentStatus(preferredLocale: resolvedLocale).isReady else {
+        throw TranscriptionError.systemAssetsUnavailable(
+          "Download the Apple speech model for \(TranscriptionLanguagePreference.displayName(for: resolvedLocale.identifier)) in Settings → Transcription. Audio analysis and saving still work."
+        )
+      }
 
       let preset = SpeechTranscriber.Preset.timeIndexedTranscriptionWithAlternatives
       let transcriber = SpeechTranscriber(
@@ -108,7 +120,7 @@ public struct AppleSpeechTranscriber: Sendable {
         throw TranscriptionError.recognitionFailed("Audio file is empty.")
       }
 
-      let collector = TranscriptCollector()
+      let collector = TranscriptCollector(locale: resolvedLocale)
       let analyzer = SpeechAnalyzer(modules: [transcriber])
       let collectTask = Task {
         do {
@@ -142,7 +154,10 @@ public struct AppleSpeechTranscriber: Sendable {
       guard !payload.text.isEmpty || !payload.words.isEmpty else {
         throw TranscriptionError.invalidOutput
       }
-      return payload
+      return TranscriptionResult(
+        text: payload.text, words: payload.words,
+        localeIdentifier: resolvedLocale.identifier, engine: .system
+      )
     #else
       throw TranscriptionError.systemUnavailable(
         "Speech transcription requires Speech and AVFoundation.")
@@ -154,23 +169,18 @@ public struct AppleSpeechTranscriber: Sendable {
       if let match = await SpeechTranscriber.supportedLocale(equivalentTo: preferred) {
         return match
       }
-      let preferredLanguage = preferred.language.languageCode?.identifier
-      let supported = await SpeechTranscriber.supportedLocales
-      if let preferredLanguage,
-        let match = supported.first(where: {
-          $0.language.languageCode?.identifier == preferredLanguage
-        })
-      {
-        return match
-      }
-      return supported.first
+      return TranscriptionLanguagePreference.matchingLocale(
+        for: preferred, supported: await SpeechTranscriber.supportedLocales
+      )
     }
 
     private static func installAssetsIfNeeded(for locale: Locale) async throws {
       do {
         _ = try await AssetInventory.reserve(locale: locale)
       } catch {
-        // Reservation can fail when the slot is already held; installation may still succeed.
+        throw TranscriptionError.systemAssetsUnavailable(
+          "Apple couldn’t reserve this speech language. Its system speech-language limit may have been reached."
+        )
       }
 
       let probe = SpeechTranscriber(locale: locale, preset: .transcription)
@@ -183,9 +193,12 @@ public struct AppleSpeechTranscriber: Sendable {
       }
 
       switch await AssetInventory.status(forModules: [probe]) {
-      case .installed, .supported:
-        // `.supported` remains usable when the locale is already shared on the system.
+      case .installed:
         return
+      case .supported:
+        throw TranscriptionError.systemAssetsUnavailable(
+          "The Apple speech model for \(locale.identifier) still needs to be downloaded."
+        )
       case .downloading:
         throw TranscriptionError.systemAssetsUnavailable(
           "Speech model for \(locale.identifier) is still downloading."
@@ -242,7 +255,10 @@ public enum SystemTranscriptionStatus: Sendable, Equatable {
 
 #if canImport(Speech)
   private actor TranscriptCollector {
+    private let locale: Locale
     private var words: [TranscriptWord] = []
+
+    init(locale: Locale) { self.locale = locale }
     private var textParts: [String] = []
     private(set) var failure: Error?
 
@@ -254,56 +270,72 @@ public enum SystemTranscriptionStatus: Sendable, Equatable {
       guard result.isFinal else { return }
 
       let attributed = result.text
-      let plain = String(attributed.characters).trimmingCharacters(in: .whitespacesAndNewlines)
+      let plain = String(attributed.characters)
       if !plain.isEmpty { textParts.append(plain) }
 
-      for run in attributed.runs {
-        let token = String(attributed[run.range].characters)
-          .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !token.isEmpty else { continue }
-
-        let attributes = run.attributes
-        let timing = Self.seconds(in: attributes.audioTimeRange ?? result.range)
-        appendWords(
-          from: token,
-          start: timing.start,
-          end: timing.end,
-          confidence: attributes.transcriptionConfidence
-        )
-      }
+      words.append(
+        contentsOf: AppleSpeechTranscriber.timedWords(
+          in: attributed, fallbackRange: result.range, locale: locale))
     }
 
     func makeResult() -> TranscriptionResult {
       let sorted = words.sorted {
         $0.start == $1.start ? $0.end < $1.end : $0.start < $1.start
       }
-      let joined = textParts.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+      let joined = textParts.joined().trimmingCharacters(in: .whitespacesAndNewlines)
       let fallback = sorted.map(\.word).joined(separator: " ")
       return TranscriptionResult(text: joined.isEmpty ? fallback : joined, words: sorted)
     }
 
-    private func appendWords(from token: String, start: Double, end: Double, confidence: Double?) {
-      let parts = token.split { $0.isWhitespace }.map(String.init).filter { !$0.isEmpty }
-      guard !parts.isEmpty else { return }
+  }
 
-      if parts.count == 1 {
-        words.append(TranscriptWord(word: parts[0], start: start, end: end, confidence: confidence))
-        return
-      }
+  extension AppleSpeechTranscriber {
+    /// Confidence attributes can split a timed span; keep those fragments together.
+    static func timedWords(
+      in text: AttributedString, fallbackRange: CMTimeRange, locale: Locale = .current
+    ) -> [TranscriptWord] {
+      var words: [TranscriptWord] = []
+      var ranges: [Range<Int>] = []
+      var offset = 0
+      var pendingOffset = 0
+      var pendingText = ""
+      var pendingRange: CMTimeRange?
+      var pendingConfidence: Double?
 
-      let step = max(end - start, 0.001) / Double(parts.count)
-      for (index, part) in parts.enumerated() {
-        let partStart = start + Double(index) * step
+      func flush() {
+        guard let range = pendingRange else { return }
+        let token = pendingText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let start = max(0, range.start.seconds)
+        let end = max(start, (range.start + range.duration).seconds)
+        guard !token.isEmpty, start.isFinite, end.isFinite else { return }
+        // Keep Apple's actual spans; equal subdivision would invent word boundaries.
         words.append(
-          TranscriptWord(
-            word: part, start: partStart, end: partStart + step, confidence: confidence)
-        )
+          TranscriptWord(word: token, start: start, end: end, confidence: pendingConfidence))
+        ranges.append(pendingOffset..<(pendingOffset + pendingText.count))
       }
-    }
 
-    private static func seconds(in range: CMTimeRange) -> (start: Double, end: Double) {
-      let start = max(0, range.start.seconds)
-      return (start, max(start, (range.start + range.duration).seconds))
+      for run in text.runs {
+        let fragment = String(text[run.range].characters)
+        defer { offset += fragment.count }
+        let range = run.attributes.audioTimeRange ?? fallbackRange
+        if let pendingRange, CMTimeRangeEqual(pendingRange, range) {
+          pendingText += fragment
+          if let old = pendingConfidence, let next = run.attributes.transcriptionConfidence {
+            pendingConfidence = min(old, next)
+          } else {
+            pendingConfidence = nil
+          }
+        } else {
+          flush()
+          pendingRange = range
+          pendingOffset = offset
+          pendingText = fragment
+          pendingConfidence = run.attributes.transcriptionConfidence
+        }
+      }
+      flush()
+      return AppleTranscriptSegmenter.group(
+        words: words, ranges: ranges, text: String(text.characters), locale: locale)
     }
   }
 #endif
