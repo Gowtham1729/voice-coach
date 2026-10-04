@@ -98,7 +98,7 @@ Root: `~/Library/Application Support/VoiceCoach/`
 
 ## Visual reference
 
-`docs/screenshots/` is the committed layout reference. Open the matching PNG before asking what a screen looks like. These frames still show the pre-rebrand labels **Mimics**, **New Mimic**, and **Ask**. Current labels are **Practice**, **Reference practice**, and **Words**. Use the images for structure. If a label disagrees with the code or `docs/brand/messaging.md`, follow those. Refresh a capture when that screen’s layout or labels change. `build/previews` is synthetic and stays gitignored.
+`docs/screenshots/` is the committed layout reference. Open the matching PNG before asking what a screen looks like. These are real captures of Ichido 0.0.3. Historical filenames containing `mimic` are kept so existing links work. If a label disagrees with the code or `docs/brand/messaging.md`, follow those. Refresh a capture when that screen’s layout or labels change. `build/previews` is synthetic and stays gitignored.
 
 | File | Screen |
 | --- | --- |
@@ -111,8 +111,11 @@ Root: `~/Library/Application Support/VoiceCoach/`
 | `07-take.png` | Take |
 | `08-settings.png` | Settings |
 | `08b-settings-transcription.png` | Settings → Transcription |
+| `08c-settings-experiments.png` | Settings → Experiments |
+| `08d-settings-library.png` | Settings → Library |
 | `09-new-mimic.png` | New reference practice |
 | `10-recording.png` | Recording |
+| `11-words.png` | Words |
 
 ## Boundaries
 
