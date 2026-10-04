@@ -219,7 +219,7 @@ struct SessionChatTests {
     let request = try #require(responder.requests.last)
     #expect(request.prompt.contains("A thoughtful pause"))
     #expect(request.prompt.contains("What does pause mean here?"))
-    #expect(request.instructions.contains("Explain meanings"))
+    #expect(request.instructions.contains("meanings, vocabulary, synonyms"))
     #expect(!request.instructions.localizedCaseInsensitiveContains("can't hear"))
     #expect(!request.instructions.localizedCaseInsensitiveContains("cannot hear"))
     responder.complete(
@@ -241,6 +241,103 @@ struct SessionChatTests {
     try await waitUntil { !chat.isResponding }
     #expect(chat.exchanges.last?.answer == "Une pause réfléchie.")
 
+  }
+
+  @Test(.enabled(if: ProcessInfo.processInfo.environment["VOICE_COACH_TEST_LOCAL_CHAT"] == "1"))
+  func liveSynonymSuggestionWorksWithImperfectTranscripts() async throws {
+    let question = SessionChatTask.synonymSuggestion
+    let responder = LocalSessionChatResponder()
+    let transcripts = [
+      "Salut! Nous sommes de retour à Paris et Noah sommes à tout début du mode juin mais il fait un tempest de novembre Gena Sapporque le tempest est compétent de réglé la méthode est déréglé.",
+      "I'd really like to know what languages the Nvidia Power K model supports and it's important because we can make it make our app into a language learning app as well.",
+    ]
+    for text in transcripts {
+      let (session, take) = fixture(text: text)
+      let context = try #require(SessionChatContext(session: session, take: take))
+      let reply = try await responder.respond(
+        to: SessionChatPromptComposer.make(
+          context: context,
+          history: [
+            .init(
+              question: "Help me build my vocab", answer: "I cannot help with building vocabulary.")
+          ],
+          task: .synonym(question)))
+      print("Suggested synonyms on imperfect transcript: \(reply.answer)")
+      #expect(!reply.answer.isEmpty)
+      #expect(!reply.answer.lowercased().contains("cannot provide synonyms"))
+      #expect(!reply.answer.lowercased().contains("cannot help"))
+      #expect(!reply.answer.lowercased().contains("language reference assistant"))
+      #expect(!reply.hasUnsupportedLanguageRefusal)
+      #expect(reply.answer.components(separatedBy: .newlines).count > 1)
+    }
+  }
+
+  @Test func unsupportedCapabilityClaimsAreNotAnswersOrFollowupContext() async throws {
+    let refusal =
+      "I am a language reference assistant. I cannot provide synonyms or explain differences in meaning for words in the transcript."
+    #expect(SessionChatReply(answer: refusal).hasUnsupportedLanguageRefusal)
+    #expect(
+      SessionChatReply(answer: "I cannot help with building vocabulary.")
+        .hasUnsupportedLanguageRefusal)
+    #expect(
+      !SessionChatReply(
+        answer: "Clear = easy to understand. Plain is a near synonym, but can also mean unadorned."
+      ).hasUnsupportedLanguageRefusal)
+    #expect(
+      !SessionChatReply(answer: "This phrase is unclear. Which word did you intend?")
+        .hasUnsupportedLanguageRefusal)
+    #expect(
+      !SessionChatReply(answer: "I cannot provide synonyms = I am unable to give equivalent words.")
+        .hasUnsupportedLanguageRefusal)
+    let (session, take) = fixture()
+    let context = try #require(SessionChatContext(session: session, take: take))
+    let request = SessionChatPromptComposer.make(
+      context: context,
+      history: [
+        .init(question: "Synonyms?", answer: refusal),
+        .init(question: "Meaning?", answer: "Pause means a short break."),
+      ],
+      task: .ask(SessionChatTask.synonymSuggestion))
+    #expect(!request.prompt.contains("cannot provide synonyms"))
+    #expect(request.prompt.contains("Pause means a short break."))
+    let responder = ControlledChatResponder()
+    let chat = SessionChatConversation(context: context, responder: responder)
+    chat.draft = SessionChatTask.synonymSuggestion
+    chat.send()
+    try await waitUntil { responder.pending != nil }
+    responder.complete(.success(SessionChatReply(answer: refusal)))
+    try await waitUntil { !chat.isResponding }
+    #expect(chat.exchanges.isEmpty)
+    #expect(chat.draft == SessionChatTask.synonymSuggestion)
+    #expect(chat.errorMessage == SessionChatError.unhelpfulResponse.errorDescription)
+  }
+
+  @Test func synonymSuggestionKeepsRealDistinctSourceWordsWithoutConstrainingCustomQuestions()
+    throws
+  {
+    let answer = try #require(
+      SessionChatSynonymAnswer.make(
+        [
+          .init(word: "tempête", synonym: "orage", difference: "A weather distinction."),
+          .init(word: "réglé", synonym: "organisé", difference: "A fragment inside another word."),
+          .init(word: "début", synonym: "Début", difference: "The same word."),
+          .init(word: "début", synonym: "commencement", difference: "Both refer to a beginning."),
+          .init(word: "début", synonym: "ouverture", difference: "A duplicate source word."),
+        ], transcript: "Au début du mois, le temps est déréglé."))
+    #expect(answer.answer.contains("commencement"))
+    #expect(!answer.answer.contains("tempête"))
+    #expect(!answer.answer.contains("organisé"))
+    #expect(!answer.answer.contains("ouverture"))
+    #expect(
+      SessionChatSynonymAnswer.make(
+        [
+          .init(word: "word", synonym: "word", difference: "No difference.")
+        ], transcript: "word") == nil)
+    #expect(
+      SessionChatRouter.route(SessionChatTask.synonymSuggestion)
+        == .model(.synonym(SessionChatTask.synonymSuggestion)))
+    let custom = "Give me synonyms in a table with French and English examples."
+    #expect(SessionChatRouter.route(custom) == .model(.ask(custom)))
   }
 
   @Test func allSentencesAndParagraphsReachTheModelTogether() throws {

@@ -104,6 +104,9 @@ final class SessionChatConversation: ObservableObject {
       do {
         let reply = try await responder.respond(to: request)
         guard let self, !Task.isCancelled, self.requestID == id else { return }
+        guard !reply.hasUnsupportedLanguageRefusal else {
+          throw SessionChatError.unhelpfulResponse
+        }
         self.commit(
           question: question, passage: passage,
           reply: SessionChatRouter.containsCoachingAdvice(reply.answer) ? .voiceBoundary : reply)

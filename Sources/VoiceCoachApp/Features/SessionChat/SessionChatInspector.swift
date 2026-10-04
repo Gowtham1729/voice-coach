@@ -199,8 +199,7 @@ struct SessionChatInspector: View {
             "Explain each word or meaningful phrase in English. Use one mapping per line: source = meaning."
         }
         Button("Synonyms in context") {
-          conversation.draft =
-            "Which words in this transcript have useful synonyms? Explain the differences in meaning."
+          conversation.draft = SessionChatTask.synonymSuggestion
         }
         Menu("Translate into") {
           ForEach(SessionChatTask.menuLanguages, id: \.self) { language in
