@@ -1,0 +1,57 @@
+{
+  "prepared_on": "2026-10-04",
+  "repo_head": "f8bb7a12f06ef3684e862073e32660a2698b2b0f",
+  "branch": "",
+  "live_site": "https://voice-coach-studio.gowtham.chatgpt.site/",
+  "live_site_observation": "Browser text and visual inspection match current branding; no deployment SHA asserted.",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "8835b4a1050aad40f8567b1c70b8ef6f27580fa3c7b63620d80bcc465501b151"
+    },
+    {
+      "path": "README.md",
+      "sha256": "399cf62a3fcf28762005386c8c93a30c0c1245db938153c2a69853241160d5fd"
+    },
+    {
+      "path": "docs/brand/messaging.md",
+      "sha256": "f825264e22d31d1a4d05f24191108bc72979745c985071c69d1ea91550749ae7"
+    },
+    {
+      "path": "docs/marketing-website.md",
+      "sha256": "dee671e70aea056daa3038a3efe0397dde0fe60a2b8592ae7881f951ea3f4b26"
+    },
+    {
+      "path": "website/index.html",
+      "sha256": "2f4d3d126befb7184d24218f2bb0ffe91546c5585a199b03881c93170e8bbed2"
+    },
+    {
+      "path": "website/styles.css",
+      "sha256": "8008b1c94bfbe3eea02f1e585fa9dd4710d655859c53c3efca77fa5f51af90de"
+    },
+    {
+      "path": "website/app.js",
+      "sha256": "471ac534d728ea77c3ab62a04de38195e7fdcfc61b3a106bd95c2281428a8b31"
+    },
+    {
+      "path": "scripts/check-website.mjs",
+      "sha256": "8b78af2113c453c08f693024894ff7a0d04cb94300b29381bca18bb33b0b06e9"
+    },
+    {
+      "path": "motion/package.json",
+      "sha256": "e257ae4fc23aaca81a4f5c2da416e243fe93fac8db6fc17eb84e85bdcff09ace"
+    },
+    {
+      "path": "motion/src/Root.tsx",
+      "sha256": "ecf3b495578c12713eea9d8f90cbdc5fdf70ee9c8fabba9834ed4deec340e885"
+    },
+    {
+      "path": "motion/src/Composition.tsx",
+      "sha256": "4bb0a1f3c3e37481461debc88e7300f1c598f6781d6f3dd1b5ee07f37fca6589"
+    },
+    {
+      "path": "motion/remotion.config.ts",
+      "sha256": "22beb54e7dc3e01fc2b479471d7317ede7797c993b50fac658356187916bc59d"
+    }
+  ]
+}

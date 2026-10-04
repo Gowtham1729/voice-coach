@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-10-04",
+  "purpose": "Optional supporting bitmap assets for promo preproduction; not identity assets or measured audio",
+  "styleReference": "website/assets/sound-sculpture.jpg (visually inspected; not used as edit target)",
+  "assets": [
+    {
+      "asset": "A",
+      "prompt": "Use case: stylized-concept\nAsset type: optional cinematic bitmap element for Ichido promo preproduction, to be composited over backgrounds by a motion designer.\nPrimary request: create one premium sculptural layered cobalt ribbon with free ends. This is an abstract sound sculpture, not a logo, icon, brand mark, or literal audio data.\nStyle/medium: exceptionally refined photorealistic 3D studio render, tactile folded laminated paper or silk-like satin; beautifully resolved thin parallel layers and crisp physical edges.\nSubject: a single continuous band built from about 14 parallel ultramarine/cobalt strips that travels in a smooth horizontal organic sound-wave curvature, two relaxed waves, open tapered free ends, elegant shallow camera perspective. Broad landscape silhouette. Color inspired by saturated cobalt #2454ec and deep ultramarine in the folds, no color gradients other than lighting.\nComposition: full object visible, centered in a wide landscape composition approximately 16:9, generous transparent margins, no clipping, no separate stray strips; long axis nearly horizontal with gentle diagonal depth.\nLighting: soft directional studio lighting and realistic self-shadow inside its folds.\nBackdrop: genuinely transparent background with clean alpha. No floor, no ground plane, no contact shadow outside object, no color field, no baked checkerboard.\nConstraints: object only; no text, no UI, no logo, no watermark, no particles, no human, no scenery. Maintain exceptionally smooth sculptural craftsmanship. High resolution, production-quality material detail.",
+      "metadata": {
+        "tool": "image_gen.imagegen",
+        "mode": "built-in",
+        "output_hint": "Generated images are saved to /Users/gowtham/.codex/generated_images/01a107ea-fd55-7ca0-b031-6f07f25ada6e as /Users/gowtham/.codex/generated_images/01a107ea-fd55-7ca0-b031-6f07f25ada6e/exec-d6ac8da0-1c23-475c-9f31-7866a40c8ca9.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+        "transparent_background": true
+      },
+      "file": "01-ribbon-cutout.png",
+      "validation": {
+        "dimensions": [1672, 941],
+        "bytes": 852002,
+        "mode": "RGBA",
+        "alphaRange": [0, 255],
+        "fullyTransparentPixelFraction": 0.7574160137083119,
+        "dominantSubjectAlpha": 253,
+        "visuallyInspected": true,
+        "critique": "Good sculptural silhouette and saturated cobalt material. Cutout is real alpha with no floor or baked checkerboard. Margin is narrow at free ends; a few nearly transparent pixels extend beyond visible object. Subject alpha is mostly 253/255 rather than strictly 255. Review on final background before compositing; do not claim a clean production matte. Not 4K."
+      }
+    },
+    {
+      "asset": "B",
+      "prompt": "Use case: stylized-concept\nAsset type: optional 16:9 cinematic material close-up plate for Ichido promo preproduction.\nPrimary request: high-resolution macro studio render of parallel cobalt silk/paper-like laminated curved ribbons, beautifully tactile satin surface and precise fine edges. Abstract sculpture, no logo or literal measured audio.\nScene/backdrop: warm cream #f4f1e9 seamless studio background.\nSubject: sweeping parallel ultramarine cobalt layers, one cropped organic curve on the bottom-right, diagonal movement through the frame, physical thin lamination, smooth fluid curvature. The cobalt hue should echo #2454ec, deep rich blue in fold shadows, natural blue highlights.\nComposition/framing: 16:9 landscape macro, ribbon occupies right and lower region; ample quiet warm cream negative space in the upper-left, with about 45 percent of frame calm and usable for future overlay typography. The object can extend out of the lower and right edges, premium editorial art direction.\nStyle/medium: photorealistic 3D material study, exceptionally refined design-object studio photography; clean controlled details, tactile satin paper surface, no visible mesh artifacts.\nLighting/mood: directional soft studio lighting, subtle shadow and depth, calm intimate craftsmanship.\nConstraints: no text, no UI, no logo, no watermark, no particles, no extra objects, no human, no scenery, no glitter, no noisy decorative background. Highest production quality.",
+      "metadata": {
+        "tool": "image_gen.imagegen",
+        "mode": "built-in",
+        "output_hint": "Generated images are saved to /Users/gowtham/.codex/generated_images/01a107ea-fd55-7ca0-b031-6f07f25ada6e as /Users/gowtham/.codex/generated_images/01a107ea-fd55-7ca0-b031-6f07f25ada6e/exec-a2fb275d-fdda-4cd2-9b0d-ad2eb85f335f.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+        "transparent_background": false
+      },
+      "file": "02-ribbon-macro.png",
+      "validation": {
+        "dimensions": [1672, 941],
+        "bytes": 1856374,
+        "mode": "RGB",
+        "visuallyInspected": true,
+        "critique": "Tactile cobalt material, strong diagonal curve, ample upper-left negative space. Approximately 16:9 but delivered at 1672x941, not 4K. Background color is a rendered cream near target, not guaranteed exact hex. Static plate only."
+      }
+    }
+  ]
+}

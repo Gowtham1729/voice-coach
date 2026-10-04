@@ -1,0 +1,79 @@
+{
+  "status": "revision_2_proposed_visual_direction",
+  "reference": "website/styles.css",
+  "palette": {
+    "paper": "#f4f1e9",
+    "paperBright": "#fbf8ef",
+    "ink": "#1f241f",
+    "cobalt": "#2848e8",
+    "cobaltDeep": "#1736c8",
+    "bluePale": "#e8eeff",
+    "night": "#171d1a",
+    "white": "#ffffff"
+  },
+  "fonts": {
+    "display": {
+      "family": "Space Grotesk",
+      "weight": 700,
+      "path": "assets/fonts/space-grotesk-bold.ttf"
+    },
+    "displayRegular": {
+      "family": "Space Grotesk",
+      "weight": 400,
+      "path": "assets/fonts/space-grotesk.ttf"
+    },
+    "body": {
+      "family": "DM Sans",
+      "weight": 400,
+      "path": "assets/fonts/dm-sans.ttf"
+    }
+  },
+  "type_starting_sizes_1080p": {
+    "hook": [
+      112,
+      140
+    ],
+    "chapter": [
+      72,
+      96
+    ],
+    "body": [
+      42,
+      52
+    ],
+    "qualifier": [
+      34,
+      40
+    ],
+    "captions": [
+      42,
+      48
+    ]
+  },
+  "layout_starting_margins_1080p": {
+    "horizontal": 96,
+    "top": 72,
+    "caption_reserve_bottom": 144
+  },
+  "generated_image_use": "Only 01-ribbon-cutout.png is an optional active bookend. Other generated concepts are reserve.",
+  "delivery": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 60,
+    "target_seconds": 55,
+    "allowed_seconds": [
+      45,
+      60
+    ],
+    "timing_source": "storyboard.json"
+  },
+  "interaction": {
+    "cursor_width_px": 28,
+    "hotspot_viewbox": [
+      9,
+      5
+    ],
+    "click_ring_diameter_px": 44,
+    "focus_outline_stroke_px": 2
+  }
+}

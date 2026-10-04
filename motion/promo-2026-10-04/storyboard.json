@@ -1,0 +1,246 @@
+{
+  "schema_version": 2,
+  "status": "animatic_v5",
+  "revision": 5,
+  "composition_id_proposed": "IchidoPromo20261004",
+  "width": 1920,
+  "height": 1080,
+  "fps": 60,
+  "duration_seconds": 59.5,
+  "duration_frames": 3570,
+  "permitted_duration_seconds": [
+    45,
+    60
+  ],
+  "timing_authority": "This file is the sole scene boundary source. Retiming must remain inside the user's 45\u201360 second limit.",
+  "context_media_policy": "All reference/ media, including both style clips and derived frames, is excluded from final media.",
+  "excluded_chapters": [
+    "Settings",
+    "Library tour",
+    "Transcription engines",
+    "Separate Speak Along demonstration"
+  ],
+  "scenes": [
+    {
+      "id": "S01",
+      "title": "One more try",
+      "start_seconds": 0.0,
+      "end_seconds": 2.667,
+      "start_frame": 0,
+      "end_frame_exclusive": 160,
+      "on_screen_copy": [
+        "One more try."
+      ],
+      "candidate_assets": [
+        "assets/brand/brand-mark.png",
+        "assets/generated/01-ribbon-cutout.png"
+      ],
+      "voiceover_draft": "One more try.",
+      "visual_plan": "Large phrase reveal; the existing ribbon mark provides continuity.",
+      "interaction_plan": "Type resolves into the small brand position while the product stage opens.",
+      "review_image": "assets/brand/brand-mark.png"
+    },
+    {
+      "id": "S02",
+      "title": "Bring a clip",
+      "start_seconds": 2.667,
+      "end_seconds": 10.1,
+      "start_frame": 160,
+      "end_frame_exclusive": 606,
+      "on_screen_copy": [
+        "Ichido",
+        "Your private speaking room for Mac.",
+        "Import a clip \u00b7 Capture Mac audio"
+      ],
+      "candidate_assets": [
+        "assets/product/docs/01-home.png",
+        "assets/components/home-actions.png",
+        "assets/components/reference-inputs.png"
+      ],
+      "voiceover_draft": "Meet Ichido, your private speaking room for Mac. Import a clip, or capture Mac audio.",
+      "visual_plan": "Brief native window context, then isolate Reference practice\u2026 and the real picker controls.",
+      "interaction_plan": "Pointer selects Reference practice\u2026; the picker expands from that control. Import is a focus hold until its loaded state exists.",
+      "review_image": "assets/components/home-actions.png",
+      "copy_note": "Descriptor follows product_facts.md and docs/brand/messaging.md (primary descriptor), replacing the script's 'Private speaking practice for Mac.'"
+    },
+    {
+      "id": "S03",
+      "title": "Listen",
+      "start_seconds": 10.1,
+      "end_seconds": 12.9,
+      "start_frame": 606,
+      "end_frame_exclusive": 774,
+      "on_screen_copy": [
+        "Example \u00b7 French clip",
+        "Listen.",
+        "Listen & Repeat"
+      ],
+      "candidate_assets": [
+        "assets/components/practice-card.png",
+        "assets/components/practice-mode.png"
+      ],
+      "voiceover_draft": "Listen to a phrase.",
+      "visual_plan": "One transcript panel with the selected Listen & Repeat mode.",
+      "interaction_plan": "Focus the already selected mode; it is never clicked.",
+      "review_image": "assets/components/practice-card.png"
+    },
+    {
+      "id": "S03b",
+      "title": "Understand the words",
+      "start_seconds": 12.9,
+      "end_seconds": 19.483,
+      "start_frame": 774,
+      "end_frame_exclusive": 1169,
+      "on_screen_copy": [
+        "Understand.",
+        "Explore meanings, grammar, synonyms, and translations on your Mac.",
+        "Experimental and off by default. Chat requires available Apple Intelligence."
+      ],
+      "candidate_assets": [
+        "assets/components/words-idle.png",
+        "assets/components/words-menu.png",
+        "assets/components/words-menu-rows.png",
+        "assets/components/words-filled.png",
+        "assets/components/words-thinking.png",
+        "assets/components/words-spinner.png",
+        "assets/components/words-answer.png"
+      ],
+      "source_media": "assets/product/recordings/words-chat-2026-10-05.mov",
+      "voiceover_draft": "Explore the words, right on your Mac.",
+      "visual_plan": "Same French session, so a camera glide rather than a push: the transcript steps into the left column and the real Words inspector slides in beside it, the side-by-side layout of docs screenshot 04. The panel's own line 'AI can be wrong. It can't hear or evaluate your audio.' stays visible throughout.",
+      "interaction_plan": "Click Suggested questions; the menu highlight follows the pointer up to Explain the meaning; click, macOS blink and fade; the question fills in; click Send; Thinking\u2026 with the recorded spinner; the recorded answer appears whole, as it did; focus the glosses.",
+      "review_image": "review/style-frames/05-understand.png",
+      "copy_note": "Understand is the website's step name, used as film typography only; it is not an app control. The sub-line is the approved Words line from docs/brand/messaging.md. The qualifier joins two website sentences and carries the product_facts.md requirements: off by default, chat requires available Apple Intelligence.",
+      "capture_note": "Every Words state is a recorded frame. The inspector is shown collapsed (the empty chat area between window rows 975 and 1745 is dropped), the recorded pointer is removed and the film pointer redrawn, and Thinking\u2026 is shortened from about 4.5 s to 0.9 s. No text, reply, or control is retouched. Provenance: assets/components/crop-map.json."
+    },
+    {
+      "id": "S03c",
+      "title": "Then repeat",
+      "start_seconds": 19.483,
+      "end_seconds": 21.767,
+      "start_frame": 1169,
+      "end_frame_exclusive": 1306,
+      "on_screen_copy": [
+        "Repeat.",
+        "Listen \u00b7 Start practice \u00b7 Record"
+      ],
+      "candidate_assets": [
+        "assets/components/practice-actions.png"
+      ],
+      "voiceover_draft": "Then record your version.",
+      "visual_plan": "Camera glides down and left to the actions below the transcript; Words leaves to the upper right.",
+      "interaction_plan": "Approach Start practice. Actual playing/recording states require fresh captures; until then it is a hover hold.",
+      "review_image": "assets/components/practice-actions.png"
+    },
+    {
+      "id": "S04",
+      "title": "Compare delivery",
+      "start_seconds": 21.767,
+      "end_seconds": 29.767,
+      "start_frame": 1306,
+      "end_frame_exclusive": 1786,
+      "on_screen_copy": [
+        "Compare your delivery.",
+        "Pitch \u00b7 Timing \u00b7 Loudness"
+      ],
+      "candidate_assets": [
+        "assets/components/compare-pitch.png",
+        "assets/components/compare-modes.png"
+      ],
+      "voiceover_draft": "Compare pitch, timing, and loudness with the reference.",
+      "visual_plan": "The real Compare panel becomes the hero; dashed Reference and solid You remain readable.",
+      "interaction_plan": "Pitch focus, then Timing and Emphasis clicks only after their actual response states are captured. Existing-asset fallback holds the authentic Pitch plot and highlights the other available labels without clicking.",
+      "review_image": "assets/components/compare-pitch.png"
+    },
+    {
+      "id": "S05",
+      "title": "Choose the next try",
+      "start_seconds": 29.767,
+      "end_seconds": 37.767,
+      "start_frame": 1786,
+      "end_frame_exclusive": 2266,
+      "on_screen_copy": [
+        "Two measured targets, when enough words match reliably.",
+        "One more take."
+      ],
+      "candidate_assets": [
+        "assets/components/practice-next.png",
+        "assets/components/try-again.png",
+        "assets/components/take-selector.png"
+      ],
+      "voiceover_draft": "When enough words match reliably, two measured targets help you choose what to try next.",
+      "visual_plan": "Move from the chart to the real two targets, then Try again.",
+      "interaction_plan": "Hold targets for reading; pointer approaches Try again. Click to the authentic next practice state only when supplied; otherwise end on the real button.",
+      "review_image": "assets/components/practice-next.png"
+    },
+    {
+      "id": "S06",
+      "title": "Your own voice, too",
+      "start_seconds": 37.767,
+      "end_seconds": 42.933,
+      "start_frame": 2266,
+      "end_frame_exclusive": 2576,
+      "on_screen_copy": [
+        "Record yourself, too.",
+        "Click a word. Replay that moment."
+      ],
+      "candidate_assets": [
+        "assets/product/docs/07-take.png",
+        "assets/components/take-words.png"
+      ],
+      "voiceover_draft": "Record yourself, too. Click a word to replay that moment.",
+      "visual_plan": "A clearly separate ordinary-recording example; a row of real transcript words.",
+      "interaction_plan": "Word hover/focus; add the click and playback response only with a captured selected-word state. Ordinary recordings never inherit comparison targets.",
+      "review_image": "assets/components/take-words.png"
+    },
+    {
+      "id": "S07",
+      "title": "Private on your Mac",
+      "start_seconds": 42.933,
+      "end_seconds": 55.833,
+      "start_frame": 2576,
+      "end_frame_exclusive": 3350,
+      "on_screen_copy": [
+        "No account. No recording uploads. No analytics.",
+        "Update checks and optional model downloads use the network.",
+        "Your recordings, transcripts, analysis, and language chat stay on your Mac."
+      ],
+      "candidate_assets": [
+        "assets/brand/brand-mark.png"
+      ],
+      "voiceover_draft": "No account. No recording uploads. No analytics. Update checks and optional model downloads use the network. Your recordings, transcripts, analysis, and language chat stay on your Mac.",
+      "visual_plan": "One cobalt stage: the full privacy statement, the network line immediately after it, then what stays on the Mac. All of it holds until the stage closes.",
+      "interaction_plan": "Type enters in three phrase groups, then holds. No new product panel or artwork detour.",
+      "review_image": "assets/brand/brand-mark.png",
+      "copy_note": "The network sentence immediately follows the privacy statement; the 'stay on your Mac' line comes after it. Revision 5 uses the website's privacy sentence, which also names transcripts, analysis and language chat, so the Words and transcript beats are covered by the privacy promise."
+    },
+    {
+      "id": "S08",
+      "title": "Get Ichido",
+      "start_seconds": 55.833,
+      "end_seconds": 59.5,
+      "start_frame": 3350,
+      "end_frame_exclusive": 3570,
+      "on_screen_copy": [
+        "Get Ichido for Mac",
+        "Free while in early access \u00b7 macOS 26+"
+      ],
+      "candidate_assets": [
+        "assets/brand/brand-mark.png",
+        "assets/brand/ichido-wordmark.svg"
+      ],
+      "voiceover_draft": "Ichido. One more try.",
+      "visual_plan": "Return to paper, stable brand lockup and one action.",
+      "interaction_plan": "Finish the transition early and hold the CTA for at least three seconds.",
+      "review_image": "assets/brand/brand-mark.png"
+    }
+  ],
+  "implementation": {
+    "source": "motion/src/promo/timeline.ts",
+    "compositions": [
+      "IchidoPromo20261004",
+      "IchidoPromo20261004-Animatic"
+    ],
+    "note": "Boundaries are the midpoint of each joining transition, or the midpoint of the in-scene camera move that changes the subject (S03b, S03c, S05). Revision 4 adds the Words beat inside the French session as S03b and S03c; existing IDs were not renumbered so earlier review notes still match. Compare, Recording and Privacy each gave back hold time to keep the film inside 60 s. Revision 5 replaces the closing privacy line with the website sentence; its 5.2 s scratch read is paid for by trimming the opening hook hold (20 frames), the Compare targets hold (30) and the Recording hover (40)."
+  }
+}

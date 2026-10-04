@@ -1,0 +1,592 @@
+{
+  "schema_version": 1,
+  "coordinate_system": "Source pixels; xyxy right/bottom exclusive. Anchors are approximate pointer targets and require visual confirmation before animation.",
+  "crops": [
+    {
+      "id": "home-actions",
+      "path": "assets/components/home-actions.png",
+      "source": "assets/product/docs/01-home.png",
+      "source_sha256": "9c08902df0e79ce2817e6d603e7f93e07e1ba3386a2a87c84d009596e5479fcb",
+      "source_dimensions": [
+        3420,
+        2146
+      ],
+      "rect_xyxy": [
+        2220,
+        350,
+        3050,
+        435
+      ],
+      "crop_dimensions": [
+        830,
+        85
+      ],
+      "anchors_source_px": {
+        "reference-practice": [
+          2640,
+          398
+        ]
+      },
+      "anchors_crop_px": {
+        "reference-practice": [
+          420,
+          48
+        ]
+      },
+      "notes": "Home actions; Reference practice\u2026 opens the picker",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "reference-inputs",
+      "path": "assets/components/reference-inputs.png",
+      "source": "assets/product/docs/09-new-mimic.png",
+      "source_sha256": "ee65b4992ae9760f2c0097c6bda0494c09c6ca24db26d6ee9b9d2372dc144f97",
+      "source_dimensions": [
+        1360,
+        1280
+      ],
+      "rect_xyxy": [
+        360,
+        620,
+        1010,
+        775
+      ],
+      "crop_dimensions": [
+        650,
+        155
+      ],
+      "anchors_source_px": {
+        "import": [
+          506,
+          670
+        ],
+        "capture": [
+          813,
+          670
+        ]
+      },
+      "anchors_crop_px": {
+        "import": [
+          146,
+          50
+        ],
+        "capture": [
+          453,
+          50
+        ]
+      },
+      "notes": "Reference picker: Import clip\u2026 and Capture Mac audio",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "practice-card",
+      "path": "assets/components/practice-card.png",
+      "source": "assets/product/docs/04-mimic-practice.png",
+      "source_sha256": "dbdfd01e65d1ea75a59d0a458816bb171684c69e956c5a8d77056130b697a82a",
+      "source_dimensions": [
+        3420,
+        2146
+      ],
+      "rect_xyxy": [
+        550,
+        400,
+        2660,
+        1070
+      ],
+      "crop_dimensions": [
+        2110,
+        670
+      ],
+      "anchors_source_px": {},
+      "anchors_crop_px": {},
+      "notes": "French reference practice, Take 2; transcript and mode",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "practice-mode",
+      "path": "assets/components/practice-mode.png",
+      "source": "assets/product/docs/04-mimic-practice.png",
+      "source_sha256": "dbdfd01e65d1ea75a59d0a458816bb171684c69e956c5a8d77056130b697a82a",
+      "source_dimensions": [
+        3420,
+        2146
+      ],
+      "rect_xyxy": [
+        630,
+        865,
+        1305,
+        942
+      ],
+      "crop_dimensions": [
+        675,
+        77
+      ],
+      "anchors_source_px": {
+        "listen-repeat": [
+          940,
+          909
+        ]
+      },
+      "anchors_crop_px": {
+        "listen-repeat": [
+          310,
+          44
+        ]
+      },
+      "notes": "Listen & Repeat is already selected; no new state implied",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "practice-actions",
+      "path": "assets/components/practice-actions.png",
+      "source": "assets/product/docs/04-mimic-practice.png",
+      "source_sha256": "dbdfd01e65d1ea75a59d0a458816bb171684c69e956c5a8d77056130b697a82a",
+      "source_dimensions": [
+        3420,
+        2146
+      ],
+      "rect_xyxy": [
+        490,
+        2060,
+        1060,
+        2140
+      ],
+      "crop_dimensions": [
+        570,
+        80
+      ],
+      "anchors_source_px": {
+        "listen": [
+          581,
+          2099
+        ],
+        "start": [
+          775,
+          2099
+        ]
+      },
+      "anchors_crop_px": {
+        "listen": [
+          91,
+          39
+        ],
+        "start": [
+          285,
+          39
+        ]
+      },
+      "notes": "Listen, Start practice and Record",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "compare-pitch",
+      "path": "assets/components/compare-pitch.png",
+      "source": "assets/product/docs/05-mimic-compare.png",
+      "source_sha256": "ff8175e3e3d205c05d37c4d426a975bda12ffd36c567f2027badede170a17309",
+      "source_dimensions": [
+        3420,
+        2146
+      ],
+      "rect_xyxy": [
+        550,
+        770,
+        2660,
+        1610
+      ],
+      "crop_dimensions": [
+        2110,
+        840
+      ],
+      "anchors_source_px": {
+        "pitch": [
+          2175,
+          832
+        ],
+        "timing": [
+          2344,
+          832
+        ],
+        "emphasis": [
+          2505,
+          832
+        ]
+      },
+      "anchors_crop_px": {
+        "pitch": [
+          1625,
+          62
+        ],
+        "timing": [
+          1794,
+          62
+        ],
+        "emphasis": [
+          1955,
+          62
+        ]
+      },
+      "notes": "English comparison, Take 7; real Pitch chart and legend",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "compare-modes",
+      "path": "assets/components/compare-modes.png",
+      "source": "assets/product/docs/05-mimic-compare.png",
+      "source_sha256": "ff8175e3e3d205c05d37c4d426a975bda12ffd36c567f2027badede170a17309",
+      "source_dimensions": [
+        3420,
+        2146
+      ],
+      "rect_xyxy": [
+        2088,
+        790,
+        2600,
+        868
+      ],
+      "crop_dimensions": [
+        512,
+        78
+      ],
+      "anchors_source_px": {
+        "pitch": [
+          2175,
+          832
+        ],
+        "timing": [
+          2344,
+          832
+        ],
+        "emphasis": [
+          2505,
+          832
+        ]
+      },
+      "anchors_crop_px": {
+        "pitch": [
+          87,
+          42
+        ],
+        "timing": [
+          256,
+          42
+        ],
+        "emphasis": [
+          417,
+          42
+        ]
+      },
+      "notes": "Pitch, Timing, Emphasis; only Pitch response is captured",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "practice-next",
+      "path": "assets/components/practice-next.png",
+      "source": "assets/product/docs/05-mimic-compare.png",
+      "source_sha256": "ff8175e3e3d205c05d37c4d426a975bda12ffd36c567f2027badede170a17309",
+      "source_dimensions": [
+        3420,
+        2146
+      ],
+      "rect_xyxy": [
+        2760,
+        910,
+        3390,
+        1550
+      ],
+      "crop_dimensions": [
+        630,
+        640
+      ],
+      "anchors_source_px": {},
+      "anchors_crop_px": {},
+      "notes": "Two real Practice next targets from English Take 7",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "try-again",
+      "path": "assets/components/try-again.png",
+      "source": "assets/product/docs/05-mimic-compare.png",
+      "source_sha256": "ff8175e3e3d205c05d37c4d426a975bda12ffd36c567f2027badede170a17309",
+      "source_dimensions": [
+        3420,
+        2146
+      ],
+      "rect_xyxy": [
+        2760,
+        1990,
+        3390,
+        2055
+      ],
+      "crop_dimensions": [
+        630,
+        65
+      ],
+      "anchors_source_px": {
+        "try-again": [
+          3080,
+          2025
+        ]
+      },
+      "anchors_crop_px": {
+        "try-again": [
+          320,
+          35
+        ]
+      },
+      "notes": "Actual Try again control; following state needs a fresh capture",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "take-selector",
+      "path": "assets/components/take-selector.png",
+      "source": "assets/product/docs/05-mimic-compare.png",
+      "source_sha256": "ff8175e3e3d205c05d37c4d426a975bda12ffd36c567f2027badede170a17309",
+      "source_dimensions": [
+        3420,
+        2146
+      ],
+      "rect_xyxy": [
+        1840,
+        142,
+        2105,
+        207
+      ],
+      "crop_dimensions": [
+        265,
+        65
+      ],
+      "anchors_source_px": {
+        "take-selector": [
+          1995,
+          177
+        ]
+      },
+      "anchors_crop_px": {
+        "take-selector": [
+          155,
+          35
+        ]
+      },
+      "notes": "Take 7 of 7; no open-menu state captured",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "take-words",
+      "path": "assets/components/take-words.png",
+      "source": "assets/product/docs/07-take.png",
+      "source_sha256": "9e2407865722c35f6039c08d06ca04377879138ce29701f009143b9192346ceb",
+      "source_dimensions": [
+        3420,
+        2146
+      ],
+      "rect_xyxy": [
+        590,
+        360,
+        1810,
+        431
+      ],
+      "crop_dimensions": [
+        1220,
+        71
+      ],
+      "anchors_source_px": {
+        "like": [
+          1095,
+          396
+        ]
+      },
+      "anchors_crop_px": {
+        "like": [
+          505,
+          36
+        ]
+      },
+      "notes": "Ordinary recording: first transcript-word row; no selected/playing state captured",
+      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
+    },
+    {
+      "id": "words-idle",
+      "path": "assets/components/words-idle.png",
+      "source": "assets/product/recordings/words-chat-2026-10-05.mov",
+      "source_sha256": "1020def8a8bd47896d45a354d8c23ea23fa1eef5a914faa952851de499e27aaf",
+      "source_dimensions": [
+        3420,
+        2214
+      ],
+      "source_frames": "frames 570-649 median",
+      "rect_xyxy": [
+        2740,
+        258,
+        3420,
+        2214
+      ],
+      "crop_dimensions": [
+        680,
+        1186
+      ],
+      "notes": "Words inspector, French reference practice Take 2. Empty chat.",
+      "pixel_policy": "Joined crop: window rows 190-975 above rows 1745-2146; the empty chat area between them is dropped. Recorded pointer removed by temporal median or a same-state patch. No text, reply, or control retouched."
+    },
+    {
+      "id": "words-menu",
+      "path": "assets/components/words-menu.png",
+      "source": "assets/product/recordings/words-chat-2026-10-05.mov",
+      "source_sha256": "1020def8a8bd47896d45a354d8c23ea23fa1eef5a914faa952851de499e27aaf",
+      "source_dimensions": [
+        3420,
+        2214
+      ],
+      "source_frames": "frame 653; button patched from frame 670",
+      "rect_xyxy": [
+        2740,
+        258,
+        3420,
+        2214
+      ],
+      "crop_dimensions": [
+        680,
+        1186
+      ],
+      "notes": "Words inspector, French reference practice Take 2. Suggested questions open.",
+      "pixel_policy": "Joined crop: window rows 190-975 above rows 1745-2146; the empty chat area between them is dropped. Recorded pointer removed by temporal median or a same-state patch. No text, reply, or control retouched."
+    },
+    {
+      "id": "words-menu-explain",
+      "path": "assets/components/words-menu-explain.png",
+      "source": "assets/product/recordings/words-chat-2026-10-05.mov",
+      "source_sha256": "1020def8a8bd47896d45a354d8c23ea23fa1eef5a914faa952851de499e27aaf",
+      "source_dimensions": [
+        3420,
+        2214
+      ],
+      "source_frames": "frame 685; pointer patch",
+      "rect_xyxy": [
+        2740,
+        258,
+        3420,
+        2214
+      ],
+      "crop_dimensions": [
+        680,
+        1186
+      ],
+      "notes": "Words inspector, French reference practice Take 2. Explain the meaning highlighted.",
+      "pixel_policy": "Joined crop: window rows 190-975 above rows 1745-2146; the empty chat area between them is dropped. Recorded pointer removed by temporal median or a same-state patch. No text, reply, or control retouched."
+    },
+    {
+      "id": "words-filled",
+      "path": "assets/components/words-filled.png",
+      "source": "assets/product/recordings/words-chat-2026-10-05.mov",
+      "source_sha256": "1020def8a8bd47896d45a354d8c23ea23fa1eef5a914faa952851de499e27aaf",
+      "source_dimensions": [
+        3420,
+        2214
+      ],
+      "source_frames": "frames 705-745 median",
+      "rect_xyxy": [
+        2740,
+        258,
+        3420,
+        2214
+      ],
+      "crop_dimensions": [
+        680,
+        1186
+      ],
+      "notes": "Words inspector, French reference practice Take 2. What does this transcript mean? in the field.",
+      "pixel_policy": "Joined crop: window rows 190-975 above rows 1745-2146; the empty chat area between them is dropped. Recorded pointer removed by temporal median or a same-state patch. No text, reply, or control retouched."
+    },
+    {
+      "id": "words-thinking",
+      "path": "assets/components/words-thinking.png",
+      "source": "assets/product/recordings/words-chat-2026-10-05.mov",
+      "source_sha256": "1020def8a8bd47896d45a354d8c23ea23fa1eef5a914faa952851de499e27aaf",
+      "source_dimensions": [
+        3420,
+        2214
+      ],
+      "source_frames": "frame 800",
+      "rect_xyxy": [
+        2740,
+        258,
+        3420,
+        2214
+      ],
+      "crop_dimensions": [
+        680,
+        1186
+      ],
+      "notes": "Words inspector, French reference practice Take 2. Thinking\u2026 with the stop button.",
+      "pixel_policy": "Joined crop: window rows 190-975 above rows 1745-2146; the empty chat area between them is dropped. Recorded pointer removed by temporal median or a same-state patch. No text, reply, or control retouched."
+    },
+    {
+      "id": "words-answer",
+      "path": "assets/components/words-answer.png",
+      "source": "assets/product/recordings/words-chat-2026-10-05.mov",
+      "source_sha256": "1020def8a8bd47896d45a354d8c23ea23fa1eef5a914faa952851de499e27aaf",
+      "source_dimensions": [
+        3420,
+        2214
+      ],
+      "source_frames": "frame 892",
+      "rect_xyxy": [
+        2740,
+        258,
+        3420,
+        2214
+      ],
+      "crop_dimensions": [
+        680,
+        1186
+      ],
+      "notes": "Words inspector, French reference practice Take 2. Assistant reply with three glosses.",
+      "pixel_policy": "Joined crop: window rows 190-975 above rows 1745-2146; the empty chat area between them is dropped. Recorded pointer removed by temporal median or a same-state patch. No text, reply, or control retouched."
+    },
+    {
+      "id": "words-spinner",
+      "path": "assets/components/words-spinner.png",
+      "source": "assets/product/recordings/words-chat-2026-10-05.mov",
+      "source_sha256": "1020def8a8bd47896d45a354d8c23ea23fa1eef5a914faa952851de499e27aaf",
+      "source_dimensions": [
+        3420,
+        2214
+      ],
+      "source_frames": "frames 770-829, about 30 fps",
+      "rect_xyxy": [
+        2802,
+        578,
+        2850,
+        626
+      ],
+      "crop_dimensions": [
+        2880,
+        48
+      ],
+      "notes": "Thinking\u2026 spinner, one recorded frame per 48 px cell.",
+      "pixel_policy": "Exact unresized crops of consecutive frames."
+    },
+    {
+      "id": "words-menu-rows",
+      "path": "assets/components/words-menu-rows.png",
+      "source": "assets/product/recordings/words-chat-2026-10-05.mov",
+      "source_sha256": "1020def8a8bd47896d45a354d8c23ea23fa1eef5a914faa952851de499e27aaf",
+      "source_dimensions": [
+        3420,
+        2214
+      ],
+      "source_frames": "frame 685 (first item); frame 653 glyphs for the others",
+      "rect_xyxy": [
+        2772,
+        1836,
+        3132,
+        2012
+      ],
+      "crop_dimensions": [
+        360,
+        176
+      ],
+      "notes": "Suggested questions items highlighted as the pointer passes, top to bottom. Recorded passes: frames 657-676.",
+      "pixel_policy": "First item captured. Others: captured glyphs recoloured onto the captured highlight colour and corner radius."
+    }
+  ]
+}

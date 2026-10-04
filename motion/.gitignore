@@ -8,3 +8,6 @@ skills-lock.json
 
 # Rendered output (keep imported media under public/)
 out
+
+# Scratch VO (regenerate with scripts/make-scratch-vo.sh)
+public/promo-2026-10-04/scratch-vo/

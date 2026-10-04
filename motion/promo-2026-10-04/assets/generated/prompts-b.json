@@ -1,0 +1,36 @@
+{
+  "generated_on": "2026-10-04",
+  "tool": "builtin image_gen.imagegen",
+  "mode": "generate",
+  "worker": "promo_images_b",
+  "style_reference": "website/assets/sound-sculpture.jpg",
+  "reference_role": "inspected for palette and physical layered ribbon character; no reference passed as edit target",
+  "assets": [
+    {
+      "filename": "03-private-room.png",
+      "prompt": "Use case: stylized-concept.\nAsset type: optional conceptual editorial background still for the Ichido speaking-practice promo, landscape 16:9, highest available resolution.\nPrimary request: create a premium architectural studio photograph/render of a quiet minimal private practice room. This is a metaphorical environment, not a real product feature or real office.\nScene/backdrop: warm paper-colored #f4f1e9 plaster room, a single elegant rounded arch or deep alcove toward the right, tactile limewashed surfaces with subtle real detail. No extra furniture is necessary.\nSubject: one sculptural cobalt #2848e8 ribbon positioned within or just in front of the alcove on the right, flowing in open free-ended folds, thin closely layered edges, satin sculpted material. Its character should feel like the website's cobalt folded sound ribbon: organic disciplined loops, true blue, material rather than digital.\nComposition/framing: wide 16:9 editorial frame at human eye height, calm perspective, architecture and sculpture primarily occupying right 45 percent. The entire left 50 percent must be generous clean wall negative space suitable for editable typography to be added later. Carefully balanced margins, sculpture uncropped.\nLighting/mood: diffuse afternoon natural light from an unseen side source, soft believable contact shadows, quiet personal room, exceptionally refined and restrained.\nMaterials/textures: tactile plaster, subtle matte mineral floor, cobalt satin ribbon with fine physical edge layering; physically plausible photoreal rendering.\nConstraints: no people, computer, microphone, text, letters, logos, watermark, UI, charts, or fabricated product screens. No plants, no gratuitous props, no excessive ornament. No neon, holograms, chrome, or glowing blue effects. Render one cohesive image, not a collage or contact sheet.",
+      "source_path": "/Users/gowtham/.codex/generated_images/01a107eb-203d-7b90-bae3-04de4ff2b225/exec-e65b534f-0d52-4ba7-9be7-96406981d2ac.png",
+      "width": 1672,
+      "height": 940,
+      "transparent": false,
+      "optional": true,
+      "usage": "Conceptual private-practice atmosphere. Use for opening or privacy beat, with editable type in left negative space. Never describe this as a real app environment.",
+      "visual_qa": "Warm plaster arch and cobalt free-ended ribbon on right, clean wall left; no text, people, devices, or claims visible.",
+      "limitations": "Flattened raster; approximately 16:9 rather than an exact export size. No independently editable geometry or depth. Subtle crop may be needed. Color values are visual approximations from generation."
+    },
+    {
+      "filename": "04-ribbon-night.png",
+      "prompt": "Use case: stylized-concept.\nAsset type: optional cinematic conceptual still for an Ichido promo privacy beat; landscape 16:9 at highest available resolution.\nPrimary request: a single exquisite open free-ended layered cobalt ribbon floating in a near-black ink room. This is abstract brand atmosphere, not a product screenshot, data visualization, logo, or feature demonstration.\nScene/backdrop: seamless quiet studio room in near-black ink #171d1a, matte surfaces, very subtle floor horizon and physically believable soft shadow. A clean uninterrupted dark left half for editable privacy text to be added later.\nSubject: one organic cobalt #2848e8 ribbon sculpture entirely on the right half, thin closely nested ribbon layers, open free ends, sculptural sweeping folds that evoke breath and cadence. Folded satin material with fine parallel edge layering, true saturated cobalt, refined detail.\nComposition/framing: restrained luxury editorial 3D still, wide 16:9, camera nearly frontal, subject centered in right 40 percent with comfortable uncropped margins; left 50 percent calm deep dark negative space, no detail that would compete with text.\nLighting/mood: one soft restrained rim light and a low broad frontal fill, believable subtle blue surface reflections and deep soft shadows. The cobalt is visible and rich without being luminous. Intimate, quiet, confident.\nMaterials/textures: satin polymer or coated sculpted ribbon, tactile physical edges, matte dark room.\nConstraints: one coherent still, no neon, no glowing material, no bloom, no chrome, no metallic mirror surfaces, no lasers, no colorful haze, no gradients used as a substitute for physical lighting. No text, UI, logos, watermark, charts, people, computers, microphones, or extra objects. Avoid symmetrical closed rings; ribbon must remain open-ended.",
+      "source_path": "/Users/gowtham/.codex/generated_images/01a107eb-203d-7b90-bae3-04de4ff2b225/exec-3dfef8d6-07a6-40c3-9f44-59bb77ffd521.png",
+      "width": 1672,
+      "height": 941,
+      "transparent": false,
+      "optional": true,
+      "usage": "Conceptual dark privacy beat or end-card background, editable type added in left negative space.",
+      "visual_qa": "Single layered cobalt open ribbon in dark room, no neon/glow effects, generous left space, no text or UI.",
+      "limitations": "Flattened raster; approximately 16:9 rather than exact export size. Ribbon tip reaches slightly into left half low in frame; keep typography in upper-left. No independently editable geometry or depth. Color values are visual approximations."
+    }
+  ],
+  "selection_policy": "Optional supporting concepts. Opus may discard either image. Product truth must come from actual screenshots and captured footage; generated images must not stand in for app screens or measured charts.",
+  "animation_suggestion": "Only restrained transform, crop, opacity, or layered compositing unless new depth/masks/3D geometry are created and reviewed. Do not invent parallax layers or data inside the still."
+}

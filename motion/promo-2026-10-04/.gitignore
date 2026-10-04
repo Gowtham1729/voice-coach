@@ -1,0 +1,10 @@
+# User footage and derived reference media remain local.
+/assets/product/recordings/
+/reference/rough-desktop.mov
+/reference/frames/
+/reference/rough-contact-sheet.jpg
+/reference/recording-metadata.json
+/reference/style/
+# Later scratch/final media.
+/out/
+/audio/
