@@ -1,0 +1,67 @@
+{
+  "source_commit": "47c49c01783bbfef6cd3194bc6e13a0d2dce8484",
+  "source_pr": "https://github.com/Gowtham1729/voice-coach/pull/83",
+  "composition": "IchidoPromo20261004",
+  "props": {
+    "guides": false,
+    "scratchVo": false
+  },
+  "duration_seconds": 59.5,
+  "fps": 60,
+  "frames": 3570,
+  "width": 1920,
+  "height": 1080,
+  "audio_stream": false,
+  "artifacts": [
+    {
+      "path": "README.md",
+      "bytes": 2789,
+      "sha256": "50139f98b3512c1a3a905af6c2eb72bab2eb38f614785f21bd49d49b91aaba33"
+    },
+    {
+      "path": "contact-sheet.jpg",
+      "bytes": 180169,
+      "sha256": "ff668c7104108bf61e7ad31f050ced5e74f79d7580e3d2b9d3ff5aacbd476a3b"
+    },
+    {
+      "path": "ichido-promo-pr83.mp4",
+      "bytes": 9264396,
+      "sha256": "92111083fdeab02ccacccd36cafdcecfb77611a94195f3b73e0a9cba43255b1a"
+    },
+    {
+      "path": "review-frames/cta-transition.jpg",
+      "bytes": 285255,
+      "sha256": "1110e038fa5b69bf6e1c87f56bd367c4f8bb834f92541d93420c3431e368c64c"
+    },
+    {
+      "path": "review-frames/privacy-transition.jpg",
+      "bytes": 219782,
+      "sha256": "7a942c098f2386b0f10e3844b50cbaa66833d094de4c862f8f1b7fe06c0f2b87"
+    },
+    {
+      "path": "review-frames/sheet-01.jpg",
+      "bytes": 270059,
+      "sha256": "cbe42846b5acd760744ee7c9f747ce4e030c425246060f019abb5667fc03334d"
+    },
+    {
+      "path": "review-frames/sheet-02.jpg",
+      "bytes": 430193,
+      "sha256": "fae928c4f5006b5978b4bd196ba28bac3ddb1bc218bdefb1bf868dad65b1332f"
+    },
+    {
+      "path": "review-frames/sheet-03.jpg",
+      "bytes": 324031,
+      "sha256": "49114982e4404243a53aa5a35335404b3c79937ec412115ebe65c734ffd9eef1"
+    },
+    {
+      "path": "review-frames/sheet-04.jpg",
+      "bytes": 340850,
+      "sha256": "564041d94597c5bb83e28608fe164313372a6e3f624ab2255d98b1da332d3100"
+    },
+    {
+      "path": "review-frames/words-transition.jpg",
+      "bytes": 346386,
+      "sha256": "874154c121f147326301e29ec96d4a3b72290a508fb6b838e90a64c926e5e108"
+    }
+  ]
+}
