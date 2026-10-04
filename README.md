@@ -6,12 +6,6 @@ Ichido is the new name for Voice Coach. The app identifier, preferences, and exi
 
 Built natively with SwiftUI for macOS 26+.
 
-## Earlier app tour
-
-This footage predates the Ichido rebrand and experimental Words inspector. A new launch demo is planned separately.
-
-https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
-
 ## Installation
 
 Download the latest pre-built application:
@@ -21,7 +15,7 @@ Download the latest pre-built application:
 1. Unzip the downloaded file and move `Ichido.app` to your `/Applications` folder. Replace the earlier Voice Coach app if installed; the local library is retained.
 2. Launch the app. Because releases are currently ad-hoc signed, macOS Gatekeeper may prompt you on first run. If blocked, follow [Apple’s opening guidance](https://support.apple.com/en-us/102445) and review the approval in **System Settings > Privacy & Security**.
 
-The Ichido early-access version is **0.0.2 (build 14)**. Internal build numbers continue increasing so existing updater-enabled Voice Coach installations can receive updates from the same feed. Use **Ichido > Check for Updates…** or wait for an automatic update check. Installations without that menu need one manual installation.
+Build numbers stay monotonic so an existing updater-enabled Voice Coach installation can receive Ichido updates from the same feed. Use **Ichido > Check for Updates…**, or install once by hand if that menu is absent.
 
 **System Requirements:** macOS 26.0 or later (Apple Silicon recommended).
 
@@ -47,6 +41,8 @@ Reference practice lets you study how another speaker delivers a phrase:
 1. **Listen**: Set an imported file or captured system audio as your reference model.
 2. **Repeat**: Record your attempt right alongside it.
 3. **Compare**: Inspect side-by-side pitch curves, rhythm alignments, and word-level emphasis. When the words line up, two practice targets name a difference from the reference.
+
+The two practice styles are **Listen & Repeat** (the reference plays, then you record) and **Speak Along** (you follow the reference; use headphones so speaker playback does not leak into the mic). The marketing page adds an Understand step for Words. The app’s own loop stays Listen, Repeat, Compare.
 
 ### 4. Stacked Takes and Timeline Scrubbing
 All attempts in a session stay grouped together (`Take 1`, `Take 2`, etc.). You can scrub the waveform, click any transcribed word to jump playback directly to that moment, and hear how your delivery changes from one take to the next.
@@ -92,52 +88,16 @@ Ichido processes recordings entirely on your Mac. It requires no user account an
 * Xcode 26.x (CI builds on Xcode 26.6)
 * Swift 6.2
 
-### Quick Start
-To build, ad-hoc sign, and launch the app in development mode:
+### Quick start
+
 ```sh
 ./script/build_and_run.sh
-```
-
-Supported runner flags: `--debug`, `--logs`, `--telemetry`, `--verify`.
-
-### Testing and Building
-```sh
-# Run fast contract and acoustic verification suite
-./scripts/test.sh --self-test
-
-# Run unit tests (Core DSP and Session persistence)
-./scripts/test.sh
-
-# Run full test suite (same gate as CI)
 ./scripts/test.sh --all
-
-# Optional real on-device chat smoke (synthetic text; Apple Intelligence must be ready)
-VOICE_COACH_TEST_LOCAL_CHAT=1 ./scripts/test.sh --unit --filter liveDeviceModelSmoke
-
-# Build release application bundle (outputs to build/Ichido.app)
-./scripts/build-app.sh
-
-# Render synthetic UI layout proofs
-./scripts/render-previews.sh
-
-# Download and configure offline Parakeet ASR model (Apple Silicon)
-./scripts/setup-transcription.sh
 ```
 
-If macOS indicates the Xcode license has not been accepted, run `sudo xcodebuild -license` in your terminal.
+If macOS says the Xcode license has not been accepted, run `sudo xcodebuild -license`.
 
-### Architecture
-
-The project is structured into three primary packages:
-
-| Target | Description |
-| --- | --- |
-| `VoiceCoachCore` | Signal processing, acoustic analysis, metric extraction, and transcription interfaces. |
-| `VoiceCoachSession` | Session data structures, JSON persistence, and schema migrations. |
-| `VoiceCoachApp` | macOS SwiftUI interface, Core Audio capture engine, and interactive timeline components. |
-| `VoiceCoachSelfTest` | Automated smoke and contract suite enforcing acoustic invariants and report schemas. |
-
-For architectural boundaries and design principles, see [`docs/architecture/README.md`](docs/architecture/README.md).
+Build, test, and verification commands, plus the package boundaries, are in [`AGENTS.md`](AGENTS.md). The packages are `VoiceCoachCore` (acoustics and reports), `VoiceCoachSession` (persistence), `VoiceCoachApp` (macOS UI and capture), and `VoiceCoachSelfTest` (contract smoke). Dependencies point inward: App → Session → Core.
 
 ## Releases
 
@@ -145,4 +105,4 @@ Tagged releases (`v*`) are built and verified automatically by GitHub Actions. F
 
 ## License
 
-See release notes and repository terms for distribution details.
+Distribution terms are in the GitHub release notes for each version.

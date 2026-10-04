@@ -1,136 +1,120 @@
 # AGENTS.md
 
-Operating manual for coding agents. Prefer this over guessing; prefer `VoiceCoachSelfTest` over the README when contracts disagree. Keep this file short — put one-off task detail in the chat, not here.
+Operating manual for coding agents. Prefer this file over guessing, and prefer `VoiceCoachSelfTest` when a prose doc and a contract disagree. Put one-off task detail in the chat, not here.
 
 ## What this repo is
 
-Local-first **Ichido** (formerly Voice Coach), a **macOS 26+** SwiftUI speaking practice studio (Swift 6.2). Record/import takes, run on-device acoustic analysis + optional Parakeet transcription, persist a private recordings library. Not a web app; nothing uploads recordings.
+Local-first **Ichido** (formerly Voice Coach): a **macOS 26+** SwiftUI speaking-practice studio (Swift 6.2). Record or import takes, run on-device acoustic analysis and optional transcription, and persist a private library. Not a web app. Recordings are never uploaded.
 
-## Layout (where to edit)
+## Layout
 
 | Area | Path | Notes |
 | --- | --- | --- |
-| DSP / reports / ASR | `Sources/VoiceCoachCore/` | Platform-light library; Linux-buildable when AVFoundation is missing |
-| Session domain / persistence | `Sources/VoiceCoachSession/` | Foundation-only library over `VoiceCoachCore` |
-| App coordination / UI / capture | `Sources/VoiceCoachApp/` | macOS-only; organized by App, Application, Features, Services, and DesignSystem |
-| Unit suites | `Tests/VoiceCoachCoreTests/`, `Tests/VoiceCoachSessionTests/` | Swift Testing coverage for pure contracts and persistence |
-| App coordination tests | `Tests/VoiceCoachAppTests/` | macOS-only recording save/rejection checks with synthetic WAVs and injected transcription |
-| Integration contract suite | `Sources/VoiceCoachSelfTest/main.swift` | Cross-platform acoustic/report smoke and live helpers |
-| App bundle resources | `Resources/` | Packaged by `scripts/build-app.sh` |
-| Marketing website | `website/` | Build/check: `node scripts/build-website.mjs`; preview: `node scripts/serve-website.mjs`; Sites config: `.openai/hosting.json` |
-| Dev/scripts | `scripts/`, `script/build_and_run.sh` | Prefer these over inventing new build steps |
+| DSP / reports / ASR | `Sources/VoiceCoachCore/` | No SwiftUI, AppKit, or session persistence. Linux-buildable when AVFoundation is absent |
+| Session domain / persistence | `Sources/VoiceCoachSession/` | Foundation only. Depends on Core, not on the app |
+| App UI / capture | `Sources/VoiceCoachApp/` | macOS only: `App/`, `Application/`, `Navigation/`, `Features/`, `Services/`, `Support/`, `DesignSystem/`, `Visualization/`, `Models/`, `PreviewSupport/` |
+| Unit tests | `Tests/VoiceCoachCoreTests/`, `Tests/VoiceCoachSessionTests/` | Swift Testing |
+| App coordination tests | `Tests/VoiceCoachAppTests/` | macOS-only save and rejection checks |
+| Contract smoke | `Sources/VoiceCoachSelfTest/main.swift` | Acoustic and report invariants. Do not grow this for ordinary unit tests |
+| Bundle resources | `Resources/` | Packaged by `scripts/build-app.sh` |
+| Marketing site | `website/` | Static. Change a required sentence in `website/index.html` and `scripts/check-website.mjs` together. See `docs/marketing-website.md` |
+| Scripts | `scripts/`, `script/build_and_run.sh` | Use these. Do not invent build steps |
 
-**Naming trap:** UI “recording” / retry stack / Mimic map onto `CoachingSession` (`Sources/VoiceCoachSession/Models/CoachingSession.swift`). UI “take” = Core `PracticeSession` (`Sources/VoiceCoachCore/Models/PracticeSession.swift`). Do not rename these storage types casually.
+**Naming:** UI “recording”, the retry stack, and Mimic are a `CoachingSession`. A UI “take” is a Core `PracticeSession`. Do not rename those storage types. Visible copy uses **Practice**, **Reference practice**, and **Words**. Reference-practice modes stay **Listen & Repeat** and **Speak Along**. Before changing user-facing strings, read `docs/brand/messaging.md`.
+
+## Dependency rules
+
+- Dependencies point inward: App → Session → Core. Core never imports App or Session.
+- Persisted types live in Session. Acoustic and export types live in Core. Transient selection state lives in App.
+- SwiftUI views call `AppModel` actions. They do not write files, launch transcription, or own AVFoundation objects.
+- Platform services enter through `AppDependencies` protocols.
+- A storage-format or report-JSON change needs a focused regression test in the same change. When a report key or acoustic invariant changes, extend SelfTest in that same change.
 
 ## Commands
 
-Run from repo root. Prefer the Xcode toolchain when present (scripts do this).
+Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 
 ```sh
-# Fast contract check (DSP + report JSON). Use after Core/report/transcription changes.
-./scripts/test.sh --self-test
-
-# Unit tests (Core + Session domain/persistence).
-./scripts/test.sh
-
-# Dev app (macOS only)
-./script/build_and_run.sh
-
-# Release .app → build/Ichido.app (ad-hoc codesign)
-./scripts/build-app.sh
-
-# SelfTest + DEBUG layout PNGs in build/previews (synthetic audio only)
-./scripts/render-previews.sh
-
-# One-time local ASR (~714 MB). Prefer Settings → Transcription in the app for end users.
-./scripts/setup-transcription.sh
+./scripts/test.sh --self-test     # DSP + report JSON, after Core/report/transcription changes
+./scripts/test.sh                 # Core + Session unit tests
+./scripts/test.sh --all           # What CI job `test` runs before `build-app.sh`
+./script/build_and_run.sh         # Dev app. Flags: --debug --logs --telemetry --verify
+./scripts/build-app.sh            # build/Ichido.app, ad-hoc codesign
+./scripts/render-previews.sh      # SelfTest + DEBUG layout PNGs in build/previews
+./scripts/setup-transcription.sh  # Optional local ASR (~714 MB). Not in CI or cloud unless asked
 ```
 
-**Cloud / Linux agents:** `.cursor/environment.json` runs `./scripts/cloud-agent-install.sh`, which builds **only** `--product VoiceCoachSelfTest`. Do not try to build or run `VoiceCoachApp` there.
+- Cloud and Linux agents (`.cursor/environment.json` runs `scripts/cloud-agent-install.sh`) build **only** `VoiceCoachSelfTest`. Do not build or run `VoiceCoachApp` there.
+- AVFoundation builds need `--disable-sandbox` (already set in `build-app.sh` and `render-previews.sh`).
+- ASR override: `VOICE_COACH_NEMO_SPEECH_PATH`.
+- If macOS blocks on an unaccepted Xcode license, the human runs `sudo xcodebuild -license`. Agents cannot accept it.
+- Optional Words chat smoke, only when asked and Apple Intelligence is ready. Not part of CI: `VOICE_COACH_TEST_LOCAL_CHAT=1 ./scripts/test.sh --unit --filter liveDeviceModelSmoke`.
 
-**Flags that matter:**
-- App/script builds that touch AVFoundation often need `--disable-sandbox` (already in `build-app.sh` / `render-previews.sh`).
-- Override ASR binary: `VOICE_COACH_NEMO_SPEECH_PATH=/path/to/nemo-speech`.
-- DEBUG only: `VoiceCoachApp --render-previews <dir>` (wired in `RenderPreviews.swift`).
-- App runner modes: `--debug`, `--logs`, `--telemetry`, `--verify`.
-- SelfTest live helpers (optional): `./scripts/test.sh --self-test --transcribe`, `--timeline`, `--inspect-pitch`, `--dump-sample-report`.
+## Verification
 
-If macOS refuses the toolchain with an Xcode license error, the human must run `sudo xcodebuild -license` — agents cannot accept it.
-
-## Verification rules
-
-| Change | Minimum check |
+| Change | Check |
 | --- | --- |
-| `VoiceCoachCore` / report shape | `./scripts/test.sh --all` |
-| Insight selection / progress | `./scripts/test.sh --all`; verify Take and Mimic Compare previews |
-| `VoiceCoachSession` / persistence | `./scripts/test.sh`; add or update a focused persistence test |
-| App UI / layout / charts / Home/Library/Take | `./scripts/render-previews.sh` when feasible (macOS); otherwise say UI was not visually verified |
-| Persistence / SessionStore | Prefer preview path (it round-trips a fixture library) or exercise save/load carefully |
-| Transcription setup scripts | Do not re-download the model in CI/cloud unless explicitly asked |
+| Core or report shape | `./scripts/test.sh --all` |
+| Insight selection or progress | `./scripts/test.sh --all`, then Take and Mimic Compare previews |
+| Session or persistence | `./scripts/test.sh` plus a focused persistence test |
+| App UI or layout | `./scripts/render-previews.sh` on macOS. If you cannot run it, say the UI was not visually verified |
+| Live Mac UI | `docs/PEEKABOO.md` after a local build. Not a CI job |
+| Website | `node scripts/check-website.mjs`. Not part of CI job `test`. See `docs/marketing-website.md` |
+| Release | `docs/RELEASE.md` |
 
-Keep `VoiceCoachSelfTest` as the integration/contract smoke. Put deterministic unit and persistence coverage in the Swift Testing targets instead of growing `main.swift` further.
+Synthetic tests do not prove microphone, headphone, system-audio, or route behavior. Smoke-test those on a Mac when audio routing changes.
 
-## Non-negotiable product constraints
+## Product constraints
 
-- **Local-first / privacy:** No cloud upload paths. Mic copy and Settings must stay “on-device / local only.”
-- **Not medical:** HNR/CPP and related metrics are acoustic coaching signals. UI/settings/coach copy must not diagnose or claim diaphragm proof. Report JSON must not contain subjective coaching language (`baseline`, `throat`, `please` — SelfTest enforces).
-- **Platform:** `Package.swift` and `Resources/Info.plist` target **macOS 26** for Liquid Glass APIs. Do not lower the deployment target without an explicit product decision.
-- **Materials:** System chrome may use Liquid Glass (`.glass` / `.glassProminent` / `ControlGlass`). Content panels stay on standard materials (`.desktopPanel` / `.studioCard` → regularMaterial), not glass. Honor Reduce Transparency / Reduce Motion via existing `Studio` / `StudioMotion` helpers.
-- **Recording validation:** Missing/empty/near-silent audio and successful transcription with no recognized text or words must fail before saving; rejected captures leave no new library entry or temporary audio. Technical transcription failure is soft — valid audio still saves with a notice/error; do not hard-fail the record/import pipeline when `nemo-speech` is missing.
+- **Local-first:** No recording-upload path. Update checks and optional model downloads may use the network. The privacy line is “No account. No recording uploads. No analytics.” followed by that network sentence. Do not shorten it to “never uses the internet.”
+- **Not medical:** HNR and CPP are acoustic coaching signals. Do not diagnose, claim diaphragm proof, grade accents, or certify fluency. Report JSON must not contain `baseline`, `throat`, or `please`.
+- **Platform:** `Package.swift` and `Resources/Info.plist` target **macOS 26**. Do not lower that without an explicit product decision.
+- **Materials:** System chrome may use Liquid Glass (`.glass`, `.glassProminent`, `ControlGlass`). Content panels stay on `.desktopPanel` / `.studioCard` (regularMaterial). Honor Reduce Transparency and Reduce Motion through `Studio` / `StudioMotion`.
+- **Save gate:** Missing, empty, or near-silent audio fails before save, as does successful transcription with no recognized text or words. Rejected captures leave no library entry and no temporary audio. A missing `nemo-speech` binary is soft: valid audio still saves, with a notice.
+- **Identity:** The visible name is Ichido. Keep bundle id `com.gowtham.voicecoach`, `Application Support/VoiceCoach`, preference keys, and the Swift target names.
 
-## Report / analysis contracts (easy to get wrong)
+## Report contracts
 
-- Exported / copied report in the app uses `ReportFormatter.makeReport` (expanded). `makeCompactReport` exists for V1 contract tests but is **not** wired to a UI control.
-- Contours in JSON are **24** values (`contour_semitones` / `contour_relative_db`). README “12” is stale — trust SelfTest.
-- `cppDB` is computed in analysis and **must stay out** of report JSON (`cpp_db` forbidden). `hnr_db` is the voice-quality export field.
-- Dense `acousticFrames`, waveform, and spectrogram stay in the in-app `AnalysisResult` (and thus in per-take analysis files); they are not part of the exported report.
-- Word metrics come from `AcousticFrameData` via `WordAcousticAnalyzer`, not from the downsampled UI contours.
+- The in-app export uses `ReportFormatter.makeReport`. `makeCompactReport` exists for older contract tests and is not a UI control.
+- JSON contours are 24 values: `contour_semitones` and `contour_relative_db`.
+- `cppDB` is computed and must stay out of report JSON. `cpp_db` is forbidden. Voice quality exports as `hnr_db`.
+- Dense `acousticFrames`, waveform, and spectrogram stay in the per-take analysis file, not the exported report.
+- Word metrics come from `AcousticFrameData` via `WordAcousticAnalyzer`, not from the downsampled contours.
 
-## Persistence facts
+## Persistence
 
 Root: `~/Library/Application Support/VoiceCoach/`
 
-- `session-library.json` — schemaVersion **3** thin index (session metadata + take stubs only). Versions 1–2 (fat, embedded analysis) migrate on load; a one-time `session-library-v1-backup.json` / `session-library-v2-backup.json` is kept.
-- `Sessions/<sessionUUID>/take-<takeUUID>.analysis.json` — full `AnalysisResult` + transcript/words for that take (and Mimic reference).
-- `Sessions/<sessionUUID>/take-<takeUUID>.wav` or `…-imported.wav`; Mimic reference audio is `reference.wav`.
-- Metadata edits (rename, Mimic style) rewrite the thin index only; new/changed takes also write their analysis blob.
-- `keepsRecordings == false` → replace prior takes and delete old WAVs/analysis after successful save. New recordings always keep every valid take; legacy replace-only folders prompt before the next save.
-- Deleting a Mimic removes its folder; deleting a recording removes that take’s audio + analysis after index save succeeds. Empty leftover folders are cleaned from Settings.
-- Recording: 48 kHz mono PCM, auto-stop ~90s, discard/analyze gate ~0.6s.
-- Mimic reference Mac audio capture (Core Audio process tap): system output only (not mic); used only when creating a Mimic reference; same ~90s / 0.6s gates; requires `NSAudioCaptureUsageDescription`.
+- `session-library.json` is schemaVersion **3**, a thin index of session metadata and take stubs. Versions 1–2 migrate on load. One backup file is kept per old version.
+- `Sessions/<sessionUUID>/take-<takeUUID>.analysis.json` holds the `AnalysisResult` plus transcript and words, including a Mimic reference.
+- Audio is `take-<takeUUID>.wav` or `…-imported.wav`. Mimic reference audio is `reference.wav`.
+- Renames and Mimic style edits rewrite the thin index only. A new or changed take also writes its analysis file.
+- `keepsRecordings == false` replaces prior takes and deletes their WAV and analysis files after a successful save. New recordings keep every valid take. A legacy replace-only folder prompts before the next save.
+- A Mimic session always keeps `reference.wav` and every attempt. The replace path must not run when `mode == .mimic`. Deleting an attempt deletes that take only, not the reference.
+- Deleting a Mimic removes its folder. Deleting a recording removes that take’s audio and analysis after the index save succeeds. Settings cleans empty leftover folders.
+- Captures are 48 kHz mono PCM, auto-stop around 90s, with a discard/analyze gate around 0.6s.
+- Mimic reference sources are import, Mac system-audio capture, and **Practise with this clip**. Reference capture is system output only (Core Audio process tap), uses the same gates, and requires `NSAudioCaptureUsageDescription`. In-app reference capture is shipping.
+- **Listen & Repeat** plays the reference, then records. **Speak Along** plays the reference while the microphone records. `beginRecording` must not stop that reference playback.
 
-## Where common work lands
+## Visual reference
 
-| Task | Start here |
+`docs/screenshots/` is the committed layout reference. Open the matching PNG before asking what a screen looks like. These frames still show the pre-rebrand labels **Mimics**, **New Mimic**, and **Ask**. Current labels are **Practice**, **Reference practice**, and **Words**. Use the images for structure. If a label disagrees with the code or `docs/brand/messaging.md`, follow those. Refresh a capture when that screen’s layout or labels change. `build/previews` is synthetic and stays gitignored.
+
+| File | Screen |
 | --- | --- |
-| Pitch / pauses / HNR / CPP / spectrogram | `Sources/VoiceCoachCore/Analysis/` |
-| Mimic practice signals | `Sources/VoiceCoachCore/Coaching/CoachingPlan.swift` |
-| Per-word pitch/loudness | `Sources/VoiceCoachCore/Analysis/WordAcousticAnalyzer.swift` |
-| JSON export shape | `Sources/VoiceCoachCore/Reports/ReportFormatter.swift` + report tests + SelfTest |
-| Apple / Parakeet transcription | `Sources/VoiceCoachCore/Transcription/`, `scripts/setup-transcription.sh` |
-| Import normalize to WAV | `Sources/VoiceCoachCore/Audio/AudioImportService.swift` |
-| Session models / library projection | `Sources/VoiceCoachSession/Models/` |
-| Session persistence / migrations | `Sources/VoiceCoachSession/Persistence/SessionStore.swift` |
-| App-wide state and actions | `Sources/VoiceCoachApp/Application/AppModel*.swift` |
-| Record / playback platform service | `Sources/VoiceCoachApp/Services/AudioRecorder.swift` |
-| Mimic reference Mac audio | `Sources/VoiceCoachApp/Services/SystemAudioCapture.swift`, `Features/Mimic/` |
-| Home / Library / Mimics / Take / Settings | `Sources/VoiceCoachApp/Features/` |
-| Shell / sidebar / inspectors | `Sources/VoiceCoachApp/Navigation/`, feature inspector files |
-| Charts and timelines | `Sources/VoiceCoachApp/Visualization/` |
-| Palette / glass / reusable chrome | `Sources/VoiceCoachApp/DesignSystem/` |
-| Fixture screenshots | `Sources/VoiceCoachApp/PreviewSupport/RenderPreviews.swift`, `scripts/render-previews.sh` |
+| `01-home.png` | Home |
+| `02-library.png` | Library |
+| `03-mimics.png` | Practice list |
+| `04-mimic-practice.png` | Reference practice |
+| `05-mimic-compare.png` | Compare |
+| `06-mimic-analysis.png` | Analysis |
+| `07-take.png` | Take |
+| `08-settings.png` | Settings |
+| `08b-settings-transcription.png` | Settings → Transcription |
+| `09-new-mimic.png` | New reference practice |
+| `10-recording.png` | Recording |
 
 ## Boundaries
 
-- Do not commit `.build/`, `build/`, or personal WAVs/recordings (see `.gitignore`).
-- Do not treat `docs/screenshots/` as live UI truth without regenerating when layout changes.
-- Ask before adding dependencies, lowering the macOS deployment target in SPM, or introducing network/cloud analysis.
-- Prefer extending SelfTest contracts when changing report keys or acoustic invariants.
-
-## Pointers
-
-- Human-oriented product docs: `README.md`
-- Architecture and dependency rules: `docs/architecture/README.md`
-- Peekaboo macOS UI QA & automation guide: `docs/PEEKABOO.md`
-- Cloud bootstrap: `scripts/cloud-agent-install.sh`
-- Official AGENTS.md convention: https://agents.md/
+- Do not commit `.build/`, `build/`, or personal recordings. Keep `docs/screenshots/`.
+- Ask before adding a dependency, lowering the deployment target, or adding network or cloud analysis.
