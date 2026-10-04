@@ -1,6 +1,6 @@
 # Ichido rebrand and product clarity plan
 
-Status: implementation and local verification complete; repository release and Site publication in progress. This document is the working brief and acceptance record for the October 2026 rebrand.
+Status: delivered. App rebrand, early-access release, marketing assets, and existing public Site publication are complete. This document is the working brief and acceptance record for the October 2026 rebrand.
 
 ## Brand decision
 
@@ -46,7 +46,7 @@ Retain the recognisable cobalt ribbon and app icon. Warm ivory, cobalt, Space Gr
 - [x] Website uses current screenshots, accurate media labels, accessible interactions, and responsive layouts.
 - [x] README, installation/release guidance, brand messaging, and social metadata agree with the delivered state.
 - [x] Relevant automated and visual checks pass; hardware and real language accuracy are not claimed from fixtures.
-- [ ] Hosted source and published version match the verified artifact; the live page and download destination are checked.
+- [x] Hosted source and published version match the verified artifact; the live page and download destination are checked.
 
 The launch campaign, new demo video, and motion-design production are explicitly the next phase.
 
@@ -58,3 +58,15 @@ The launch campaign, new demo video, and motion-design production are explicitly
 - Live native Home, reference practice, Words, language settings, Light, and Dark were inspected. Original system Dark appearance was restored. The native appearance mismatch discovered during review was fixed by reading AppKit effective appearance after clearing overrides.
 - Website checks, ribbon tests, static build, and `git diff --check` pass. Browser review covers widths 320, 390, 768, and 1440 with no horizontal overflow, tab keyboard navigation, dialog focus restoration, mobile menu dismissal, exclusive FAQ expansion, video chapter seeking and close/pause, and ribbon click/keyboard/pause/resume. Automated ribbon checks cover reduced motion and mobile fallback. Browser console has no warnings or errors.
 - Acoustic accuracy, microphone/system-audio hardware capture, broad translation quality, and a complete older-app Sparkle install/relaunch are not established by these checks. The app remains ad-hoc signed and not Apple-notarized.
+
+## Published delivery — 4 October 2026
+
+- [Rebrand PR #69](https://github.com/Gowtham1729/voice-coach/pull/69) merged as `fb2a90922f8ec504c7edbfd792492056451ecfb4`. The final PR [CI gate](https://github.com/Gowtham1729/voice-coach/actions/runs/37203697619) passed.
+- [Ichido 0.0.2](https://github.com/Gowtham1729/voice-coach/releases/tag/v0.0.2), build 14, is public. The [release workflow](https://github.com/Gowtham1729/voice-coach/actions/runs/37203982271) passed tests, app build, ZIP packaging, signed Sparkle feed generation/verification, and release creation.
+- `Ichido-0.0.2-macOS.zip`, `Ichido-macOS.zip`, and the legacy `Voice-Coach-macOS.zip` share SHA-256 `aba09ccf6a59ea7deb1e96964be47763a855249a4bba3b13e49f8dba3db1a9ff`. The public versioned archive was downloaded, unpacked, and its nested ad-hoc signatures verified. Bundle metadata is Ichido, version 0.0.2/build 14, macOS 26.0, with `com.gowtham.voicecoach` and `VoiceCoachApp` retained.
+- The appcast advertises build 14/macOS 26.0 and references the versioned Ichido archive with matching length and an EdDSA signature. Stable Ichido/legacy download aliases and `appcast.xml` resolve publicly. This does not establish an older-app updater install/relaunch.
+- Existing public Site: [Ichido](https://voice-coach-studio.gowtham.chatgpt.site/). Saved version **17**, source `d12e132c1f9608a86e03c30ea42b8d7762d9e392`, deployment `appgdep_6ac24ebb59e08191b7976e808729b1b7`, status **succeeded**. Existing audience and address are preserved; display title is Ichido.
+- The live headline, four practice tabs, version, and download destination were checked. Production scripts/styles, five main product captures, and the share image returned HTTP 200 and matched local SHA-256 hashes. The live desktop page had no overflow or browser console warnings/errors.
+- Creative Production board `bc0cae48-ac7c-48ce-98b6-5ff01b36f2a4` contains the website desktop/mobile captures, native Home capture, and share card. All four items completed; final board revision is 6.
+
+This delivery record updates documentation only. The deployed website files remain identical to the verified version 17 artifact.
