@@ -8,9 +8,7 @@ struct SessionChatInspector: View {
   @Environment(\.studioSnapshot) private var snapshot
   @State private var status = CoachingWordingGenerator.status
   @State private var copiedAnswerID: UUID?
-  @State private var choosingSentence = false
-  @State private var showingContext = false
-  @State private var translationPassage: SessionChatPassage?
+  @State private var translationPassage: SessionChatTranscript?
 
   private var busy: Bool {
     model.isRecording || model.isAnalyzing || model.isCapturingMimicReference
@@ -21,20 +19,17 @@ struct SessionChatInspector: View {
       && !conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
       && conversation.draft.count <= SessionChatConversation.questionLimit
   }
-  private var activePassage: SessionChatPassage? { conversation.activePassage }
-  private var sources: [SessionChatPassage.Origin] {
+  private var activeTranscript: SessionChatTranscript? { conversation.activeTranscript }
+  private var sources: [SessionChatTranscript.Origin] {
     [.reference, .attempt].filter { origin in
-      conversation.context.passages.contains { $0.origin == origin }
+      conversation.context.sources.contains { $0.origin == origin }
     }
   }
-  private var sourcePassages: [SessionChatPassage] {
-    conversation.context.passages.filter { $0.origin == activePassage?.origin }
-  }
-  private var sourceSelection: Binding<SessionChatPassage.Origin> {
+  private var sourceSelection: Binding<SessionChatTranscript.Origin> {
     Binding(
-      get: { activePassage?.origin ?? .attempt },
+      get: { activeTranscript?.origin ?? .attempt },
       set: { origin in
-        conversation.selection = conversation.context.passages.first { $0.origin == origin }
+        conversation.selection = conversation.context.sources.first { $0.origin == origin }
       })
   }
 
@@ -70,14 +65,13 @@ struct SessionChatInspector: View {
         }
         ForEach(conversation.exchanges) { exchange in
           message(
-            question: exchange.question, quotedLine: exchange.quotedLine, source: exchange.source,
+            question: exchange.question,
             answer: exchange.answer, id: exchange.id)
           Divider()
         }
         if let question = conversation.pendingQuestion {
           message(
-            question: question, quotedLine: conversation.pendingPassage?.text,
-            source: conversation.pendingPassage?.origin, answer: nil, id: nil)
+            question: question, answer: nil, id: nil)
           ProgressView("Thinking on this Mac…").controlSize(.small)
         }
         if let error = conversation.errorMessage {
@@ -96,20 +90,13 @@ struct SessionChatInspector: View {
   }
 
   private func message(
-    question: String, quotedLine: String?, source: SessionChatPassage.Origin?,
+    question: String,
     answer: String?, id: UUID?
   ) -> some View {
     VStack(alignment: .leading, spacing: 8) {
       Text("You").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
       Text(question).font(.callout).textSelection(.enabled)
         .fixedSize(horizontal: false, vertical: true)
-      if let quotedLine {
-        DisclosureGroup("\(sourceName(source ?? .attempt)) · Text used") {
-          Text(quotedLine).font(.caption).foregroundStyle(.secondary)
-            .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
-        }
-        .font(.caption).foregroundStyle(.secondary)
-      }
       if let answer, let id {
         HStack {
           Text("Assistant").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
@@ -172,103 +159,48 @@ struct SessionChatInspector: View {
   }
 
   private var contextPicker: some View {
-    VStack(alignment: .leading, spacing: 8) {
+    HStack {
       if sources.count > 1 {
         if snapshot {
-          HStack(spacing: 0) {
-            ForEach(sources, id: \.self) { origin in
-              Text(sourceName(origin))
-                .font(.caption.weight(.medium))
-                .frame(maxWidth: .infinity).padding(.vertical, 5)
-                .background(
-                  activePassage?.origin == origin ? Studio.accent.opacity(0.18) : Color.clear)
-            }
-          }.background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
+          HStack(spacing: 4) {
+            Text(sourceName(activeTranscript?.origin ?? .attempt))
+            Image(systemName: "chevron.down").font(.caption2)
+          }.font(.caption).foregroundStyle(.secondary)
         } else {
-          Picker("Source", selection: sourceSelection) {
+          Picker("Context", selection: sourceSelection) {
             ForEach(sources, id: \.self) { origin in Text(sourceName(origin)).tag(origin) }
-          }.pickerStyle(.segmented).labelsHidden().accessibilityLabel("Transcript source")
+          }
+          .pickerStyle(.menu).labelsHidden().controlSize(.small)
+          .fixedSize().accessibilityLabel("Transcript source")
         }
       } else {
-        Text(sourceName(activePassage?.origin ?? .attempt))
-          .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+        Text(sourceName(activeTranscript?.origin ?? .attempt))
+          .font(.caption).foregroundStyle(.secondary)
       }
-      HStack {
-        Text(
-          activePassage.map {
-            $0.index < 0 ? "Selected text" : "Sentence \($0.index + 1) of \(sourcePassages.count)"
-          }
-            ?? "Selected text"
-        )
-        .font(.caption).foregroundStyle(.secondary)
-        Spacer()
-        Button("Translate…") {
-          translationPassage = activePassage
-        }
-        .controlSize(.small).help("Translate the selected text with macOS")
-        .accessibilityLabel("Translate with macOS")
-        if sourcePassages.count > 1 {
-          Button("Choose…") { choosingSentence = true }
-            .controlSize(.small).accessibilityLabel("Choose transcript sentence")
-            .popover(isPresented: $choosingSentence) { sentenceList }
-        }
-      }
-      if let passage = activePassage {
-        DisclosureGroup(isExpanded: $showingContext) {
-          ScrollView {
-            Text(passage.text).font(.callout).textSelection(.enabled)
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .fixedSize(horizontal: false, vertical: true)
-          }.frame(maxHeight: 140)
-        } label: {
-          Text(passage.text).font(.callout).lineLimit(2)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .help("Show the full text sent with your question")
+      Spacer()
+      if snapshot {
+        Text("Translate…").font(.caption).foregroundStyle(Studio.accent)
+      } else {
+        Button("Translate…") { translationPassage = activeTranscript }
+          .buttonStyle(.borderless).controlSize(.small)
+          .help("Translate the complete transcript with macOS")
+          .accessibilityLabel("Translate with macOS")
       }
     }
     .disabled(conversation.isResponding || busy)
   }
 
-  private var sentenceList: some View {
-    VStack(alignment: .leading, spacing: 0) {
-      Text("\(sourceName(activePassage?.origin ?? .attempt)) sentences")
-        .font(.headline).padding(12)
-      Divider()
-      List(
-        selection: Binding<String?>(
-          get: { activePassage?.id },
-          set: { id in
-            if let passage = sourcePassages.first(where: { $0.id == id }) {
-              conversation.selection = passage
-              choosingSentence = false
-            }
-          }
-        )
-      ) {
-        ForEach(sourcePassages) { passage in
-          HStack(alignment: .top, spacing: 8) {
-            Text("\(passage.index + 1)").font(.caption.monospacedDigit()).foregroundStyle(
-              .secondary)
-            Text(passage.text).font(.callout).multilineTextAlignment(.leading)
-              .fixedSize(horizontal: false, vertical: true)
-          }.padding(.vertical, 4).tag(passage.id)
-        }
-      }.listStyle(.inset)
-    }.frame(width: 360, height: 360)
-  }
-
   private var composer: some View {
     VStack(alignment: .leading, spacing: 8) {
       Menu("Suggested questions") {
-        Button("Explain the meaning") { conversation.draft = "What does this sentence mean?" }
+        Button("Explain the meaning") { conversation.draft = "What does this transcript mean?" }
         Button("Word-by-word meanings") {
           conversation.draft =
             "Explain each word or meaningful phrase in English. Use one mapping per line: source = meaning."
         }
         Button("Synonyms in context") {
           conversation.draft =
-            "Which words in this sentence have useful synonyms? Explain the differences in meaning."
+            "Which words in this transcript have useful synonyms? Explain the differences in meaning."
         }
         Menu("Translate into") {
           ForEach(SessionChatTask.menuLanguages, id: \.self) { language in
@@ -279,10 +211,10 @@ struct SessionChatInspector: View {
       .controlSize(.small).disabled(!modelReady || conversation.isResponding || busy)
       HStack(alignment: .bottom, spacing: 8) {
         if snapshot {
-          Text("Ask about these words…").font(.callout).foregroundStyle(.secondary)
+          Text("Ask about this transcript…").font(.callout).foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
         } else {
-          TextField("Ask about these words…", text: $conversation.draft, axis: .vertical)
+          TextField("Ask about this transcript…", text: $conversation.draft, axis: .vertical)
             .lineLimit(1...5).textFieldStyle(.roundedBorder)
             .accessibilityLabel("Language question")
             .onSubmit { if canSend { conversation.send() } }
@@ -301,7 +233,7 @@ struct SessionChatInspector: View {
     }
   }
 
-  private func sourceName(_ origin: SessionChatPassage.Origin) -> String {
+  private func sourceName(_ origin: SessionChatTranscript.Origin) -> String {
     origin == .reference ? "Reference" : (conversation.context.isMimic ? "This take" : "Recording")
   }
 }

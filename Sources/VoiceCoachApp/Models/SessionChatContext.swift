@@ -34,21 +34,19 @@ struct SessionChatContext: Equatable, Sendable {
     }
   }
 
-  var passages: [SessionChatPassage] {
-    SessionChatPassages.make(origin: .attempt, text: transcript)
-      + SessionChatPassages.make(origin: .reference, text: referenceTranscript)
+  var sources: [SessionChatTranscript] {
+    [SessionChatTranscript.Origin.reference, .attempt].compactMap { origin in
+      let text = origin == .reference ? referenceTranscript : transcript
+      guard let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        return nil
+      }
+      return SessionChatTranscript(origin: origin, text: text)
+    }
   }
 
   static let missingTranscript = "No transcript."
 
-  /// The line a question uses when the person has not picked one.
-  var fallbackQuote: String {
-    if let line = passages.first(where: { $0.origin == (isMimic ? .reference : .attempt) })?.text
-      ?? passages.first?.text
-    {
-      return line
-    }
-    return Self.missingTranscript
+  var defaultTranscript: SessionChatTranscript? {
+    sources.first { $0.origin == (isMimic ? .reference : .attempt) } ?? sources.first
   }
-
 }

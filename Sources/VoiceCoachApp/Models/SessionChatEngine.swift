@@ -1,81 +1,15 @@
 import Foundation
-import NaturalLanguage
-import VoiceCoachCore
 
-/// One speakable line the chat can stay attached to.
-struct SessionChatPassage: Identifiable, Equatable, Sendable {
+/// The complete transcript from one selected source, without sentence splitting.
+struct SessionChatTranscript: Identifiable, Equatable, Sendable {
   enum Origin: String, Sendable {
     case attempt
     case reference
   }
 
   let origin: Origin
-  let index: Int
   let text: String
-
-  var id: String { "\(origin.rawValue)-\(index)" }
-
-}
-
-enum SessionChatPassages {
-  static func make(origin: SessionChatPassage.Origin, text: String?) -> [SessionChatPassage] {
-    sentences(in: text).enumerated().map { index, sentence in
-      SessionChatPassage(origin: origin, index: index, text: clip(sentence, limit: 1000))
-    }
-  }
-
-  static func sentences(in text: String?) -> [String] {
-    let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    guard !trimmed.isEmpty else { return [] }
-    var results: [String] = []
-    for line in trimmed.split(whereSeparator: \.isNewline) {
-      let piece = line.trimmingCharacters(in: .whitespacesAndNewlines)
-      guard !piece.isEmpty else { continue }
-      results.append(contentsOf: splitOnTerminators(piece))
-    }
-    return results
-  }
-
-  /// Maps a tapped transcript word back to its sentence. Word timings and the
-  /// joined transcript usually move together; a text search covers the rest.
-  static func sentence(containingWordAt index: Int, words: [TranscriptWord], text: String)
-    -> String?
-  {
-    let sentences = sentences(in: text)
-    guard words.indices.contains(index), !sentences.isEmpty else { return nil }
-    var cursor = 0
-    for sentence in sentences {
-      let tokens = max(sentence.split(whereSeparator: \.isWhitespace).count, 1)
-      let end = min(words.count, cursor + tokens)
-      if (cursor..<end).contains(index) { return clip(sentence, limit: 1000) }
-      cursor = end
-    }
-    let needle = words[index].word.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !needle.isEmpty else { return nil }
-    return sentences.first { $0.localizedCaseInsensitiveContains(needle) }.map {
-      clip($0, limit: 500)
-    }
-  }
-
-  static func clip(_ text: String, limit: Int) -> String {
-    let marker = " [excerpt; remainder omitted]"
-    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-    if trimmed.hasSuffix(marker) { return trimmed }
-    guard trimmed.count > limit else { return trimmed }
-    return String(trimmed.prefix(limit)) + marker
-  }
-
-  private static func splitOnTerminators(_ text: String) -> [String] {
-    var sentences: [String] = []
-    let tokenizer = NLTokenizer(unit: .sentence)
-    tokenizer.string = text
-    tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
-      let sentence = text[range].trimmingCharacters(in: .whitespacesAndNewlines)
-      if !sentence.isEmpty { sentences.append(sentence) }
-      return true
-    }
-    return sentences.isEmpty ? [text] : sentences
-  }
+  var id: String { origin.rawValue }
 }
 
 struct SessionChatReply: Equatable, Sendable {
@@ -130,10 +64,10 @@ enum SessionChatTask: Equatable, Sendable {
 
   var instructions: String {
     let common = """
-      You are a language reference assistant for selected transcript text.
+      You are a language reference assistant for the selected transcript.
       Explain meanings, vocabulary, grammar concepts, translations, and examples.
       Follow the user's requested format, detail, and language. Keep answers concise unless more detail is requested.
-      For word-by-word meanings, put each word or meaningful phrase on its own line: source = meaning. Cover all the selected text, not just the example phrase.
+      For word-by-word meanings, put each word or meaningful phrase on its own line: source = meaning. Cover the full transcript, not just the example phrase.
       A follow-up can revise the format of the previous answer. Do not repeat an answer that the user asks you to change.
       Do not evaluate the user's take, pronunciation, voice, fluency, or performance. Do not give coaching or improvement advice.
       For evaluation or improvement requests, say this chat only explains language.
@@ -221,15 +155,16 @@ enum SessionChatRouter {
 enum SessionChatPromptComposer {
   static func make(
     context: SessionChatContext,
-    focus: String?,
+    transcript: String? = nil,
     history: [SessionChatConversation.Exchange],
     task: SessionChatTask,
-    source: SessionChatPassage.Origin? = nil
+    source: SessionChatTranscript.Origin? = nil
   ) -> SessionChatRequest {
-    let quoted = SessionChatPassages.clip(focus ?? context.fallbackQuote, limit: 1000)
+    let selected = context.sources.first { $0.origin == source } ?? context.defaultTranscript
+    let quoted = transcript ?? selected?.text ?? SessionChatContext.missingTranscript
     var lines = [
-      "Selected source: \(source == .reference ? "Reference transcript" : "Take transcript")",
-      "Selected text (may contain recognition errors): \(encoded(quoted))",
+      "Selected source: \((source ?? selected?.origin) == .reference ? "Reference transcript" : "Take transcript")",
+      "Complete transcript (may contain recognition errors): \(encoded(quoted))",
     ]
     // Every task needs prior turns to respect 'each word', 'like this', and corrections.
     let recent = history.suffix(3)
@@ -237,13 +172,17 @@ enum SessionChatPromptComposer {
       lines.append("Earlier:")
       for exchange in recent {
         lines.append(
-          "Question: \(encoded(SessionChatPassages.clip(exchange.question, limit: 500)))")
-        lines.append("Answer: \(encoded(SessionChatPassages.clip(exchange.answer, limit: 800)))")
+          "Question: \(encoded(clip(exchange.question, limit: 500)))")
+        lines.append("Answer: \(encoded(clip(exchange.answer, limit: 800)))")
       }
     }
     lines.append("User question: \(encoded(task.question))")
     return SessionChatRequest(
       instructions: task.instructions, prompt: lines.joined(separator: "\n"))
+  }
+
+  private static func clip(_ text: String, limit: Int) -> String {
+    text.count > limit ? String(text.prefix(limit)) + " [earlier message shortened]" : text
   }
 
   private static func encoded(_ text: String) -> String {

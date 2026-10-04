@@ -20,10 +20,10 @@ enum SessionChatError: LocalizedError {
     switch self {
     case .unavailable: "On-device chat is unavailable. Check Apple Intelligence in System Settings."
     case .contextTooLarge:
-      "That request is too long for the local model. Ask about one shorter line."
+      "The complete transcript and conversation exceed the local model’s context limit. Clear the chat to retry without earlier messages, or use a shorter recording."
     case .unsupportedLanguage:
       "The local model does not support that language. Try another one."
-    case .refused: "The local model could not answer that. Try asking about the line another way."
+    case .refused: "The local model could not answer that. Try rephrasing your question."
     case .emptyResponse: "The local model returned no answer. Try again."
     }
   }

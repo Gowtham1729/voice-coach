@@ -6,20 +6,17 @@ final class SessionChatConversation: ObservableObject {
   struct Exchange: Identifiable, Equatable {
     let id: UUID
     let question: String
-    let quotedLine: String?
     let answer: String
-    let source: SessionChatPassage.Origin?
+    let source: SessionChatTranscript.Origin?
 
     init(
       id: UUID = UUID(),
       question: String,
-      quotedLine: String? = nil,
       answer: String,
-      source: SessionChatPassage.Origin? = nil
+      source: SessionChatTranscript.Origin? = nil
     ) {
       self.id = id
       self.question = question
-      self.quotedLine = quotedLine
       self.answer = answer
       self.source = source
     }
@@ -27,25 +24,10 @@ final class SessionChatConversation: ObservableObject {
 
   let context: SessionChatContext
   @Published var draft = ""
-  @Published var selection: SessionChatPassage?
-  var focus: String? {
-    get { selection?.text }
-    set {
-      guard let newValue else {
-        selection = nil
-        return
-      }
-      selection =
-        context.passages.first { $0.origin == .attempt && $0.text == newValue }
-        ?? context.passages.first { $0.text == newValue }
-        ?? SessionChatPassage(origin: .attempt, index: -1, text: newValue)
-    }
+  @Published var selection: SessionChatTranscript?
+  var activeTranscript: SessionChatTranscript? {
+    selection ?? context.defaultTranscript
   }
-  var activePassage: SessionChatPassage? {
-    selection ?? context.passages.first { $0.origin == (context.isMimic ? .reference : .attempt) }
-      ?? context.passages.first
-  }
-  @Published private(set) var pendingPassage: SessionChatPassage?
   @Published private(set) var exchanges: [Exchange] = []
   @Published private(set) var pendingQuestion: String?
   @Published private(set) var errorMessage: String?
@@ -68,7 +50,7 @@ final class SessionChatConversation: ObservableObject {
     guard canSubmit(question) else { return }
     switch SessionChatRouter.route(question) {
     case .local(let reply):
-      commit(question: question, passage: activePassage, reply: reply)
+      commit(question: question, passage: activeTranscript, reply: reply)
     case .model(let task):
       submit(task)
     }
@@ -77,7 +59,7 @@ final class SessionChatConversation: ObservableObject {
   func send(_ task: SessionChatTask) {
     guard canSubmit(task.question) else { return }
     if SessionChatRouter.isCoachingRequest(task.question) {
-      commit(question: task.question, passage: activePassage, reply: .voiceBoundary)
+      commit(question: task.question, passage: activeTranscript, reply: .voiceBoundary)
     } else {
       submit(task)
     }
@@ -113,10 +95,9 @@ final class SessionChatConversation: ObservableObject {
     pendingQuestion = question
     errorMessage = nil
     if draft.trimmingCharacters(in: .whitespacesAndNewlines) == question { draft = "" }
-    let passage = activePassage
-    pendingPassage = passage
+    let passage = activeTranscript
     let request = SessionChatPromptComposer.make(
-      context: context, focus: passage?.text, history: exchanges, task: task,
+      context: context, transcript: passage?.text, history: exchanges, task: task,
       source: passage?.origin)
     let responder = responder
     self.task = Task { [weak self] in
@@ -140,11 +121,10 @@ final class SessionChatConversation: ObservableObject {
     }
   }
 
-  private func commit(question: String, passage: SessionChatPassage?, reply: SessionChatReply) {
+  private func commit(question: String, passage: SessionChatTranscript?, reply: SessionChatReply) {
     exchanges.append(
       Exchange(
         question: question,
-        quotedLine: passage?.text,
         answer: reply.answer,
         source: passage?.origin
       )
@@ -156,7 +136,6 @@ final class SessionChatConversation: ObservableObject {
 
   private func finishRequest() {
     pendingQuestion = nil
-    pendingPassage = nil
     requestID = nil
     task = nil
   }

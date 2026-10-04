@@ -78,7 +78,6 @@ final class AppModel: ObservableObject {
   @Published var insightActionOverrides: [String: String] = [:]
   var insightAttemptedKeys: Set<String> = []
   var sessionChats: [SessionChatContext.Scope: SessionChatConversation] = [:]
-  var pendingChatFocus: [SessionChatContext.Scope: String] = [:]
   @Published var askInspectorNonce = 0
   @Published private(set) var experimentsRevision = 0
 

@@ -106,17 +106,14 @@
 
       func renderChat(_ name: String, context: SessionChatContext, width: CGFloat = 320) throws {
         let conversation = model.conversation(for: context)
-        let quote = context.passages.first?.text
         conversation.replaceForPreview(exchanges: [
           .init(
             question: "What does this line mean?",
-            quotedLine: quote,
             answer:
               "**Pause** means a brief break in speech. Here, it gives the listener time to absorb an idea."
           ),
           .init(
             question: "Give me synonyms for pause and explain the difference.",
-            quotedLine: quote,
             answer:
               "**Break** = a general interruption.\n**Moment of silence** = a pause without speaking.\n**Hesitation** = a pause caused by uncertainty."
           ),

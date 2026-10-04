@@ -38,7 +38,7 @@ struct SessionChatTests {
     #expect(SessionChatContext(session: session, take: nil) == nil)
   }
 
-  @Test func longTranscriptsAndHistoryAreBoundedWithoutInventingMissingWords() throws {
+  @Test func completeTranscriptsArePreservedAndOnlyHistoryIsShortened() throws {
     let (session, take) = fixture(text: String(repeating: "word ", count: 5000) + "SECRET_TAIL")
     let context = try #require(SessionChatContext(session: session, take: take))
     let exchanges = (0..<10).map {
@@ -46,24 +46,24 @@ struct SessionChatTests {
         question: "question-\($0)", answer: String(repeating: "reply ", count: 300))
     }
     let explain = SessionChatPromptComposer.make(
-      context: context, focus: nil, history: exchanges, task: .explain("Explain word")
+      context: context, transcript: nil, history: exchanges, task: .explain("Explain word")
     ).prompt
-    #expect(explain.contains("remainder omitted"))
-    #expect(!explain.contains("SECRET_TAIL"))
+    #expect(explain.contains("SECRET_TAIL"))
+    #expect(!explain.contains("remainder omitted"))
     #expect(explain.contains("Earlier:"))
     #expect(explain.contains("question-9"))
     let prompt = SessionChatPromptComposer.make(
-      context: context, focus: nil, history: exchanges, task: .ask("Why does that word fit?")
+      context: context, transcript: nil, history: exchanges, task: .ask("Why does that word fit?")
     ).prompt
     #expect(!prompt.contains("question-6"))
     #expect(prompt.contains("question-8"))
     #expect(prompt.contains("question-9"))
-    #expect(prompt.count < 4500)
+    #expect(prompt.count < (context.transcript?.count ?? 0) + 4500)
     let (emptySession, emptyTake) = fixture(text: " ")
     let empty = try #require(SessionChatContext(session: emptySession, take: emptyTake))
     #expect(!empty.hasTranscript)
     let emptyPrompt = SessionChatPromptComposer.make(
-      context: empty, focus: nil, history: [], task: .explain("What does this mean?")
+      context: empty, transcript: nil, history: [], task: .explain("What does this mean?")
     )
     #expect(emptyPrompt.prompt.contains("No transcript."))
     #expect(!emptyPrompt.instructions.localizedCaseInsensitiveContains("can't hear"))
@@ -88,7 +88,7 @@ struct SessionChatTests {
     #expect(model.conversation(for: firstContext) === first)
     #expect(
       !SessionChatPromptComposer.make(
-        context: secondContext, focus: nil, history: second.exchanges, task: .ask("Hello")
+        context: secondContext, transcript: nil, history: second.exchanges, task: .ask("Hello")
       ).prompt.contains("My private question"))
     model.removeSessionChats(sessionID: firstSession.id, takeID: firstTake.id)
     #expect(first.draft.isEmpty)
@@ -162,7 +162,7 @@ struct SessionChatTests {
     let context = try #require(SessionChatContext(session: session, take: take))
     let responder = LocalSessionChatResponder()
     let meaning = SessionChatPromptComposer.make(
-      context: context, focus: nil, history: [],
+      context: context, transcript: nil, history: [],
       task: .explain("What does pause mean in this sentence?"))
     #expect(!meaning.instructions.localizedCaseInsensitiveContains("can't hear"))
     #expect(!meaning.instructions.localizedCaseInsensitiveContains("cannot hear"))
@@ -177,14 +177,14 @@ struct SessionChatTests {
     ]
     let second = try await responder.respond(
       to: SessionChatPromptComposer.make(
-        context: context, focus: nil, history: history,
+        context: context, transcript: nil, history: history,
         task: .synonym("Give me a synonym that fits here and explain any difference.")))
     print("Local chat synonym response: \(second.answer)")
     #expect(!second.answer.isEmpty)
     #expect(!second.answer.localizedCaseInsensitiveContains("can't hear"))
     let misheard = try await responder.respond(
       to: SessionChatPromptComposer.make(
-        context: context, focus: "I want my stake cooked medium rare.", history: [],
+        context: context, transcript: "I want my stake cooked medium rare.", history: [],
         task: .explain("What does stake mean here?")))
     print("Local chat mishearing response: \(misheard.answer)")
     #expect(!misheard.answer.localizedCaseInsensitiveContains("can't hear"))
@@ -192,13 +192,13 @@ struct SessionChatTests {
     #expect(!misheard.answer.localizedCaseInsensitiveContains("practiceline"))
     let translation = try await responder.respond(
       to: SessionChatPromptComposer.make(
-        context: context, focus: nil, history: [],
+        context: context, transcript: nil, history: [],
         task: .translate(language: "French", question: "Translate this into French.")))
     print("Local chat translation response: \(translation.answer)")
     #expect(!translation.answer.isEmpty)
     let wordMeanings = try await responder.respond(
       to: SessionChatPromptComposer.make(
-        context: context, focus: "Nous sommes de retour à Paris.", history: [],
+        context: context, transcript: "Nous sommes de retour à Paris.", history: [],
         task: .ask(
           "Translate each word or phrase into English. One mapping per line: nous sommes = we are.")
       ))
@@ -213,7 +213,6 @@ struct SessionChatTests {
     let context = try #require(SessionChatContext(session: session, take: take))
     let responder = ControlledChatResponder()
     let chat = SessionChatConversation(context: context, responder: responder)
-    chat.focus = "A thoughtful pause gives an idea room to land."
     chat.draft = "What does pause mean here?"
     chat.send()
     try await waitUntil { !responder.requests.isEmpty }
@@ -244,28 +243,23 @@ struct SessionChatTests {
 
   }
 
-  @Test func sentenceSelectionPreservesAbbreviationsAndDecimals() {
-    let sentences = SessionChatPassages.sentences(in: "Dr. Smith paid 3.50 euros. Then she left.")
-    #expect(sentences == ["Dr. Smith paid 3.50 euros.", "Then she left."])
-    let long = (1...12).map { "Sentence \($0)." }.joined(separator: " ")
-    #expect(SessionChatPassages.make(origin: .reference, text: long).count == 12)
+  @Test func allSentencesAndParagraphsReachTheModelTogether() throws {
+    let text =
+      "Dr. Smith paid 3.50 euros. Then she left.\n\n"
+      + String(repeating: "Another sentence. ", count: 80) + "Final sentence."
+    let (session, take) = fixture(text: text)
+    let context = try #require(SessionChatContext(session: session, take: take))
+    #expect(context.sources.count == 1)
+    #expect(context.defaultTranscript?.text == text)
+    let request = SessionChatPromptComposer.make(
+      context: context, history: [], task: .ask("Explain all of this"))
+    let encoded = String(data: try JSONEncoder().encode(text), encoding: .utf8)!
+    #expect(request.prompt.contains(encoded))
+    #expect(request.prompt.contains("Final sentence."))
+    #expect(!request.prompt.contains("remainder omitted"))
   }
 
-  @Test func passagesFollowWordSelectionAndTasksStaySeparate() {
-    let text = "A thoughtful pause gives an idea room to land. The budget can wait."
-    let sentences = SessionChatPassages.sentences(in: text)
-    #expect(sentences.count == 2)
-    let words = sentences.flatMap { $0.split(whereSeparator: \.isWhitespace).map(String.init) }
-      .enumerated().map { index, word in
-        TranscriptWord(word: word, start: Double(index), end: Double(index) + 0.2)
-      }
-    #expect(
-      SessionChatPassages.sentence(containingWordAt: 2, words: words, text: text)?.contains("pause")
-        == true)
-    #expect(
-      SessionChatPassages.sentence(containingWordAt: 9, words: words, text: text)?.contains(
-        "budget")
-        == true)
+  @Test func languageFormatsAndAnswerCleaningRemainFlexible() {
     #expect(
       SessionChatAnswerCleaner.clean("Sorry, I can't hear you. Pause means a brief stop.")
         == "Pause means a brief stop.")
@@ -321,26 +315,17 @@ struct SessionChatTests {
     let context = try #require(SessionChatContext(session: mimic, take: take))
     let responder = ControlledChatResponder()
     let chat = SessionChatConversation(context: context, responder: responder)
-    #expect(chat.activePassage?.origin == .reference)
+    #expect(chat.activeTranscript?.origin == .reference)
     chat.draft = "Explain this sentence"
     chat.send()
     try await waitUntil { responder.pending != nil }
     #expect(responder.requests.last?.prompt.contains("Reference transcript") == true)
-    chat.selection = context.passages.first { $0.origin == .attempt }
-    #expect(chat.activePassage?.origin == .attempt)
-    #expect(chat.pendingPassage?.origin == .reference)
+    chat.selection = context.sources.first { $0.origin == .attempt }
+    #expect(chat.activeTranscript?.origin == .attempt)
     responder.complete(.success(SessionChatReply(answer: "An example of sameness.")))
     try await waitUntil { !chat.isResponding }
     #expect(chat.exchanges.last?.source == .reference)
-    #expect(chat.exchanges.last?.quotedLine == "Identical sentence.")
-    chat.focus = "Another selected sentence."
-    chat.draft = "What does another mean?"
-    chat.send()
-    try await waitUntil { responder.pending != nil }
-    chat.focus = "A third sentence."
-    responder.complete(.success(SessionChatReply(answer: "One more.")))
-    try await waitUntil { !chat.isResponding }
-    #expect(chat.exchanges.last?.quotedLine == "Another selected sentence.")
+
   }
 
   @Test func requestedBreakdownsAndFollowupFormatsRemainIntact() throws {
@@ -355,7 +340,7 @@ struct SessionChatTests {
         return nil
       }())
     let request = SessionChatPromptComposer.make(
-      context: context, focus: nil,
+      context: context, transcript: nil,
       history: [
         .init(question: "Translate each word into English", answer: "We are back in Paris.")
       ], task: task)
