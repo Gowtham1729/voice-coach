@@ -78,17 +78,19 @@ struct SettingsView: View {
           }
       } footer: {
         Text(
-          "Try features still being evaluated. Off by default; turning this off closes and clears experimental chats."
+          "Turning this off clears all Words chats."
         )
       }
       if experimentalFeatures {
         Section {
-          LabeledContent("Recording and reference chat", value: "Enabled")
+          LabeledContent("Words", value: "Enabled")
           LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
         } footer: {
-          Text(
-            "Open a recording or practice session and choose Words in the inspector. Replies run on this Mac. Chats are temporary and clear when you quit; only recent messages are included in follow-ups."
-          )
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Choose Words beside a recording or reference to explore its transcript.")
+            Text("Uses Apple Intelligence on this Mac. Chats clear when you quit.")
+            Text("Replies can be wrong. Words can’t hear or evaluate your audio.")
+          }
         }
       }
     }
@@ -100,14 +102,9 @@ struct SettingsView: View {
     return Form {
       Section {
         Toggle("Confirm before deleting", isOn: $confirmDelete)
-      } header: {
-        Text("Deleting")
-      }
-
-      Section {
         Toggle("Hide transcript snippets in Library", isOn: $hideTranscriptSnippets)
       } header: {
-        Text("Library display")
+        Text("Library")
       }
 
       Section {
@@ -122,15 +119,15 @@ struct SettingsView: View {
         Text("Naming")
       } footer: {
         VStack(alignment: .leading, spacing: 4) {
-          Text("Titles use on-device Apple Intelligence when enabled.")
-          if autoGenerateTitles {
+          Text("Uses Apple Intelligence on this Mac.")
+          if autoGenerateTitles && intelligenceStatus != .available {
             Text(intelligenceStatus.settingsFooter)
           }
         }
       }
 
       Section {
-        Toggle("Personalize exercises on device", isOn: $rewriteInsightWording)
+        Toggle("Rephrase practice exercises", isOn: $rewriteInsightWording)
           .onChange(of: rewriteInsightWording) { _, enabled in
             if enabled {
               CoachingWordingGenerator.prewarmIfAvailable()
@@ -144,7 +141,7 @@ struct SettingsView: View {
         Text("Practice next")
       } footer: {
         Text(
-          "Reference comparisons include practice targets measured against the reference. Apple Intelligence can rephrase those exercises on this Mac."
+          "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
         )
       }
     }
@@ -174,11 +171,11 @@ struct SettingsView: View {
       } footer: {
         if activeEngine == .system {
           Text(
-            "Choose the spoken language here. Your Mac’s language stays the same. Saved sessions keep their speech language."
+            "Applies to new recordings and references. Existing recordings keep their language."
           )
         } else {
           Text(
-            "Recognizes supported languages automatically. Japanese and other unsupported languages require Apple."
+            "Detects supported languages automatically. For Japanese, choose Apple."
           )
         }
       }
@@ -195,7 +192,7 @@ struct SettingsView: View {
           },
           actions: {
             if case .needsDownload = systemStatus {
-              Button("Download Language…") {
+              Button("Download language…") {
                 model.ensureSystemTranscriptionAssets()
               }
               .disabled(busy)
@@ -328,16 +325,16 @@ struct SettingsView: View {
           }
         }
         HStack {
-          Text("On-device insight wording")
+          Text("Rephrase practice exercises")
           Spacer()
           Image(systemName: rewriteInsightWording ? "checkmark.circle.fill" : "circle")
             .foregroundStyle(Studio.accent)
         }
-        Text("Recordings stay on this Mac. Titles use Apple Intelligence when enabled.")
+        Text("Titles use Apple Intelligence on this Mac when enabled.")
           .font(.caption)
           .foregroundStyle(.secondary)
         Text(
-          "Coaching decisions are deterministic. On supported devices, wording may be rewritten on device."
+          "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
         )
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -345,7 +342,7 @@ struct SettingsView: View {
 
       snapshotCard("Experiments", symbol: "flask") {
         LabeledContent("Experimental features", value: experimentalFeatures ? "On" : "Off")
-        Text("Optional chat for one recording or practice session. On-device; temporary conversations.")
+        Text("Words explores your transcript on this Mac. Chats clear when you quit.")
           .font(.caption).foregroundStyle(.secondary)
       }
 
@@ -409,9 +406,9 @@ extension TranscriptionEnginePreference {
   fileprivate var settingsFooter: String {
     switch self {
     case .system:
-      "On-device Apple speech. Download only the languages you use; models are shared with the system."
+      "Transcribes on this Mac using Apple’s speech models."
     case .parakeet:
-      "Optional local model (~714 MB). Supports 25 European languages; Japanese is unsupported."
+      "Transcribes on this Mac. Supports 25 European languages; download is about 714 MB."
     }
   }
 }
@@ -422,7 +419,7 @@ extension SystemTranscriptionStatus {
     case .ready(let locale):
       "\(TranscriptionLanguagePreference.displayName(for: locale)) · on-device"
     case .needsDownload(let locale):
-      "Download Apple’s speech model for \(TranscriptionLanguagePreference.displayName(for: locale)). Audio analysis and saving still work without it."
+      "Download \(TranscriptionLanguagePreference.displayName(for: locale)) for transcripts. You can still record and review audio without it."
     case .downloading(let locale):
       "Downloading \(TranscriptionLanguagePreference.displayName(for: locale))…"
     case .unavailable(let message):
@@ -437,7 +434,7 @@ extension TranscriptionSetupStatus {
     case .ready(_, let modelID):
       "\(modelID) · local only"
     case .missing:
-      "Optional. System transcription works without it."
+      "Download Parakeet to use it, or choose Apple above."
     case .installing(let phase):
       phase.userFacingLabel
     case .failed(let message), .unsupported(let message):

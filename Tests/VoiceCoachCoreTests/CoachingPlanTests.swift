@@ -57,10 +57,10 @@ struct CoachingPlanTests {
     #expect(plan.signals[0].observation.contains("reference"))
     #expect(plan.signals[0].action.contains("pace across the phrase"))
     #expect(plan.signals[0].action.contains("transition into"))
-    #expect(plan.signals[0].progress?.contains("previous attempt") == true)
+    #expect(plan.signals[0].progress?.contains("previous take") == true)
     #expect(plan.signals[1].id == "mimic.pitch.4")
     #expect(plan.signals[1].observation.contains("important"))
-    #expect(plan.signals[1].progress?.contains("previous attempt") == true)
+    #expect(plan.signals[1].progress?.contains("previous take") == true)
     #expect(CoachingPlanner.mimic(reference: reference, attempt: attempt)
       .signals.allSatisfy { $0.progress == nil })
 
@@ -86,7 +86,7 @@ struct CoachingPlanTests {
     #expect(plan.signals[0].observation.contains("“speaker”"))
     #expect(plan.signals[0].action.contains("across the phrase"))
     #expect(plan.signals[0].action.contains("“speaker”"))
-    #expect(plan.signals[0].progress?.contains("Closer than the previous attempt") == true)
+    #expect(plan.signals[0].progress?.contains("Closer than the previous take") == true)
     #expect(CoachingActionRules.accepted(
       "Follow the reference's pitch movement across the phrase, using ‘speaker’ as a checkpoint.",
       for: plan.signals[0]) != nil)

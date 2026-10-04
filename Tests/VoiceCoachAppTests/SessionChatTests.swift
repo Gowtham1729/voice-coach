@@ -233,7 +233,7 @@ struct SessionChatTests {
     chat.send()
     #expect(chat.exchanges.count == 2)
     #expect(responder.requests.count == 1)
-    #expect(chat.exchanges.last?.answer.contains("language") == true)
+    #expect(chat.exchanges.last?.answer == SessionChatReply.voiceBoundary.answer)
 
     chat.send(.translate(language: "French", question: "Translate this into French."))
     try await waitUntil { responder.requests.count == 2 }

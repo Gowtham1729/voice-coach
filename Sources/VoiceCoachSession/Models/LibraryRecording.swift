@@ -32,7 +32,7 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
   }
 
   package var sidebarSubtitle: String {
-    if isMimicAttempt { return "Practice attempt" }
+    if isMimicAttempt { return "Practice take" }
     return take.takeSource.title
   }
 
@@ -48,7 +48,7 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
   }
 
   package var subtitle: String {
-    if isMimicAttempt { return "Practice attempt" }
+    if isMimicAttempt { return "Practice take" }
     if isRetryStack { return prompt.isEmpty ? "Take \(takeNumber) of \(takeCount)" : prompt }
     return take.takeSource.title
   }

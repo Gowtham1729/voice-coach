@@ -85,7 +85,7 @@ struct DesktopLibraryWorkspace: View {
       }
       Button("Cancel", role: .cancel) {}
     } message: { recording in
-      Text("“\(recording.displayTitle)” will be deleted.")
+      Text("This deletes “\(recording.displayTitle)”, including its audio, transcript, and analysis.")
     }
     .alert("Rename", isPresented: renameAlertBinding) {
       TextField("Name", text: $renameText)

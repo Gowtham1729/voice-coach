@@ -17,6 +17,8 @@ node scripts/serve-website.mjs --port 4173
 
 Follow `docs/brand/messaging.md`. The page says **Listen → Understand → Repeat → Compare**. Understand is the optional language step. The app’s own reference loop remains Listen → Repeat → Compare. No accent grades, fluency guarantees, or medical claims.
 
+Use the shared product terms from the messaging guide in headings, instructions, FAQs, and image captions. The FAQ gives short answers to practical questions; avoid internal storage details and former feature names. Keep the Ichido name, descriptor, and website headline consistent with that guide. Replace product screenshots with real captures when visible labels change.
+
 The download URL stays `https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip`. Publish copy for a new version only after that release’s ZIP aliases and signed appcast exist. The app is ad-hoc signed and not notarized.
 
 ## Assets

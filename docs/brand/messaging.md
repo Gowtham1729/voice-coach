@@ -25,6 +25,39 @@ Use **Ichido** in prose and **ichido.** in the website wordmark. Keep the period
 
 Use **Practice** for the app sidebar, **Reference practice** for the feature, and **Words** for the language inspector. Reference-practice modes are **Listen & Repeat** and **Speak Along**. The website sequence Listen → Understand → Repeat → Compare is the marketing page. The app sequence is Listen → Repeat → Compare. A take is one recorded attempt. A reference is the audio someone chooses to practise with. Historical release files and internal Swift names may still contain Voice Coach or Mimic for compatibility.
 
+### Shared product terms
+
+Use this guide for the app, website, README, and release notes. Marketing may explain a feature, but must keep its product name and controls recognizable.
+
+| Term | Meaning and use |
+| --- | --- |
+| Recording | Audio recorded or imported into the library. |
+| Take | One recorded version in a session. Do not label it an attempt. |
+| Reference | The clip chosen for reference practice. |
+| Practice | The sidebar destination for reference practice sessions. |
+| Reference practice | The feature for listening, repeating, and comparing with a reference. |
+| Listen & Repeat | The reference plays first, then recording starts. |
+| Speak Along | The reference plays while the microphone records. Recommend headphones. |
+| Transcript | Recognized text from a recording or reference. |
+| Words | Optional language help beside the transcript. Chat requires Apple Intelligence. |
+| Practice next | Two measured practice targets when enough words match reliably. |
+| Capture Mac audio | Capture what the Mac is playing as a reference. |
+| Settings → Transcription | Choose the speech engine and spoken language. |
+| Settings → Experiments | Enable Words. |
+
+The website’s **Understand** step introduces **Words**; it is optional and does not name another app feature. Keep **Your private speaking room.** as the shared descriptor and **Your words. Your voice. One more try.** as the website headline.
+
+## Interface writing
+
+- Write for the task at hand. Give the next action before background detail.
+- Use familiar words and short, complete sentences. Avoid promotional language, forced encouragement, and explanations of internal architecture.
+- Keep one explanation per decision. Do not repeat instructions already clear from nearby labels or controls.
+- Use sentence case for labels and actions. Keep the established **Listen & Repeat** and **Speak Along** mode names.
+- Label recorded text **Transcript**; reserve **Words** for language help. Use **take** consistently for one attempt.
+- Name actions by their result: **Play selection**, **Retry saving**, **Clear chat**. Use an ellipsis when the user must choose something before the action proceeds.
+- Describe optional features precisely. Rephrasing exercises changes their wording, not the measured targets or selected coaching actions.
+- State deletion scope, audio retention, privacy, and AI limitations plainly. Brevity must not hide consequences or imply abilities the app does not have.
+
 ## Proof and limits
 
 Show the actual app and describe what people can do. Mark synthetic recordings and illustrative chat responses as examples. The old Voice Coach tour is historical footage. Do not present its screens as the current Ichido interface. Do not invent testimonials, social proof, or outcome claims. A later demo or campaign needs its own brief and evidence.

@@ -16,7 +16,7 @@ struct DesktopMimicsWorkspace: View {
             .font(.caption)
             .foregroundStyle(Studio.secondary)
           Spacer()
-          Button("New reference practice", action: model.startMimic)
+          Button("New reference practice…", action: model.startMimic)
             .studioGlassButton(prominent: true)
             .disabled(model.isRecording || model.isAnalyzing)
         }
@@ -26,10 +26,10 @@ struct DesktopMimicsWorkspace: View {
             Label("No reference practice yet", systemImage: "waveform.path")
           } description: {
             Text(
-              "Import a clip and practice against it."
+              "Add a reference clip, then listen, repeat, and compare your take."
             )
           } actions: {
-            Button("New reference practice", action: model.startMimic)
+            Button("New reference practice…", action: model.startMimic)
               .studioGlassButton(prominent: true)
           }
           .frame(maxWidth: .infinity, minHeight: 420)
@@ -63,8 +63,10 @@ struct DesktopMimicsWorkspace: View {
       Button("Cancel", role: .cancel) {}
     } message: { session in
       let attempts = session.takeCount
+      let reference = session.mimicReference?.sourceName ?? session.name
+      let scope = attempts == 0 ? "" : attempts == 1 ? " and its take" : " and all \(attempts) takes"
       Text(
-        "This deletes “\(session.mimicReference?.sourceName ?? session.name)” and \(attempts) \(attempts == 1 ? "attempt" : "attempts")."
+        "This deletes the reference “\(reference)”\(scope), including audio, transcripts, and analysis."
       )
     }
   }
@@ -82,7 +84,7 @@ struct DesktopMimicsWorkspace: View {
             Text(session.mimicReference?.sourceName ?? session.name)
               .font(.body.weight(.medium))
               .lineLimit(1)
-            Text("\(session.takeCount) \(session.takeCount == 1 ? "attempt" : "attempts")")
+            Text("\(session.takeCount) \(session.takeCount == 1 ? "take" : "takes")")
               .font(.caption)
               .foregroundStyle(Studio.secondary)
           }

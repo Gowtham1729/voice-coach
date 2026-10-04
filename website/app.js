@@ -184,7 +184,7 @@ function openScreenshot(link) {
   const source = $("img", link);
   expandedScreenshot.alt = source.alt;
   $("#screenshot-caption").textContent = link.dataset.caption ||
-    "Real app capture. Earlier Mimics and Ask labels become Practice and Words in Ichido. Transcription and language replies can contain errors.";
+    "Real app capture. Transcripts and Words replies can contain errors.";
   let revealed = false;
   const reveal = () => {
     if (revealed || request !== screenshotRequest) return;

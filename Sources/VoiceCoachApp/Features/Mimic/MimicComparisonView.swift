@@ -31,7 +31,7 @@ struct MimicComparisonView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
       VStack(alignment: .leading, spacing: 16) {
-        SectionEyebrow(text: "Words")
+        SectionEyebrow(text: "Transcripts")
         transcriptRow(
           "Reference", transcription: reference.transcription, color: .cyan, source: .reference)
         transcriptRow(

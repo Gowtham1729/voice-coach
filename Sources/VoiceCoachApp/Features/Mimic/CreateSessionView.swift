@@ -24,12 +24,9 @@ struct CreateSessionView: View {
           Spacer()
         }
 
-        Text("Choose a phrase to practise. Import a clip or capture audio playing on your Mac.")
+        Text("Add a clip, then choose the phrase you want to practise.")
           .font(.callout)
           .foregroundStyle(Studio.secondary)
-        Text("Listen → Repeat → Compare")
-          .font(.caption.weight(.medium))
-          .foregroundStyle(Studio.accent)
       }
 
       MimicReferencePicker(start: $excerptStart, end: $excerptEnd)

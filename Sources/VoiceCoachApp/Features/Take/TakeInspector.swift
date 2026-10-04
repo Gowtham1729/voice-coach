@@ -61,7 +61,7 @@ struct TakeInspector: View {
         Menu {
           Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyAIAnalysisPrompt)
             .help("Copies instructions and this take's JSON. Ichido does not send it.")
-          Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyReport)
+          Button("Copy report JSON", systemImage: "curlybraces", action: model.copyReport)
         } label: {
           Image(systemName: "ellipsis")
             .inspectorActionLabel()

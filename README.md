@@ -20,18 +20,18 @@ Build numbers stay monotonic so an existing updater-enabled Voice Coach installa
 **System Requirements:** macOS 26.0 or later (Apple Silicon recommended).
 
 **Speech Transcription:**
-Apple on-device speech transcription is enabled by default. Choose the spoken language in **Settings > Transcription**, then use **Download Language…** if its Apple model is missing. This does not change your Mac’s language. New sessions retain their speech language for subsequent takes. Existing transcripts can be regenerated using **Re-transcribe** on a take or **Transcript > Re-transcribe** on a reference.
+Apple on-device speech transcription is enabled by default. Choose the spoken language in **Settings > Transcription**, then use **Download language…** if its Apple model is missing. This does not change your Mac’s language. New sessions retain their speech language for subsequent takes. Existing transcripts can be regenerated using **Re-transcribe** on a take or **Transcript > Re-transcribe** on a reference.
 
 Parakeet is an optional local model (~714 MB), installable from the same settings pane or via `./scripts/setup-transcription.sh`. The bundled v3 model automatically recognizes 25 European languages, including French, but does not support Japanese. Its language control shows **Automatic**; Apple’s saved language preference does not steer it. Known unsupported session languages are rejected before transcription. Ichido uses the selected engine and reports failures without silently switching models. Audio analysis and saving still work when transcription is unavailable.
 
 ## How It Works
 
-Ichido focuses on deliberate practice through a rapid loop: capture a take, review the recording, and adjust on the next attempt. Reference practice names differences from a reference.
+Ichido focuses on deliberate practice through a rapid loop: capture a take, review the recording, and adjust on the next take. Reference practice names differences from a reference.
 
 ### 1. Three Ways to Practice
-* **Microphone**: Record rehearsed talks, pitches, presentations, or interview answers.
-* **Mac System Audio**: Capture audio playing directly from your Mac (talks, podcasts, or browser clips) without complex virtual audio cables.
-* **File Import**: Bring in existing audio or video files. Imported media is automatically normalized to 48 kHz mono WAV locally.
+* **Record**: Record rehearsed talks, pitches, presentations, or interview answers.
+* **Capture Mac audio**: Capture audio playing directly from your Mac (talks, podcasts, or browser clips) without complex virtual audio cables.
+* **Import clip…**: Bring in existing audio or video files. Imported media is automatically normalized to 48 kHz mono WAV locally.
 
 ### 2. Review a Recording
 An ordinary recording shows measured pauses, pitch, loudness, and clarity on the timeline. It does not assign practice exercises. A clipped or noisy take includes a short note that those estimates may be unreliable.
@@ -39,13 +39,13 @@ An ordinary recording shows measured pauses, pitch, loudness, and clarity on the
 ### 3. Reference practice
 Reference practice lets you study how another speaker delivers a phrase:
 1. **Listen**: Set an imported file or captured system audio as your reference model.
-2. **Repeat**: Record your attempt right alongside it.
+2. **Repeat**: Record your take alongside it.
 3. **Compare**: Inspect side-by-side pitch curves, rhythm alignments, and word-level emphasis. When the words line up, two practice targets name a difference from the reference.
 
 The two practice styles are **Listen & Repeat** (the reference plays, then you record) and **Speak Along** (you follow the reference; use headphones so speaker playback does not leak into the mic). The marketing page adds an Understand step for Words. The app’s own loop stays Listen, Repeat, Compare.
 
 ### 4. Stacked Takes and Timeline Scrubbing
-All attempts in a session stay grouped together (`Take 1`, `Take 2`, etc.). You can scrub the waveform, click any transcribed word to jump playback directly to that moment, and hear how your delivery changes from one take to the next.
+All takes in a session stay grouped together (`Take 1`, `Take 2`, etc.). You can scrub the waveform, click any transcribed word to jump playback directly to that moment, and hear how your delivery changes from one take to the next.
 
 ### 5. Optional AI Analysis (Clipboard Export)
 If you want qualitative script feedback or presentation advice, use **File > Copy AI analysis prompt + JSON** (or press `⌥⌘C`). This formats your acoustic metrics into a structured prompt on your clipboard so you can paste it into ChatGPT, Gemini, Claude, or any LLM of your choice. Ichido never contacts external AI APIs on its own.
@@ -55,7 +55,7 @@ Enable **Settings > Experiments > Enable experimental features**, open a recordi
 
 Choose **Reference** or **This take** from the compact context menu. Reference sessions start with the reference transcript. Chat uses the complete chosen transcript, without sentence selection or repeated transcript previews. **Translate…** opens a native sheet backed by Apple’s on-device `TranslationSession`, which can ask to download language models.
 
-Chat uses Apple's on-device model and requires available Apple Intelligence. Each recording or selected reference practice attempt has a separate temporary conversation. Chats survive navigation while the app is open, but clear when you quit, clear the chat, delete the recording, or turn experiments off. Follow-ups use up to three recent exchanges. Only the complete chosen transcript and recent conversation are sent to the local model. Transcripts are not silently shortened; very long transcripts may exceed the local model’s context limit.
+Chat uses Apple's on-device model and requires available Apple Intelligence. Each recording or selected reference practice take has a separate temporary conversation. Chats survive navigation while the app is open, but clear when you quit, clear the chat, delete the recording, or turn experiments off. Follow-ups use up to three recent exchanges. Only the complete chosen transcript and recent conversation are sent to the local model. Transcripts are not silently shortened; very long transcripts may exceed the local model’s context limit.
 
 This chat is for language exploration. It does not evaluate takes or recommend performance improvements. Common coaching requests are rejected before inference, with model instructions and a conservative reply check as additional defenses. These checks are not a semantic guarantee. Transcription errors and incorrect language answers remain possible; the chat cannot hear audio, search the web, or verify facts. Original transcripts and measured practice targets are preserved.
 

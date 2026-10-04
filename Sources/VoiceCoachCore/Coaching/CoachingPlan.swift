@@ -292,11 +292,11 @@ public enum CoachingPlanner {
     let currentGap = median(matched.map(\.1))
     let trend: String
     if priorGap - currentGap >= tolerance {
-      trend = "Closer than the previous attempt"
+      trend = "Closer than the previous take"
     } else if currentGap - priorGap >= tolerance {
-      trend = "Farther from the reference than the previous attempt"
+      trend = "Farther from the reference than the previous take"
     } else {
-      trend = "Similar to the previous attempt"
+      trend = "Similar to the previous take"
     }
     return "\(trend): median gap across \(matched.count) words \(number(priorGap, 1)) → \(number(currentGap, 1)) \(unit)."
   }
@@ -418,11 +418,11 @@ public enum CoachingPlanner {
   ) -> String {
     let direction: String
     if previousGap - currentGap >= tolerance {
-      direction = "Closer than the previous attempt"
+      direction = "Closer than the previous take"
     } else if currentGap - previousGap >= tolerance {
-      direction = "Farther from the reference than the previous attempt"
+      direction = "Farther from the reference than the previous take"
     } else {
-      direction = "Similar to the previous attempt"
+      direction = "Similar to the previous take"
     }
     return "\(direction): \(number(previousGap, 1)) → \(number(currentGap, 1)) \(unit) apart."
   }

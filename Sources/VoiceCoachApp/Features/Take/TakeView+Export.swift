@@ -32,7 +32,7 @@ extension TakeView {
   func analysisClipboardSnapshot(_ take: PracticeSession) -> some View {
     VStack(alignment: .leading, spacing: 18) {
       HStack {
-        Text("VOICE COACH · \(selectedPlot.rawValue.uppercased()) ANALYSIS")
+        Text("ICHIDO · \(selectedPlot.rawValue.uppercased()) ANALYSIS")
           .font(.system(size: 10, weight: .semibold))
           .tracking(1.8)
           .foregroundStyle(Studio.secondary)

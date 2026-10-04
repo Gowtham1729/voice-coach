@@ -54,7 +54,7 @@ struct VoiceCoachCommands: Commands {
         !model.isMimicWorkspace || model.isRecording || model.isAnalyzing
           || (model.mimicPhase != .ready && model.mimicPhase != .playingReference))
 
-      Button(model.isRecording ? "Stop Recording" : "Practice") {
+      Button(model.isRecording ? "Stop recording" : "Start practice") {
         model.recordButtonPressed()
       }
       .keyboardShortcut("r", modifiers: .command)
