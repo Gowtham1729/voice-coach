@@ -39,7 +39,7 @@ $$("[data-open-download]").forEach((button) => {
 });
 
 $$("[data-close-dialog]").forEach((button) => {
-  button.addEventListener("click", () => button.closest("dialog").close());
+  button.addEventListener("click", () => closeDialog(button.closest("dialog")));
 });
 
 $$("dialog").forEach((dialog) => {
@@ -50,7 +50,7 @@ $$("dialog").forEach((dialog) => {
       event.clientX > bounds.right ||
       event.clientY < bounds.top ||
       event.clientY > bounds.bottom;
-    if (event.target === dialog && outside) dialog.close();
+    if (event.target === dialog && outside) closeDialog(dialog);
   });
 });
 
@@ -102,15 +102,62 @@ function supportTabKeys(tabs, activate) {
 }
 
 const insightTabs = $$("[data-insight]");
+const insightOrder = ["listen", "understand", "repeat", "compare"];
+const insightTabsRoot = $(".insight-tabs");
+const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+let activeInsight = "listen";
+
+function prefersReducedMotion() {
+  return motionQuery.matches;
+}
+
+let viewChange = null;
+
+function runViewTransition(update, type) {
+  if (
+    viewChange ||
+    prefersReducedMotion() ||
+    typeof document.startViewTransition !== "function"
+  ) {
+    update();
+    return Promise.resolve();
+  }
+  let transition;
+  try {
+    transition = document.startViewTransition({ update, types: [type] });
+  } catch {
+    try {
+      transition = document.startViewTransition(update);
+    } catch {
+      update();
+      return Promise.resolve();
+    }
+  }
+  viewChange = transition.finished.catch(() => {}).finally(() => {
+    viewChange = null;
+  });
+  return viewChange;
+}
 
 function showInsight(name) {
-  const active = insightTabs.find((tab) => tab.dataset.insight === name);
-  if (!active) return;
-  selectTab(insightTabs, active);
-  $("#insight-panel").setAttribute("aria-labelledby", active.id);
-  $$("[data-insight-view]").forEach((view) => {
-    view.hidden = view.dataset.insightView !== name;
-  });
+  if (name === activeInsight) return;
+  const direction = insightOrder.indexOf(name) > insightOrder.indexOf(activeInsight)
+    ? "practice-forward"
+    : "practice-back";
+  runViewTransition(() => {
+    const active = insightTabs.find((tab) => tab.dataset.insight === name);
+    if (!active) return;
+    selectTab(insightTabs, active);
+    $("#insight-panel").setAttribute("aria-labelledby", active.id);
+    $$("[data-insight-view]").forEach((view) => {
+      view.hidden = view.dataset.insightView !== name;
+    });
+    insightTabsRoot?.style.setProperty(
+      "--insight-index",
+      String(Math.max(0, insightOrder.indexOf(name))),
+    );
+    activeInsight = name;
+  }, direction);
 }
 
 insightTabs.forEach((tab) => {
@@ -120,15 +167,86 @@ insightTabs.forEach((tab) => {
 supportTabKeys(insightTabs, (tab) => showInsight(tab.dataset.insight));
 
 const screenshotDialog = $("#screenshot-dialog");
+const expandedScreenshot = $("#expanded-screenshot");
+let screenshotSource = null;
+let screenshotRequest = 0;
+
+function closeDialog(dialog) {
+  if (dialog === screenshotDialog && screenshotDialog.open) {
+    closeScreenshot();
+    return;
+  }
+  dialog?.close();
+}
+
+function openScreenshot(link) {
+  const request = ++screenshotRequest;
+  const source = $("img", link);
+  expandedScreenshot.alt = source.alt;
+  $("#screenshot-caption").textContent = link.dataset.caption ||
+    "Real app capture. Earlier Mimics and Ask labels become Practice and Words in Ichido. Transcription and language replies can contain errors.";
+  let revealed = false;
+  const reveal = () => {
+    if (revealed || request !== screenshotRequest) return;
+    revealed = true;
+    screenshotSource = source;
+    const animate = !prefersReducedMotion() &&
+      typeof document.startViewTransition === "function";
+    if (!animate) {
+      screenshotDialog.showModal();
+      return;
+    }
+    source.style.viewTransitionName = "expanded-shot";
+    runViewTransition(() => {
+      screenshotDialog.showModal();
+      source.style.viewTransitionName = "";
+      source.style.visibility = "hidden";
+      expandedScreenshot.style.viewTransitionName = "expanded-shot";
+    }, "screenshot").finally(() => {
+      source.style.visibility = "";
+      source.style.viewTransitionName = "";
+      expandedScreenshot.style.viewTransitionName = "";
+    });
+  };
+  if (expandedScreenshot.src !== link.href) {
+    expandedScreenshot.addEventListener("load", reveal, { once: true });
+    expandedScreenshot.src = link.href;
+    if (expandedScreenshot.complete && expandedScreenshot.naturalWidth) reveal();
+    return;
+  }
+  reveal();
+}
+
+function closeScreenshot() {
+  const source = screenshotSource;
+  const animate = source && !prefersReducedMotion() &&
+    typeof document.startViewTransition === "function";
+  if (!animate) {
+    screenshotDialog.close();
+    screenshotSource = null;
+    return;
+  }
+  expandedScreenshot.style.viewTransitionName = "expanded-shot";
+  runViewTransition(() => {
+    screenshotDialog.close();
+    expandedScreenshot.style.viewTransitionName = "";
+    source.style.viewTransitionName = "expanded-shot";
+  }, "screenshot").finally(() => {
+    source.style.viewTransitionName = "";
+    expandedScreenshot.style.viewTransitionName = "";
+    screenshotSource = null;
+  });
+}
+
+screenshotDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeScreenshot();
+});
+
 $$("[data-screenshot]").forEach((link) => {
   link.addEventListener("click", (event) => {
     event.preventDefault();
-    const source = $("img", link);
-    $("#expanded-screenshot").src = link.href;
-    $("#expanded-screenshot").alt = source.alt;
-    $("#screenshot-caption").textContent = link.dataset.caption ||
-      "Real app capture. Earlier Mimics and Ask labels become Practice and Words in Ichido. Transcription and language replies can contain errors.";
-    screenshotDialog.showModal();
+    openScreenshot(link);
   });
 });
 
