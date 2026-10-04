@@ -419,7 +419,7 @@ struct SessionChatTests {
     #expect(settings.contains("Text(\"Practice next\")"))
     #expect(
       settings.contains(
-        "Reference comparisons include practice targets measured against the reference. Apple Intelligence can rephrase those exercises on this Mac."
+        "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
       ))
     let planner = try repositorySource("Sources/VoiceCoachCore/Coaching/CoachingPlan.swift")
     for phrase in [
