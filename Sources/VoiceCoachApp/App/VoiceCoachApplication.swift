@@ -17,7 +17,7 @@ struct VoiceCoachApplication: App {
   }
 
   var body: some Scene {
-    WindowGroup("Voice Coach") {
+    WindowGroup("Ichido") {
       SystemAppearanceRoot {
         ContentView()
           .environmentObject(model)

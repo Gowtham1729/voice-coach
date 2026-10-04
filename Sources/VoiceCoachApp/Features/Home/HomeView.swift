@@ -8,6 +8,7 @@ struct HomeView: View {
   var body: some View {
     StudioPage(maxWidth: 1100, horizontalPadding: 20) {
       VStack(alignment: .leading, spacing: 16) {
+        welcome
         captureBar
         activityRow
         if let mimic = model.continueMimic {
@@ -18,11 +19,30 @@ struct HomeView: View {
     }
   }
 
+  private var welcome: some View {
+    HStack(alignment: .top, spacing: 16) {
+      VStack(alignment: .leading, spacing: 5) {
+        SectionEyebrow(text: "Ichido")
+        Text("Your private speaking room.")
+          .font(.title2.weight(.semibold))
+        Text("Record your own words, or listen, repeat, and compare a reference.")
+          .font(.callout)
+          .foregroundStyle(Studio.secondary)
+      }
+      Spacer(minLength: 8)
+      Label("On this Mac", systemImage: "lock")
+        .font(.caption)
+        .foregroundStyle(Studio.secondary)
+    }
+    .padding(.horizontal, 4)
+    .padding(.top, 4)
+  }
+
   private var captureBar: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 12) {
         Label(
-          model.isRecording ? "Recording" : "Home",
+          model.isRecording ? "Recording" : "Start a take",
           systemImage: model.isRecording ? "record.circle.fill" : "waveform"
         )
         .font(.headline)
@@ -47,7 +67,7 @@ struct HomeView: View {
         .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
 
         Button(action: model.startMimic) {
-          Label("Mimic", systemImage: "waveform.path")
+          Label("Practice a reference", systemImage: "waveform.path")
         }
         .tint(.primary)
         .studioGlassButton()
@@ -64,6 +84,20 @@ struct HomeView: View {
           model.isRecording
             ? "Stop recording"
             : model.isRequestingPermission ? "Allow Mic" : "Record")
+      }
+
+      if !model.isRecording && !model.isAnalyzing && !model.isRequestingPermission {
+        HStack {
+          Text("Rehearse a talk, practise a phrase, or bring in a clip.")
+            .font(.caption)
+            .foregroundStyle(Studio.secondary)
+          Spacer()
+          SettingsLink {
+            Label("Language settings", systemImage: "globe")
+          }
+          .font(.caption)
+          .help("Choose your spoken language in Settings → Transcription.")
+        }
       }
 
       if model.isAnalyzing {
@@ -96,7 +130,7 @@ struct HomeView: View {
       activityChip("\(model.userRecordedTakeCount)", "recordings")
       activityChip(vcNumber(model.userRecordedDuration / 60, 1), "min recorded")
       activityChip("\(model.importedTakeCount)", "imported")
-      activityChip("\(model.mimicSessions.count)", "Mimics")
+      activityChip("\(model.mimicSessions.count)", "practice sessions")
       Spacer()
     }
     .padding(.horizontal, 4)
@@ -126,7 +160,7 @@ struct HomeView: View {
           .foregroundStyle(Studio.accent)
           .frame(width: 22)
         VStack(alignment: .leading, spacing: 2) {
-          Text("Continue Mimic")
+          Text("Continue practice")
             .font(.caption.weight(.semibold))
             .foregroundStyle(Studio.secondary)
           Text(session.mimicReference?.sourceName ?? session.name)
@@ -145,7 +179,7 @@ struct HomeView: View {
     }
     .buttonStyle(.plain)
     .desktopPanel()
-    .accessibilityLabel("Continue Mimic, \(session.mimicReference?.sourceName ?? session.name)")
+    .accessibilityLabel("Continue practice, \(session.mimicReference?.sourceName ?? session.name)")
   }
 
   private var recentRecordings: some View {
@@ -170,7 +204,7 @@ struct HomeView: View {
         ContentUnavailableView {
           Label("No recordings yet", systemImage: "mic")
         } description: {
-          Text("Press Record or import a clip.")
+          Text("Record a short phrase, an interview answer, or a talk. Listen back and try another take.")
         }
         .frame(maxWidth: .infinity, minHeight: 220)
       } else {

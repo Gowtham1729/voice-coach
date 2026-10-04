@@ -140,7 +140,7 @@ extension AppModel {
           mimicPreparationID = nil
           clearMimicReferenceCaptureMeters()
           presentError(
-            title: "Mimic failed",
+            title: "Reference practice failed",
             error: error,
             fallback: "Couldn’t prepare this reference.")
         }

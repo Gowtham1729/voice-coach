@@ -24,7 +24,7 @@ extension AppModel {
             self.presentError(
               title: "Microphone Access Needed",
               message: RecorderError.microphoneDenied.errorDescription
-                ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
+                ?? "Turn on Ichido in System Settings → Privacy & Security → Microphone.")
           }
         }
       }
@@ -33,7 +33,7 @@ extension AppModel {
       presentError(
         title: "Microphone Access Needed",
         message: RecorderError.microphoneDenied.errorDescription
-          ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
+          ?? "Turn on Ichido in System Settings → Privacy & Security → Microphone.")
     }
   }
 

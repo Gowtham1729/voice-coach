@@ -126,7 +126,7 @@ extension AppModel {
     if pendingMimicSessionID == id {
       presentError(
         title: "Can’t Delete",
-        message: "This Mimic has an unsaved recording. Try again, or show the file.")
+        message: "This practice session has an unsaved recording. Try again, or show the file.")
       return
     }
     stopPlayback()
@@ -164,9 +164,9 @@ extension AppModel {
 
   private func deleteMessage(wasMimic: Bool, attemptCount: Int) -> String {
     guard wasMimic else { return "Recording removed" }
-    guard attemptCount > 0 else { return "Mimic removed" }
+    guard attemptCount > 0 else { return "Practice removed" }
     let noun = attemptCount == 1 ? "attempt" : "attempts"
-    return "Mimic and \(attemptCount) \(noun) removed"
+    return "Practice and \(attemptCount) \(noun) removed"
   }
 
   func archiveMimic(_ id: UUID, archived: Bool = true) {
@@ -180,7 +180,7 @@ extension AppModel {
       selectedTakeID = nil
       destination = .mimics
     }
-    toastMessage = archived ? "Mimic archived" : "Mimic restored"
+    toastMessage = archived ? "Practice archived" : "Practice restored"
   }
 
   func cleanupEmptyLegacySessions() {

@@ -16,7 +16,7 @@ assert.equal(
 const html = readFileSync(resolve(root, "index.html"), "utf8");
 const normalizedHtml = html.replace(/\s+/g, " ");
 assert.ok(
-  html.includes('href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Voice-Coach-macOS.zip"'),
+  html.includes('href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip"'),
   "Website download must follow GitHub's latest release",
 );
 assert.ok(
@@ -59,46 +59,22 @@ assert.ok(
 assert.ok(!html.includes("—"), "Landing-page strings must not use em dashes");
 assert.ok(!js.includes("—"), "Interactive strings must not use em dashes");
 for (const requiredCopy of [
-  "Practice how you sound,",
-  "Record with your mic",
-  "Capture Mac audio",
-  "Import a file",
+  "Your private speaking room for Mac",
+  "Record with your mic", "Capture Mac audio", "Import a file",
   "There’s no YouTube URL import.",
-  "TWO PRACTICE TARGETS",
-  "Hear where your breaks fall. Place the next one between ideas.",
-  "No account, no upload, no cloud processing.",
+  "When enough words reliably match, two measured practice targets",
+  "Experimental and off by default. You can skip this step.",
+  "Words works with text and can make mistakes.",
+  "It cannot hear your audio or evaluate your speaking.",
   "Free while in early access. No account required.",
-  "Is this an AI speech coach?",
-  "Two practice targets come from reliable reference matching in Mimic.",
   "System audio access is needed when you capture Mac audio.",
-  "Choose a key word for a pitch lift, then compare it with the words around it.",
+  "Real app captures", "Earlier Voice Coach footage.",
 ]) {
-  assert.ok(
-    normalizedHtml.includes(requiredCopy),
-    `Missing required product copy: ${requiredCopy}`,
-  );
+  assert.ok(normalizedHtml.includes(requiredCopy), `Missing product boundary: ${requiredCopy}`);
 }
-assert.equal(
-  html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)[1]
-    .replace(/<[^>]+>/g, "")
-    .replace(/\s+/g, " ")
-    .trim(),
-  "Practice how you sound, privately, on your Mac.",
-  "Keep the complete frozen headline at every viewport",
-);
-assert.ok(
-  !html.includes("Free while in early access ·") &&
-    !html.includes("needed only when you capture Mac audio for Mimic"),
-  "Do not restore the superseded commercial or Mimic-only permission copy",
-);
-for (const bannedClaim of [
-  "YouTube URL importer",
-  "confidence score",
-  "personality score",
-  "accent grade",
-]) {
-  assert.ok(!html.includes(bannedClaim), `Unsupported claim found: ${bannedClaim}`);
-}
+assert.ok(!/confidence score|personality score/.test(html), "No unsupported subjective scores");
+assert.equal((html.match(/\brole="tab"/g) || []).length, 4, "The reference loop has four accessible tabs");
+assert.ok(html.includes('id="screenshot-dialog"'), "Real screenshots can be viewed at a readable size");
 for (const module of modules) {
   execFileSync(process.execPath, ["--check", resolve(root, module)], {
     stdio: "inherit",

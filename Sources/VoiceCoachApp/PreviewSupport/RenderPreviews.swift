@@ -108,14 +108,14 @@
         let conversation = model.conversation(for: context)
         conversation.replaceForPreview(exchanges: [
           .init(
-            question: "What does this line mean?",
+            question: "What does “I really don't think that's a good idea” mean?",
             answer:
-              "**Pause** means a brief break in speech. Here, it gives the listener time to absorb an idea."
+              "The speaker disagrees with a suggestion. **Really** strengthens the disagreement; **I don't think** frames it as the speaker's view."
           ),
           .init(
-            question: "Give me synonyms for pause and explain the difference.",
+            question: "Give alternatives for “a good idea” and explain the difference.",
             answer:
-              "**Break** = a general interruption.\n**Moment of silence** = a pause without speaking.\n**Hesitation** = a pause caused by uncertainty."
+              "**A sensible plan** = practical and reasonable.\n**A promising suggestion** = likely to work well.\n**A wise choice** = shows good judgment."
           ),
         ])
         let view = SessionChatInspector(conversation: conversation)
@@ -151,6 +151,7 @@
       model.destination = .home
       model.selectedSessionID = nil
       try render("01-home")
+      try render("01b-home-compact", width: 920, height: 640)
       model.destination = .mimicStart
       try renderCreateSession("02-mimic-start", mode: .mimic)
       if let first = model.sessions[0].takes.first {
@@ -209,10 +210,10 @@
           try render("10-mimic-compare")
           previewDefaults.set(true, forKey: ExperimentalFeaturesPreference.storageKey)
           previewDefaults.set(InspectorPane.ask.rawValue, forKey: InspectorPane.storageKey)
-          try render("17-mimic-chat", height: 980)
           if let context = model.sessionChatContext(session: mimic, take: attempt) {
             try renderChat("18-mimic-chat-expanded", context: context)
           }
+          try render("17-mimic-chat", height: 980)
           previewDefaults.set(InspectorPane.details.rawValue, forKey: InspectorPane.storageKey)
           previewDefaults.set(false, forKey: ExperimentalFeaturesPreference.storageKey)
           if let reference = mimic.mimicReference?.take {

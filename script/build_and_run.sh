@@ -3,7 +3,7 @@ set -euo pipefail
 
 MODE="${1:-run}"
 PROJECT_DIR="${0:A:h:h}"
-APP_BUNDLE="$PROJECT_DIR/build/Voice Coach.app"
+APP_BUNDLE="$PROJECT_DIR/build/Ichido.app"
 APP_BINARY="$APP_BUNDLE/Contents/MacOS/VoiceCoachApp"
 PROCESS_NAME="VoiceCoachApp"
 BUNDLE_ID="com.gowtham.voicecoach"

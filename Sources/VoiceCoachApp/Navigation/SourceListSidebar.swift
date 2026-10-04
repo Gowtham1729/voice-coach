@@ -14,7 +14,7 @@ struct SnapshotSourceListSidebar: View {
         "Library", symbol: "rectangle.stack",
         selected: snapshotSectionSelection == .library)
       snapshotRow(
-        "Mimics", symbol: "waveform.path", selected: snapshotSectionSelection == .mimics)
+        "Practice", symbol: "waveform.path", selected: snapshotSectionSelection == .mimics)
       Text("RECENTS")
         .font(.caption2.weight(.semibold))
         .foregroundStyle(Studio.secondary)

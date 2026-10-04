@@ -6,15 +6,15 @@
     <meta name="theme-color" content="#f4f1e9" />
     <meta
       name="description"
-      content="Voice Coach is a private voice practice studio for Mac. Record a take, get two measured practice targets, and try again."
+      content="Ichido is your private speaking room for Mac. Record yourself, practise with a reference, and explore language on-device."
     />
     <meta
       property="og:title"
-      content="Voice Coach | Private voice practice for Mac"
+      content="Ichido | Your private speaking room for Mac"
     />
     <meta
       property="og:description"
-      content="Record a take. Review measured delivery. Practice against a reference, privately on your Mac."
+      content="Your words. Your voice. One more try. Private speaking and language practice for Mac."
     />
     <meta property="og:type" content="website" />
     <meta
@@ -23,14 +23,14 @@
     />
     <meta
       property="og:image"
-      content="https://voice-coach-studio.gowtham.chatgpt.site/assets/sound-sculpture.jpg"
+      content="https://voice-coach-studio.gowtham.chatgpt.site/assets/ichido-share.png"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <link
       rel="canonical"
       href="https://voice-coach-studio.gowtham.chatgpt.site/"
     />
-    <title>Voice Coach | Private voice practice for Mac</title>
+    <title>Ichido | Your private speaking room for Mac</title>
     <link rel="icon" href="assets/favicon.png" type="image/png" />
     <link
       rel="preload"
@@ -46,14 +46,14 @@
     <a class="skip-link" href="#main">Skip to content</a>
 
     <header class="site-header">
-      <a class="wordmark" href="#" aria-label="Voice Coach home">
+      <a class="wordmark" href="#" aria-label="Ichido home">
         <img src="assets/brand-mark.png" width="48" height="26" alt="" />
-        <span>voice coach<span class="wordmark-period">.</span></span>
+        <span>ichido<span class="wordmark-period">.</span></span>
       </a>
       <nav class="desktop-nav" aria-label="Main navigation">
-        <a href="#ways-in">Start</a>
-        <a href="#practice-next">Practice next</a>
-        <a href="#mimic">Mimic</a>
+        <a href="#ways-in">Ways in</a>
+        <a href="#practice">Practice</a>
+        <a href="#words">Words &amp; meaning</a>
         <a href="#questions">Questions</a>
       </nav>
       <a
@@ -61,17 +61,17 @@
         href="#download"
         data-open-download
       >
-        Download for Mac
+        Get Ichido for Mac
         <img class="icon light" src="assets/icons/arrow-down.svg" alt="" />
       </a>
       <details class="mobile-menu">
         <summary>Menu <img class="icon" src="assets/icons/plus.svg" alt="" /></summary>
         <nav aria-label="Mobile navigation">
-          <a href="#ways-in">Start</a>
-          <a href="#practice-next">Practice next</a>
-          <a href="#mimic">Mimic</a>
+          <a href="#ways-in">Ways in</a>
+          <a href="#practice">Practice</a>
+          <a href="#words">Words &amp; meaning</a>
           <a href="#questions">Questions</a>
-          <a href="#download">Download for Mac</a>
+          <a href="#download">Get Ichido for Mac</a>
         </nav>
       </details>
     </header>
@@ -79,481 +79,116 @@
     <main id="main">
       <section class="hero container" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">
-            <span class="status-dot" aria-hidden="true"></span>
-            A private voice practice studio for Mac
-          </p>
-          <h1 id="hero-title">
-            Practice how you sound,
-            <em>privately,</em>
-            on your Mac.
-          </h1>
-          <p class="hero-description">
-            Record a take. Explore your measured delivery.
-            Try again, or practice against a reference.
-          </p>
+          <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span>Your private speaking room for Mac</p>
+          <h1 id="hero-title">Your words.<br />Your voice.<br /><em>One more try.</em></h1>
+          <p class="hero-description">Record yourself. Practise with a speaker you admire. Explore the words behind a phrase, then give it another take.</p>
           <div class="hero-actions">
-            <a class="button button-blue" href="#download" data-open-download>
-              Download for Mac
-              <img class="icon light" src="assets/icons/arrow-down.svg" alt="" />
-            </a>
-            <button class="text-button" data-open-tour>
-              <span class="small-play">
-                <img class="icon" src="assets/icons/play.svg" alt="" />
-              </span>
-              Watch the 1-min tour
-            </button>
+            <a class="button button-blue" href="#download" data-open-download>Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></a>
+            <a class="text-button" href="#practice"><span class="small-play"><img class="icon" src="assets/icons/arrow-right.svg" alt="" /></span>Explore practice</a>
           </div>
-          <p class="trust-line">macOS 26+ · No account required</p>
+          <p class="trust-line">macOS 26+ · Free early access · No account</p>
+          <p class="brand-pronunciation">ichido <span>/ ee-chee-doh /</span></p>
         </div>
         <div class="hero-art">
-          <img
-            class="sound-sculpture"
-            src="assets/sound-sculpture.jpg"
-            width="1536"
-            height="1024"
-            alt="Abstract cobalt sound wave sculpture"
-            fetchpriority="high"
-          />
-          <canvas
-            class="sound-ribbon"
-            role="button"
-            tabindex="0"
-            aria-label="Send a wave through the sound sculpture"
-            hidden
-          ></canvas>
-          <div class="ribbon-controls">
-            <button
-              class="icon-button ribbon-pause"
-              data-pause-ribbon
-              aria-label="Pause ribbon animation"
-            ><span aria-hidden="true"></span></button>
-          </div>
+          <img class="sound-sculpture" src="assets/sound-sculpture.jpg" width="1536" height="1024" alt="Abstract cobalt sound wave sculpture" fetchpriority="high" />
+          <canvas class="sound-ribbon" role="button" tabindex="0" aria-label="Send a wave through the sound sculpture" hidden></canvas>
+          <div class="ribbon-controls"><button class="icon-button ribbon-pause" data-pause-ribbon aria-label="Pause ribbon animation"><span aria-hidden="true"></span></button></div>
         </div>
-        <div class="hero-index" aria-hidden="true">
-          <span>VC / 01</span>
-          <span>LISTEN · NOTICE · TRY AGAIN</span>
-        </div>
+        <div class="hero-index" aria-hidden="true"><span>ICHIDO / 01</span><span>A LITTLE PRACTICE. ANOTHER TAKE.</span></div>
       </section>
 
-      <section
-        class="ways-section"
-        id="ways-in"
-        aria-labelledby="ways-title"
-      >
-        <div class="container">
-          <div class="section-kicker">
-            <span>THREE WAYS IN</span>
-            <span>START WITH WHAT YOU HAVE</span>
-          </div>
-          <div class="ways-heading">
-            <h2 id="ways-title">Start speaking in a few seconds.</h2>
-            <p>No setup ritual. Pick the source that fits your practice.</p>
-          </div>
-          <div class="ways-grid">
-            <article class="way-card">
-              <span class="way-number">01</span>
-              <img src="assets/icons/microphone.svg" alt="" />
-              <h3>Record with your mic</h3>
-              <p>Rehearse a talk, pitch, or interview out loud.</p>
-            </article>
-            <article class="way-card">
-              <span class="way-number">02</span>
-              <img src="assets/icons/laptop.svg" alt="" />
-              <h3>Capture Mac audio</h3>
-              <p>
-                Grab what’s playing on your Mac: a talk, podcast, or browser
-                clip.
-              </p>
-            </article>
-            <article class="way-card">
-              <span class="way-number">03</span>
-              <img src="assets/icons/arrow-down.svg" alt="" />
-              <h3>Import a file</h3>
-              <p>Bring in an audio file you’re practicing against.</p>
-            </article>
-          </div>
-          <p class="honesty-line">
-            <img src="assets/icons/check.svg" alt="" />
-            Playing YouTube or a podcast in a browser? Use Capture Mac audio.
-            There’s no YouTube URL import.
-          </p>
-        </div>
-      </section>
-
-      <section
-        class="insights-section container"
-        id="practice-next"
-        aria-labelledby="practice-next-title"
-      >
-        <div class="section-kicker">
-          <span>ONE TAKE AT A TIME</span>
-          <span>MEASURE · PRACTICE · COMPARE</span>
-        </div>
+      <section class="insights-section container" id="practice" aria-labelledby="practice-title">
+        <div class="section-kicker"><span>MAKE THE PHRASE YOURS</span><span>ONE TAKE AT A TIME</span></div>
         <div class="insights-heading">
-          <h2 id="practice-next-title">
-            Practice until the words
-            <em>land.</em>
-          </h2>
-          <p>
-            Review measured pauses, pitch, and loudness in your recordings.
-            Mimic adds two practice targets from a matched reference, then
-            points to a word worth replaying.
-          </p>
+          <h2 id="practice-title">Listen closely.<br />Then <em>try it.</em></h2>
+          <p>A phrase from another language. An interview answer. A line from a talk. Start with something you want to say, and keep your attempts together.</p>
         </div>
-
-        <div class="insight-demo">
-          <div
-            class="insight-tabs"
-            role="tablist"
-            aria-label="Explore the practice loop"
-          >
-            <button
-              id="insight-tab-take"
-              role="tab"
-              aria-selected="false"
-              aria-controls="insight-panel"
-              tabindex="-1"
-              data-insight="take"
-            >
-              <span>01</span>
-              <strong>Give it a take</strong>
-              <small>Record or import</small>
-            </button>
-            <button
-              id="insight-tab-notice"
-              role="tab"
-              aria-selected="true"
-              aria-controls="insight-panel"
-              data-insight="notice"
-            >
-              <span>02</span>
-              <strong>Notice two signals</strong>
-              <small>Choose what to try</small>
-            </button>
-            <button
-              id="insight-tab-retry"
-              role="tab"
-              aria-selected="false"
-              aria-controls="insight-panel"
-              tabindex="-1"
-              data-insight="retry"
-            >
-              <span>03</span>
-              <strong>Try it again</strong>
-              <small>Keep the takes together</small>
-            </button>
+        <div class="insight-demo practice-demo">
+          <div class="insight-tabs" role="tablist" aria-label="Explore reference practice">
+            <button id="insight-tab-listen" role="tab" aria-selected="true" aria-controls="insight-panel" data-insight="listen"><span>01</span><strong>Listen</strong><small>Start with a reference</small></button>
+            <button id="insight-tab-understand" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="understand"><span>02</span><strong>Understand</strong><small>Explore the words</small></button>
+            <button id="insight-tab-repeat" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="repeat"><span>03</span><strong>Repeat</strong><small>Record your version</small></button>
+            <button id="insight-tab-compare" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="compare"><span>04</span><strong>Compare</strong><small>Hear what changed</small></button>
           </div>
-
-          <div
-            class="insight-panel"
-            id="insight-panel"
-            role="tabpanel"
-            aria-labelledby="insight-tab-notice"
-            tabindex="0"
-          >
-            <div class="insight-view" data-insight-view="take" hidden>
-              <div class="screen-frame">
-                <div class="screen-bar">
-                  <span></span><span></span><span></span>
-                  <strong>TAKE 01</strong>
-                </div>
-                <img
-                  src="assets/take-analysis.jpg"
-                  width="1112"
-                  height="720"
-                  alt="Voice Coach take analysis screen with transcript and acoustic timeline"
-                  loading="lazy"
-                />
-              </div>
-              <div class="demo-note">
-                <span class="demo-label">FIRST, HEAR IT BACK</span>
-                <h3>Your take stays connected to its audio and analysis.</h3>
-                <p>Replay the moment, scan the timeline, and keep moving.</p>
-              </div>
+          <div class="insight-panel" id="insight-panel" role="tabpanel" aria-labelledby="insight-tab-listen" tabindex="0">
+            <div class="insight-view" data-insight-view="listen">
+              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE PRACTICE · LISTEN</strong></div><a class="screenshot-link" href="assets/reference-practice.jpg" data-screenshot><img src="assets/reference-practice.jpg" width="3420" height="2146" alt="Ichido reference practice with a transcript, playback controls, and Listen & Repeat mode" loading="lazy" /><span class="screen-expand">Open screenshot ↗</span></a></div>
+              <div class="demo-note"><span class="demo-label">A PHRASE WORTH REPEATING</span><h3>Bring your own reference.</h3><p>Import audio or video, or capture what’s playing on your Mac. Choose a short excerpt and listen to its rhythm, pauses, and emphasis.</p><p class="step-detail">Click a transcribed word to replay that moment.</p></div>
             </div>
-
-            <div class="insight-view" data-insight-view="notice">
-              <div class="screen-frame">
-                <div class="screen-bar">
-                  <span></span><span></span><span></span>
-                  <strong>MIMIC · PRACTICE TARGETS</strong>
-                </div>
-                <img
-                  src="assets/take-analysis.jpg"
-                  width="1112"
-                  height="720"
-                  alt="Voice Coach take analysis screen with transcript and acoustic timeline"
-                  loading="lazy"
-                />
-              </div>
-              <div class="next-step-card">
-                <span class="tip-heading">
-                  <span class="demo-label">TWO PRACTICE TARGETS</span>
-                </span>
-                <span class="tip-examples">
-                  <span class="tip-example">
-                    <span class="tip-part">
-                      <strong>01 · Pause placement</strong>
-                      <span class="tip-copy">
-                        Hear where your breaks fall. Place the next one between ideas.
-                      </span>
-                    </span>
-                    <span class="tip-part">
-                      <strong>02 · Pitch shape</strong>
-                      <span class="tip-copy">
-                        Choose a key word for a pitch lift, then compare it with the words around it.
-                      </span>
-                    </span>
-                  </span>
-                </span>
-              </div>
+            <div class="insight-view" data-insight-view="understand" hidden>
+              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>WORDS · EXPERIMENTAL</strong></div><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot><img src="assets/language-chat.jpg" width="3420" height="2146" alt="Live French reference practice with an on-device explanation in the Words inspector" loading="lazy" /><span class="screen-expand">Open screenshot ↗</span></a></div>
+              <div class="demo-note"><span class="demo-label">OPTIONAL LANGUAGE HELP</span><h3>Make sense of what you hear.</h3><p>Explore meanings, grammar, synonyms, and translations from the transcript. The Words inspector runs on your Mac with available Apple Intelligence.</p><p class="step-detail">Experimental and off by default. You can skip this step.</p><a class="inline-link" href="#words">See how Words works <span aria-hidden="true">↗</span></a></div>
             </div>
-
-            <div class="insight-view" data-insight-view="retry" hidden>
-              <div class="retry-board">
-                <div class="retry-topline">
-                  <span class="demo-label">SAME PRACTICE · NEW TAKE</span>
-                  <span>3 TAKES</span>
-                </div>
-                <blockquote>
-                  “Here’s the idea. What if we made space to practice?”
-                </blockquote>
-                <div class="take-row">
-                  <span>TAKE 01</span>
-                  <div><i style="width: 82%"></i></div>
-                  <small>0:12</small>
-                </div>
-                <div class="take-row active">
-                  <span>TAKE 02</span>
-                  <div><i style="width: 67%"></i></div>
-                  <small>0:10</small>
-                </div>
-                <div class="take-row">
-                  <span>TAKE 03</span>
-                  <div><i style="width: 58%"></i></div>
-                  <small>0:09</small>
-                </div>
-              </div>
-              <div class="demo-note">
-                <span class="demo-label">THEN GO AGAIN</span>
-                <h3>Keep the attempts together. Hear the difference.</h3>
-                <p>No score to chase. Just another take with a clearer aim.</p>
-              </div>
+            <div class="insight-view" data-insight-view="repeat" hidden>
+              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE PRACTICE · YOUR TAKE</strong></div><a class="screenshot-link" href="assets/repeat-practice.jpg" data-screenshot><img src="assets/repeat-practice.jpg" width="3420" height="2146" alt="Live French practice session ready to record another attempt, with the reference transcript visible" loading="lazy" /><span class="screen-expand">Open screenshot ↗</span></a></div>
+              <div class="demo-note"><span class="demo-label">LET YOUR VOICE HAVE A GO</span><h3>Listen, then say it again.</h3><p>Use Listen &amp; Repeat for one attempt at a time. Or use Speak Along with headphones to follow the reference as it plays.</p><p class="step-detail">Every valid attempt stays in the same practice session.</p></div>
+            </div>
+            <div class="insight-view" data-insight-view="compare" hidden>
+              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE + YOUR TAKE · COMPARE</strong></div><a class="screenshot-link" href="assets/mimic-compare.jpg" data-screenshot><img src="assets/mimic-compare.jpg" width="3420" height="2214" alt="Live reference comparison showing matched pitch curves and two measured practice targets" loading="lazy" /><span class="screen-expand">Open screenshot ↗</span></a></div>
+              <div class="demo-note"><span class="demo-label">HEAR THE DIFFERENCE</span><h3>Compare delivery, then try another take.</h3><p>Replay both versions and inspect timing, pitch shape, and loudness. When enough words reliably match, two measured practice targets help you choose what to try next.</p><p class="step-detail">This compares delivery. It does not grade your accent or certify pronunciation.</p></div>
             </div>
           </div>
-          <p class="demo-disclaimer">
-            Interactive walkthrough with real app footage and illustrative
-            practice content.
-          </p>
+        </div>
+        <p class="product-footnote">Real app captures from main and the developer’s practice sessions. Earlier labels “Mimics” and “Ask” become “Practice” and “Words” in Ichido. Transcription and language replies can contain errors.</p>
+      </section>
+
+      <section class="words-section" id="words" aria-labelledby="words-title">
+        <div class="container words-layout">
+          <div class="words-copy">
+            <div class="section-kicker"><span>THE WORDS BEHIND THE SOUND</span><span class="feature-badge">EXPERIMENTAL</span></div>
+            <h2 id="words-title">Know what<br />you’re saying.</h2>
+            <p>Sometimes repeating a phrase starts with understanding it. Open <strong>Words</strong> beside your transcript to ask a question, follow a thought, or explore another way to say something.</p>
+            <ul class="language-jobs"><li><span>01</span>Understand a word or phrase in context.</li><li><span>02</span>Explore synonyms and grammar.</li><li><span>03</span>Translate the transcript with macOS.</li></ul>
+            <p class="words-requirements">Enable it in Settings → Experiments. Chat requires available Apple Intelligence. Translation languages may need a download.</p>
+            <p class="product-footnote">Words works with text and can make mistakes. It cannot hear your audio or evaluate your speaking. Conversations clear when you quit.</p>
+          </div>
+          <figure class="words-visual"><div class="words-caption"><span class="demo-label">A REAL PRACTICE SESSION</span><span>French audio. A question. More context.</span></div><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot data-caption="French reference practice with on-device language help. Captured in the rebuilt Ichido app."><div class="inspector-crop"><img src="assets/language-chat.jpg" width="3420" height="2146" alt="The real language inspector explaining a French transcript about unusually cold June weather" loading="lazy" /></div><span class="screen-expand">Open full app screenshot ↗</span></a><figcaption>Actual on-device reply. Language help can make mistakes.</figcaption></figure>
         </div>
       </section>
 
-      <section class="mimic-section" id="mimic" aria-labelledby="mimic-title">
-        <div class="container mimic-layout">
-          <div class="mimic-copy">
-            <div class="section-kicker light">
-              <span>MIMIC</span>
-              <span>REFERENCE + YOU</span>
-            </div>
-            <h2 id="mimic-title">Borrow the rhythm. Keep your voice.</h2>
-            <p>
-              Bring in a reference from a file or capture Mac audio. Listen,
-              imitate, and compare how the words land across pitch, timing, and
-              emphasis.
-            </p>
-            <ol class="mimic-loop" aria-label="Mimic practice loop">
-              <li><span>01</span>Listen</li>
-              <li><span>02</span>Imitate</li>
-              <li><span>03</span>Compare</li>
-            </ol>
+      <section class="ways-section" id="ways-in" aria-labelledby="ways-title">
+        <div class="container">
+          <div class="section-kicker"><span>THREE WAYS IN</span><span>START WITH WHAT YOU HAVE</span></div>
+          <div class="ways-heading"><h2 id="ways-title">A phrase. A clip.<br />Your own voice.</h2><p>Practise a language, rehearse a presentation, or simply hear yourself back. Choose the source that fits.</p></div>
+          <div class="ways-grid">
+            <article class="way-card"><span class="way-number">01</span><img src="assets/icons/microphone.svg" alt="" /><h3>Record with your mic</h3><p>Try a phrase, an interview answer, or a talk. Review measured pauses, pitch, and loudness on the timeline.</p></article>
+            <article class="way-card"><span class="way-number">02</span><img src="assets/icons/laptop.svg" alt="" /><h3>Capture Mac audio</h3><p>Turn a moment from a talk, podcast, or browser clip into a reference for practice.</p></article>
+            <article class="way-card"><span class="way-number">03</span><img src="assets/icons/arrow-down.svg" alt="" /><h3>Import a file</h3><p>Bring in an audio or video file. Ichido prepares the audio locally so you can listen and practise.</p></article>
           </div>
-          <div class="mimic-visual">
-            <div class="screen-frame dark-frame">
-              <div class="screen-bar">
-                <span></span><span></span><span></span>
-                <strong>MIMIC · COMPARE</strong>
-              </div>
-              <img
-                src="assets/mimic-compare.jpg"
-                width="1112"
-                height="720"
-                alt="Voice Coach Mimic screen comparing a reference and a practice take"
-                loading="lazy"
-              />
-            </div>
-            <span class="mimic-sticker">LISTEN SIDE BY SIDE</span>
-          </div>
+          <p class="honesty-line"><img src="assets/icons/check.svg" alt="" />Playing a clip in your browser? Use Capture Mac audio. There’s no YouTube URL import.</p>
+          <div class="recording-proof"><a class="screenshot-link recording-screen" href="assets/take-analysis.jpg" data-screenshot><img src="assets/take-analysis.jpg" width="1440" height="920" alt="Live recording analysis with a word transcript, timeline, and measured acoustic properties" loading="lazy" /><span class="screen-expand">Open screenshot ↗</span></a><div><span class="demo-label">A PLACE FOR YOUR OWN WORDS</span><h3>Reference optional.<br />Practice always.</h3><p>Start with your own recording whenever you want. Replay a word, notice a pause, and keep another take alongside it.</p><p class="product-footnote">Ordinary recordings show measurements. Reference practice adds matched comparison targets.</p><button class="inline-link" data-open-tour>Watch the earlier app tour <span aria-hidden="true">↗</span></button></div></div>
         </div>
       </section>
 
-      <section class="privacy-strip" aria-label="Voice Coach privacy promise">
-        <div class="container privacy-strip-inner">
-          <img src="assets/icons/lock-key.svg" alt="" />
-          <p>
-            Recordings, analysis, and transcripts stay on this Mac. No account,
-            no upload, no cloud processing.
-          </p>
-          <span>LOCAL BY DESIGN</span>
-        </div>
+      <section class="privacy-section" id="privacy" aria-labelledby="privacy-title">
+        <div class="container privacy-layout"><div><span class="eyebrow">LOCAL BY DESIGN</span><h2 id="privacy-title">A room of<br />your own.</h2></div><div class="privacy-copy"><img src="assets/icons/lock-key.svg" alt="" /><p>Your recordings, transcripts, analysis, and language chat stay on your Mac.</p><p>No account. No recording uploads. No analytics. Update checks and optional model downloads use the network.</p><span class="privacy-signoff">YOUR VOICE BELONGS TO YOU.</span></div></div>
       </section>
 
-      <section
-        class="faq-section container"
-        id="questions"
-        aria-labelledby="faq-title"
-      >
-        <div class="faq-heading">
-          <span class="eyebrow">BEFORE YOU PRESS RECORD</span>
-          <h2 id="faq-title">Good questions deserve clear answers.</h2>
-        </div>
+      <section class="faq-section container" id="questions" aria-labelledby="faq-title">
+        <div class="faq-heading"><span class="eyebrow">BEFORE YOUR FIRST TAKE</span><h2 id="faq-title">A few things<br />to know.</h2><p>Ichido is the new name for Voice Coach. Same local library, with a clearer home for speaking and language practice.</p></div>
         <div class="faq-list">
-          <details>
-            <summary>
-              Is this an AI speech coach?
-              <img class="icon" src="assets/icons/plus.svg" alt="" />
-            </summary>
-            <p>It’s a private practice studio. Recordings show measured delivery on a timeline. Two practice targets come from reliable reference matching in Mimic. Apple Intelligence can rephrase Mimic exercises on this Mac; the practice loop does not require a cloud AI service.</p>
-          </details>
-          <details>
-            <summary>
-              Can I practice in another language?
-              <img class="icon" src="assets/icons/plus.svg" alt="" />
-            </summary>
-            <p>
-              Choose your speech language in Settings → Transcription. Apple
-              transcribes supported languages on-device, with language downloads
-              managed by macOS. Saved sessions keep their speech language, and
-              you can re-transcribe an existing take or Mimic reference. Optional
-              Parakeet recognizes 25 European languages automatically; Japanese
-              requires Apple transcription.
-            </p>
-          </details>
-          <details>
-            <summary>
-              What is the experimental chat?
-              <img class="icon" src="assets/icons/plus.svg" alt="" />
-            </summary>
-            <p>
-              Enable experimental features in Settings → Experiments, then open
-              Ask in a recording or Mimic inspector. Explore your transcript’s
-              meanings, grammar, translations, and synonyms using Apple’s
-              on-device model. Available Apple Intelligence is required. Chat is
-              off by default, conversations are temporary, and answers can be
-              incorrect. It explores language; it cannot hear or evaluate your
-              delivery.
-            </p>
-          </details>
-          <details>
-            <summary>
-              Does anything get uploaded?
-              <img class="icon" src="assets/icons/plus.svg" alt="" />
-            </summary>
-            <p>
-              No. Recordings, acoustic analysis, and supported transcription
-              stay on your Mac. Voice Coach does not need an account.
-            </p>
-          </details>
-          <details>
-            <summary>
-              What does Voice Coach measure?
-              <img class="icon" src="assets/icons/plus.svg" alt="" />
-            </summary>
-            <p>
-              It analyzes acoustic signals such as pauses, pitch, loudness, and
-              voice quality. The goal is to show evidence and one practical next
-              step, not to grade your personality or accent.
-            </p>
-          </details>
-          <details>
-            <summary>
-              What is Mimic for?
-              <img class="icon" src="assets/icons/plus.svg" alt="" />
-            </summary>
-            <p>
-              Mimic lets you practice against one reference. Listen to it,
-              record your attempt, then compare timing, pitch, and emphasis
-              before trying again.
-            </p>
-          </details>
-          <details>
-            <summary>
-              Is this speech therapy or medical advice?
-              <img class="icon" src="assets/icons/plus.svg" alt="" />
-            </summary>
-            <p>
-              No. Voice Coach is a practice tool. Its acoustic signals are not a
-              diagnosis, treatment, or substitute for a qualified professional.
-            </p>
-          </details>
-          <details>
-            <summary>
-              What should I know before installing?
-              <img class="icon" src="assets/icons/plus.svg" alt="" />
-            </summary>
-            <p>
-              The latest public release is for macOS 26+. It is ad-hoc
-              signed and is not Apple-notarized yet, so macOS may block the first
-              launch. Install this version once to receive future in-app updates.
-              The download details explain the steps.
-            </p>
-          </details>
+          <details><summary>Can I practise in another language?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><p>Choose your speech language in Settings → Transcription. Apple transcribes supported languages on-device; missing models can be downloaded there. Sessions keep their language, and you can re-transcribe an existing take or reference. Optional Parakeet automatically recognises 25 European languages; Japanese requires Apple transcription. Availability varies by language, device, and model.</p></details>
+          <details><summary>Will Ichido correct my pronunciation?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><p>Ichido compares acoustic delivery: timing, pitch, and loudness. It does not provide a phoneme-level pronunciation score or a fluency assessment. Reliable matching and similar wording are needed for word-level comparison targets. Listen to the recordings alongside the measured evidence.</p></details>
+          <details><summary>What does Words do?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><p>Words is the experimental language inspector, formerly Ask. Enable it in Settings → Experiments to explore transcript meanings, grammar, synonyms, and translations. Chat requires available Apple Intelligence and is off by default. Its answers can be incorrect; it cannot hear or evaluate audio. Conversations are temporary and clear when you quit.</p></details>
+          <details><summary>Does anything get uploaded?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><p>Ichido processes recordings, analysis, supported transcription, and language chat on your Mac. It has no recording upload path and requires no account. Update checks and optional speech or translation model downloads use the network. If you explicitly copy an analysis prompt into an external AI service, that service receives what you paste.</p></details>
+          <details><summary>What happened to Voice Coach?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><p>Voice Coach is becoming Ichido. The existing app identifier and storage location are preserved, so your local recordings and preferences remain available. The Practice sidebar contains reference sessions previously called Mimics.</p></details>
+          <details><summary>What does the name mean?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><p>Say it “ee-chee-doh.” Ichido means “one time” in Japanese. The practice story is inspired by mō ichido, “once more”: listen, give it a take, and try again.</p></details>
+          <details><summary>What do I need to run it?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><p>macOS 26 or later. Apple Silicon is recommended, and experimental chat needs available Apple Intelligence. Audio analysis still works when transcription is unavailable. Ichido is free while in early access. It is a practice tool, with acoustic coaching signals; it is not speech therapy or a medical assessment.</p></details>
+          <details><summary>What should I know before installing?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><p>The early-access app is ad-hoc signed and not Apple-notarized yet, so macOS may block its first launch. The download details explain permissions and installation. The existing updater feed is retained for Voice Coach users.</p></details>
         </div>
       </section>
 
-      <section
-        class="download-section"
-        id="download"
-        aria-labelledby="download-title"
-      >
-        <div class="container download-grid">
-          <div class="download-copy">
-            <span class="eyebrow">YOUR NEXT TAKE IS WAITING</span>
-            <h2 id="download-title">Make room for the words that matter.</h2>
-            <p>Free while in early access. No account required.</p>
-            <button class="button button-blue" data-open-download>
-              Download for Mac
-              <img class="icon light" src="assets/icons/arrow-down.svg" alt="" />
-            </button>
-            <span class="release-meta">Version 0.0.1 · Early access · macOS 26+</span>
-          </div>
-          <div class="download-notes">
-            <img
-              class="download-icon"
-              src="assets/app-icon.png"
-              width="112"
-              height="112"
-              alt="Voice Coach app icon"
-              loading="lazy"
-            />
-            <p class="install-warning">The current release is ad-hoc signed and not Apple-notarized.</p>
-            <details class="install-details" data-responsive-details open>
-              <summary>Before you install</summary>
-              <p>
-                Microphone access is needed to record.
-                System audio access is needed when you capture Mac audio.
-              </p>
-            </details>
-            <details class="install-details" data-responsive-details open>
-              <summary>Optional transcription</summary>
-              <p>
-                Apple on-device transcription supports a choice of speech
-                languages. Download missing languages in Settings → Transcription.
-                Optional Parakeet needs a ~714 MB download. Your recordings stay
-                on this Mac.
-              </p>
-            </details>
-          </div>
-        </div>
+      <section class="download-section" id="download" aria-labelledby="download-title">
+        <div class="container download-grid"><div class="download-copy"><span class="eyebrow">ONCE MORE, AT YOUR OWN PACE</span><h2 id="download-title">Make room<br />for your next take.</h2><p>Free while in early access. No account required.</p><button class="button button-blue" data-open-download>Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></button><span class="release-meta">Version 0.0.2 · Early access · macOS 26+</span></div><div class="download-notes"><img class="download-icon" src="assets/app-icon.png" width="112" height="112" alt="Ichido app icon" loading="lazy" /><p class="install-warning">The current release is ad-hoc signed and not Apple-notarized.</p><details class="install-details" data-responsive-details open><summary>Before you install</summary><p>Microphone access is needed to record. System audio access is needed when you capture Mac audio.</p></details><details class="install-details" data-responsive-details open><summary>Choose your speech language</summary><p>Open Settings → Transcription after installation. Apple language models and the optional ~714 MB Parakeet model are downloaded separately.</p></details></div></div>
       </section>
     </main>
 
     <footer class="site-footer container">
-      <a class="wordmark" href="#" aria-label="Voice Coach home">
+      <a class="wordmark" href="#" aria-label="Ichido home">
         <img src="assets/brand-mark.png" width="40" height="22" alt="" />
-        <span>voice coach.</span>
+        <span>ichido.</span>
       </a>
-      <span class="footer-line">Private practice for the words that matter.</span>
+      <span class="footer-line">Your private speaking room.</span>
       <div>
         <a
           href="https://github.com/Gowtham1729/voice-coach/issues/new"
@@ -587,8 +222,8 @@
     >
       <div class="dialog-top">
         <div>
-          <span class="mini-label">THE REAL APP</span>
-          <h2 id="tour-dialog-title">Voice Coach in 59 seconds.</h2>
+          <span class="mini-label">EARLIER APP TOUR</span>
+          <h2 id="tour-dialog-title">Voice Coach, before Ichido.</h2>
         </div>
         <button
           class="icon-button"
@@ -603,7 +238,7 @@
         controls
         playsinline
         preload="none"
-        poster="assets/mimic-compare.jpg"
+        poster="assets/tour-poster.jpg"
       >
         <source src="assets/voice-coach-tour.mp4" type="video/mp4" />
         <track
@@ -622,8 +257,8 @@
         <button data-seek="48">00:48 Import</button>
       </div>
       <p class="tour-note">
-        Real app footage · Development build; some screens may be ahead of
-        the public release.
+        Earlier Voice Coach footage. The practice workflow carries into Ichido;
+        this video predates the rebrand and experimental Words inspector.
       </p>
     </dialog>
 
@@ -649,10 +284,10 @@
         height="72"
         alt=""
       />
-      <h2 id="download-dialog-title">Download Voice Coach.</h2>
-      <p class="dialog-description">Voice Coach 0.0.1 · Early access · macOS 26+</p>
+      <h2 id="download-dialog-title">Your next take starts here.</h2>
+      <p class="dialog-description">Ichido 0.0.2 · Early access · macOS 26+</p>
       <p class="dialog-commercial">Free while in early access. No account required.</p>
-      <p>Once installed, Voice Coach checks for future updates and lets you check manually from the app menu.</p>
+      <p>Once installed, Ichido checks for future updates and lets you check manually from the app menu.</p>
       <div class="install-disclosure">
         <strong>This release is not Apple-notarized yet.</strong>
         <p>
@@ -664,7 +299,7 @@
         <summary>Installation steps and permissions</summary>
         <ol class="install-steps">
           <li>Download and unzip the app.</li>
-          <li>Move Voice Coach to Applications.</li>
+          <li>Move Ichido to Applications. If you already use Voice Coach, replace the earlier app; your local library is retained.</li>
           <li>
             If macOS blocks it, review the release instructions. The approval may
             appear in System Settings under Privacy &amp; Security.
@@ -680,9 +315,9 @@
       </details>
       <a
         class="button button-blue direct-download"
-        href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Voice-Coach-macOS.zip"
+        href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip"
       >
-        Download for Mac
+        Get Ichido for Mac
         <img class="icon light" src="assets/icons/arrow-down.svg" alt="" />
       </a>
       <a
@@ -704,11 +339,18 @@
       </p>
     </dialog>
 
+    <dialog class="screenshot-dialog" id="screenshot-dialog" aria-labelledby="screenshot-dialog-title">
+      <div class="dialog-top"><div><span class="mini-label">REAL APP CAPTURE</span><h2 id="screenshot-dialog-title">A closer look.</h2></div><button class="icon-button" data-close-dialog aria-label="Close screenshot"><img class="icon" src="assets/icons/x.svg" alt="" /></button></div>
+      <img id="expanded-screenshot" alt="" />
+      <p id="screenshot-caption" class="small-note"></p>
+      <a id="screenshot-original" class="inline-link" target="_blank" rel="noopener">Open original image ↗</a>
+    </dialog>
+
     <noscript>
       <div class="noscript-note">
         Download
         <a href="https://github.com/Gowtham1729/voice-coach/releases/latest">
-          the latest Voice Coach release
+          the latest Ichido release
         </a>
         for macOS 26+. The release is ad-hoc signed and not notarized.
         <a href="assets/voice-coach-tour.mp4">Watch the app tour.</a>

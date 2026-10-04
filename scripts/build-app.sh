@@ -17,7 +17,7 @@ export SWIFTPM_MODULECACHE_OVERRIDE="$PROJECT_DIR/.build/module-cache"
 
 "$SWIFT_BIN" build -c release --disable-sandbox
 
-APP_DIR="$PROJECT_DIR/build/Voice Coach.app"
+APP_DIR="$PROJECT_DIR/build/Ichido.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 SPARKLE_FRAMEWORK="$PROJECT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"

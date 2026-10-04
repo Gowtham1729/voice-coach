@@ -135,7 +135,7 @@ struct ContentView: View {
     if snapshot {
       HStack(spacing: 0) {
         snapshotSegment("Details", selected: selectedPane == .details)
-        snapshotSegment("Ask", selected: selectedPane == .ask)
+        snapshotSegment("Words", selected: selectedPane == .ask)
       }
       .frame(maxWidth: .infinity)
       .padding(.horizontal, 16)
@@ -147,7 +147,7 @@ struct ContentView: View {
     } else {
       Picker("Inspector", selection: $inspectorPane) {
         Text("Details").tag(InspectorPane.details.rawValue)
-        Text("Ask").tag(InspectorPane.ask.rawValue)
+        Text("Words").tag(InspectorPane.ask.rawValue)
       }
       .pickerStyle(.segmented)
       .labelsHidden()
@@ -263,14 +263,14 @@ struct ContentView: View {
   private var windowTitle: String {
     switch model.destination {
     case .home: "Home"
-    case .mimicStart: "Mimic"
+    case .mimicStart: "Reference practice"
     case .practice:
       model.selectedSession?.mimicReference?.sourceName
         ?? model.selectedSession?.name
-        ?? "Mimic"
+        ?? "Reference practice"
     case .take: model.selectedSession?.name ?? "Recording"
     case .library: "Library"
-    case .mimics: "Mimics"
+    case .mimics: "Practice"
     }
   }
 

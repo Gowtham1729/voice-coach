@@ -6,7 +6,7 @@ extension Notification.Name {
   static let appleInterfaceThemeChanged = Notification.Name("AppleInterfaceThemeChangedNotification")
 }
 
-/// Keeps Voice Coach on the Mac system appearance.
+/// Keeps Ichido on the Mac system appearance.
 ///
 /// `NSRequiresAquaSystemAppearance` in this app's preferences forces Aqua and
 /// ignores later system changes. Drop it, then match the current system style.
@@ -40,38 +40,24 @@ final class SystemAppearance: ObservableObject {
 
   func apply() {
     UserDefaults.standard.removeObject(forKey: "NSRequiresAquaSystemAppearance")
-    let scheme = Self.systemColorScheme()
     let app = NSApplication.shared
     app.appearance = nil
     for window in app.windows {
       window.appearance = nil
     }
-    let effectiveDark = app.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-    if effectiveDark != (scheme == .dark) {
-      let appearance = NSAppearance(named: Self.appearanceName(for: scheme))
-      app.appearance = appearance
-      for window in app.windows {
-        window.appearance = appearance
-      }
-    }
+    let scheme = Self.systemColorScheme()
     if colorScheme != scheme {
       colorScheme = scheme
     }
   }
 
   private static func systemColorScheme() -> ColorScheme {
-    let domain = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)
-    let style = domain?["AppleInterfaceStyle"] as? String ?? ""
-    return style.caseInsensitiveCompare("Dark") == .orderedSame ? .dark : .light
+    // Read the native effective appearance after clearing overrides. The global
+    // defaults domain can lag a theme notification and disagree with AppKit.
+    NSApplication.shared.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+      ? .dark : .light
   }
 
-  private static func appearanceName(for scheme: ColorScheme) -> NSAppearance.Name {
-    let increaseContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
-    if scheme == .dark {
-      return increaseContrast ? .accessibilityHighContrastDarkAqua : .darkAqua
-    }
-    return increaseContrast ? .accessibilityHighContrastAqua : .aqua
-  }
 }
 
 struct SystemAppearanceRoot<Content: View>: View {

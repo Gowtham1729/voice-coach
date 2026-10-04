@@ -79,5 +79,5 @@ createServer(async (request, response) => {
     response.writeHead(404).end("Not found");
   }
 }).listen(port, host, () =>
-  console.log(`Voice Coach website: http://${host}:${port}`),
+  console.log(`Ichido website: http://${host}:${port}`),
 );

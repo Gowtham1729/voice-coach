@@ -1,34 +1,38 @@
-# Voice Coach
+# Ichido
 
-A private voice practice studio for macOS. Record a take, review its measured delivery, and refine it on an interactive timeline without uploading audio to the cloud. Mimic adds practice targets measured against a reference.
+**Your private speaking room.** Record yourself, practise with a reference, and explore the words behind a phrase. Audio, transcripts, and analysis stay on your Mac.
+
+Ichido is the new name for Voice Coach. The app identifier, preferences, and existing local library are preserved. Japanese *ichido* means one time; its practice story is inspired by *mō ichido*, once more.
 
 Built natively with SwiftUI for macOS 26+.
 
-## Demo
+## Earlier app tour
+
+This footage predates the Ichido rebrand and experimental Words inspector. A new launch demo is planned separately.
 
 https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
 
 ## Installation
 
 Download the latest pre-built application:
-* **[Latest Voice Coach for macOS](https://github.com/Gowtham1729/voice-coach/releases/latest/download/Voice-Coach-macOS.zip)** (ZIP) · [Release notes](https://github.com/Gowtham1729/voice-coach/releases/latest)
+* **[Latest Ichido for macOS](https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip)** (ZIP) · [Release notes](https://github.com/Gowtham1729/voice-coach/releases/latest)
 
 ### Setup Steps
-1. Unzip the downloaded file and move `Voice Coach.app` to your `/Applications` folder.
-2. Launch the app. Because releases are currently ad-hoc signed, macOS Gatekeeper may prompt you on first run. If blocked, right-click `Voice Coach.app` in Finder and select **Open**.
+1. Unzip the downloaded file and move `Ichido.app` to your `/Applications` folder. Replace the earlier Voice Coach app if installed; the local library is retained.
+2. Launch the app. Because releases are currently ad-hoc signed, macOS Gatekeeper may prompt you on first run. If blocked, follow [Apple’s opening guidance](https://support.apple.com/en-us/102445) and review the approval in **System Settings > Privacy & Security**.
 
-The current early-access release is **0.0.1 (build 13)**, restarting public version numbering with multilingual transcription and experimental on-device language chat. Internal build numbers continue increasing so existing updater-enabled installations can receive it. Use **Voice Coach > Check for Updates…** or wait for an automatic update check. Installations without that menu need one manual installation.
+The Ichido early-access version is **0.0.2 (build 14)**. Internal build numbers continue increasing so existing updater-enabled Voice Coach installations can receive updates from the same feed. Use **Ichido > Check for Updates…** or wait for an automatic update check. Installations without that menu need one manual installation.
 
 **System Requirements:** macOS 26.0 or later (Apple Silicon recommended).
 
 **Speech Transcription:**
-Apple on-device speech transcription is enabled by default. Choose the spoken language in **Settings > Transcription**, then use **Download Language…** if its Apple model is missing. This does not change your Mac’s language. New sessions retain their speech language for subsequent takes. Existing transcripts can be regenerated using **Re-transcribe** on a take or **Transcript > Re-transcribe** on a Mimic reference.
+Apple on-device speech transcription is enabled by default. Choose the spoken language in **Settings > Transcription**, then use **Download Language…** if its Apple model is missing. This does not change your Mac’s language. New sessions retain their speech language for subsequent takes. Existing transcripts can be regenerated using **Re-transcribe** on a take or **Transcript > Re-transcribe** on a reference.
 
-Parakeet is an optional local model (~714 MB), installable from the same settings pane or via `./scripts/setup-transcription.sh`. The bundled v3 model automatically recognizes 25 European languages, including French, but does not support Japanese. Its language control shows **Automatic**; Apple’s saved language preference does not steer it. Known unsupported session languages are rejected before transcription. Voice Coach uses the selected engine and reports failures without silently switching models. Audio analysis and saving still work when transcription is unavailable.
+Parakeet is an optional local model (~714 MB), installable from the same settings pane or via `./scripts/setup-transcription.sh`. The bundled v3 model automatically recognizes 25 European languages, including French, but does not support Japanese. Its language control shows **Automatic**; Apple’s saved language preference does not steer it. Known unsupported session languages are rejected before transcription. Ichido uses the selected engine and reports failures without silently switching models. Audio analysis and saving still work when transcription is unavailable.
 
 ## How It Works
 
-Voice Coach focuses on deliberate practice through a rapid loop: capture a take, review the recording, and adjust on the next attempt. Mimic names differences from a reference.
+Ichido focuses on deliberate practice through a rapid loop: capture a take, review the recording, and adjust on the next attempt. Reference practice names differences from a reference.
 
 ### 1. Three Ways to Practice
 * **Microphone**: Record rehearsed talks, pitches, presentations, or interview answers.
@@ -36,32 +40,32 @@ Voice Coach focuses on deliberate practice through a rapid loop: capture a take,
 * **File Import**: Bring in existing audio or video files. Imported media is automatically normalized to 48 kHz mono WAV locally.
 
 ### 2. Review a Recording
-A free recording shows measured pauses, pitch, loudness, and clarity on the timeline. It does not assign practice exercises. A clipped or noisy take includes a short note that those estimates may be unreliable.
+An ordinary recording shows measured pauses, pitch, loudness, and clarity on the timeline. It does not assign practice exercises. A clipped or noisy take includes a short note that those estimates may be unreliable.
 
-### 3. Mimic Mode (Practice with a Reference)
-Mimic mode lets you study how another speaker delivers a phrase:
+### 3. Reference practice
+Reference practice lets you study how another speaker delivers a phrase:
 1. **Listen**: Set an imported file or captured system audio as your reference model.
-2. **Imitate**: Record your attempt right alongside it.
+2. **Repeat**: Record your attempt right alongside it.
 3. **Compare**: Inspect side-by-side pitch curves, rhythm alignments, and word-level emphasis. When the words line up, two practice targets name a difference from the reference.
 
 ### 4. Stacked Takes and Timeline Scrubbing
-All attempts in a session stay grouped together (`Take 1`, `Take 2`, etc.). You can scrub the waveform, click any transcribed word to jump playback directly to that moment, and hear your improvement from one take to the next.
+All attempts in a session stay grouped together (`Take 1`, `Take 2`, etc.). You can scrub the waveform, click any transcribed word to jump playback directly to that moment, and hear how your delivery changes from one take to the next.
 
 ### 5. Optional AI Analysis (Clipboard Export)
-If you want qualitative script feedback or presentation advice, use **File > Copy AI analysis prompt + JSON** (or press `⌥⌘C`). This formats your acoustic metrics into a structured prompt on your clipboard so you can paste it into ChatGPT, Gemini, Claude, or any LLM of your choice. Voice Coach never contacts external AI APIs on its own.
+If you want qualitative script feedback or presentation advice, use **File > Copy AI analysis prompt + JSON** (or press `⌥⌘C`). This formats your acoustic metrics into a structured prompt on your clipboard so you can paste it into ChatGPT, Gemini, Claude, or any LLM of your choice. Ichido never contacts external AI APIs on its own.
 
-### 6. Experimental On-Device Chat
-Enable **Settings > Experiments > Enable experimental features**, open a recording or Mimic, and choose **Ask** in the inspector. Explore meanings, grammar concepts, translations, synonyms, or word-by-word explanations. Suggested questions fill the composer so you can edit them before sending. Replies preserve lists and follow-ups, with Copy for the complete answer.
+### 6. Words: experimental on-device language exploration
+Enable **Settings > Experiments > Enable experimental features**, open a recording or reference practice, and choose **Words** in the inspector. Explore meanings, grammar concepts, translations, synonyms, or word-by-word explanations. Suggested questions fill the composer so you can edit them before sending. Replies preserve lists and follow-ups, with Copy for the complete answer.
 
-Choose **Reference** or **This take** from the compact context menu. Mimics start with the reference transcript. Chat uses the complete chosen transcript, without sentence selection or repeated transcript previews. **Translate…** opens a native sheet backed by Apple’s on-device `TranslationSession`, which can ask to download language models.
+Choose **Reference** or **This take** from the compact context menu. Reference sessions start with the reference transcript. Chat uses the complete chosen transcript, without sentence selection or repeated transcript previews. **Translate…** opens a native sheet backed by Apple’s on-device `TranslationSession`, which can ask to download language models.
 
-Chat uses Apple's on-device model and requires available Apple Intelligence. Each recording or selected Mimic attempt has a separate temporary conversation. Chats survive navigation while the app is open, but clear when you quit, clear the chat, delete the recording, or turn experiments off. Follow-ups use up to three recent exchanges. Only the complete chosen transcript and recent conversation are sent to the local model. Transcripts are not silently shortened; very long transcripts may exceed the local model’s context limit.
+Chat uses Apple's on-device model and requires available Apple Intelligence. Each recording or selected reference practice attempt has a separate temporary conversation. Chats survive navigation while the app is open, but clear when you quit, clear the chat, delete the recording, or turn experiments off. Follow-ups use up to three recent exchanges. Only the complete chosen transcript and recent conversation are sent to the local model. Transcripts are not silently shortened; very long transcripts may exceed the local model’s context limit.
 
 This chat is for language exploration. It does not evaluate takes or recommend performance improvements. Common coaching requests are rejected before inference, with model instructions and a conservative reply check as additional defenses. These checks are not a semantic guarantee. Transcription errors and incorrect language answers remain possible; the chat cannot hear audio, search the web, or verify facts. Original transcripts and measured practice targets are preserved.
 
 ## What It Measures
 
-Voice Coach extracts objective acoustic properties to guide practice. It does not provide medical evaluations, diagnose speech conditions, or rate accents.
+Ichido extracts objective acoustic properties to guide practice. It does not provide medical evaluations, diagnose speech conditions, or rate accents.
 
 * **Pauses and Cadence**: Pause counts, average duration, speaking rate, and pause placement between clauses.
 * **Pitch Dynamics**: Pitch range in semitones, fundamental frequency (F0) contours, and phrase-ending inflection.
@@ -71,7 +75,7 @@ Voice Coach extracts objective acoustic properties to guide practice. It does no
 
 ## Privacy by Design
 
-Voice Coach processes recordings entirely on your Mac. It requires no user account and collects no telemetry. Update checks and optional language/model downloads use the network; recordings are never uploaded.
+Ichido processes recordings entirely on your Mac. It requires no user account and collects no telemetry. Update checks and optional language/model downloads use the network; recordings are never uploaded.
 
 * **Local Storage**: All recordings, transcripts, and acoustic metrics live exclusively in:
   ```
@@ -110,7 +114,7 @@ Supported runner flags: `--debug`, `--logs`, `--telemetry`, `--verify`.
 # Optional real on-device chat smoke (synthetic text; Apple Intelligence must be ready)
 VOICE_COACH_TEST_LOCAL_CHAT=1 ./scripts/test.sh --unit --filter liveDeviceModelSmoke
 
-# Build release application bundle (outputs to build/Voice Coach.app)
+# Build release application bundle (outputs to build/Ichido.app)
 ./scripts/build-app.sh
 
 # Render synthetic UI layout proofs
@@ -129,7 +133,7 @@ The project is structured into three primary packages:
 | Target | Description |
 | --- | --- |
 | `VoiceCoachCore` | Signal processing, acoustic analysis, metric extraction, and transcription interfaces. |
-| `VoiceCoachSession` | Session data structures, SQLite/JSON persistence layer, and schema migrations. |
+| `VoiceCoachSession` | Session data structures, JSON persistence, and schema migrations. |
 | `VoiceCoachApp` | macOS SwiftUI interface, Core Audio capture engine, and interactive timeline components. |
 | `VoiceCoachSelfTest` | Automated smoke and contract suite enforcing acoustic invariants and report schemas. |
 

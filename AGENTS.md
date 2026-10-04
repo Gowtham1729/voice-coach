@@ -4,7 +4,7 @@ Operating manual for coding agents. Prefer this over guessing; prefer `VoiceCoac
 
 ## What this repo is
 
-Local-first **macOS 26+** SwiftUI voice practice studio (Swift 6.2). Record/import takes, run on-device acoustic analysis + optional Parakeet transcription, persist a private recordings library. Not a web app; nothing uploads recordings.
+Local-first **Ichido** (formerly Voice Coach), a **macOS 26+** SwiftUI speaking practice studio (Swift 6.2). Record/import takes, run on-device acoustic analysis + optional Parakeet transcription, persist a private recordings library. Not a web app; nothing uploads recordings.
 
 ## Layout (where to edit)
 
@@ -36,7 +36,7 @@ Run from repo root. Prefer the Xcode toolchain when present (scripts do this).
 # Dev app (macOS only)
 ./script/build_and_run.sh
 
-# Release .app → build/Voice Coach.app (ad-hoc codesign)
+# Release .app → build/Ichido.app (ad-hoc codesign)
 ./scripts/build-app.sh
 
 # SelfTest + DEBUG layout PNGs in build/previews (synthetic audio only)

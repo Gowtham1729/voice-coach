@@ -15,7 +15,11 @@ struct StudioScroll<Content: View>: View {
   @ViewBuilder let content: Content
   var body: some View {
     if snapshot {
-      content.frame(maxHeight: .infinity, alignment: .top).clipped()
+      GeometryReader { geometry in
+        content
+          .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+          .clipped()
+      }
     } else {
       ScrollView { content }
     }

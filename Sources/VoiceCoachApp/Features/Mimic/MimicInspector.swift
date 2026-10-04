@@ -63,7 +63,7 @@ struct MimicInspector: View {
         HStack(spacing: 8) {
           Menu {
             Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyMimicAIAnalysisPrompt)
-              .help("Copies instructions and the comparison JSON. Voice Coach does not send it.")
+              .help("Copies instructions and the comparison JSON. Ichido does not send it.")
             Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
           } label: {
             Image(systemName: "ellipsis")

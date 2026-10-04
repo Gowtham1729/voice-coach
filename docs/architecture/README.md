@@ -1,6 +1,6 @@
-# Voice Coach architecture
+# Ichido architecture
 
-Voice Coach uses a small layered package graph so local audio contracts stay reusable and macOS framework code stays at the edge.
+Ichido uses a small layered package graph so local audio contracts stay reusable and macOS framework code stays at the edge.
 
 ```text
 VoiceCoachApp ───────▶ VoiceCoachSession ───────▶ VoiceCoachCore

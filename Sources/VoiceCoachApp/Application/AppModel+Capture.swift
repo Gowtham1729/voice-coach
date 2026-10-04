@@ -115,9 +115,9 @@ extension AppModel {
           mimicIsPreparing = false
           mimicPreparationID = nil
           presentError(
-            title: "Mimic failed",
+            title: "Reference practice failed",
             error: error,
-            fallback: "Couldn’t use this recording as a Mimic reference.")
+            fallback: "Couldn’t use this recording as a practice reference.")
         }
       }
     }

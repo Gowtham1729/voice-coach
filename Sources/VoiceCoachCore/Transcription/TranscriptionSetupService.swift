@@ -84,7 +84,7 @@ public enum TranscriptionSetupError: LocalizedError, Sendable {
   }
 }
 
-/// Downloads NVIDIA NeMo-Speech.cpp (binary) + Parakeet into local caches for Voice Coach.
+/// Downloads NVIDIA NeMo-Speech.cpp (binary) + Parakeet into local caches for Ichido.
 /// Recordings are never uploaded; only the runtime/model artifacts are fetched.
 public struct TranscriptionSetupService: Sendable {
   public static let defaultModelID = NemoSpeechTranscriber.defaultModel

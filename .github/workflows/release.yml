@@ -69,16 +69,16 @@ jobs:
       - name: Build app
         run: |
           ./scripts/build-app.sh
-          test -d "build/Voice Coach.app"
+          test -d "build/Ichido.app"
 
       - name: Zip app
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          ZIP="Voice-Coach-${VERSION}-macOS.zip"
+          ZIP="Ichido-${VERSION}-macOS.zip"
           ditto -c -k --sequesterRsrc --keepParent \
-            "build/Voice Coach.app" \
+            "build/Ichido.app" \
             "${ZIP}"
           test -f "${ZIP}"
           ls -lh "${ZIP}"
@@ -95,7 +95,7 @@ jobs:
             exit 1
           fi
           mkdir -p release-assets
-          mv "Voice-Coach-${VERSION}-macOS.zip" release-assets/
+          mv "Ichido-${VERSION}-macOS.zip" release-assets/
           SPARKLE_BIN=".build/artifacts/sparkle/Sparkle/bin"
           printf '%s' "${SPARKLE_ED25519_PRIVATE_KEY}" | \
             "${SPARKLE_BIN}/generate_appcast" \
@@ -113,16 +113,18 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          cp "release-assets/Voice-Coach-${VERSION}-macOS.zip" \
+          cp "release-assets/Ichido-${VERSION}-macOS.zip" \
+            release-assets/Ichido-macOS.zip
+          cp "release-assets/Ichido-${VERSION}-macOS.zip" \
             release-assets/Voice-Coach-macOS.zip
-          cmp "release-assets/Voice-Coach-${VERSION}-macOS.zip" \
+          cmp "release-assets/Ichido-${VERSION}-macOS.zip" \
             release-assets/Voice-Coach-macOS.zip
 
       - name: Upload zip (dry-run artifact)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
-          name: Voice-Coach-${{ steps.version.outputs.version }}-macOS
+          name: Ichido-${{ steps.version.outputs.version }}-macOS
           path: release-assets/
           if-no-files-found: error
 
@@ -134,14 +136,14 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          ZIP="release-assets/Voice-Coach-${VERSION}-macOS.zip"
+          ZIP="release-assets/Ichido-${VERSION}-macOS.zip"
           NOTES="$(mktemp)"
           TAG_MSG="$(git tag -l --format='%(contents)' "${TAG}" | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d')"
           TAG_MSG="${TAG_MSG%"${TAG_MSG##*[![:space:]]}"}"
           {
             echo "This zip is **ad-hoc signed** (not Developer ID, not notarized)."
             echo
-            echo "Gatekeeper may block first launch: unzip, move **Voice Coach.app** to Applications, then **right-click → Open**."
+            echo "Gatekeeper may block first launch. Unzip, move **Ichido.app** to Applications, then follow [Apple’s opening guidance](https://support.apple.com/en-us/102445)."
             echo
             echo "The zip does **not** include the Parakeet / NeMo-Speech model. On-device transcription is an optional later download (**Settings → Transcription**)."
             echo
@@ -152,8 +154,8 @@ jobs:
               echo
             fi
           } > "${NOTES}"
-          gh release create "${TAG}" "${ZIP}" release-assets/Voice-Coach-macOS.zip release-assets/appcast.xml \
-            --title "Voice Coach ${VERSION}" \
+          gh release create "${TAG}" "${ZIP}" release-assets/Ichido-macOS.zip release-assets/Voice-Coach-macOS.zip release-assets/appcast.xml \
+            --title "Ichido ${VERSION}" \
             --notes-file "${NOTES}" \
             --latest \
             --verify-tag

@@ -67,7 +67,7 @@ final class SystemAudioCapture: SystemAudioCapturing, @unchecked Sendable {
     let excludeIDs = (try? Self.processObjectID(for: getpid())).map { [$0] } ?? []
     let tapDescription = CATapDescription(monoGlobalTapButExcludeProcesses: excludeIDs)
     tapDescription.uuid = UUID()
-    tapDescription.name = "Voice Coach System Audio"
+    tapDescription.name = "Ichido System Audio"
     tapDescription.isPrivate = true
     tapDescription.muteBehavior = .unmuted
 
@@ -85,7 +85,7 @@ final class SystemAudioCapture: SystemAudioCapturing, @unchecked Sendable {
 
     let outputUID = try Self.defaultOutputDeviceUID()
     let aggregateDescription: [String: Any] = [
-      kAudioAggregateDeviceNameKey: "Voice Coach System Audio Aggregate",
+      kAudioAggregateDeviceNameKey: "Ichido System Audio Aggregate",
       kAudioAggregateDeviceUIDKey: "com.gowtham.voicecoach.tap.\(UUID().uuidString)",
       kAudioAggregateDeviceMainSubDeviceKey: outputUID,
       kAudioAggregateDeviceIsPrivateKey: true,
@@ -383,9 +383,9 @@ enum SystemAudioCaptureError: LocalizedError {
     case .alreadyCapturing:
       "Capture is already running."
     case .setupFailed:
-      "Allow Voice Coach in System Settings → Privacy & Security → Screen & System Audio Recording."
+      "Allow Ichido in System Settings → Privacy & Security → Screen & System Audio Recording."
     case .permissionOrSilent:
-      "Play audio on this Mac, then capture again. If nothing was playing, allow Voice Coach under System Settings → Privacy & Security → Screen & System Audio Recording."
+      "Play audio on this Mac, then capture again. If nothing was playing, allow Ichido under System Settings → Privacy & Security → Screen & System Audio Recording."
     }
   }
 }
