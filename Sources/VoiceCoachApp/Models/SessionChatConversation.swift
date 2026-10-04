@@ -115,7 +115,7 @@ final class SessionChatConversation: ObservableObject {
         guard let self, !Task.isCancelled, self.requestID == id else { return }
         self.errorMessage =
           (error as? SessionChatError)?.errorDescription
-          ?? "The local model could not finish. Try again."
+          ?? "Couldn’t finish this reply. Try again."
         if self.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
           self.draft = question
         }

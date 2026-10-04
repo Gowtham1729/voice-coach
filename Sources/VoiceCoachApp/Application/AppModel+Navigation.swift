@@ -163,10 +163,10 @@ extension AppModel {
   }
 
   private func deleteMessage(wasMimic: Bool, attemptCount: Int) -> String {
-    guard wasMimic else { return "Recording removed" }
-    guard attemptCount > 0 else { return "Practice removed" }
-    let noun = attemptCount == 1 ? "attempt" : "attempts"
-    return "Practice and \(attemptCount) \(noun) removed"
+    guard wasMimic else { return "Recording deleted" }
+    guard attemptCount > 0 else { return "Reference practice deleted" }
+    let noun = attemptCount == 1 ? "take" : "takes"
+    return "Reference and \(attemptCount) \(noun) deleted"
   }
 
   func archiveMimic(_ id: UUID, archived: Bool = true) {

@@ -36,17 +36,17 @@ struct SessionChatInspector: View {
   var body: some View {
     InspectorShell(scrollToken: "\(conversation.exchanges.count)-\(conversation.isResponding)") {
       InspectorHeader(
-        eyebrow: "Language chat · Experimental",
+        eyebrow: "Words · Experimental",
         title: conversation.context.title,
-        meta: ["On this Mac · Temporary conversation"]
+        meta: ["On this Mac · Clears when you quit"]
       ) {
-        Button("Clear", action: conversation.clear)
+        Button("Clear chat", action: conversation.clear)
           .controlSize(.small)
           .disabled(
             conversation.exchanges.isEmpty && !conversation.isResponding
               && conversation.draft.isEmpty
           )
-          .help("Clear this take's conversation")
+          .help("Delete all messages in this chat")
       }
     } content: {
       VStack(alignment: .leading, spacing: 20) {
@@ -54,11 +54,9 @@ struct SessionChatInspector: View {
           VStack(alignment: .leading, spacing: 8) {
             Text("Explore the words").font(.headline)
             Text(
-              "Ask about meanings, translations, grammar, or synonyms. Follow up in your own words."
+              "Ask about meanings, grammar, synonyms, or translations."
             )
             .foregroundStyle(.secondary)
-            Text("For example: “Break this into phrases and explain each one.”")
-              .foregroundStyle(.secondary)
           }
           .font(.callout)
           .fixedSize(horizontal: false, vertical: true)
@@ -72,7 +70,7 @@ struct SessionChatInspector: View {
         if let question = conversation.pendingQuestion {
           message(
             question: question, answer: nil, id: nil)
-          ProgressView("Thinking on this Mac…").controlSize(.small)
+          ProgressView("Thinking…").controlSize(.small)
         }
         if let error = conversation.errorMessage {
           Text(error).font(.callout).foregroundStyle(.orange)
@@ -148,10 +146,10 @@ struct SessionChatInspector: View {
       if conversation.context.hasTranscript { contextPicker }
       composer
       if conversation.draft.count > SessionChatConversation.questionLimit {
-        Text("Keep questions under \(SessionChatConversation.questionLimit) characters.")
+        Text("Use \(SessionChatConversation.questionLimit) characters or fewer.")
           .font(.caption).foregroundStyle(.orange)
       } else {
-        Text("AI answers can be wrong. Language help only; no take evaluation.")
+        Text("AI can be wrong. It can’t hear or evaluate your audio.")
           .font(.caption).foregroundStyle(.secondary)
           .fixedSize(horizontal: false, vertical: true)
       }

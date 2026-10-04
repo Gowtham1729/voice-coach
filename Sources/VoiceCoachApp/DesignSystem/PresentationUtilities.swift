@@ -2,8 +2,8 @@ import SwiftUI
 
 struct DeleteTakeDialog: ViewModifier {
   @Binding var takeID: UUID?
-  var title: String = "Delete Recording?"
-  var message: String = "This recording and its analysis will be deleted."
+  var title: String = "Delete recording?"
+  var message: String = "This deletes the recording, transcript, and analysis."
   var onDelete: (UUID) -> Void
 
   func body(content: Content) -> some View {

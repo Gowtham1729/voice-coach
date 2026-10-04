@@ -23,13 +23,13 @@ struct ContentView: View {
           .environmentObject(model)
           .frame(width: 680, height: 640)
       }
-      .alert("Keep all recordings?", isPresented: replaceOnlyBinding) {
-        Button("Keep All") { model.confirmKeepAllFromNowOn() }
-        Button("Replace Older", role: .destructive) { model.confirmReplaceOldest() }
+      .alert("Keep all takes?", isPresented: replaceOnlyBinding) {
+        Button("Keep all takes") { model.confirmKeepAllFromNowOn() }
+        Button("Replace older takes", role: .destructive) { model.confirmReplaceOldest() }
         Button("Cancel", role: .cancel) { model.pendingReplaceOnly = nil }
       } message: {
         Text(
-          "This session used to keep only the newest take. Keep all recordings, or replace older ones?"
+          "This session keeps only the latest take. Keep all takes from now on, or delete older takes when a new one is saved?"
         )
       }
       .overlay(alignment: .bottom) { toast }

@@ -58,7 +58,7 @@ struct MimicWorkspace: View {
           .frame(maxWidth: .infinity, alignment: .top)
         } else {
           ContentUnavailableView(
-            "Reference Unavailable", systemImage: "waveform.badge.exclamationmark",
+            "Reference unavailable", systemImage: "waveform.badge.exclamationmark",
             description: Text("This practice session needs its reference audio.")
           )
           .frame(maxWidth: .infinity, minHeight: 350)
@@ -111,7 +111,7 @@ struct MimicWorkspace: View {
         } else {
           Menu {
             Picker(
-              "Attempt",
+              "Take",
               selection: Binding(
                 get: { model.selectedTakeID ?? session.latestTake!.id },
                 set: { value in model.selectTake(value) }
@@ -196,8 +196,8 @@ struct MimicWorkspace: View {
         .font(.caption.monospacedDigit())
         .foregroundStyle(Studio.secondary)
       if model.showsExperimentalAsk {
-        Button("Understand words") { model.revealSessionChat() }
-          .help("Explore meanings, synonyms, and translations in the experimental Words inspector.")
+        Button("Explore words") { model.revealSessionChat() }
+          .help("Open Words for meanings, synonyms, and translations.")
           .disabled(model.isRecording || model.isAnalyzing)
       }
     }
@@ -232,9 +232,9 @@ struct MimicWorkspace: View {
         .frame(maxWidth: .infinity, minHeight: 130, alignment: .leading)
       } else {
         ContentUnavailableView(
-          "Transcript Unavailable", systemImage: "text.quote",
+          "No transcript", systemImage: "text.quote",
           description: Text(
-            "Listen and record without a transcript. Word comparison won’t be available.")
+            "You can still listen and record. Comparing words requires a transcript.")
         )
         .frame(maxWidth: .infinity, minHeight: 130)
       }
@@ -272,7 +272,7 @@ struct MimicWorkspace: View {
 
       Text(
         session.mimicStyle == .speakAlong
-          ? "Use headphones. Speaker playback can leak into the mic."
+          ? "Speak with the reference. Use headphones to keep it out of your recording."
           : "Listen to the reference, then record your version."
       )
       .font(.callout)
@@ -290,7 +290,7 @@ struct MimicWorkspace: View {
         Text("Starting in \(number)…")
           .font(.headline.monospacedDigit())
       } else if model.mimicPhase == .playingReference {
-        Text("Listening… Recording starts after a count-in.")
+        Text("Listening… A 2-second count-in comes before recording.")
           .font(.callout)
           .foregroundStyle(Studio.secondary)
       } else if model.isAnalyzing || model.mimicPhase == .analyzing {
@@ -301,7 +301,7 @@ struct MimicWorkspace: View {
         Text("This take isn’t in the library yet.")
           .font(.callout)
         HStack {
-          Button("Try again") { model.retryPendingMimicWork() }
+          Button("Retry saving") { model.retryPendingMimicWork() }
           Button("Show in Finder") { model.revealPendingMimicAudio() }
         }
       }
@@ -367,7 +367,7 @@ struct MimicWorkspace: View {
         Button("Listen") { model.toggleMimicPlayback() }
           .keyboardShortcut(.space, modifiers: [])
           .disabled(model.isAnalyzing || model.mimicPhase != .ready || model.hasPendingMimicWork)
-        Button("Practice") { model.startMimicPractice() }
+        Button("Start practice") { model.startMimicPractice() }
           .studioGlassButton(prominent: true)
           .disabled(
             model.isAnalyzing || model.isRequestingPermission || model.isPlaying
@@ -380,7 +380,7 @@ struct MimicWorkspace: View {
       }
       Spacer()
       if let session = model.selectedSession, let take = session.latestTake, !model.isRecording {
-        Button("Review Take \(session.takeCount)") { model.selectTake(take.id) }
+        Button("Review take \(session.takeCount)") { model.selectTake(take.id) }
           .disabled(model.isAnalyzing)
       }
     }

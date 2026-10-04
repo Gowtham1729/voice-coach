@@ -12,7 +12,7 @@ struct AIAnalysisPromptTests {
 
     #expect(copiedJSON == json)
     #expect(prompt.contains("exactly two prioritized practice signals"))
-    #expect(prompt.contains("without a reference or earlier attempt"))
+    #expect(prompt.contains("without a reference or earlier take"))
     #expect(!prompt.contains("three exercises"))
   }
 
@@ -28,7 +28,7 @@ struct AIAnalysisPromptTests {
     #expect(prompt.contains("alignment.reliable"))
     #expect(prompt.contains("constant start offset"))
     #expect(prompt.contains("repeated pattern across several reliable matched words"))
-    #expect(prompt.contains("No earlier attempt is included"))
+    #expect(prompt.contains("No earlier take is included"))
     #expect(prompt.contains("exactly two prioritized practice signals"))
   }
 

@@ -7,7 +7,7 @@ extension TakeView {
     let highlightedWordIndex = highlightedWordIndex(in: take)
     return VStack(alignment: .leading, spacing: 14) {
       HStack(spacing: 12) {
-        SectionEyebrow(text: "Words")
+        SectionEyebrow(text: "Transcript")
         Spacer()
         if !snapshot {
           Button("Re-transcribe", systemImage: "arrow.triangle.2.circlepath") {
@@ -36,11 +36,11 @@ extension TakeView {
         }
       } else {
         ContentUnavailableView(
-          "Transcript Unavailable",
+          "No transcript",
           systemImage: "text.badge.xmark",
           description: Text(
             model.transcriptionNotice
-              ?? "This take has audio and analysis, but no transcript.")
+              ?? "Audio and analysis are saved. Choose Re-transcribe to try again.")
         )
         .frame(maxWidth: .infinity, minHeight: 200)
       }

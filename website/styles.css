@@ -1992,7 +1992,6 @@ dialog[open]::backdrop {
 .recording-screen { border: 1px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 12px 14px 0 rgba(31,36,31,.1); }
 /* 252px is the header, caption, and padding. 1.594 matches the capture aspect ratio. */
 .screenshot-dialog {
-  display: flex;
   flex-direction: column;
   width: min(1600px, calc(100vw - 64px), calc((100svh - 252px) * 1.594 + 62px));
   max-width: calc(100vw - 64px);
@@ -2005,6 +2004,7 @@ dialog[open]::backdrop {
   transition: none;
 }
 .screenshot-dialog[open] {
+  display: flex;
   opacity: 1;
   transform: none;
   transition: none;

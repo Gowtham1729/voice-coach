@@ -53,7 +53,7 @@ struct MimicInspector: View {
         Button {
           model.startMimicPractice()
         } label: {
-          Text("Try Again")
+          Text("Try again")
             .inspectorActionLabel()
         }
         .studioGlassButton(prominent: true)
@@ -64,7 +64,7 @@ struct MimicInspector: View {
           Menu {
             Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyMimicAIAnalysisPrompt)
               .help("Copies instructions and the comparison JSON. Ichido does not send it.")
-            Button("Copy Raw JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
+            Button("Copy report JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
           } label: {
             Image(systemName: "ellipsis")
               .inspectorActionLabel()

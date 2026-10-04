@@ -18,7 +18,7 @@ struct SessionChatReply: Equatable, Sendable {
 
   static let voiceBoundary = SessionChatReply(
     answer:
-      "This chat explains language; it doesn't evaluate takes or recommend improvements. Ask about meanings, translations, grammar, or vocabulary."
+      "Words can explain your transcript, but it can’t hear or evaluate your audio. Ask about a word, phrase, or translation."
   )
 
   init(answer: String) {

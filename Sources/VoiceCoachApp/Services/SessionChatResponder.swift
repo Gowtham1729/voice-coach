@@ -19,15 +19,15 @@ enum SessionChatError: LocalizedError {
 
   var errorDescription: String? {
     switch self {
-    case .unavailable: "On-device chat is unavailable. Check Apple Intelligence in System Settings."
+    case .unavailable: "Words needs Apple Intelligence. Check it in System Settings."
     case .contextTooLarge:
-      "The complete transcript and conversation exceed the local model’s context limit. Clear the chat to retry without earlier messages, or use a shorter recording."
+      "There’s too much text for one reply. Clear the chat and try again, or use a shorter recording."
     case .unsupportedLanguage:
-      "The local model does not support that language. Try another one."
-    case .refused: "The local model could not answer that. Try rephrasing your question."
-    case .emptyResponse: "The local model returned no answer. Try again."
+      "Apple Intelligence doesn’t support this language. Try another one."
+    case .refused: "Couldn’t answer this question. Try rephrasing it."
+    case .emptyResponse: "No answer was returned. Try again."
     case .unhelpfulResponse:
-      "The local model didn't answer the language question. Try asking about a specific word."
+      "Couldn’t answer this question. Try asking about a specific word."
     }
   }
 }

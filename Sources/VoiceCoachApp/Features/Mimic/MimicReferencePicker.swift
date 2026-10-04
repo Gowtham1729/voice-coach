@@ -18,9 +18,9 @@ struct MimicReferencePicker: View {
             .font(.body.weight(.medium))
             .lineLimit(1)
           Spacer()
-          Button("Change…") { model.chooseMimicReference() }
+          Button("Replace clip…") { model.chooseMimicReference() }
             .disabled(model.mimicIsPreparing || model.isCapturingMimicReference)
-          Button("Capture…") { model.captureMimicReferencePressed() }
+          Button("Capture Mac audio") { model.captureMimicReferencePressed() }
             .disabled(
               model.mimicIsPreparing || model.isCapturingMimicReference || model.isRecording
             )
@@ -84,7 +84,7 @@ struct MimicReferencePicker: View {
         SpeechLanguagePicker()
 
         HStack {
-          Button(model.isPlaying ? "Stop" : "Play Excerpt") {
+          Button(model.isPlaying ? "Stop" : "Play selection") {
             if model.isPlaying {
               model.stopPlayback()
             } else {
@@ -93,14 +93,14 @@ struct MimicReferencePicker: View {
           }
           .disabled(end - start < 1)
           Spacer()
-          Text("Drag a handle to trim.")
+          Text("Drag the handles to choose a phrase.")
             .font(.caption)
             .foregroundStyle(Studio.secondary)
         }
       } else if model.isCapturingMimicReference {
         VStack(alignment: .leading, spacing: 10) {
           HStack(spacing: 12) {
-            Label("Capturing Mac Audio", systemImage: "speaker.wave.2.fill")
+            Label("Capturing Mac audio", systemImage: "speaker.wave.2.fill")
               .font(.body.weight(.medium))
               .foregroundStyle(Color.red)
             LiveMeterView(level: model.mimicReferenceCaptureLevel)
@@ -113,7 +113,7 @@ struct MimicReferencePicker: View {
               .tint(.red)
               .studioGlassButton(prominent: true)
           }
-          Text("Play the voice you want, then stop. Capture auto-stops at 90 seconds.")
+          Text("Play a clip on your Mac, then stop capture. Stops automatically after 90 seconds.")
             .font(.caption)
             .foregroundStyle(Studio.secondary)
         }
@@ -138,7 +138,7 @@ struct MimicReferencePicker: View {
         Button {
           model.chooseMimicReference()
         } label: {
-          Label("Import…", systemImage: "square.and.arrow.down")
+          Label("Import clip…", systemImage: "square.and.arrow.down")
         }
         .disabled(model.mimicIsPreparing)
         .studioGlassButton()
@@ -146,14 +146,14 @@ struct MimicReferencePicker: View {
         Button {
           model.captureMimicReferencePressed()
         } label: {
-          Label("Capture", systemImage: "speaker.wave.2")
+          Label("Capture Mac audio", systemImage: "speaker.wave.2")
         }
         .disabled(model.mimicIsPreparing || model.isRecording)
         .studioGlassButton()
         .help("Capture what this Mac is playing")
       }
 
-      Text("Trim appears here after you add a clip.")
+      Text("Capture records what your Mac is playing.")
         .font(.callout)
         .foregroundStyle(Studio.secondary)
 

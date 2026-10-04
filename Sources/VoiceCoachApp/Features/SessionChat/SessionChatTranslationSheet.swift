@@ -23,17 +23,17 @@ struct SessionChatTranslationSheet: View {
   var body: some View {
     VStack(spacing: 0) {
       Form {
-        Section("Selected text") {
+        Section("Transcript") {
           Text(text).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
         }
         Section {
           Picker("Translate into", selection: $target) {
             ForEach(languages, id: \.code) { language in Text(language.name).tag(language.code) }
           }.disabled(isTranslating)
-          Text("Text is translated on this Mac. macOS may ask to download language models.")
+          Text("Translates on this Mac. Some languages need a download.")
             .font(.caption).foregroundStyle(.secondary)
           Button("Translate", action: translate).disabled(isTranslating)
-          if isTranslating { ProgressView("Translating on this Mac…").controlSize(.small) }
+          if isTranslating { ProgressView("Translating…").controlSize(.small) }
         }
         if !translatedText.isEmpty {
           Section("Translation") {
@@ -67,7 +67,7 @@ struct SessionChatTranslationSheet: View {
         return
       } catch {
         errorMessage =
-          "Translation isn't available for these languages yet. Check the language pair or downloaded models in System Settings."
+          "Couldn’t translate this text. Try another language or check downloaded models in System Settings."
       }
       isTranslating = false
     }
