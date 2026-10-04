@@ -53,6 +53,8 @@ final class AppModel: ObservableObject {
   let recorder: any AudioRecording
   let systemAudioCapture: any SystemAudioCapturing
   let store: any SessionStoring
+  let transcribe:
+    @Sendable (URL, TranscriptionEnginePreference, Locale?) async throws -> TranscriptionOutcome
   var timer: Timer?
   var playbackTimer: Timer?
   var mimicReferenceCaptureTimer: Timer?
@@ -85,6 +87,7 @@ final class AppModel: ObservableObject {
       recorder = dependencies.recorder
       systemAudioCapture = dependencies.systemAudioCapture
       store = dependencies.sessionStore
+      transcribe = dependencies.transcribe
     } catch {
       fatalError("Voice Coach could not open local storage: \(error.localizedDescription)")
     }

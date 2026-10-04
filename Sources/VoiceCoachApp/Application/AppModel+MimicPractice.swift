@@ -93,20 +93,14 @@ extension AppModel {
               from: draft.url, to: destinationURL, start: start, end: end)
             return try AudioAnalyzer().analyze(url: destinationURL)
           }.value
-          var transcription: TranscriptionResult?
-          var words: [WordAnalysis] = []
-          do {
-            let outcome = try await TranscriptionService(
-              preferredEngine: preferredEngine, locale: locale
-            )
-            .transcribe(url: destinationURL)
-            transcription = outcome.result
-            transcriptionNotice = outcome.notice
-            words = WordAcousticAnalyzer().analyze(transcription: outcome.result, result: acoustic)
-          } catch {
-            transcriptionNotice = Self.userFacingMessage(
-              error, fallback: "Transcription failed.")
-          }
+          try RecordingValidation.validateAudio(acoustic)
+          let (transcription, notice) = try await transcribeForAnalysis(
+            url: destinationURL, engine: preferredEngine, locale: locale)
+          let words =
+            transcription.map {
+              WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
+            } ?? []
+          transcriptionNotice = notice
           // Cancel check after ASR, before insert — never insert after dismiss.
           guard mimicPreparationID == activeID else {
             try? store.deleteSessionData(sessionID: sessionID)

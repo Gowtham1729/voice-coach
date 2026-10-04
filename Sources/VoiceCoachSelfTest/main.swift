@@ -59,25 +59,9 @@ private func verifyCoachingPlan() throws {
     meanInternalPauseMs: 288,
     pitchRangeSemitones: 9.22
   ))
-  try check(ordinary.signals.count == 2, "Ordinary take did not receive two practice signals")
-  try check(
-    ordinary.signals.contains(where: { $0.id == "recording.pausePlacement" }),
-    "Short pauses were incorrectly treated as long breaks"
-  )
-  try check(
-    ordinary.signals.contains(where: { $0.id == "recording.pitchShape" }),
-    "Measured pitch shape did not become a practice target"
-  )
+  try check(ordinary.signals.isEmpty, "Ordinary recording received practice signals")
+  try check(ordinary.notice == nil, "Ordinary recording received a quality notice")
 
-  let longPauses = CoachingPlanner.recording(current: coachingMetrics(
-    internalPauseCount: 4,
-    meanInternalPauseMs: 890,
-    pitchRangeSemitones: 10
-  ))
-  try check(
-    longPauses.signals.contains(where: { $0.id == "recording.longPauses" }),
-    "Long pause signal was lost"
-  )
   let sample = CoachingSignal(
     id: "mimic.pitch", title: "Pitch", observation: "Measured pitch differed.",
     action: "Lift pitch on the key word.",

@@ -110,7 +110,7 @@ struct SettingsView: View {
         Text("Practice next")
       } footer: {
         Text(
-          "Two practice targets come from measured audio. Apple Intelligence can rephrase their exercises on this Mac."
+          "Mimic comparisons include practice targets measured against the reference. Apple Intelligence can rephrase those exercises on this Mac."
         )
       }
     }

@@ -9,6 +9,7 @@ public enum TranscriptionError: LocalizedError, Sendable {
   case launchFailed(String)
   case recognitionFailed(String)
   case invalidOutput
+  case noSpeechRecognized
 
   public var errorDescription: String? {
     switch self {
@@ -34,6 +35,8 @@ public enum TranscriptionError: LocalizedError, Sendable {
       return "Transcription failed."
     case .invalidOutput:
       return "Transcription returned an unreadable result."
+    case .noSpeechRecognized:
+      return "No speech recognized. Try recording again."
     }
   }
 }
@@ -165,11 +168,15 @@ public struct NemoSpeechTranscriber: Sendable {
       let rawWords = payload["words"] as? [Any]
     else { throw TranscriptionError.invalidOutput }
 
+    var hasMalformedWords = false
     let words = rawWords.compactMap { raw -> TranscriptWord? in
       guard let item = raw as? [String: Any],
         let rawWord = (item["word"] as? String) ?? (item["text"] as? String),
         let start = number(item, keys: ["start", "start_s", "start_time"])
-      else { return nil }
+      else {
+        hasMalformedWords = true
+        return nil
+      }
 
       let suppliedEnd = number(item, keys: ["end", "end_s", "end_time"])
       let suppliedDuration = number(item, keys: ["duration", "duration_s"])
@@ -177,7 +184,10 @@ public struct NemoSpeechTranscriber: Sendable {
         let end = suppliedEnd ?? suppliedDuration.map({ start + $0 }),
         end.isFinite,
         end >= start
-      else { return nil }
+      else {
+        hasMalformedWords = true
+        return nil
+      }
 
       let cleaned = rawWord.trimmingCharacters(in: .whitespacesAndNewlines)
       guard !cleaned.isEmpty else { return nil }
@@ -194,7 +204,12 @@ public struct NemoSpeechTranscriber: Sendable {
 
     let text = ((payload["text"] as? String) ?? words.map(\.word).joined(separator: " "))
       .trimmingCharacters(in: .whitespacesAndNewlines)
-    return TranscriptionResult(text: text, words: words)
+    let result = TranscriptionResult(text: text, words: words)
+    if !result.hasRecognizedSpeech, hasMalformedWords {
+      throw TranscriptionError.invalidOutput
+    }
+    try RecordingValidation.validateTranscription(result)
+    return result
   }
 
   private static func decodeJSONObject(from data: Data) -> Any? {

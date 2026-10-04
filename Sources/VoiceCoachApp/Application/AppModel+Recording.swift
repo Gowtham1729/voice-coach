@@ -149,9 +149,10 @@ extension AppModel {
     analyze(url: url, takeID: takeID)
   }
 
-  // MARK: - Mimic reference Mac audio
+  // MARK: - Recording analysis
 
-  func analyze(url: URL, takeID: UUID, source: TakeSource = .recorded) {
+  @discardableResult
+  func analyze(url: URL, takeID: UUID, source: TakeSource = .recorded) -> Task<Void, Never> {
     isAnalyzing = true
     let preferredEngine = transcriptionEngine
     let locale =
@@ -160,29 +161,19 @@ extension AppModel {
     let captureIsNewSession = pendingCaptureIsNewSession
     let captureImportURL = pendingImportSourceURL
     let captureSessionID = selectedSessionID
-    Task {
+    return Task {
       do {
         let acoustic = try await Task.detached(priority: .userInitiated) {
           try AudioAnalyzer().analyze(url: url)
         }.value
+        try RecordingValidation.validateAudio(acoustic)
 
-        var transcription: TranscriptionResult?
-        var words: [WordAnalysis] = []
-        var notice: String?
-        do {
-          let outcome = try await TranscriptionService(
-            preferredEngine: preferredEngine, locale: locale
-          )
-          .transcribe(url: url)
-          transcription = outcome.result
-          words = WordAcousticAnalyzer().analyze(
-            transcription: outcome.result,
-            result: acoustic
-          )
-          notice = outcome.notice
-        } catch {
-          notice = Self.userFacingMessage(error, fallback: "Transcription failed.")
-        }
+        let (transcription, notice) = try await transcribeForAnalysis(
+          url: url, engine: preferredEngine, locale: locale)
+        let words =
+          transcription.map {
+            WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
+          } ?? []
 
         let take = PracticeSession(
           id: takeID,
@@ -196,6 +187,13 @@ extension AppModel {
         finishAnalyzeCleanup()
         append(take, localeIdentifier: locale?.identifier)
         transcriptionNotice = notice
+        if transcription == nil, let notice,
+          sessions.contains(where: { session in session.takes.contains { $0.id == takeID } })
+        {
+          presentError(
+            title: "Transcription failed",
+            message: "Your audio was saved. \(notice)")
+        }
         maybeScheduleSmartTitleAfterStandaloneSave(
           captureIsNewSession: captureIsNewSession,
           captureImportURL: captureImportURL,
@@ -204,6 +202,16 @@ extension AppModel {
           take: take,
           transcript: transcription?.text
         )
+      } catch AnalysisError.emptyRecording, AnalysisError.silentRecording {
+        rejectRecording(
+          url: url, takeID: takeID, sessionID: captureSessionID,
+          title: "No Audio Detected",
+          message: "No audio detected. Check your microphone or audio source and try again.")
+      } catch TranscriptionError.noSpeechRecognized {
+        rejectRecording(
+          url: url, takeID: takeID, sessionID: captureSessionID,
+          title: "No Speech Recognized",
+          message: "No speech recognized. Try recording again.")
       } catch {
         presentError(
           title: "Analysis failed",
@@ -218,6 +226,37 @@ extension AppModel {
         finishAnalyzeCleanup()
       }
     }
+  }
+
+  /// Empty recognition rejects the take; technical failures keep its audio usable.
+  func transcribeForAnalysis(
+    url: URL, engine: TranscriptionEnginePreference, locale: Locale? = nil
+  ) async throws -> (transcription: TranscriptionResult?, notice: String?) {
+    let outcome: TranscriptionOutcome
+    do {
+      outcome = try await transcribe(url, engine, locale)
+    } catch TranscriptionError.noSpeechRecognized {
+      throw TranscriptionError.noSpeechRecognized
+    } catch {
+      return (nil, Self.userFacingMessage(error, fallback: "Transcription failed."))
+    }
+    try RecordingValidation.validateTranscription(outcome.result)
+    return (outcome.result, outcome.notice)
+  }
+
+  private func rejectRecording(
+    url: URL, takeID: UUID, sessionID: UUID?, title: String, message: String
+  ) {
+    try? FileManager.default.removeItem(at: url)
+    if pendingMimicAudio?.id == takeID {
+      pendingMimicAudio = nil
+      pendingMimicSessionID = nil
+    }
+    if selectedSessionID == sessionID { discardPendingStandaloneIfEmpty() }
+    finishAnalyzeCleanup()
+    toastMessage = nil
+    transcriptionNotice = nil
+    presentError(title: title, message: message)
   }
 
   private func finishAnalyzeCleanup() {

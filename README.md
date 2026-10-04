@@ -1,6 +1,6 @@
 # Voice Coach
 
-A private voice practice studio for macOS. Record a take, see two measured practice targets, and refine your delivery on an interactive timeline without uploading audio to the cloud.
+A private voice practice studio for macOS. Record a take, review its measured delivery, and refine it on an interactive timeline without uploading audio to the cloud. Mimic adds practice targets measured against a reference.
 
 Built natively with SwiftUI for macOS 26+.
 
@@ -11,13 +11,13 @@ https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
 ## Installation
 
 Download the latest pre-built application:
-* **[Voice Coach 3.3.4 for macOS](https://github.com/Gowtham1729/voice-coach/releases/tag/v3.3.4)** (ZIP)
+* **[Latest Voice Coach for macOS](https://github.com/Gowtham1729/voice-coach/releases/latest/download/Voice-Coach-macOS.zip)** (ZIP) · [Release notes](https://github.com/Gowtham1729/voice-coach/releases/latest)
 
 ### Setup Steps
 1. Unzip the downloaded file and move `Voice Coach.app` to your `/Applications` folder.
 2. Launch the app. Because releases are currently ad-hoc signed, macOS Gatekeeper may prompt you on first run. If blocked, right-click `Voice Coach.app` in Finder and select **Open**.
 
-Version 3.3.4 adds in-app update checks. Install this version manually once if you have an older release; future releases will appear through **Voice Coach > Check for Updates…** and automatic update checks.
+Version 3.3.4 introduced in-app update checks. If you already have 3.3.4 or newer installed, use **Voice Coach > Check for Updates…** or wait for an automatic update check to receive new releases. Older releases need one manual installation of an updater-enabled version.
 
 **System Requirements:** macOS 26.0 or later (Apple Silicon recommended).
 
@@ -28,23 +28,21 @@ Parakeet is an optional local model (~714 MB), installable from the same setting
 
 ## How It Works
 
-Voice Coach focuses on deliberate practice through a rapid loop: capture a take, review two concrete signals, and adjust on the next attempt.
+Voice Coach focuses on deliberate practice through a rapid loop: capture a take, review the recording, and adjust on the next attempt. Mimic names differences from a reference.
 
 ### 1. Three Ways to Practice
 * **Microphone**: Record rehearsed talks, pitches, presentations, or interview answers.
 * **Mac System Audio**: Capture audio playing directly from your Mac (talks, podcasts, or browser clips) without complex virtual audio cables.
 * **File Import**: Bring in existing audio or video files. Imported media is automatically normalized to 48 kHz mono WAV locally.
 
-### 2. Two Concrete Practice Targets
-Instead of arbitrary scores, Voice Coach isolates two specific acoustic targets for your next attempt:
-* **Pacing and Pauses**: Visualizes phrase duration, speaking cadence, and silence gaps, helping you place deliberate pauses between key ideas.
-* **Pitch and Emphasis**: Highlights pitch contours across 24 checkpoints to help you sustain vocal energy or add intentional inflection to key words.
+### 2. Review a Recording
+A free recording shows measured pauses, pitch, loudness, and clarity on the timeline. It does not assign practice exercises. A clipped or noisy take includes a short note that those estimates may be unreliable.
 
 ### 3. Mimic Mode (Practice with a Reference)
 Mimic mode lets you study how another speaker delivers a phrase:
 1. **Listen**: Set an imported file or captured system audio as your reference model.
 2. **Imitate**: Record your attempt right alongside it.
-3. **Compare**: Inspect side-by-side pitch curves, rhythm alignments, and word-level emphasis to hear where your delivery differs.
+3. **Compare**: Inspect side-by-side pitch curves, rhythm alignments, and word-level emphasis. When the words line up, two practice targets name a difference from the reference.
 
 ### 4. Stacked Takes and Timeline Scrubbing
 All attempts in a session stay grouped together (`Take 1`, `Take 2`, etc.). You can scrub the waveform, click any transcribed word to jump playback directly to that moment, and hear your improvement from one take to the next.

@@ -3,20 +3,24 @@ import VoiceCoachCore
 import VoiceCoachSession
 
 extension AppModel {
-  func retranscribeMimicReference() {
-    guard let session = selectedSession, let reference = session.mimicReference else { return }
-    retranscribe(reference.take, sessionID: session.id, isReference: true)
+  @discardableResult
+  func retranscribeMimicReference() -> Task<Void, Never>? {
+    guard let session = selectedSession, let reference = session.mimicReference else { return nil }
+    return retranscribe(reference.take, sessionID: session.id, isReference: true)
   }
 
-  func retranscribeSelectedTake() {
-    guard let session = selectedSession, let take = selectedTake else { return }
-    retranscribe(take, sessionID: session.id, isReference: false)
+  @discardableResult
+  func retranscribeSelectedTake() -> Task<Void, Never>? {
+    guard let session = selectedSession, let take = selectedTake else { return nil }
+    return retranscribe(take, sessionID: session.id, isReference: false)
   }
 
-  private func retranscribe(_ take: PracticeSession, sessionID: UUID, isReference: Bool) {
+  private func retranscribe(
+    _ take: PracticeSession, sessionID: UUID, isReference: Bool
+  ) -> Task<Void, Never>? {
     guard !isRecording, !isAnalyzing, !mimicIsPreparing, !isCapturingMimicReference,
       mimicPhase == .ready
-    else { return }
+    else { return nil }
     let engine = transcriptionEngine
     let locale =
       engine == .system
@@ -25,11 +29,11 @@ extension AppModel {
     stopPlayback()
     isAnalyzing = true
     transcriptionNotice = nil
-    Task {
+    return Task {
       defer { isAnalyzing = false }
       do {
-        let outcome = try await TranscriptionService(preferredEngine: engine, locale: locale)
-          .transcribe(url: take.audioURL)
+        let outcome = try await transcribe(take.audioURL, engine, locale)
+        try RecordingValidation.validateTranscription(outcome.result)
         let updatedTake = PracticeSession(
           id: take.id, createdAt: take.createdAt, audioURL: take.audioURL, source: take.source,
           result: take.result, transcription: outcome.result,

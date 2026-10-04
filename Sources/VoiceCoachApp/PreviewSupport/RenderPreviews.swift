@@ -152,6 +152,12 @@
         model.resumeSession(mimic.id)
         model.mimicWorkspaceMode = .practice
         try render("09-mimic-ready")
+        if let word = mimic.mimicReference?.take.transcription?.words.dropFirst().first {
+          model.mimicPlaybackSource = .reference
+          model.playbackTime = (word.start + word.end) / 2
+          try render("09b-mimic-paused")
+          model.playbackTime = 0
+        }
         if let attempt = mimic.latestTake {
           model.selectTake(attempt.id)
           model.mimicWorkspaceMode = .compare

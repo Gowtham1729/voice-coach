@@ -23,14 +23,16 @@ struct StudioScroll<Content: View>: View {
 }
 
 enum Studio {
-  static let background = Color(nsColor: .windowBackgroundColor)
-  static let sidebar = Color(nsColor: .underPageBackgroundColor)
-  static let inspector = Color(nsColor: .windowBackgroundColor)
-  static let surface = Color(nsColor: .controlBackgroundColor)
-  static let ink = Color.primary
-  static let secondary = Color.secondary
-  static let accent = Color.accentColor
-  static let line = Color.primary.opacity(0.10)
+  // Computed so semantic colors re-resolve when the Mac appearance changes.
+  // `static let` would keep the first light or dark value for the whole process.
+  static var background: Color { Color(nsColor: .windowBackgroundColor) }
+  static var sidebar: Color { Color(nsColor: .underPageBackgroundColor) }
+  static var inspector: Color { Color(nsColor: .windowBackgroundColor) }
+  static var surface: Color { Color(nsColor: .controlBackgroundColor) }
+  static var ink: Color { .primary }
+  static var secondary: Color { .secondary }
+  static var accent: Color { .accentColor }
+  static var line: Color { Color.primary.opacity(0.10) }
 }
 
 enum StudioMotion {

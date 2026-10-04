@@ -5,7 +5,6 @@ import VoiceCoachSession
 extension AppModel {
   func coachingPlan(for take: PracticeSession, in session: CoachingSession) -> CoachingPlan {
     let earlierTakes = session.takes.prefix { $0.id != take.id }
-    let previous = earlierTakes.last
     if let reference = session.mimicReference?.take {
       let style = session.mimicAttemptStyles?[take.id] ?? session.mimicStyle
       let comparablePrevious = earlierTakes.last { prior in
@@ -14,11 +13,7 @@ extension AppModel {
       return CoachingPlanner.mimic(
         reference: reference, attempt: take, previous: comparablePrevious)
     }
-    // Different ordinary recordings are not assumed to be the same exercise.
-    let comparablePrevious = session.isRetryStack && !session.trimmedPrompt.isEmpty
-      ? previous?.result.metrics : nil
-    return CoachingPlanner.recording(
-      current: take.result.metrics, previous: comparablePrevious)
+    return CoachingPlanner.recording(current: take.result.metrics)
   }
 
   func displayedAction(for signal: CoachingSignal, takeID: UUID) -> String {

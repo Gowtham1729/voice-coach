@@ -151,9 +151,7 @@ public struct AppleSpeechTranscriber: Sendable {
       }
 
       let payload = await collector.makeResult()
-      guard !payload.text.isEmpty || !payload.words.isEmpty else {
-        throw TranscriptionError.invalidOutput
-      }
+      try RecordingValidation.validateTranscription(payload)
       return TranscriptionResult(
         text: payload.text, words: payload.words,
         localeIdentifier: resolvedLocale.identifier, engine: .system

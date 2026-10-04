@@ -53,6 +53,13 @@ ditto -c -k --sequesterRsrc --keepParent \
 
 Artifact name is exact: `Voice-Coach-X.Y.Z-macOS.zip` (hyphens, no spaces, `macOS` suffix).
 
+Actions also publishes an identical `Voice-Coach-macOS.zip` asset for the website
+and README. Their stable download URL is
+`https://github.com/Gowtham1729/voice-coach/releases/latest/download/Voice-Coach-macOS.zip`;
+release notes use `/releases/latest`. Keep this alias in every release so future
+downloads follow GitHub's latest release without a website deployment. The
+Sparkle appcast continues to reference the versioned archive.
+
 The zip is **ad-hoc signed** (`codesign --sign -` in `build-app.sh`), not Developer ID and not notarized. First launch may be blocked by Gatekeeper: unzip, move **Voice Coach.app** to Applications, then **right-click → Open**.
 
 ### What is not in the zip
