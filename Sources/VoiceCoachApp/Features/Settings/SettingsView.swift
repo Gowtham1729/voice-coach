@@ -154,7 +154,6 @@ struct SettingsView: View {
           title: "Apple speech model",
           status: systemStatus.title,
           footer: systemStatus.settingsFooter,
-          emphasized: activeEngine == .system,
           progress: {
             if case .downloading = systemStatus {
               progressRow("Downloading…")
@@ -170,12 +169,10 @@ struct SettingsView: View {
           }
         )
       } else {
-
         transcriptionStatusSection(
           title: "Parakeet (optional)",
           status: parakeetStatus.title,
           footer: parakeetStatus.settingsFooter,
-          emphasized: activeEngine == .parakeet,
           progress: {
             if case .installing(let phase) = parakeetStatus {
               progressRow(phase.userFacingLabel)
@@ -231,7 +228,6 @@ struct SettingsView: View {
     title: String,
     status: String,
     footer: String,
-    emphasized: Bool = true,
     @ViewBuilder progress: () -> Progress,
     @ViewBuilder actions: () -> Actions
   ) -> some View {
@@ -245,7 +241,6 @@ struct SettingsView: View {
       Text(footer)
         .textSelection(.enabled)
     }
-    .opacity(emphasized ? 1.0 : 0.65)
   }
 
   private func progressRow(_ label: String) -> some View {
@@ -305,8 +300,8 @@ struct SettingsView: View {
             .foregroundStyle(Studio.accent)
         }
         Text("Recordings stay on this Mac. Titles use Apple Intelligence when enabled.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        .font(.caption)
+        .foregroundStyle(.secondary)
         Text(
           "Coaching decisions are deterministic. On supported devices, wording may be rewritten on device."
         )
@@ -389,7 +384,7 @@ extension SystemTranscriptionStatus {
     case .needsDownload(let locale):
       "Download Apple’s speech model for \(TranscriptionLanguagePreference.displayName(for: locale)). Audio analysis and saving still work without it."
     case .downloading(let locale):
-      "Downloading \(locale)…"
+      "Downloading \(TranscriptionLanguagePreference.displayName(for: locale))…"
     case .unavailable(let message):
       message
     }

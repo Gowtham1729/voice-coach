@@ -13,7 +13,7 @@ extension TakeView {
           Button("Re-transcribe", systemImage: "arrow.triangle.2.circlepath") {
             model.retranscribeSelectedTake()
           }
-          .disabled(model.isRecording || model.isAnalyzing)
+          .disabled(!model.canRetranscribe)
           .help("Uses the speech language and engine selected in Settings → Transcription.")
         }
         if let transcription = take.transcription {

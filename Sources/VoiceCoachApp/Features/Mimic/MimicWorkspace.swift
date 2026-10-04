@@ -190,7 +190,7 @@ struct MimicWorkspace: View {
         } label: {
           Label("Transcript", systemImage: "text.bubble")
         }
-        .disabled(!audioAvailable || model.isRecording || model.isAnalyzing)
+        .disabled(!audioAvailable || !model.canRetranscribe)
       }
       Text(vcDuration(reference.take.result.metrics.duration))
         .font(.caption.monospacedDigit())

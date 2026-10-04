@@ -43,7 +43,9 @@ public struct AppleSpeechTranscriber: Sendable {
         return .unavailable("Speech transcription isn’t available on this Mac.")
       }
       guard let locale = await resolveLocale(for: preferredLocale) else {
-        return .unavailable("No speech locale matches \(preferredLocale.identifier).")
+        return .unavailable(
+          "No speech locale matches \(TranscriptionLanguagePreference.displayName(for: preferredLocale.identifier))."
+        )
       }
 
       let installed = await SpeechTranscriber.installedLocales
@@ -61,9 +63,13 @@ public struct AppleSpeechTranscriber: Sendable {
       case .supported:
         return .needsDownload(localeIdentifier: locale.identifier)
       case .unsupported:
-        return .unavailable("Speech models aren’t supported for \(locale.identifier).")
+        return .unavailable(
+          "Speech models aren’t supported for \(TranscriptionLanguagePreference.displayName(for: locale.identifier))."
+        )
       @unknown default:
-        return .unavailable("Speech model status is unknown for \(locale.identifier).")
+        return .unavailable(
+          "Speech model status is unknown for \(TranscriptionLanguagePreference.displayName(for: locale.identifier))."
+        )
       }
     #else
       return .unavailable("Speech transcription requires the Speech framework.")
@@ -190,22 +196,23 @@ public struct AppleSpeechTranscriber: Sendable {
         }
       }
 
+      let language = TranscriptionLanguagePreference.displayName(for: locale.identifier)
       switch await AssetInventory.status(forModules: [probe]) {
       case .installed:
         return
       case .supported:
         throw TranscriptionError.systemAssetsUnavailable(
-          "The Apple speech model for \(locale.identifier) still needs to be downloaded."
+          "The Apple speech model for \(language) still needs to be downloaded."
         )
       case .downloading:
         throw TranscriptionError.systemAssetsUnavailable(
-          "Speech model for \(locale.identifier) is still downloading."
+          "Speech model for \(language) is still downloading."
         )
       case .unsupported:
         throw TranscriptionError.systemLocaleUnsupported(locale.identifier)
       @unknown default:
         throw TranscriptionError.systemAssetsUnavailable(
-          "Speech model for \(locale.identifier) isn’t ready."
+          "Speech model for \(language) isn’t ready."
         )
       }
     }
@@ -255,10 +262,10 @@ public enum SystemTranscriptionStatus: Sendable, Equatable {
   private actor TranscriptCollector {
     private let locale: Locale
     private var words: [TranscriptWord] = []
-
-    init(locale: Locale) { self.locale = locale }
     private var textParts: [String] = []
     private(set) var failure: Error?
+
+    init(locale: Locale) { self.locale = locale }
 
     func fail(_ error: Error) {
       if failure == nil { failure = error }
@@ -284,7 +291,6 @@ public enum SystemTranscriptionStatus: Sendable, Equatable {
       let fallback = sorted.map(\.word).joined(separator: " ")
       return TranscriptionResult(text: joined.isEmpty ? fallback : joined, words: sorted)
     }
-
   }
 
   extension AppleSpeechTranscriber {
@@ -302,6 +308,7 @@ public enum SystemTranscriptionStatus: Sendable, Equatable {
 
       func flush() {
         guard let range = pendingRange else { return }
+        pendingRange = nil
         let token = pendingText.trimmingCharacters(in: .whitespacesAndNewlines)
         let start = max(0, range.start.seconds)
         let end = max(start, (range.start + range.duration).seconds)

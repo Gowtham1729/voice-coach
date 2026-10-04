@@ -20,7 +20,7 @@ public enum TranscriptionError: LocalizedError, Sendable {
       return detail
     case .systemLocaleUnsupported(let identifier):
       return
-        "Apple speech transcription doesn’t support \(identifier) on this Mac. Choose a supported speech language in Voice Coach Settings → Transcription."
+        "Apple speech transcription doesn’t support \(TranscriptionLanguagePreference.displayName(for: identifier)) on this Mac. Choose a supported speech language in Voice Coach Settings → Transcription."
     case .modelLanguageUnsupported(let identifier):
       return
         "This Parakeet model doesn’t support \(TranscriptionLanguagePreference.displayName(for: identifier)). Choose Apple in Settings → Transcription."

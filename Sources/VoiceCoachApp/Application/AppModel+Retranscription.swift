@@ -15,17 +15,17 @@ extension AppModel {
     return retranscribe(take, sessionID: session.id, isReference: false)
   }
 
+  var canRetranscribe: Bool {
+    !isRecording && !isAnalyzing && !mimicIsPreparing && !isCapturingMimicReference
+      && mimicPhase == .ready
+  }
+
   private func retranscribe(
     _ take: PracticeSession, sessionID: UUID, isReference: Bool
   ) -> Task<Void, Never>? {
-    guard !isRecording, !isAnalyzing, !mimicIsPreparing, !isCapturingMimicReference,
-      mimicPhase == .ready
-    else { return nil }
+    guard canRetranscribe else { return nil }
     let engine = transcriptionEngine
-    let locale =
-      engine == .system
-      ? transcriptionLocale
-      : selectedSession?.transcriptionLocaleIdentifier.map(Locale.init(identifier:))
+    let locale = retranscriptionLocale(engine: engine)
     stopPlayback()
     isAnalyzing = true
     transcriptionNotice = nil
@@ -64,6 +64,17 @@ extension AppModel {
           title: "Transcript couldn’t be updated", error: error,
           fallback: "Transcription failed. Your existing audio and transcript were kept.")
       }
+    }
+  }
+
+  /// Apple uses the Settings language. Parakeet stays automatic and only receives a saved
+  /// session language so an unsupported language can be rejected before the model runs.
+  private func retranscriptionLocale(engine: TranscriptionEnginePreference) -> Locale? {
+    switch engine {
+    case .system:
+      transcriptionLocale
+    case .parakeet:
+      selectedSession?.transcriptionLocaleIdentifier.map(Locale.init(identifier:))
     }
   }
 }
