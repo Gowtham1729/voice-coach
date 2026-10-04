@@ -9,12 +9,15 @@ struct InspectorShell<Header: View, Content: View, Footer: View>: View {
   private let content: Content
   private let footer: Footer
   private let showsFooter: Bool
+  private let scrollToken: AnyHashable?
 
   init(
+    scrollToken: AnyHashable? = nil,
     @ViewBuilder header: () -> Header,
     @ViewBuilder content: () -> Content,
     @ViewBuilder footer: () -> Footer
   ) {
+    self.scrollToken = scrollToken
     self.header = header()
     self.content = content()
     self.footer = footer()
@@ -37,12 +40,18 @@ struct InspectorShell<Header: View, Content: View, Footer: View>: View {
             .padding(16)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else {
-          ScrollView {
-            content
-              .padding(16)
-              .frame(maxWidth: .infinity, alignment: .topLeading)
+          ScrollViewReader { proxy in
+            ScrollView {
+              content
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+              Color.clear.frame(height: 1).id(InspectorScrollAnchor.bottom)
+            }
+            .scrollContentBackground(.hidden)
+            .onChange(of: scrollToken) { _, _ in
+              proxy.scrollTo(InspectorScrollAnchor.bottom, anchor: .bottom)
+            }
           }
-          .scrollContentBackground(.hidden)
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -56,6 +65,10 @@ struct InspectorShell<Header: View, Content: View, Footer: View>: View {
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
   }
+}
+
+private enum InspectorScrollAnchor {
+  static let bottom = "inspector-bottom"
 }
 
 extension InspectorShell where Footer == EmptyView {

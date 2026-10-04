@@ -9,6 +9,7 @@ struct AppDependencies {
   let recorder: any AudioRecording
   let systemAudioCapture: any SystemAudioCapturing
   let sessionStore: any SessionStoring
+  let sessionChatResponder: any SessionChatResponding
   var transcribe:
     @Sendable (URL, TranscriptionEnginePreference, Locale?) async throws -> TranscriptionOutcome = {
       url, engine, locale in
@@ -19,7 +20,8 @@ struct AppDependencies {
     AppDependencies(
       recorder: AudioRecorder(),
       systemAudioCapture: SystemAudioCapture(),
-      sessionStore: try SessionStore(rootURL: storageRoot)
+      sessionStore: try SessionStore(rootURL: storageRoot),
+      sessionChatResponder: LocalSessionChatResponder()
     )
   }
 }

@@ -50,6 +50,15 @@ All attempts in a session stay grouped together (`Take 1`, `Take 2`, etc.). You 
 ### 5. Optional AI Analysis (Clipboard Export)
 If you want qualitative script feedback or presentation advice, use **File > Copy AI analysis prompt + JSON** (or press `⌥⌘C`). This formats your acoustic metrics into a structured prompt on your clipboard so you can paste it into ChatGPT, Gemini, Claude, or any LLM of your choice. Voice Coach never contacts external AI APIs on its own.
 
+### 6. Experimental On-Device Chat
+Enable **Settings > Experiments > Enable experimental features**, open a recording or Mimic, and choose **Ask** in the inspector. Explore meanings, grammar concepts, translations, synonyms, or word-by-word explanations. Suggested questions fill the composer so you can edit them before sending. Replies preserve lists and follow-ups, with Copy for the complete answer.
+
+Choose **Reference** or **This take** from the compact context menu. Mimics start with the reference transcript. Chat uses the complete chosen transcript, without sentence selection or repeated transcript previews. **Translate…** opens a native sheet backed by Apple’s on-device `TranslationSession`, which can ask to download language models.
+
+Chat uses Apple's on-device model and requires available Apple Intelligence. Each recording or selected Mimic attempt has a separate temporary conversation. Chats survive navigation while the app is open, but clear when you quit, clear the chat, delete the recording, or turn experiments off. Follow-ups use up to three recent exchanges. Only the complete chosen transcript and recent conversation are sent to the local model. Transcripts are not silently shortened; very long transcripts may exceed the local model’s context limit.
+
+This chat is for language exploration. It does not evaluate takes or recommend performance improvements. Common coaching requests are rejected before inference, with model instructions and a conservative reply check as additional defenses. These checks are not a semantic guarantee. Transcription errors and incorrect language answers remain possible; the chat cannot hear audio, search the web, or verify facts. Original transcripts and measured practice targets are preserved.
+
 ## What It Measures
 
 Voice Coach extracts objective acoustic properties to guide practice. It does not provide medical evaluations, diagnose speech conditions, or rate accents.
@@ -97,6 +106,9 @@ Supported runner flags: `--debug`, `--logs`, `--telemetry`, `--verify`.
 
 # Run full test suite (same gate as CI)
 ./scripts/test.sh --all
+
+# Optional real on-device chat smoke (synthetic text; Apple Intelligence must be ready)
+VOICE_COACH_TEST_LOCAL_CHAT=1 ./scripts/test.sh --unit --filter liveDeviceModelSmoke
 
 # Build release application bundle (outputs to build/Voice Coach.app)
 ./scripts/build-app.sh

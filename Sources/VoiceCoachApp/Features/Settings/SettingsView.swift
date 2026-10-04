@@ -5,6 +5,7 @@ private enum SettingsPane: String {
   case general
   case transcription
   case library
+  case experiments
 }
 
 struct SettingsView: View {
@@ -16,6 +17,9 @@ struct SettingsView: View {
   @AppStorage("voiceCoach.autoGenerateTitles") private var autoGenerateTitles = false
   @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording =
     InsightWordingPreference.default
+
+  @AppStorage(ExperimentalFeaturesPreference.storageKey) private var experimentalFeatures =
+    ExperimentalFeaturesPreference.default
 
   private var transcriptionBusy: Bool {
     model.systemTranscriptionStatus.isBusy
@@ -57,8 +61,38 @@ struct SettingsView: View {
       Tab("Library", systemImage: "internaldrive", value: SettingsPane.library) {
         libraryPane
       }
+      Tab("Experiments", systemImage: "flask", value: SettingsPane.experiments) {
+        experimentsPane
+      }
     }
     .frame(width: 480, height: 520)
+  }
+
+  private var experimentsPane: some View {
+    Form {
+      Section {
+        Toggle("Enable experimental features", isOn: $experimentalFeatures)
+          .onChange(of: experimentalFeatures) { _, enabled in
+            model.noteExperimentalFeaturesChanged()
+            if !enabled { model.clearExperimentalChats() }
+          }
+      } footer: {
+        Text(
+          "Try features still being evaluated. Off by default; turning this off closes and clears experimental chats."
+        )
+      }
+      if experimentalFeatures {
+        Section {
+          LabeledContent("Recording and Mimic chat", value: "Enabled")
+          LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
+        } footer: {
+          Text(
+            "Open a recording or Mimic and choose Ask in the inspector. Replies run on this Mac. Chats are temporary and clear when you quit; only recent messages are included in follow-ups."
+          )
+        }
+      }
+    }
+    .settingsPaneChrome()
   }
 
   private var generalPane: some View {
@@ -300,13 +334,19 @@ struct SettingsView: View {
             .foregroundStyle(Studio.accent)
         }
         Text("Recordings stay on this Mac. Titles use Apple Intelligence when enabled.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
+          .font(.caption)
+          .foregroundStyle(.secondary)
         Text(
           "Coaching decisions are deterministic. On supported devices, wording may be rewritten on device."
         )
         .font(.caption)
         .foregroundStyle(.secondary)
+      }
+
+      snapshotCard("Experiments", symbol: "flask") {
+        LabeledContent("Experimental features", value: experimentalFeatures ? "On" : "Off")
+        Text("Optional chat for one recording or Mimic. On-device; temporary conversations.")
+          .font(.caption).foregroundStyle(.secondary)
       }
 
       snapshotCard("Transcription", symbol: "waveform") {
