@@ -114,15 +114,6 @@ struct SessionChatInspector: View {
       if wordsChrome.keepsConversation {
         conversationBody
       }
-      ForEach(wordsChrome.actions, id: \.self) { title in
-        if title == TakeScreenCopy.retranscribe {
-          Button(TakeScreenCopy.retranscribe, systemImage: "arrow.triangle.2.circlepath") {
-            model.retranscribeSelectedTake()
-          }
-          .disabled(!model.canRetranscribe)
-          .help("Uses the speech language and engine selected in Settings → Transcription.")
-        }
-      }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
   }

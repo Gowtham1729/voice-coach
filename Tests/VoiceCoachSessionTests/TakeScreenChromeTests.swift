@@ -36,12 +36,15 @@ struct TakeScreenChromeTests {
     #expect(!hidden.isFilled(TakeScreenCopy.tryAgain))
   }
 
-  @Test("Words with no transcript shows one line and Re-transcribe, never zero or an ask field")
+  @Test("Words with no transcript shows only that line, never a second Re-transcribe, zero, or an ask field")
   func missingTranscript() {
     let chrome = WordsPaneChrome.make(hasTranscript: false, transcriptionRunning: false)
     #expect(chrome.lines == ["No transcript for this take."])
-    #expect(chrome.actions == ["Re-transcribe"])
-    #expect(chrome.actions.count == 1)
+    #expect(chrome.actions.isEmpty)
+    #expect(!chrome.actions.contains("Re-transcribe"))
+    #expect(!chrome.actions.contains(TakeScreenCopy.retranscribe))
+    #expect(!chrome.lines.contains("Re-transcribe"))
+    #expect(!chrome.lines.contains(TakeScreenCopy.retranscribe))
     #expect(!chrome.showsComposer)
     #expect(!chrome.showsAskField)
     #expect(!chrome.showsExploreWords)

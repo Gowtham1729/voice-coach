@@ -64,9 +64,10 @@ package struct WordsPaneChrome: Equatable {
       )
     }
     if !hasTranscript {
+      // Transcript already owns Re-transcribe. Words is the line only.
       return WordsPaneChrome(
         lines: [TakeScreenCopy.missingTranscriptLine],
-        actions: [TakeScreenCopy.retranscribe],
+        actions: [],
         showsComposer: false,
         showsAskField: false,
         showsExploreWords: false,
