@@ -1885,8 +1885,34 @@ dialog::backdrop {
 .inspector-crop { position: relative; aspect-ratio: 350 / 740; overflow: hidden; background: #202020; }
 .inspector-crop img { position: absolute; right: 0; top: -33px; width: 500%; height: auto; max-width: none; }
 .recording-screen { border: 1px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 12px 14px 0 rgba(31,36,31,.1); }
-.screenshot-dialog { width: min(1600px, calc(100vw - 32px)); max-width: none; }
-.screenshot-dialog > img { display: block; width: 100%; height: auto; border-radius: 8px; }
+/* 252px is the header, caption, and padding. 1.594 matches the capture aspect ratio. */
+.screenshot-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1600px, calc(100vw - 64px), calc((100svh - 252px) * 1.594 + 62px));
+  max-width: calc(100vw - 64px);
+  height: fit-content;
+  max-height: calc(100svh - 64px);
+  margin: auto;
+  overflow: hidden;
+}
+.screenshot-dialog .dialog-top { margin-bottom: 16px; }
+.screenshot-dialog .small-note { margin: 14px 0 0; }
+.screenshot-frame {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+.screenshot-frame > img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: calc(100svh - 252px);
+  object-fit: contain;
+  border-radius: 8px;
+}
 @media (max-width: 780px) {
   .practice-demo .demo-note { display: block; padding: 16px 0 6px; }
   .practice-demo .demo-note h3 { margin: 16px 0; }
