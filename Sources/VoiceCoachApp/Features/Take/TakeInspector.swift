@@ -48,15 +48,8 @@ struct TakeInspector: View {
 
   @ViewBuilder
   private func takeFooter(_ take: PracticeSession) -> some View {
+    let chrome = TakeActionChrome.plainTake()
     InspectorFooterStack {
-      Button(action: model.exportCurrent) {
-        Label("Export", systemImage: "square.and.arrow.up")
-          .inspectorActionLabel()
-      }
-      .studioGlassButton()
-      .controlSize(.regular)
-      .help("Export the audio and report")
-
       HStack(spacing: 8) {
         Menu {
           Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyAIAnalysisPrompt)
@@ -71,6 +64,16 @@ struct TakeInspector: View {
         .menuIndicator(.hidden)
         .studioGlassButton()
         .help("More")
+
+        if chrome.exportSitsWithDelete {
+          Button(action: model.exportCurrent) {
+            Label(TakeScreenCopy.export, systemImage: "square.and.arrow.up")
+              .inspectorActionLabel()
+          }
+          .studioGlassButton(prominent: chrome.isFilled(TakeScreenCopy.export))
+          .controlSize(.regular)
+          .help("Export the audio and report")
+        }
 
         Button(action: { requestDelete(take.id) }) {
           Label("Delete", systemImage: "trash")

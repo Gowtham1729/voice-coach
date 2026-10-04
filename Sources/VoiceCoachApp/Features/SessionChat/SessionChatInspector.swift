@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import VoiceCoachSession
 
 /// Language exploration scoped to the open take, with explicit transcript context.
 struct SessionChatInspector: View {
@@ -33,13 +34,46 @@ struct SessionChatInspector: View {
       })
   }
 
+  private var wordsChrome: WordsPaneChrome {
+    WordsPaneChrome.make(
+      hasTranscript: conversation.context.hasTranscript,
+      transcriptionRunning: model.isAnalyzing
+    )
+  }
+
   var body: some View {
-    InspectorShell(scrollToken: "\(conversation.exchanges.count)-\(conversation.isResponding)") {
-      InspectorHeader(
-        eyebrow: "Words · Experimental",
-        title: conversation.context.title,
-        meta: ["On this Mac · Clears when you quit"]
-      ) {
+    Group {
+      if wordsChrome.showsComposer {
+        InspectorShell(scrollToken: "\(conversation.exchanges.count)-\(conversation.isResponding)") {
+          wordsHeader
+        } content: {
+          readyContent
+        } footer: {
+          footer
+        }
+      } else {
+        InspectorShell(scrollToken: "\(conversation.exchanges.count)-\(conversation.isResponding)") {
+          wordsHeader
+        } content: {
+          restrictedContent
+        } footer: {
+          EmptyView()
+        }
+      }
+    }
+    .onAppear { status = CoachingWordingGenerator.status }
+    .sheet(item: $translationPassage) { passage in
+      SessionChatTranslationSheet(text: passage.text)
+    }
+  }
+
+  private var wordsHeader: some View {
+    InspectorHeader(
+      eyebrow: "Words · Experimental",
+      title: conversation.context.title,
+      meta: ["On this Mac · Clears when you quit"]
+    ) {
+      if wordsChrome.showsComposer || wordsChrome.keepsConversation {
         Button("Clear chat", action: conversation.clear)
           .controlSize(.small)
           .disabled(
@@ -48,42 +82,68 @@ struct SessionChatInspector: View {
           )
           .help("Delete all messages in this chat")
       }
-    } content: {
-      VStack(alignment: .leading, spacing: 20) {
-        if conversation.exchanges.isEmpty && !conversation.isResponding {
-          VStack(alignment: .leading, spacing: 8) {
-            Text("Explore the words").font(.headline)
-            Text(
-              "Ask about meanings, grammar, synonyms, or translations."
-            )
-            .foregroundStyle(.secondary)
-          }
+    }
+  }
+
+  private var readyContent: some View {
+    VStack(alignment: .leading, spacing: 20) {
+      if wordsChrome.showsExploreWords && conversation.exchanges.isEmpty && !conversation.isResponding {
+        VStack(alignment: .leading, spacing: 8) {
+          Text("Explore the words").font(.headline)
+          Text(
+            "Ask about meanings, grammar, synonyms, or translations."
+          )
+          .foregroundStyle(.secondary)
+        }
+        .font(.callout)
+        .fixedSize(horizontal: false, vertical: true)
+      }
+      conversationBody
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  /// No transcript, or transcription still running: no composer and no ask field.
+  private var restrictedContent: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      ForEach(wordsChrome.lines, id: \.self) { line in
+        Text(line)
           .font(.callout)
           .fixedSize(horizontal: false, vertical: true)
-        }
-        ForEach(conversation.exchanges) { exchange in
-          message(
-            question: exchange.question,
-            answer: exchange.answer, id: exchange.id)
-          Divider()
-        }
-        if let question = conversation.pendingQuestion {
-          message(
-            question: question, answer: nil, id: nil)
-          ProgressView("Thinking…").controlSize(.small)
-        }
-        if let error = conversation.errorMessage {
-          Text(error).font(.callout).foregroundStyle(.orange)
-            .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+      }
+      if wordsChrome.keepsConversation {
+        conversationBody
+      }
+      ForEach(wordsChrome.actions, id: \.self) { title in
+        if title == TakeScreenCopy.retranscribe {
+          Button(TakeScreenCopy.retranscribe, systemImage: "arrow.triangle.2.circlepath") {
+            model.retranscribeSelectedTake()
+          }
+          .disabled(!model.canRetranscribe)
+          .help("Uses the speech language and engine selected in Settings → Transcription.")
         }
       }
-      .frame(maxWidth: .infinity, alignment: .leading)
-    } footer: {
-      footer
     }
-    .onAppear { status = CoachingWordingGenerator.status }
-    .sheet(item: $translationPassage) { passage in
-      SessionChatTranslationSheet(text: passage.text)
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var conversationBody: some View {
+    VStack(alignment: .leading, spacing: 20) {
+      ForEach(conversation.exchanges) { exchange in
+        message(
+          question: exchange.question,
+          answer: exchange.answer, id: exchange.id)
+        Divider()
+      }
+      if let question = conversation.pendingQuestion {
+        message(
+          question: question, answer: nil, id: nil)
+        ProgressView("Thinking…").controlSize(.small)
+      }
+      if let error = conversation.errorMessage {
+        Text(error).font(.callout).foregroundStyle(.orange)
+          .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+      }
     }
   }
 

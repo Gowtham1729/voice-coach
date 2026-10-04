@@ -118,8 +118,9 @@ struct TakeView: View {
             .disabled(model.isAnalyzing || model.isRequestingPermission)
             .accessibilityLabel("Stop recording")
         } else {
-          Button("Record", action: model.recordButtonPressed)
-            .studioGlassButton(prominent: true)
+          Button(TakeScreenCopy.record, action: model.recordButtonPressed)
+            .studioGlassButton(
+              prominent: TakeActionChrome.plainTake().isFilled(TakeScreenCopy.record))
             .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
         }
       }

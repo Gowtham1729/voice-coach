@@ -49,14 +49,17 @@ struct MimicInspector: View {
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     } footer: {
+      let bothTargetsShowing = session.mimicReference?.take.id == reference.take.id
+        && session.takes.contains(where: { $0.id == take.id })
+      let chrome = TakeActionChrome.compare(bothTargetsShowing: bothTargetsShowing)
       InspectorFooterStack {
         Button {
           model.startMimicPractice()
         } label: {
-          Text("Try again")
+          Text(TakeScreenCopy.tryAgain)
             .inspectorActionLabel()
         }
-        .studioGlassButton(prominent: true)
+        .studioGlassButton(prominent: chrome.isFilled(TakeScreenCopy.tryAgain))
         .controlSize(.regular)
         .disabled(model.isPlaying || model.isAnalyzing)
 
