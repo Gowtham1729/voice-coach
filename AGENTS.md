@@ -12,7 +12,7 @@ Local-first **Ichido** (formerly Voice Coach): a **macOS 26+** SwiftUI speaking-
 | --- | --- | --- |
 | DSP / reports / ASR | `Sources/VoiceCoachCore/` | No SwiftUI, AppKit, or session persistence. Linux-buildable when AVFoundation is absent |
 | Session domain / persistence | `Sources/VoiceCoachSession/` | Foundation only. Depends on Core, not on the app |
-| App UI / capture | `Sources/VoiceCoachApp/` | macOS only: `App/`, `Application/`, `Navigation/`, `Features/`, `Services/`, `DesignSystem/`, `Visualization/`, `Models/`, `PreviewSupport/` |
+| App UI / capture | `Sources/VoiceCoachApp/` | macOS only: `App/`, `Application/`, `Navigation/`, `Features/`, `Services/`, `Support/`, `DesignSystem/`, `Visualization/`, `Models/`, `PreviewSupport/` |
 | Unit tests | `Tests/VoiceCoachCoreTests/`, `Tests/VoiceCoachSessionTests/` | Swift Testing |
 | App coordination tests | `Tests/VoiceCoachAppTests/` | macOS-only save and rejection checks |
 | Contract smoke | `Sources/VoiceCoachSelfTest/main.swift` | Acoustic and report invariants. Do not grow this for ordinary unit tests |
@@ -48,6 +48,7 @@ Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 - AVFoundation builds need `--disable-sandbox` (already set in `build-app.sh` and `render-previews.sh`).
 - ASR override: `VOICE_COACH_NEMO_SPEECH_PATH`.
 - If macOS blocks on an unaccepted Xcode license, the human runs `sudo xcodebuild -license`. Agents cannot accept it.
+- Optional Words chat smoke, only when asked and Apple Intelligence is ready. Not part of CI: `VOICE_COACH_TEST_LOCAL_CHAT=1 ./scripts/test.sh --unit --filter liveDeviceModelSmoke`.
 
 ## Verification
 
@@ -61,7 +62,7 @@ Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 | Website | `node scripts/check-website.mjs`. Not part of CI job `test`. See `docs/marketing-website.md` |
 | Release | `docs/RELEASE.md` |
 
-Synthetic tests do not prove microphone, headphone, system-audio, or route behavior.
+Synthetic tests do not prove microphone, headphone, system-audio, or route behavior. Smoke-test those on a Mac when audio routing changes.
 
 ## Product constraints
 
@@ -89,13 +90,15 @@ Root: `~/Library/Application Support/VoiceCoach/`
 - Audio is `take-<takeUUID>.wav` or `…-imported.wav`. Mimic reference audio is `reference.wav`.
 - Renames and Mimic style edits rewrite the thin index only. A new or changed take also writes its analysis file.
 - `keepsRecordings == false` replaces prior takes and deletes their WAV and analysis files after a successful save. New recordings keep every valid take. A legacy replace-only folder prompts before the next save.
+- A Mimic session always keeps `reference.wav` and every attempt. The replace path must not run when `mode == .mimic`. Deleting an attempt deletes that take only, not the reference.
 - Deleting a Mimic removes its folder. Deleting a recording removes that take’s audio and analysis after the index save succeeds. Settings cleans empty leftover folders.
 - Captures are 48 kHz mono PCM, auto-stop around 90s, with a discard/analyze gate around 0.6s.
-- Mimic reference capture is system output only (Core Audio process tap), uses the same gates, and requires `NSAudioCaptureUsageDescription`.
+- Mimic reference sources are import, Mac system-audio capture, and **Practise with this clip**. Reference capture is system output only (Core Audio process tap), uses the same gates, and requires `NSAudioCaptureUsageDescription`. In-app reference capture is shipping.
+- **Listen & Repeat** plays the reference, then records. **Speak Along** plays the reference while the microphone records. `beginRecording` must not stop that reference playback.
 
 ## Visual reference
 
-`docs/screenshots/` is the committed picture of the app. Open the matching PNG before asking what a screen looks like. Do not launch the app to answer a layout question. Refresh a capture when that screen’s layout changes. `build/previews` is synthetic layout output and stays gitignored.
+`docs/screenshots/` is the committed layout reference. Open the matching PNG before asking what a screen looks like. These frames still show the pre-rebrand labels **Mimics**, **New Mimic**, and **Ask**. Current labels are **Practice**, **Reference practice**, and **Words**. Use the images for structure. If a label disagrees with the code or `docs/brand/messaging.md`, follow those. Refresh a capture when that screen’s layout or labels change. `build/previews` is synthetic and stays gitignored.
 
 | File | Screen |
 | --- | --- |

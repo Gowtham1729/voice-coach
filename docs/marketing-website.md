@@ -11,7 +11,7 @@ node scripts/build-website.mjs
 node scripts/serve-website.mjs --port 4173
 ```
 
-`check-website.mjs` is the contract, and it is not part of CI job `test`. It checks local assets, unique IDs, ARIA targets, four workflow tabs, the latest-release download with no pinned version, no external scripts, no capture or analytics APIs, no em dashes, and the exact strings in its `requiredCopy` array. Change one of those sentences only by editing `website/index.html` and the checker in the same change. Browser checks for dialogs, focus return, tabs, the mobile menu, FAQ, video chapters, overflow, and the ribbon are separate from that script.
+`check-website.mjs` is the contract, and it is not part of CI job `test`. It checks local assets, unique IDs, ARIA targets, four workflow tabs, the latest-release download with no pinned version, no external scripts, no capture or analytics APIs, no em dashes, and the exact strings in its `requiredCopy` array. Change one of those sentences only by editing `website/index.html` and the checker in the same change. Browser checks for dialogs, focus return, tabs, the mobile menu, FAQ, video chapters, overflow, and the ribbon are separate from that script. Neither those checks nor `check-website.mjs` prove app contracts, signing, persistence, language accuracy, or hardware audio.
 
 ## Copy and claims
 
@@ -22,5 +22,5 @@ The download URL stays `https://github.com/Gowtham1729/voice-coach/releases/late
 ## Assets
 
 - Product images are real app captures. Do not retouch labels, transcripts, replies, or measurements, and do not replace them with `build/previews` fixtures.
-- `voice-coach-tour.mp4` is earlier Voice Coach footage. Keep it labelled historical. Do not present those frames as the current Ichido interface.
+- `voice-coach-tour.mp4` is earlier Voice Coach footage. Keep it labelled historical. Do not present those frames as the current Ichido interface. The caption track may describe scenes. Do not rewrite it as a verbatim speech transcript.
 - The desktop ribbon is decorative. Mobile omits it. Reduced motion keeps the still image. Do not add a runtime dependency, microphone use, or an outbound data path.
