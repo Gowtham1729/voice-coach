@@ -4,7 +4,7 @@ Operating manual for coding agents. Prefer this over guessing; prefer `VoiceCoac
 
 ## What this repo is
 
-Local-first **macOS 26+** SwiftUI voice practice studio (Swift 6.2). Record/import takes, run on-device acoustic analysis + optional Parakeet transcription, persist a private recordings library. Not a web app; nothing uploads recordings.
+Local-first **Ichido** (formerly Voice Coach), a **macOS 26+** SwiftUI speaking practice studio (Swift 6.2). Record/import takes, run on-device acoustic analysis + optional Parakeet transcription, persist a private recordings library. Not a web app; nothing uploads recordings.
 
 ## Layout (where to edit)
 
@@ -36,7 +36,7 @@ Run from repo root. Prefer the Xcode toolchain when present (scripts do this).
 # Dev app (macOS only)
 ./script/build_and_run.sh
 
-# Release .app → build/Voice Coach.app (ad-hoc codesign)
+# Release .app → build/Ichido.app (ad-hoc codesign)
 ./scripts/build-app.sh
 
 # SelfTest + DEBUG layout PNGs in build/previews (synthetic audio only)
@@ -74,7 +74,7 @@ Keep `VoiceCoachSelfTest` as the integration/contract smoke. Put deterministic u
 
 - **Local-first / privacy:** No cloud upload paths. Mic copy and Settings must stay “on-device / local only.”
 - **Not medical:** HNR/CPP and related metrics are acoustic coaching signals. UI/settings/coach copy must not diagnose or claim diaphragm proof. Report JSON must not contain subjective coaching language (`baseline`, `throat`, `please` — SelfTest enforces).
-- **Platform:** `Package.swift` targets **macOS 26** for Liquid Glass APIs. Do not lower the SPM platform to match `Resources/Info.plist` `LSMinimumSystemVersion` (currently 14.0) without an explicit product decision.
+- **Platform:** `Package.swift` and `Resources/Info.plist` target **macOS 26** for Liquid Glass APIs. Do not lower the deployment target without an explicit product decision.
 - **Materials:** System chrome may use Liquid Glass (`.glass` / `.glassProminent` / `ControlGlass`). Content panels stay on standard materials (`.desktopPanel` / `.studioCard` → regularMaterial), not glass. Honor Reduce Transparency / Reduce Motion via existing `Studio` / `StudioMotion` helpers.
 - **Recording validation:** Missing/empty/near-silent audio and successful transcription with no recognized text or words must fail before saving; rejected captures leave no new library entry or temporary audio. Technical transcription failure is soft — valid audio still saves with a notice/error; do not hard-fail the record/import pipeline when `nemo-speech` is missing.
 

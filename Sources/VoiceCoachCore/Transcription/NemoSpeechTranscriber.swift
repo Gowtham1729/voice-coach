@@ -20,7 +20,7 @@ public enum TranscriptionError: LocalizedError, Sendable {
       return detail
     case .systemLocaleUnsupported(let identifier):
       return
-        "Apple speech transcription doesn’t support \(TranscriptionLanguagePreference.displayName(for: identifier)) on this Mac. Choose a supported speech language in Voice Coach Settings → Transcription."
+        "Apple speech transcription doesn’t support \(TranscriptionLanguagePreference.displayName(for: identifier)) on this Mac. Choose a supported speech language in Ichido Settings → Transcription."
     case .modelLanguageUnsupported(let identifier):
       return
         "This Parakeet model doesn’t support \(TranscriptionLanguagePreference.displayName(for: identifier)). Choose Apple in Settings → Transcription."
@@ -42,7 +42,7 @@ public enum TranscriptionError: LocalizedError, Sendable {
 }
 
 /// Local Parakeet adapter for NVIDIA's native NeMo-Speech.cpp command-line runtime.
-/// Audio is passed as a local file path and never uploaded by Voice Coach.
+/// Audio is passed as a local file path and never uploaded by Ichido.
 public struct NemoSpeechTranscriber: Sendable {
   public static let defaultModel = "nvidia/parakeet-tdt-0.6b-v3"
 

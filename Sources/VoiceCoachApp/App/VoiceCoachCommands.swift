@@ -15,7 +15,7 @@ struct VoiceCoachCommands: Commands {
         .keyboardShortcut("n", modifiers: .command)
         .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
 
-      Button("Mimic…") { model.startMimic() }
+      Button("Reference practice…") { model.startMimic() }
         .keyboardShortcut("m", modifiers: [.command, .shift])
         .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
     }
@@ -39,7 +39,7 @@ struct VoiceCoachCommands: Commands {
     CommandMenu("Navigate") {
       navigationButton("Home", section: .home, shortcut: "1")
       navigationButton("Library", section: .library, shortcut: "2")
-      navigationButton("Mimics", section: .mimics, shortcut: "3")
+      navigationButton("Practice", section: .mimics, shortcut: "3")
     }
 
     CommandMenu("Practice") {
@@ -63,7 +63,7 @@ struct VoiceCoachCommands: Commands {
           || (!model.isRecording && (model.isPlaying || model.mimicPhase != .ready)))
 
       if model.showsExperimentalAsk {
-        Button("Ask") { model.revealSessionChat() }
+        Button("Words") { model.revealSessionChat() }
           .keyboardShortcut("a", modifiers: [.command, .shift])
           .disabled(!model.destination.isWorkspace)
       }

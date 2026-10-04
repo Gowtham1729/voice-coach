@@ -44,4 +44,4 @@ jobs:
       - name: Build app
         run: |
           ./scripts/build-app.sh
-          test -d "build/Voice Coach.app"
+          test -d "build/Ichido.app"

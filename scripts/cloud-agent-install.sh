@@ -55,4 +55,4 @@ swift --version
 # product only. Building the product (not just the target) links the executable
 # so it is ready to run.
 swift build --product VoiceCoachSelfTest
-echo "Voice Coach Cloud Agent environment ready."
+echo "Ichido Cloud Agent environment ready."

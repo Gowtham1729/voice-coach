@@ -27,4 +27,4 @@ fi
 
 "$RUNTIME_BIN" pull "$MODEL_ID"
 "$RUNTIME_BIN" doctor
-print "Voice Coach local transcription is ready: $MODEL_ID"
+print "Ichido local transcription is ready: $MODEL_ID"

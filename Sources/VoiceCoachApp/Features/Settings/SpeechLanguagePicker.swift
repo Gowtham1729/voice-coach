@@ -39,6 +39,6 @@ struct SpeechLanguagePicker: View {
       model.isRecording || model.isAnalyzing || model.mimicIsPreparing
         || model.systemTranscriptionStatus.isBusy || model.isCheckingSpeechLanguages
     )
-    .help("Choose the language spoken in new recordings and Mimic references.")
+    .help("Choose the language spoken in new recordings and practice references.")
   }
 }

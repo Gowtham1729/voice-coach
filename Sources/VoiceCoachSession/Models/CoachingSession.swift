@@ -17,7 +17,7 @@ package enum PracticeMode: String, Codable, CaseIterable, Identifiable, Sendable
     case .general: "Practice"
     case .prompt: "Read a prompt"
     case .freeSpeaking: "Free speaking"
-    case .mimic: "Mimic"
+    case .mimic: "Reference practice"
     }
   }
 

@@ -38,7 +38,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
 
   var id: Self { self }
 
-  var title: String { rawValue }
+  var title: String { self == .mimics ? "Practice" : rawValue }
 
   var symbol: String {
     switch self {

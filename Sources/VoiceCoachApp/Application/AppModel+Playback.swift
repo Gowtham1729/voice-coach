@@ -73,7 +73,7 @@ extension AppModel {
     let formatter = DateFormatter()
     formatter.dateFormat = "yyyy-MM-dd-HH-mm-ss"
     let folder = parent.appendingPathComponent(
-      "Voice Coach \(formatter.string(from: take.createdAt))", isDirectory: true)
+      "Ichido \(formatter.string(from: take.createdAt))", isDirectory: true)
     do {
       try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
       let extensionName = take.audioURL.pathExtension.isEmpty ? "m4a" : take.audioURL.pathExtension

@@ -22,7 +22,7 @@ final class AppModel: ObservableObject {
   @Published var liveLevel: Double = -80
   @Published var mimicReferenceCaptureElapsed: TimeInterval = 0
   @Published var mimicReferenceCaptureLevel: Double = -80
-  @Published var errorTitle = "Voice Coach"
+  @Published var errorTitle = "Ichido"
   @Published var errorMessage: String?
   @Published var toastMessage: String?
   @Published var transcriptionNotice: String?
@@ -103,7 +103,7 @@ final class AppModel: ObservableObject {
       transcribe = dependencies.transcribe
       sessionChatResponder = dependencies.sessionChatResponder
     } catch {
-      fatalError("Voice Coach could not open local storage: \(error.localizedDescription)")
+      fatalError("Ichido could not open local storage: \(error.localizedDescription)")
     }
 
     recorder.onPlaybackFinished = { [weak self] in
@@ -133,7 +133,7 @@ final class AppModel: ObservableObject {
     } catch {
       presentError(
         title: "Library couldn’t be loaded",
-        message: "Existing files were left untouched. Try quitting and reopening Voice Coach.")
+        message: "Existing files were left untouched. Try quitting and reopening Ichido.")
     }
   }
 
@@ -147,7 +147,7 @@ final class AppModel: ObservableObject {
   }
 
   func clearError() {
-    errorTitle = "Voice Coach"
+    errorTitle = "Ichido"
     errorMessage = nil
   }
 

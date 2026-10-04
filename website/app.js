@@ -119,6 +119,20 @@ insightTabs.forEach((tab) => {
 
 supportTabKeys(insightTabs, (tab) => showInsight(tab.dataset.insight));
 
+const screenshotDialog = $("#screenshot-dialog");
+$$("[data-screenshot]").forEach((link) => {
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    const source = $("img", link);
+    $("#expanded-screenshot").src = link.href;
+    $("#expanded-screenshot").alt = source.alt;
+    $("#screenshot-caption").textContent = link.dataset.caption ||
+      "Real app capture. Earlier Mimics and Ask labels become Practice and Words in Ichido. Transcription and language replies can contain errors.";
+    $("#screenshot-original").href = link.href;
+    screenshotDialog.showModal();
+  });
+});
+
 const mobileMenu = $(".mobile-menu");
 $$("a", mobileMenu).forEach((link) => {
   link.addEventListener("click", () => {

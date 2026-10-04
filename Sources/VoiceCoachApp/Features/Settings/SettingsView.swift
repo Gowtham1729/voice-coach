@@ -83,11 +83,11 @@ struct SettingsView: View {
       }
       if experimentalFeatures {
         Section {
-          LabeledContent("Recording and Mimic chat", value: "Enabled")
+          LabeledContent("Recording and reference chat", value: "Enabled")
           LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
         } footer: {
           Text(
-            "Open a recording or Mimic and choose Ask in the inspector. Replies run on this Mac. Chats are temporary and clear when you quit; only recent messages are included in follow-ups."
+            "Open a recording or practice session and choose Words in the inspector. Replies run on this Mac. Chats are temporary and clear when you quit; only recent messages are included in follow-ups."
           )
         }
       }
@@ -144,7 +144,7 @@ struct SettingsView: View {
         Text("Practice next")
       } footer: {
         Text(
-          "Mimic comparisons include practice targets measured against the reference. Apple Intelligence can rephrase those exercises on this Mac."
+          "Reference comparisons include practice targets measured against the reference. Apple Intelligence can rephrase those exercises on this Mac."
         )
       }
     }
@@ -227,7 +227,7 @@ struct SettingsView: View {
         LabeledContent("Recordings", value: "\(model.userRecordedTakeCount)")
         LabeledContent("Minutes recorded", value: vcNumber(model.userRecordedDuration / 60, 1))
         LabeledContent("Imported", value: "\(model.importedTakeCount)")
-        LabeledContent("Mimics", value: "\(model.mimicSessions.count)")
+        LabeledContent("Practice", value: "\(model.mimicSessions.count)")
         Button("Show in Finder…", systemImage: "folder", action: model.revealStorage)
       } footer: {
         VStack(alignment: .leading, spacing: 6) {
@@ -303,7 +303,7 @@ struct SettingsView: View {
 
   private var snapshotSettings: some View {
     VStack(alignment: .leading, spacing: 16) {
-      Text("Voice Coach Settings")
+      Text("Ichido Settings")
         .font(.title2.weight(.semibold))
 
       snapshotCard("General", symbol: "gearshape") {
@@ -345,7 +345,7 @@ struct SettingsView: View {
 
       snapshotCard("Experiments", symbol: "flask") {
         LabeledContent("Experimental features", value: experimentalFeatures ? "On" : "Off")
-        Text("Optional chat for one recording or Mimic. On-device; temporary conversations.")
+        Text("Optional chat for one recording or practice session. On-device; temporary conversations.")
           .font(.caption).foregroundStyle(.secondary)
       }
 
@@ -371,7 +371,7 @@ struct SettingsView: View {
       snapshotCard("Library", symbol: "internaldrive") {
         LabeledContent("Recordings", value: "\(model.userRecordedTakeCount)")
         LabeledContent("Imported", value: "\(model.importedTakeCount)")
-        LabeledContent("Mimics", value: "\(model.mimicSessions.count)")
+        LabeledContent("Practice", value: "\(model.mimicSessions.count)")
       }
     }
     .padding(24)

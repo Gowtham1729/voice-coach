@@ -12,24 +12,24 @@ struct DesktopMimicsWorkspace: View {
     StudioPage(maxWidth: 1100, horizontalPadding: 20) {
       VStack(alignment: .leading, spacing: 14) {
         HStack {
-          Text("\(model.mimicSessions.count) Mimics")
+          Text("\(model.mimicSessions.count) practice sessions")
             .font(.caption)
             .foregroundStyle(Studio.secondary)
           Spacer()
-          Button("New Mimic", action: model.startMimic)
+          Button("New reference practice", action: model.startMimic)
             .studioGlassButton(prominent: true)
             .disabled(model.isRecording || model.isAnalyzing)
         }
 
         if model.mimicSessions.isEmpty {
           ContentUnavailableView {
-            Label("No Mimics", systemImage: "waveform.path")
+            Label("No reference practice yet", systemImage: "waveform.path")
           } description: {
             Text(
               "Import a clip and practice against it."
             )
           } actions: {
-            Button("New Mimic", action: model.startMimic)
+            Button("New reference practice", action: model.startMimic)
               .studioGlassButton(prominent: true)
           }
           .frame(maxWidth: .infinity, minHeight: 420)
@@ -57,7 +57,7 @@ struct DesktopMimicsWorkspace: View {
         }
       }
     }
-    .alert("Delete Mimic?", isPresented: deleteAlertBinding, presenting: deleteCandidate) {
+    .alert("Delete reference practice?", isPresented: deleteAlertBinding, presenting: deleteCandidate) {
       session in
       Button("Delete", role: .destructive) { model.deleteSession(session.id) }
       Button("Cancel", role: .cancel) {}

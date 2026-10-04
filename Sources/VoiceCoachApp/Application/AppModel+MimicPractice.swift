@@ -8,7 +8,7 @@ extension AppModel {
   func chooseMimicReference() {
     guard !mimicIsPreparing, !isRecording, !isCapturingMimicReference else { return }
     let panel = NSOpenPanel()
-    panel.title = "Choose a Voice to Mimic"
+    panel.title = "Choose a practice reference"
     panel.message = "Import a clip, then trim a short excerpt."
     panel.prompt = "Use Clip"
     panel.allowedContentTypes = AudioImportService.allowedContentTypes
@@ -41,7 +41,7 @@ extension AppModel {
           mimicIsPreparing = false
           mimicPreparationID = nil
           presentError(
-            title: "Mimic failed",
+            title: "Reference practice failed",
             error: error,
             fallback: "Couldn’t prepare this reference.")
         }
@@ -148,16 +148,16 @@ extension AppModel {
           if mimicPreparationID == activeID {
             mimicIsPreparing = false
             presentError(
-              title: "Mimic failed",
+              title: "Reference practice failed",
               error: error,
-              fallback: "Couldn’t start this Mimic.")
+              fallback: "Couldn’t start this practice session.")
           }
         }
       }
     } catch {
       mimicIsPreparing = false
       presentError(
-        title: "Mimic failed",
+        title: "Reference practice failed",
         message: "Couldn’t create a local file for this reference.")
     }
   }
@@ -208,7 +208,7 @@ extension AppModel {
             self.presentError(
               title: "Microphone Access Needed",
               message: RecorderError.microphoneDenied.errorDescription
-                ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
+                ?? "Turn on Ichido in System Settings → Privacy & Security → Microphone.")
           }
         }
       }
@@ -216,7 +216,7 @@ extension AppModel {
       presentError(
         title: "Microphone Access Needed",
         message: RecorderError.microphoneDenied.errorDescription
-          ?? "Turn on Voice Coach in System Settings → Privacy & Security → Microphone.")
+          ?? "Turn on Ichido in System Settings → Privacy & Security → Microphone.")
     }
   }
 

@@ -138,7 +138,7 @@ enum RecorderError: LocalizedError {
     case .couldNotStart: "Check that a microphone is connected, then try again."
     case .couldNotPlay: "Try playing again, or record a new take."
     case .microphoneDenied:
-      "Turn on Voice Coach in System Settings → Privacy & Security → Microphone."
+      "Turn on Ichido in System Settings → Privacy & Security → Microphone."
     }
   }
 }

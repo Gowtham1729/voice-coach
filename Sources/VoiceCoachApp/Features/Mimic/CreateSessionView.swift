@@ -19,14 +19,17 @@ struct CreateSessionView: View {
     VStack(alignment: .leading, spacing: 18) {
       VStack(alignment: .leading, spacing: 4) {
         HStack {
-          Text("New Mimic")
+          Text("New reference practice")
             .font(.title2.weight(.semibold))
           Spacer()
         }
 
-        Text("Import a clip or capture Mac audio.")
+        Text("Choose a phrase to practise. Import a clip or capture audio playing on your Mac.")
           .font(.callout)
           .foregroundStyle(Studio.secondary)
+        Text("Listen → Repeat → Compare")
+          .font(.caption.weight(.medium))
+          .foregroundStyle(Studio.accent)
       }
 
       MimicReferencePicker(start: $excerptStart, end: $excerptEnd)
@@ -45,8 +48,8 @@ struct CreateSessionView: View {
         .keyboardShortcut(.cancelAction)
         .studioGlassButton()
 
-        Button("Start") {
-          let name = model.mimicDraft?.sourceName ?? "Mimic"
+        Button("Start practice") {
+          let name = model.mimicDraft?.sourceName ?? "Reference practice"
           model.createMimicSession(name: name, start: excerptStart, end: excerptEnd)
         }
         .keyboardShortcut(.defaultAction)

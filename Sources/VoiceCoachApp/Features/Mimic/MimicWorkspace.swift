@@ -59,7 +59,7 @@ struct MimicWorkspace: View {
         } else {
           ContentUnavailableView(
             "Reference Unavailable", systemImage: "waveform.badge.exclamationmark",
-            description: Text("This Mimic needs its reference audio.")
+            description: Text("This practice session needs its reference audio.")
           )
           .frame(maxWidth: .infinity, minHeight: 350)
         }
@@ -72,9 +72,9 @@ struct MimicWorkspace: View {
   private var takeStepShortcuts: some View {
     if !snapshot {
       HStack {
-        Button("Previous Mimic Take") { model.stepMimicTake(by: -1) }
+        Button("Previous practice take") { model.stepMimicTake(by: -1) }
           .keyboardShortcut(.leftArrow, modifiers: .option)
-        Button("Next Mimic Take") { model.stepMimicTake(by: 1) }
+        Button("Next practice take") { model.stepMimicTake(by: 1) }
           .keyboardShortcut(.rightArrow, modifiers: .option)
       }
       .opacity(0)
@@ -90,7 +90,7 @@ struct MimicWorkspace: View {
       }) ?? 0
 
     return HStack(spacing: 12) {
-      Label("Mimic", systemImage: "waveform.path")
+      Label("Reference practice", systemImage: "waveform.path")
         .font(.callout.weight(.medium))
       if let locale = session.transcriptionLocaleIdentifier {
         Text(TranscriptionLanguagePreference.displayName(for: locale))
@@ -195,6 +195,11 @@ struct MimicWorkspace: View {
       Text(vcDuration(reference.take.result.metrics.duration))
         .font(.caption.monospacedDigit())
         .foregroundStyle(Studio.secondary)
+      if model.showsExperimentalAsk {
+        Button("Understand words") { model.revealSessionChat() }
+          .help("Explore meanings, synonyms, and translations in the experimental Words inspector.")
+          .disabled(model.isRecording || model.isAnalyzing)
+      }
     }
     .padding(14)
     .desktopPanel()
