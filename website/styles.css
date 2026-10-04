@@ -32,7 +32,7 @@
   --serif: Georgia, "Times New Roman", serif;
   --body: "DM Sans", sans-serif;
   --display: "Space Grotesk", sans-serif;
-  --container: min(1320px, calc(100vw - 56px));
+  --container: min(1840px, calc(100% - 72px));
 }
 
 * {
@@ -117,7 +117,7 @@ img {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  width: min(1440px, calc(100vw - 40px));
+  width: var(--container);
   min-height: 82px;
   margin-inline: auto;
   border-bottom: 1px solid var(--line);
@@ -220,8 +220,8 @@ img {
 .hero {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.03fr) minmax(420px, 0.97fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 780px) minmax(420px, 1fr);
+  gap: clamp(28px, 4vw, 72px);
   align-items: center;
   min-height: calc(100svh - 82px);
   padding-block: 80px 64px;
@@ -389,36 +389,6 @@ img {
 
 .ribbon-ready::before {
   opacity: 1;
-}
-
-.ribbon-controls {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: none;
-}
-
-.ribbon-ready .ribbon-controls {
-  display: block;
-}
-
-.ribbon-pause {
-  background: var(--paper);
-}
-
-.ribbon-pause span {
-  width: 10px;
-  height: 12px;
-  border-inline: 3px solid currentColor;
-}
-
-.ribbon-pause[data-paused="true"] span {
-  width: 0;
-  height: 0;
-  margin-left: 3px;
-  border: 6px solid transparent;
-  border-right: 0;
-  border-left: 9px solid currentColor;
 }
 
 .hero-index {
@@ -1872,16 +1842,17 @@ dialog::backdrop {
   .recording-proof { padding-top: 48px; margin-top: 48px; }
 }
 @media (prefers-reduced-motion: reduce) { .inline-link { transition: none; } }
-/* Real captures stay intact. The language inset is a CSS window into the original. */
-.practice-demo .insight-view { grid-template-columns: 1fr; min-height: 0; gap: 0; }
-.practice-demo .screen-crop { display: block; overflow: hidden; aspect-ratio: 3420 / 1160; }
-.practice-demo .screen-crop img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
-.practice-demo .demo-note { display: grid; grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.28fr); gap: 10px 36px; align-items: start; padding: 22px 0 8px; border-left: 0; border-top: 1px solid var(--line); }
-.practice-demo .demo-note .demo-label { grid-column: 1 / -1; }
-.practice-demo .demo-note h3 { margin: 0; }
+/* Every practice capture shares one Mac window size. Compare's file has a black band above the window; aligning the frame to the bottom hides that band and keeps the same picture as the others. */
+.practice-demo .insight-view { grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr); grid-template-areas: "copy screen"; gap: 28px 64px; align-items: center; min-height: 0; }
+.practice-demo .screen-frame { grid-area: screen; }
+.practice-demo .demo-note { grid-area: copy; }
+.practice-demo .screenshot-link { overflow: hidden; aspect-ratio: 3420 / 2146; }
+.practice-demo .screenshot-link img { width: 100%; height: 100%; object-fit: cover; object-position: bottom center; }
+.practice-demo .demo-note { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 0; border: 0; }
+.practice-demo .demo-note h3 { margin: 14px 0 16px; }
 .practice-demo .demo-copy p { margin: 0; }
-.practice-demo .demo-copy .step-detail { margin-top: 10px; }
-.practice-demo .demo-copy .inline-link { margin-top: 14px; }
+.practice-demo .demo-copy .step-detail { margin-top: 12px; }
+.practice-demo .demo-copy .inline-link { margin-top: 16px; }
 .screenshot-link { display: block; position: relative; color: inherit; cursor: pointer; }
 .screenshot-link > img { width: 100%; height: auto; display: block; }
 .words-visual > .screenshot-link { width: min(350px, 100%); border: 1px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 14px 16px 0 rgba(40,72,232,.18); }
@@ -1891,11 +1862,11 @@ dialog::backdrop {
 .screenshot-dialog { width: min(1600px, calc(100vw - 32px)); max-width: none; }
 .screenshot-dialog > img { display: block; width: 100%; height: auto; border-radius: 8px; }
 @media (max-width: 1050px) {
-  .practice-demo .demo-note { grid-template-columns: 1fr; }
+  .practice-demo .insight-view { grid-template-columns: 1fr; grid-template-areas: "screen" "copy"; gap: 20px; }
 }
 @media (max-width: 780px) {
-  .practice-demo .demo-note { display: block; padding: 16px 0 6px; }
-  .practice-demo .demo-note h3 { margin: 16px 0; }
+  .practice-demo .demo-note { padding: 4px 0 6px; }
+  .practice-demo .demo-note h3 { margin: 14px 0; }
   .practice-demo .demo-note p { margin: 12px 0; }
 }
 @media (max-width: 360px) {

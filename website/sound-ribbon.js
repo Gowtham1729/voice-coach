@@ -180,7 +180,6 @@ function makeMesh(gl) {
 export function initSoundRibbon() {
   const scene = document.querySelector(".hero-art");
   const canvas = scene.querySelector("canvas");
-  const pause = scene.querySelector("[data-pause-ribbon]");
   const fallback = scene.querySelector(".sound-sculpture");
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const mobile = matchMedia("(max-width: 780px)");
@@ -230,7 +229,6 @@ export function initSoundRibbon() {
   let previous = 0;
   let frame = 0;
   let visible = true;
-  let paused = false;
   let lost = false;
 
   function render() {
@@ -274,20 +272,20 @@ export function initSoundRibbon() {
     scene.classList.toggle("ribbon-ready", !still);
     canvas.hidden = still;
     fallback.setAttribute("aria-hidden", String(!still));
-    if (!still && visible && !document.hidden && !paused) {
+    if (!still && visible && !document.hidden) {
       frame = requestAnimationFrame(animate);
     }
   }
 
   function wake() {
-    if (!frame && !paused && !reducedMotion.matches && !mobile.matches
+    if (!frame && !reducedMotion.matches && !mobile.matches
         && !lost && visible && !document.hidden) {
       frame = requestAnimationFrame(animate);
     }
   }
 
   function ripple(position) {
-    if (paused || reducedMotion.matches || mobile.matches || lost) return;
+    if (reducedMotion.matches || mobile.matches || lost) return;
     const strength = 0.38;
     pulses.set([position, elapsed, strength, 0], pulseIndex * 4);
     pulseIndex = (pulseIndex + 1) % 4;
@@ -342,7 +340,7 @@ export function initSoundRibbon() {
   }
 
   canvas.addEventListener("pointermove", (event) => {
-    if (event.pointerType !== "mouse" || paused || mobile.matches) return;
+    if (event.pointerType !== "mouse" || mobile.matches) return;
     const bounds = canvas.getBoundingClientRect();
     const x = (event.clientX - bounds.left) / bounds.width;
     const y = (event.clientY - bounds.top) / bounds.height;
@@ -363,13 +361,6 @@ export function initSoundRibbon() {
       event.preventDefault();
       if (!event.repeat) ripple(0.5);
     }
-  });
-  pause.addEventListener("click", () => {
-    paused = !paused;
-    pause.setAttribute("aria-label", paused ? "Resume ribbon animation" : "Pause ribbon animation");
-    pause.dataset.paused = String(paused);
-    canvas.setAttribute("aria-disabled", String(paused));
-    updatePlayback();
   });
   canvas.addEventListener("webglcontextlost", (event) => {
     event.preventDefault();

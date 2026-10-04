@@ -50,13 +50,12 @@ function setup({ reduced = false, mobile = false, gpu = true, compile = true } =
     getContext: () => { contexts++; return gpu ? gl : null; },
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 600, height: 450 }),
   });
-  const pause = target();
   const fallback = target();
   const classes = new Set();
   const scene = {
     classList: { toggle: (name, on) => on ? classes.add(name) : classes.delete(name) },
     querySelector: (selector) => ({
-      canvas, "[data-pause-ribbon]": pause, ".sound-sculpture": fallback,
+      canvas, ".sound-sculpture": fallback,
     })[selector],
   };
   const media = target({ matches: reduced });
@@ -78,7 +77,7 @@ function setup({ reduced = false, mobile = false, gpu = true, compile = true } =
     ResizeObserver: class { observe() {} },
   });
   return {
-    canvas, pause, fallback, media, phone, document, frames, values, classes,
+    canvas, fallback, media, phone, document, frames, values, classes,
     draws: () => draws, contexts: () => contexts,
     intersect: (visible) => intersect([{ isIntersecting: visible }]),
     tick(time) {
@@ -128,17 +127,10 @@ test("mobile never starts the effect, including after crossing the desktop break
   assert.equal(page.frames.size, 0);
 });
 
-test("pause, visibility, and motion preference stop work without duplicate animation loops", () => {
+test("visibility and motion preference stop work without duplicate animation loops", () => {
   const page = setup();
   page.tick(100);
   assert.equal(page.canvas.width, 1050, "pixel ratio is capped at 1.75");
-  page.pause.emit("click");
-  const pausedDraws = page.draws();
-  page.tick(200);
-  assert.equal(page.draws(), pausedDraws);
-  assert.equal(page.frames.size, 0);
-  assert.equal(page.pause.attributes["aria-label"], "Resume ribbon animation");
-  page.pause.emit("click");
   page.intersect(false);
   assert.equal(page.frames.size, 0);
   page.intersect(true);
