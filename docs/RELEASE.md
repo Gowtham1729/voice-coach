@@ -64,7 +64,7 @@ Sparkle appcast continues to reference the versioned archive. Keep the identical
 app remains `com.gowtham.voicecoach` and uses the existing `Application Support/VoiceCoach`
 library and preference keys; the visible bundle is now `Ichido.app`.
 
-The zip is **ad-hoc signed** (`codesign --sign -` in `build-app.sh`), not Developer ID and not notarized. First launch may be blocked by Gatekeeper: unzip, move **Ichido.app** to Applications, then follow [Apple’s opening guidance](https://support.apple.com/en-us/102445), including **System Settings > Privacy & Security** approval when appropriate.
+The zip is **ad-hoc signed** (`codesign --sign -` in `build-app.sh`), not Developer ID and not notarized. See Distribution limitation below.
 
 ### What is not in the zip
 
@@ -76,7 +76,7 @@ The zip is **ad-hoc signed** (`codesign --sign -` in `build-app.sh`), not Develo
 1. Bump both plist keys in a PR, wait for green `test`, merge.
 2. Tag the merge commit: `git tag -a vX.Y.Z -m "Ichido X.Y.Z"` and push the tag.
 3. Wait for the **Release** workflow on that tag. It creates the GitHub Release and attaches `Ichido-X.Y.Z-macOS.zip` and `appcast.xml`.
-4. Edit the release body with the changelog (see `v3.2.0` for tone). The workflow already includes the ad-hoc / Gatekeeper / no-Parakeet notes.
+4. Edit the release body with the changelog, matching the tone of the latest release notes. The workflow already includes the ad-hoc, Gatekeeper, and no-Parakeet notes.
 5. If the workflow fails, fix it before publishing. Both release assets must be present and signed for in-app updates.
 
 ## Sparkle signing key and update checks

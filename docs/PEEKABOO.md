@@ -90,6 +90,7 @@ peekaboo see --app "Ichido" --window-index 2 --path /tmp/voice_coach_settings.pn
 peekaboo click "Transcription" --app "Ichido" --window-index 2
 peekaboo click "General" --app "Ichido" --window-index 2
 peekaboo click "Library" --app "Ichido" --window-index 2
+peekaboo click "Experiments" --app "Ichido" --window-index 2
 
 # Close Settings
 peekaboo click "close button" --app "Ichido" --window-index 2
@@ -126,13 +127,10 @@ peekaboo click "cancel" --app "Ichido"
 peekaboo type "Stress" --app "Ichido" --clear
 ```
 
-### Verifying Clipboard Outputs
-Test export / copy actions (e.g. **"Copy coach notes"**):
+### Verifying clipboard output
+The menu item is **Copy AI analysis prompt + JSON** (`⌥⌘C`), not a coach-notes button:
 ```sh
-# Trigger the copy in the app
-peekaboo click "Copy coach notes" --app "Ichido"
-
-# Inspect clipboard content directly
+peekaboo click "Copy AI analysis prompt + JSON" --app "Ichido"
 peekaboo clipboard get
 ```
 
