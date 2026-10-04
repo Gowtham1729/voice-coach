@@ -457,8 +457,8 @@ img {
 .insights-heading {
   display: grid;
   grid-template-columns: 1.35fr 0.65fr;
-  gap: 80px;
-  align-items: end;
+  gap: 48px;
+  align-items: start;
   padding-block: 46px;
 }
 
@@ -496,7 +496,7 @@ img {
 
 .way-card {
   position: relative;
-  min-height: 330px;
+  min-height: 0;
   padding: 28px;
   border-right: 1px solid var(--ink);
   border-bottom: 1px solid var(--ink);
@@ -531,7 +531,7 @@ img {
 .way-card > img {
   width: 42px;
   height: 42px;
-  margin-top: 72px;
+  margin-top: 0;
 }
 
 .way-card h3 {
@@ -963,8 +963,8 @@ img {
 
 .faq-section {
   display: grid;
-  grid-template-columns: 0.75fr 1.25fr;
-  gap: 100px;
+  grid-template-columns: 1fr;
+  gap: 40px;
   padding-block: 112px;
 }
 
@@ -1442,12 +1442,12 @@ dialog::backdrop {
   }
 
   .way-card {
-    min-height: 245px;
+    min-height: 0;
     padding: 24px;
   }
 
   .way-card > img {
-    margin-top: 18px;
+    margin-top: 0;
   }
 
   .way-number,
@@ -1836,7 +1836,7 @@ dialog::backdrop {
 .words-visual { position: relative; width: 100%; margin: 0; display: grid; justify-items: center; }
 .words-caption { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 22px; font-family: var(--display); }
 .words-visual figcaption { margin-top: 28px; font-size: 12px; color: var(--muted); }
-.recording-proof { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 70px; align-items: center; padding-top: 78px; margin-top: 64px; border-top: 1px solid var(--line); }
+.recording-proof { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 70px; align-items: center; padding-top: 36px; margin-top: 28px; border-top: 1px solid var(--line); }
 .recording-proof h3 { margin: 20px 0; font: 500 clamp(32px, 4vw, 56px)/1 var(--display); letter-spacing: -.05em; }
 .recording-proof p { color: var(--muted); }
 .privacy-section { padding-block: 100px; background: var(--blue); color: white; }
@@ -1846,9 +1846,8 @@ dialog::backdrop {
 .privacy-copy p:first-of-type { font: 500 clamp(22px, 2.5vw, 32px)/1.3 var(--display); letter-spacing: -.025em; }
 .privacy-copy p { max-width: 540px; }
 .privacy-signoff { display: inline-block; margin-top: 20px; font: 700 11px var(--display); letter-spacing: .14em; }
-.faq-heading > p { max-width: 360px; margin-top: 24px; color: var(--muted); }
+.faq-heading > p { max-width: 640px; margin-top: 24px; color: var(--muted); }
 @media (max-width: 1050px) {
-  .practice-demo .demo-note { max-width: 680px; }
   .words-layout { gap: 45px; }
   .recording-proof { gap: 35px; }
 }
@@ -1874,11 +1873,15 @@ dialog::backdrop {
 }
 @media (prefers-reduced-motion: reduce) { .inline-link { transition: none; } }
 /* Real captures stay intact. The language inset is a CSS window into the original. */
-.practice-demo .insight-view { grid-template-columns: 1fr; min-height: 0; gap: 26px; }
-.practice-demo .demo-note { display: grid; grid-template-columns: 1fr 1.15fr; gap: 12px 44px; padding: 24px 0 4px; border-left: 0; border-top: 1px solid var(--line); }
+.practice-demo .insight-view { grid-template-columns: 1fr; min-height: 0; gap: 0; }
+.practice-demo .screen-crop { display: block; overflow: hidden; aspect-ratio: 3420 / 1160; }
+.practice-demo .screen-crop img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+.practice-demo .demo-note { display: grid; grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.28fr); gap: 10px 36px; align-items: start; padding: 22px 0 8px; border-left: 0; border-top: 1px solid var(--line); }
 .practice-demo .demo-note .demo-label { grid-column: 1 / -1; }
-.practice-demo .demo-note h3 { grid-column: 1; grid-row: 2 / 5; margin: 0; }
-.practice-demo .demo-note p, .practice-demo .demo-note .inline-link { grid-column: 2; margin: 0; }
+.practice-demo .demo-note h3 { margin: 0; }
+.practice-demo .demo-copy p { margin: 0; }
+.practice-demo .demo-copy .step-detail { margin-top: 10px; }
+.practice-demo .demo-copy .inline-link { margin-top: 14px; }
 .screenshot-link { display: block; position: relative; color: inherit; cursor: pointer; }
 .screenshot-link > img { width: 100%; height: auto; display: block; }
 .words-visual > .screenshot-link { width: min(350px, 100%); border: 1px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 14px 16px 0 rgba(40,72,232,.18); }
@@ -1887,6 +1890,9 @@ dialog::backdrop {
 .recording-screen { border: 1px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 12px 14px 0 rgba(31,36,31,.1); }
 .screenshot-dialog { width: min(1600px, calc(100vw - 32px)); max-width: none; }
 .screenshot-dialog > img { display: block; width: 100%; height: auto; border-radius: 8px; }
+@media (max-width: 1050px) {
+  .practice-demo .demo-note { grid-template-columns: 1fr; }
+}
 @media (max-width: 780px) {
   .practice-demo .demo-note { display: block; padding: 16px 0 6px; }
   .practice-demo .demo-note h3 { margin: 16px 0; }
