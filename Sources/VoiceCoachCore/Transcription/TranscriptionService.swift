@@ -51,14 +51,15 @@ public struct TranscriptionOutcome: Sendable, Equatable {
   }
 }
 
-/// Chooses Apple SpeechAnalyzer by default, with optional Parakeet when selected or as fallback.
+/// Uses the selected on-device engine. Failures never silently switch models or languages.
 public struct TranscriptionService: Sendable {
   public var preferredEngine: TranscriptionEnginePreference
-  public var locale: Locale
+  /// Apple uses this locale. Parakeet only checks it when the audio's language is known.
+  public var locale: Locale?
 
   public init(
     preferredEngine: TranscriptionEnginePreference = .load(),
-    locale: Locale = .current
+    locale: Locale? = nil
   ) {
     self.preferredEngine = preferredEngine
     self.locale = locale
@@ -67,24 +68,18 @@ public struct TranscriptionService: Sendable {
   public func transcribe(url: URL) async throws -> TranscriptionOutcome {
     switch preferredEngine {
     case .system:
-      do {
-        let result = try await AppleSpeechTranscriber(locale: locale).transcribe(url: url)
-        return TranscriptionOutcome(result: result, engine: .system)
-      } catch TranscriptionError.noSpeechRecognized {
-        throw TranscriptionError.noSpeechRecognized
-      } catch {
-        guard TranscriptionSetupService.currentStatus().isReady else { throw error }
-        let result = try NemoSpeechTranscriber().transcribe(url: url)
-        return TranscriptionOutcome(
-          result: result,
-          engine: .parakeet,
-          notice:
-            "System transcription failed. Used Parakeet instead."
-        )
-      }
+      let result = try await AppleSpeechTranscriber(locale: locale ?? .current).transcribe(url: url)
+      return TranscriptionOutcome(result: result, engine: .system)
     case .parakeet:
+      if let locale, !NemoSpeechTranscriber.supports(locale: locale) {
+        throw TranscriptionError.modelLanguageUnsupported(locale.identifier)
+      }
       let result = try NemoSpeechTranscriber().transcribe(url: url)
-      return TranscriptionOutcome(result: result, engine: .parakeet)
+      return TranscriptionOutcome(
+        result: TranscriptionResult(
+          text: result.text, words: result.words, engine: .parakeet
+        ), engine: .parakeet
+      )
     }
   }
 }

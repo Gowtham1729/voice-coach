@@ -78,6 +78,8 @@ extension AppModel {
     let sessionID = UUID()
     let referenceID = UUID()
     let preferredEngine = transcriptionEngine
+    let locale = newSessionTranscriptionLocale
+    transcriptionNotice = nil
     // Precedence for titles: user-entered name > LLM > sourceName.
     let trimmedUserName = name.trimmingCharacters(in: .whitespacesAndNewlines)
     let userProvidedCustomName = !trimmedUserName.isEmpty && trimmedUserName != draft.sourceName
@@ -93,11 +95,12 @@ extension AppModel {
           }.value
           try RecordingValidation.validateAudio(acoustic)
           let (transcription, notice) = try await transcribeForAnalysis(
-            url: destinationURL, engine: preferredEngine)
-          let words = transcription.map {
-            WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
-          } ?? []
-          if transcription == nil { transcriptionNotice = notice }
+            url: destinationURL, engine: preferredEngine, locale: locale)
+          let words =
+            transcription.map {
+              WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
+            } ?? []
+          transcriptionNotice = notice
           // Cancel check after ASR, before insert — never insert after dismiss.
           guard mimicPreparationID == activeID else {
             try? store.deleteSessionData(sessionID: sessionID)
@@ -115,7 +118,8 @@ extension AppModel {
             mimicReference: MimicReference(
               sourceName: fallbackName, take: referenceTake,
               sourceStart: start, sourceEnd: end
-            ), mimicStyle: .listenAndRepeat, mimicAttemptStyles: [:]
+            ), mimicStyle: .listenAndRepeat, mimicAttemptStyles: [:],
+            transcriptionLocaleIdentifier: locale?.identifier
           )
           sessions.insert(session, at: 0)
           guard persist(analysisTakeIDs: [referenceID]) else {

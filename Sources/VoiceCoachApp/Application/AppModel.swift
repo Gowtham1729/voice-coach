@@ -30,6 +30,9 @@ final class AppModel: ObservableObject {
   @Published var systemTranscriptionStatus: SystemTranscriptionStatus = .unavailable(
     "Checking speech…")
   @Published var transcriptionEngine: TranscriptionEnginePreference = .load()
+  @Published var transcriptionLocaleIdentifier = TranscriptionLanguagePreference.load()
+  @Published var supportedSpeechLocales: [String] = []
+  @Published var isCheckingSpeechLanguages = false
   @Published var mimicDraft: MimicReferenceDraft?
   @Published var mimicIsPreparing = false
   @Published var mimicPhase: MimicPhase = .ready
@@ -50,7 +53,8 @@ final class AppModel: ObservableObject {
   let recorder: any AudioRecording
   let systemAudioCapture: any SystemAudioCapturing
   let store: any SessionStoring
-  let transcribe: @Sendable (URL, TranscriptionEnginePreference) async throws -> TranscriptionOutcome
+  let transcribe:
+    @Sendable (URL, TranscriptionEnginePreference, Locale?) async throws -> TranscriptionOutcome
   var timer: Timer?
   var playbackTimer: Timer?
   var mimicReferenceCaptureTimer: Timer?

@@ -17,15 +17,22 @@ public struct TranscriptWord: Codable, Sendable, Equatable {
 public struct TranscriptionResult: Codable, Sendable, Equatable {
   public let text: String
   public let words: [TranscriptWord]
+  public let localeIdentifier: String?
+  public let engine: TranscriptionEnginePreference?
 
   public var hasRecognizedSpeech: Bool {
     !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
       || words.contains { !$0.word.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
   }
 
-  public init(text: String, words: [TranscriptWord]) {
+  public init(
+    text: String, words: [TranscriptWord],
+    localeIdentifier: String? = nil, engine: TranscriptionEnginePreference? = nil
+  ) {
     self.text = text
     self.words = words
+    self.localeIdentifier = localeIdentifier
+    self.engine = engine
   }
 }
 

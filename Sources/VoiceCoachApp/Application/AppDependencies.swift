@@ -9,10 +9,11 @@ struct AppDependencies {
   let recorder: any AudioRecording
   let systemAudioCapture: any SystemAudioCapturing
   let sessionStore: any SessionStoring
-  var transcribe: @Sendable (URL, TranscriptionEnginePreference) async throws -> TranscriptionOutcome = {
-    url, engine in
-    try await TranscriptionService(preferredEngine: engine).transcribe(url: url)
-  }
+  var transcribe:
+    @Sendable (URL, TranscriptionEnginePreference, Locale?) async throws -> TranscriptionOutcome = {
+      url, engine, locale in
+      try await TranscriptionService(preferredEngine: engine, locale: locale).transcribe(url: url)
+    }
 
   static func live(storageRoot: URL? = nil) throws -> AppDependencies {
     AppDependencies(

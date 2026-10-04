@@ -155,6 +155,9 @@ extension AppModel {
   func analyze(url: URL, takeID: UUID, source: TakeSource = .recorded) -> Task<Void, Never> {
     isAnalyzing = true
     let preferredEngine = transcriptionEngine
+    let locale =
+      selectedSession?.transcriptionLocaleIdentifier.map(Locale.init(identifier:))
+      ?? newSessionTranscriptionLocale
     let captureIsNewSession = pendingCaptureIsNewSession
     let captureImportURL = pendingImportSourceURL
     let captureSessionID = selectedSessionID
@@ -166,10 +169,11 @@ extension AppModel {
         try RecordingValidation.validateAudio(acoustic)
 
         let (transcription, notice) = try await transcribeForAnalysis(
-          url: url, engine: preferredEngine)
-        let words = transcription.map {
-          WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
-        } ?? []
+          url: url, engine: preferredEngine, locale: locale)
+        let words =
+          transcription.map {
+            WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
+          } ?? []
 
         let take = PracticeSession(
           id: takeID,
@@ -181,7 +185,7 @@ extension AppModel {
         )
 
         finishAnalyzeCleanup()
-        append(take)
+        append(take, localeIdentifier: locale?.identifier)
         transcriptionNotice = notice
         if transcription == nil, let notice,
           sessions.contains(where: { session in session.takes.contains { $0.id == takeID } })
@@ -226,11 +230,11 @@ extension AppModel {
 
   /// Empty recognition rejects the take; technical failures keep its audio usable.
   func transcribeForAnalysis(
-    url: URL, engine: TranscriptionEnginePreference
+    url: URL, engine: TranscriptionEnginePreference, locale: Locale? = nil
   ) async throws -> (transcription: TranscriptionResult?, notice: String?) {
     let outcome: TranscriptionOutcome
     do {
-      outcome = try await transcribe(url, engine)
+      outcome = try await transcribe(url, engine, locale)
     } catch TranscriptionError.noSpeechRecognized {
       throw TranscriptionError.noSpeechRecognized
     } catch {
@@ -326,16 +330,19 @@ extension AppModel {
     renameSession(sessionID, to: suggested)
   }
 
-  func append(_ take: PracticeSession) {
+  func append(_ take: PracticeSession, localeIdentifier: String? = nil) {
     guard let selectedSessionID else { return }
 
     if pendingCaptureIsNewSession, !sessions.contains(where: { $0.id == selectedSessionID }) {
-      appendStandalone(take, sessionID: selectedSessionID)
+      appendStandalone(take, sessionID: selectedSessionID, localeIdentifier: localeIdentifier)
       return
     }
 
     guard let index = sessions.firstIndex(where: { $0.id == selectedSessionID }) else { return }
     let previousSessions = sessions
+    if sessions[index].transcriptionLocaleIdentifier == nil {
+      sessions[index].transcriptionLocaleIdentifier = localeIdentifier
+    }
     var recordingsToReplace: [URL] = []
     if sessions[index].keepsRecordings || sessions[index].mode == .mimic {
       sessions[index].takes.append(take)
@@ -381,7 +388,9 @@ extension AppModel {
     }
   }
 
-  private func appendStandalone(_ take: PracticeSession, sessionID: UUID) {
+  private func appendStandalone(
+    _ take: PracticeSession, sessionID: UUID, localeIdentifier: String?
+  ) {
     let name: String
     if let source = pendingImportSourceURL {
       name = source.deletingPathExtension().lastPathComponent
@@ -394,7 +403,8 @@ extension AppModel {
       mode: .general,
       prompt: "",
       keepsRecordings: true,
-      takes: [take]
+      takes: [take],
+      transcriptionLocaleIdentifier: localeIdentifier
     )
     sessions.insert(session, at: 0)
     selectedTakeID = take.id

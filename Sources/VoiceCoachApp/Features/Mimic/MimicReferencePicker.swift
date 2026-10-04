@@ -81,6 +81,8 @@ struct MimicReferencePicker: View {
         .font(.caption.monospacedDigit())
         .foregroundStyle(Studio.secondary)
 
+        SpeechLanguagePicker()
+
         HStack {
           Button(model.isPlaying ? "Stop" : "Play Excerpt") {
             if model.isPlaying {
@@ -112,8 +114,8 @@ struct MimicReferencePicker: View {
               .studioGlassButton(prominent: true)
           }
           Text("Play the voice you want, then stop. Capture auto-stops at 90 seconds.")
-          .font(.caption)
-          .foregroundStyle(Studio.secondary)
+            .font(.caption)
+            .foregroundStyle(Studio.secondary)
         }
       } else {
         emptyDropZone

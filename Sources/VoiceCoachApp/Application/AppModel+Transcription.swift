@@ -8,13 +8,40 @@ extension AppModel {
     transcriptionSetupStatus = TranscriptionSetupService.currentStatus()
   }
 
+  var transcriptionLocale: Locale {
+    TranscriptionLanguagePreference.locale(for: transcriptionLocaleIdentifier)
+  }
+
+  var newSessionTranscriptionLocale: Locale? {
+    TranscriptionLanguagePreference.requestedLocale(
+      for: transcriptionLocaleIdentifier, engine: transcriptionEngine)
+  }
+
+  func setTranscriptionLanguage(_ identifier: String) {
+    guard !isRecording, !isAnalyzing, !mimicIsPreparing,
+      !systemTranscriptionStatus.isBusy
+    else { return }
+    transcriptionLocaleIdentifier = identifier
+    UserDefaults.standard.set(identifier, forKey: TranscriptionLanguagePreference.storageKey)
+    refreshSystemTranscriptionStatus()
+  }
+
   func refreshSystemTranscriptionStatus() {
     guard !systemTranscriptionStatus.isBusy else { return }
     systemTranscriptionStatusTask?.cancel()
+    let preferredLocale = transcriptionLocale
+    isCheckingSpeechLanguages = true
     systemTranscriptionStatusTask = Task { @MainActor [weak self] in
-      let status = await AppleSpeechTranscriber.currentStatus()
-      guard !Task.isCancelled else { return }
-      self?.systemTranscriptionStatus = status
+      let locales = await AppleSpeechTranscriber.supportedLocales()
+      let status = await AppleSpeechTranscriber.currentStatus(preferredLocale: preferredLocale)
+      guard !Task.isCancelled, let self else { return }
+      supportedSpeechLocales = locales.map(\.identifier).sorted {
+        TranscriptionLanguagePreference.displayName(for: $0)
+          .localizedStandardCompare(TranscriptionLanguagePreference.displayName(for: $1))
+          == .orderedAscending
+      }
+      systemTranscriptionStatus = status
+      isCheckingSpeechLanguages = false
     }
   }
 
@@ -37,11 +64,12 @@ extension AppModel {
       return
     }
 
+    let preferredLocale = transcriptionLocale
     let locale: String
     if case .needsDownload(let identifier) = systemTranscriptionStatus {
       locale = identifier
     } else {
-      locale = Locale.current.identifier
+      locale = preferredLocale.identifier
     }
 
     systemAssetInstallTask?.cancel()
@@ -49,17 +77,18 @@ extension AppModel {
     systemAssetInstallTask = Task { @MainActor [weak self] in
       guard let self else { return }
       do {
-        try await AppleSpeechTranscriber.ensureAssets()
+        try await AppleSpeechTranscriber.ensureAssets(preferredLocale: preferredLocale)
         guard !Task.isCancelled else { return }
-        systemTranscriptionStatus = await AppleSpeechTranscriber.currentStatus()
+        systemTranscriptionStatus = await AppleSpeechTranscriber.currentStatus(
+          preferredLocale: preferredLocale)
         if systemTranscriptionStatus.isReady {
           toastMessage = "System transcription is ready"
         }
       } catch is CancellationError {
         refreshSystemTranscriptionStatus()
       } catch {
-        systemTranscriptionStatus = .unavailable(
-          Self.userFacingMessage(error, fallback: "Couldn’t download the speech model."))
+        systemTranscriptionStatus = await AppleSpeechTranscriber.currentStatus(
+          preferredLocale: preferredLocale)
         presentError(
           title: "Download failed",
           error: error,

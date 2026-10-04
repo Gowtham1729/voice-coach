@@ -3,6 +3,7 @@ import Foundation
 import Testing
 import VoiceCoachCore
 import VoiceCoachSession
+
 @testable import VoiceCoachApp
 
 @Suite("Recording creation")
@@ -24,7 +25,8 @@ struct RecordingCreationTests {
     #expect(!FileManager.default.fileExists(atPath: url.deletingLastPathComponent().path))
   }
 
-  @Test("Silent capture and imports do not create library entries",
+  @Test(
+    "Silent capture and imports do not create library entries",
     arguments: [TakeSource.recorded, .importedAudio, .importedVideo])
   func silentAudio(source: TakeSource) async throws {
     let root = temporaryRoot()
@@ -66,7 +68,7 @@ struct RecordingCreationTests {
   func blankTranscript(text: String) async throws {
     let root = temporaryRoot()
     defer { try? FileManager.default.removeItem(at: root) }
-    let model = try makeModel(root: root) { _, _ in
+    let model = try makeModel(root: root) { _, _, _ in
       TranscriptionOutcome(result: TranscriptionResult(text: text, words: []), engine: .system)
     }
     let (url, takeID) = try prepareAudio(model)
@@ -80,7 +82,7 @@ struct RecordingCreationTests {
   func noSpeechError() async throws {
     let root = temporaryRoot()
     defer { try? FileManager.default.removeItem(at: root) }
-    let model = try makeModel(root: root) { _, _ in throw TranscriptionError.noSpeechRecognized }
+    let model = try makeModel(root: root) { _, _, _ in throw TranscriptionError.noSpeechRecognized }
     let (url, takeID) = try prepareAudio(model)
 
     await model.analyze(url: url, takeID: takeID).value
@@ -88,12 +90,15 @@ struct RecordingCreationTests {
     try expectRejected(model, root: root, url: url, title: "No Speech Recognized")
   }
 
-  @Test("Technical transcription failures preserve playable audio",
-    arguments: [TranscriptionError.runtimeUnavailable, .invalidOutput, .recognitionFailed("failed")])
+  @Test(
+    "Technical transcription failures preserve playable audio",
+    arguments: [
+      TranscriptionError.runtimeUnavailable, .invalidOutput, .recognitionFailed("failed"),
+    ])
   func transcriptionFailure(error: TranscriptionError) async throws {
     let root = temporaryRoot()
     defer { try? FileManager.default.removeItem(at: root) }
-    let model = try makeModel(root: root) { _, _ in throw error }
+    let model = try makeModel(root: root) { _, _, _ in throw error }
     let (url, takeID) = try prepareAudio(model)
 
     await model.analyze(url: url, takeID: takeID).value
@@ -124,7 +129,8 @@ struct RecordingCreationTests {
     #expect(FileManager.default.fileExists(atPath: url.path))
   }
 
-  @Test("Invalid retries preserve replace-only takes and clear rejected Mimic recovery",
+  @Test(
+    "Invalid retries preserve replace-only takes and clear rejected Mimic recovery",
     arguments: [PracticeMode.general, .mimic])
   func existingRecording(mode: PracticeMode) async throws {
     let root = temporaryRoot()
@@ -156,14 +162,99 @@ struct RecordingCreationTests {
     #expect(model.mimicPhase == .ready)
   }
 
+  @Test(
+    "New recording language follows the selected engine",
+    arguments: TranscriptionEnginePreference.allCases)
+  func speechLanguageRouting(engine: TranscriptionEnginePreference) async throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root) { _, requestedEngine, locale in
+      #expect(requestedEngine == engine)
+      #expect(locale?.identifier == (engine == .system ? "ja_JP" : nil))
+      return TranscriptionOutcome(
+        result: TranscriptionResult(text: "Recognized speech", words: []), engine: engine)
+    }
+    model.transcriptionEngine = engine
+    model.transcriptionLocaleIdentifier = "ja_JP"
+    let (url, takeID) = try prepareAudio(model)
+
+    await model.analyze(url: url, takeID: takeID).value
+
+    #expect(model.sessions.count == 1)
+    #expect(
+      try model.store.load().first?.transcriptionLocaleIdentifier
+        == (engine == .system ? "ja_JP" : nil))
+  }
+
+  @Test(
+    "Re-transcription preserves audio and acoustics, including on failure",
+    arguments: [false, true], [false, true])
+  func retranscription(isReference: Bool, shouldFail: Bool) async throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root) { _, engine, locale in
+      #expect(engine == .parakeet)
+      #expect(locale == nil)
+      if shouldFail { throw TranscriptionError.noSpeechRecognized }
+      return TranscriptionOutcome(
+        result: TranscriptionResult(text: "Bonjour", words: [], engine: .parakeet),
+        engine: .parakeet)
+    }
+    let (url, takeID) = try prepareAudio(model)
+    let audio = try Data(contentsOf: url)
+    let original = PracticeSession(
+      id: takeID, audioURL: url, result: try AudioAnalyzer().analyze(url: url),
+      transcription: TranscriptionResult(text: "Original", words: []), words: [])
+    let sessionID = try #require(model.selectedSessionID)
+    model.sessions = [
+      CoachingSession(
+        id: sessionID, name: "Transcript fixture", mode: isReference ? .mimic : .general,
+        prompt: "",
+        keepsRecordings: true, takes: isReference ? [] : [original],
+        mimicReference: isReference
+          ? MimicReference(
+            sourceName: "Fixture", take: original, sourceStart: 0, sourceEnd: 1) : nil)
+    ]
+    model.pendingCaptureIsNewSession = false
+    model.selectedTakeID = takeID
+    model.transcriptionEngine = .parakeet
+    model.transcriptionLocaleIdentifier = "ja_JP"
+    #expect(model.persist(analysisTakeIDs: [takeID]))
+    if !isReference { _ = model.report }
+
+    let task = try #require(
+      isReference
+        ? model.retranscribeMimicReference() : model.retranscribeSelectedTake())
+    await task.value
+
+    let reloaded = try #require(model.store.load().first)
+    let updated = try #require(isReference ? reloaded.mimicReference?.take : reloaded.latestTake)
+    #expect(try Data(contentsOf: url) == audio)
+    #expect(updated.id == original.id && updated.createdAt == original.createdAt)
+    #expect(updated.result == original.result)
+    #expect(reloaded.transcriptionLocaleIdentifier == nil)
+    #expect(!model.isAnalyzing)
+    if shouldFail {
+      #expect(updated == original)
+      #expect(model.errorMessage != nil)
+    } else {
+      #expect(updated.transcription?.text == "Bonjour")
+      #expect(updated.transcription?.engine == .parakeet)
+      #expect(updated.transcription?.localeIdentifier == nil)
+      #expect(model.errorMessage == nil)
+      #expect(model.reportCache == nil)
+    }
+  }
+
   private func temporaryRoot() -> URL {
     FileManager.default.temporaryDirectory.appendingPathComponent("recording-tests-\(UUID())")
   }
 
   private func makeModel(
     root: URL,
-    transcribe: @escaping @Sendable (URL, TranscriptionEnginePreference) async throws
-      -> TranscriptionOutcome = { _, _ in
+    transcribe:
+      @escaping @Sendable (URL, TranscriptionEnginePreference, Locale?) async throws
+      -> TranscriptionOutcome = { _, _, _ in
         TranscriptionOutcome(result: TranscriptionResult(text: "Hello", words: []), engine: .system)
       }
   ) throws -> AppModel {
@@ -213,6 +304,8 @@ struct RecordingCreationTests {
     #expect(!model.pendingCaptureIsNewSession)
     #expect(model.selectedSessionID == nil)
     #expect(!FileManager.default.fileExists(atPath: url.path))
-    #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent("session-library.json").path))
+    #expect(
+      !FileManager.default.fileExists(
+        atPath: root.appendingPathComponent("session-library.json").path))
   }
 }

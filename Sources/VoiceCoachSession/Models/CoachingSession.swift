@@ -79,6 +79,7 @@ package struct CoachingSession: Codable, Identifiable, Equatable, Sendable {
   package var mimicReference: MimicReference?
   package var mimicStyle: MimicStyle?
   package var mimicAttemptStyles: [UUID: MimicStyle]?
+  package var transcriptionLocaleIdentifier: String?
   package var archived: Bool
 
   package init(
@@ -93,6 +94,7 @@ package struct CoachingSession: Codable, Identifiable, Equatable, Sendable {
     mimicReference: MimicReference? = nil,
     mimicStyle: MimicStyle? = nil,
     mimicAttemptStyles: [UUID: MimicStyle]? = nil,
+    transcriptionLocaleIdentifier: String? = nil,
     archived: Bool = false
   ) {
     self.id = id
@@ -106,6 +108,7 @@ package struct CoachingSession: Codable, Identifiable, Equatable, Sendable {
     self.mimicReference = mimicReference
     self.mimicStyle = mimicStyle
     self.mimicAttemptStyles = mimicAttemptStyles
+    self.transcriptionLocaleIdentifier = transcriptionLocaleIdentifier
     self.archived = archived
   }
 
@@ -139,7 +142,7 @@ package struct CoachingSession: Codable, Identifiable, Equatable, Sendable {
 
   enum CodingKeys: String, CodingKey {
     case id, name, createdAt, updatedAt, mode, prompt, keepsRecordings, takes
-    case mimicReference, mimicStyle, mimicAttemptStyles, archived
+    case mimicReference, mimicStyle, mimicAttemptStyles, archived, transcriptionLocaleIdentifier
   }
 
   package init(from decoder: Decoder) throws {
@@ -156,6 +159,8 @@ package struct CoachingSession: Codable, Identifiable, Equatable, Sendable {
     mimicStyle = try container.decodeIfPresent(MimicStyle.self, forKey: .mimicStyle)
     mimicAttemptStyles = try container.decodeIfPresent(
       [UUID: MimicStyle].self, forKey: .mimicAttemptStyles)
+    transcriptionLocaleIdentifier = try container.decodeIfPresent(
+      String.self, forKey: .transcriptionLocaleIdentifier)
     archived = try container.decodeIfPresent(Bool.self, forKey: .archived) ?? false
   }
 
@@ -172,6 +177,8 @@ package struct CoachingSession: Codable, Identifiable, Equatable, Sendable {
     try container.encodeIfPresent(mimicReference, forKey: .mimicReference)
     try container.encodeIfPresent(mimicStyle, forKey: .mimicStyle)
     try container.encodeIfPresent(mimicAttemptStyles, forKey: .mimicAttemptStyles)
+    try container.encodeIfPresent(
+      transcriptionLocaleIdentifier, forKey: .transcriptionLocaleIdentifier)
     if archived { try container.encode(true, forKey: .archived) }
   }
 }

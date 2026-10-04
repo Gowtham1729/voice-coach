@@ -22,6 +22,8 @@ struct SettingsView: View {
       || model.transcriptionSetupStatus.isBusy
       || model.isRecording
       || model.isAnalyzing
+      || model.mimicIsPreparing
+      || model.isCheckingSpeechLanguages
   }
 
   var body: some View {
@@ -124,7 +126,7 @@ struct SettingsView: View {
     return Form {
       Section {
         Picker("Engine", selection: engineSelection) {
-          Text("System").tag(TranscriptionEnginePreference.system)
+          Text("Apple (recommended)").tag(TranscriptionEnginePreference.system)
           Text("Parakeet").tag(TranscriptionEnginePreference.parakeet)
         }
         .pickerStyle(.radioGroup)
@@ -133,40 +135,54 @@ struct SettingsView: View {
         Text(model.transcriptionEngine.settingsFooter)
       }
 
-      transcriptionStatusSection(
-        title: "System",
-        status: systemStatus.title,
-        footer: systemStatus.settingsFooter,
-        emphasized: activeEngine == .system,
-        progress: {
-          if case .downloading = systemStatus {
-            progressRow("Downloading…")
-          }
-        },
-        actions: {
-          if case .needsDownload = systemStatus {
-            Button("Download Model…") {
-              model.ensureSystemTranscriptionAssets()
-            }
-            .disabled(busy)
-          }
+      Section {
+        SpeechLanguagePicker()
+      } footer: {
+        if activeEngine == .system {
+          Text(
+            "Choose the spoken language here. Your Mac’s language stays the same. Saved sessions keep their speech language."
+          )
+        } else {
+          Text(
+            "Recognizes supported languages automatically. Japanese and other unsupported languages require Apple."
+          )
         }
-      )
+      }
 
-      transcriptionStatusSection(
-        title: "Parakeet",
-        status: parakeetStatus.title,
-        footer: parakeetStatus.settingsFooter,
-        emphasized: activeEngine == .parakeet,
-        progress: {
-          if case .installing(let phase) = parakeetStatus {
-            progressRow(phase.userFacingLabel)
+      if activeEngine == .system {
+        transcriptionStatusSection(
+          title: "Apple speech model",
+          status: systemStatus.title,
+          footer: systemStatus.settingsFooter,
+          progress: {
+            if case .downloading = systemStatus {
+              progressRow("Downloading…")
+            }
+          },
+          actions: {
+            if case .needsDownload = systemStatus {
+              Button("Download Language…") {
+                model.ensureSystemTranscriptionAssets()
+              }
+              .disabled(busy)
+            }
           }
-        },
-        actions: {
-          parakeetButtons(status: parakeetStatus, busy: busy)
-        }
-      )
+        )
+      } else {
+        transcriptionStatusSection(
+          title: "Parakeet (optional)",
+          status: parakeetStatus.title,
+          footer: parakeetStatus.settingsFooter,
+          progress: {
+            if case .installing(let phase) = parakeetStatus {
+              progressRow(phase.userFacingLabel)
+            }
+          },
+          actions: {
+            parakeetButtons(status: parakeetStatus, busy: busy)
+          }
+        )
+      }
     }
     .settingsPaneChrome()
   }
@@ -212,7 +228,6 @@ struct SettingsView: View {
     title: String,
     status: String,
     footer: String,
-    emphasized: Bool = true,
     @ViewBuilder progress: () -> Progress,
     @ViewBuilder actions: () -> Actions
   ) -> some View {
@@ -226,7 +241,6 @@ struct SettingsView: View {
       Text(footer)
         .textSelection(.enabled)
     }
-    .opacity(emphasized ? 1.0 : 0.65)
   }
 
   private func progressRow(_ label: String) -> some View {
@@ -299,7 +313,12 @@ struct SettingsView: View {
         let isSystem = model.transcriptionEngine == .system
         Text(model.transcriptionEngine.title)
           .font(.body.weight(.medium))
-        Text("System · \(model.systemTranscriptionStatus.title)")
+        LabeledContent(
+          "Speech language",
+          value: isSystem
+            ? TranscriptionLanguagePreference.displayName(for: model.transcriptionLocale.identifier)
+            : "Automatic")
+        Text("Apple · \(model.systemTranscriptionStatus.title)")
           .font(.caption)
           .foregroundStyle(isSystem ? .primary : .secondary)
           .opacity(isSystem ? 1.0 : 0.65)
@@ -350,9 +369,9 @@ extension TranscriptionEnginePreference {
   fileprivate var settingsFooter: String {
     switch self {
     case .system:
-      "On-device SpeechAnalyzer. Shared system models."
+      "On-device Apple speech. Download only the languages you use; models are shared with the system."
     case .parakeet:
-      "Optional local Parakeet model (~714 MB)."
+      "Optional local model (~714 MB). Supports 25 European languages; Japanese is unsupported."
     }
   }
 }
@@ -361,11 +380,11 @@ extension SystemTranscriptionStatus {
   fileprivate var settingsFooter: String {
     switch self {
     case .ready(let locale):
-      "\(locale) · on-device"
+      "\(TranscriptionLanguagePreference.displayName(for: locale)) · on-device"
     case .needsDownload(let locale):
-      "Download the speech model for \(locale). Analysis still works without it."
+      "Download Apple’s speech model for \(TranscriptionLanguagePreference.displayName(for: locale)). Audio analysis and saving still work without it."
     case .downloading(let locale):
-      "Downloading \(locale)…"
+      "Downloading \(TranscriptionLanguagePreference.displayName(for: locale))…"
     case .unavailable(let message):
       message
     }

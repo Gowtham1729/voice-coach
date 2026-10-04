@@ -30,6 +30,30 @@ struct SessionStoreTests {
         atPath: store.analysisURL(sessionID: sessionID, takeID: takeID).path))
   }
 
+  @Test("Speech language survives a thin-index save and old indexes remain readable")
+  func languagePersistence() throws {
+    let root = try SessionTestFixtures.temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = try SessionStore(rootURL: root)
+    let sessionID = UUID()
+    let takeID = UUID()
+    let take = SessionTestFixtures.take(
+      id: takeID, audioURL: try store.recordingURL(sessionID: sessionID, takeID: takeID))
+    var session = SessionTestFixtures.session(id: sessionID, take: take)
+    session.transcriptionLocaleIdentifier = "ja_JP"
+    try store.save([session], analysisTakeIDs: [takeID])
+    #expect(try store.load().first?.transcriptionLocaleIdentifier == "ja_JP")
+
+    let libraryURL = root.appendingPathComponent("session-library.json")
+    var document = try #require(
+      JSONSerialization.jsonObject(with: Data(contentsOf: libraryURL)) as? [String: Any])
+    var stored = try #require(document["sessions"] as? [[String: Any]])
+    stored[0].removeValue(forKey: "transcriptionLocaleIdentifier")
+    document["sessions"] = stored
+    try JSONSerialization.data(withJSONObject: document).write(to: libraryURL)
+    #expect(try store.load().first?.transcriptionLocaleIdentifier == nil)
+  }
+
   @Test("Metadata-only save leaves an existing analysis document untouched")
   func metadataOnlySave() throws {
     let root = try SessionTestFixtures.temporaryDirectory()
