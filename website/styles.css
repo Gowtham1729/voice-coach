@@ -1909,3 +1909,7 @@ dialog::backdrop {
   .practice-demo .demo-note p { margin: 12px 0; }
   .screen-expand { right: 7px; bottom: 7px; font-size: 10px; padding: 5px 9px; }
 }
+@media (max-width: 360px) {
+  .practice-demo .insight-tabs button { padding-inline: 4px; }
+  .practice-demo .insight-tabs strong { font-size: 11px; }
+}
