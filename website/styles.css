@@ -308,10 +308,10 @@ img {
 
 .text-button {
   display: inline-flex;
-  gap: 10px;
   align-items: center;
+  justify-content: center;
   min-height: 54px;
-  padding: 7px 14px 7px 7px;
+  padding: 7px 18px;
   border: 1px solid var(--ink);
   border-radius: 999px;
   background: transparent;
@@ -327,20 +327,6 @@ img {
   color: var(--blue);
   background: var(--paper-bright);
   transform: translateY(-2px);
-}
-
-.small-play {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border: 1px solid var(--ink);
-  border-radius: 50%;
-  place-items: center;
-}
-
-.small-play .icon {
-  width: 13px;
 }
 
 .trust-line {
@@ -1893,21 +1879,18 @@ dialog::backdrop {
 .practice-demo .demo-note .demo-label { grid-column: 1 / -1; }
 .practice-demo .demo-note h3 { grid-column: 1; grid-row: 2 / 5; margin: 0; }
 .practice-demo .demo-note p, .practice-demo .demo-note .inline-link { grid-column: 2; margin: 0; }
-.screenshot-link { display: block; position: relative; color: inherit; }
+.screenshot-link { display: block; position: relative; color: inherit; cursor: pointer; }
 .screenshot-link > img { width: 100%; height: auto; display: block; }
-.screen-expand { position: absolute; right: 12px; bottom: 12px; padding: 7px 12px; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; font: 700 11px var(--body); }
 .words-visual > .screenshot-link { width: min(350px, 100%); border: 1px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 14px 16px 0 rgba(40,72,232,.18); }
 .inspector-crop { position: relative; aspect-ratio: 350 / 740; overflow: hidden; background: #202020; }
 .inspector-crop img { position: absolute; right: 0; top: -33px; width: 500%; height: auto; max-width: none; }
 .recording-screen { border: 1px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 12px 14px 0 rgba(31,36,31,.1); }
 .screenshot-dialog { width: min(1600px, calc(100vw - 32px)); max-width: none; }
 .screenshot-dialog > img { display: block; width: 100%; height: auto; border-radius: 8px; }
-.screenshot-dialog .inline-link { margin-top: 10px; }
 @media (max-width: 780px) {
   .practice-demo .demo-note { display: block; padding: 16px 0 6px; }
   .practice-demo .demo-note h3 { margin: 16px 0; }
   .practice-demo .demo-note p { margin: 12px 0; }
-  .screen-expand { right: 7px; bottom: 7px; font-size: 10px; padding: 5px 9px; }
 }
 @media (max-width: 360px) {
   .practice-demo .insight-tabs button { padding-inline: 4px; }
