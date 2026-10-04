@@ -5,7 +5,8 @@
 - **Name:** Ichido
 - **Pronunciation:** approximately ee-chee-doh
 - **Descriptor:** Your private speaking room.
-**Website headline:** Your words. Your voice. One more try.
+- **Website headline:** Your words. Your voice. One more try.
+- **Checker title:** Your private speaking room for Mac. The footer sign-off stays “Your private speaking room.”
 
 ## Product description
 
@@ -22,7 +23,7 @@ Ichido is a native Mac app for private speaking practice. Record yourself, pract
 
 Use **Ichido** in prose and **ichido.** in the website wordmark. Keep the period as visual punctuation, outside product names, file names, and sentences where it would confuse readers. Ichido means one time; the story is inspired by mō ichido, once more. It is a multilingual practice product, rather than a Japanese-only course.
 
-Use **Practice** for the app sidebar, **Reference practice** for the feature, and **Words** for the language inspector. A take is one recorded attempt. A reference is the audio someone chooses to practise with. Historical release files and internal Swift names may still contain Voice Coach or Mimic for compatibility.
+Use **Practice** for the app sidebar, **Reference practice** for the feature, and **Words** for the language inspector. Reference-practice modes are **Listen & Repeat** and **Speak Along**. The website sequence Listen → Understand → Repeat → Compare is the marketing page. The app sequence is Listen → Repeat → Compare. A take is one recorded attempt. A reference is the audio someone chooses to practise with. Historical release files and internal Swift names may still contain Voice Coach or Mimic for compatibility.
 
 ## Proof and limits
 

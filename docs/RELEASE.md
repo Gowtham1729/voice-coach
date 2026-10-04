@@ -12,7 +12,7 @@ Treat CI job `test` as a release gate: wait for green before merging to `main` a
 - Marketing version is `CFBundleShortVersionString` in [`Resources/Info.plist`](../Resources/Info.plist) (`X.Y.Z`, no `v`).
 - Build number is `CFBundleVersion` in the same plist (monotonic integer).
 
-Bump **both** plist keys in a PR **before** tagging. Merge that PR, then tag the merge commit. Do not retag; if the zip is wrong, cut `vX.Y.Z+1` (or a patch) with a new build number.
+Bump **both** plist keys in a PR **before** tagging. Merge that PR, then tag the merge commit. Do not retag. If the zip is wrong, bump `CFBundleVersion`, set `CFBundleShortVersionString` to the next patch, and tag that exact string, for example `vX.Y.(Z+1)`. The workflow rejects a tag whose version differs from `CFBundleShortVersionString`.
 
 ## Must be green
 
@@ -82,7 +82,8 @@ The zip is **ad-hoc signed** (`codesign --sign -` in `build-app.sh`), not Develo
 ## Sparkle signing key and update checks
 
 - `Resources/Info.plist` contains only the public EdDSA key. The private key is in the macOS login Keychain under account `com.gowtham.voicecoach`; back it up securely. Never commit or paste it into a workflow file.
-- The release job requires repository secret `SPARKLE_ED25519_PRIVATE_KEY`, containing the base64 private key exported by Sparkle's `generate_keys --account com.gowtham.voicecoach -x <secure-file>`. Configure this in GitHub Actions before the first updater-enabled release. The job fails rather than publish a zip without an appcast when the secret is missing.
+- The release job requires repository secret `SPARKLE_ED25519_PRIVATE_KEY`, containing the base64 private key exported by Sparkle's `generate_keys --account com.gowtham.voicecoach -x <secure-file>`. Configure this in GitHub Actions before the first updater-enabled release. The job fails rather than publish a zip without an appcast when the secret is missing. A `workflow_dispatch` dry-run still signs the appcast, so it needs the same secret.
+- `Info.plist` sets `SURequireSignedFeed` and `SUVerifyUpdateBeforeExtraction`. Do not hand-edit `appcast.xml` after the workflow signs it. Editing the GitHub release notes does not change the appcast. This app is ad-hoc signed, so Sparkle’s Developer ID key-rotation path is not available.
 - The app checks `https://github.com/Gowtham1729/voice-coach/releases/latest/download/appcast.xml` automatically and provides **Ichido → Check for Updates…**. Sparkle verifies the signed feed and ZIP before installation. The GitHub repository and release assets must stay public for this URL to work.
 - Run a `workflow_dispatch` dry-run, then test an installed older updater-enabled build against a newer signed release. Existing versions without Sparkle need one manual upgrade to receive this feature. Keep the app in Applications, not a read-only disk image.
 

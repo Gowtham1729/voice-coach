@@ -1,6 +1,6 @@
 # Peekaboo UI Testing Guide for Ichido
 
-How coding agents and developers can build, run, inspect, and test **Ichido** using [Peekaboo](https://github.com/stephancill/peekaboo) on macOS.
+How coding agents and developers can build, run, inspect, and test **Ichido** using [Peekaboo](https://github.com/openclaw/Peekaboo) on macOS. Install the CLI with `brew install openclaw/tap/peekaboo`. The commands below match Peekaboo 4.5, which is what `peekaboo help` on this Mac accepts. `peekaboo permissions` defaults to `status`. `--window-index` still works; `--window-id` from `peekaboo window list --app "Ichido" --json` is the stable target when several windows are open.
 
 ---
 

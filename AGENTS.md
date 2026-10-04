@@ -17,10 +17,10 @@ Local-first **Ichido** (formerly Voice Coach): a **macOS 26+** SwiftUI speaking-
 | App coordination tests | `Tests/VoiceCoachAppTests/` | macOS-only save and rejection checks |
 | Contract smoke | `Sources/VoiceCoachSelfTest/main.swift` | Acoustic and report invariants. Do not grow this for ordinary unit tests |
 | Bundle resources | `Resources/` | Packaged by `scripts/build-app.sh` |
-| Marketing site | `website/` | Static. Checks and publish notes: `docs/marketing-website.md` |
+| Marketing site | `website/` | Static. Change a required sentence in `website/index.html` and `scripts/check-website.mjs` together. See `docs/marketing-website.md` |
 | Scripts | `scripts/`, `script/build_and_run.sh` | Use these. Do not invent build steps |
 
-**Naming:** UI “recording”, the retry stack, and Mimic are a `CoachingSession`. A UI “take” is a Core `PracticeSession`. Do not rename those storage types. Visible copy uses **Practice**, **Reference practice**, and **Words**. Before changing user-facing strings, read `docs/brand/messaging.md`.
+**Naming:** UI “recording”, the retry stack, and Mimic are a `CoachingSession`. A UI “take” is a Core `PracticeSession`. Do not rename those storage types. Visible copy uses **Practice**, **Reference practice**, and **Words**. Reference-practice modes stay **Listen & Repeat** and **Speak Along**. Before changing user-facing strings, read `docs/brand/messaging.md`.
 
 ## Dependency rules
 
@@ -28,7 +28,7 @@ Local-first **Ichido** (formerly Voice Coach): a **macOS 26+** SwiftUI speaking-
 - Persisted types live in Session. Acoustic and export types live in Core. Transient selection state lives in App.
 - SwiftUI views call `AppModel` actions. They do not write files, launch transcription, or own AVFoundation objects.
 - Platform services enter through `AppDependencies` protocols.
-- A storage-format or report-JSON change needs a focused regression test in the same change.
+- A storage-format or report-JSON change needs a focused regression test in the same change. When a report key or acoustic invariant changes, extend SelfTest in that same change.
 
 ## Commands
 
@@ -37,7 +37,7 @@ Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 ```sh
 ./scripts/test.sh --self-test     # DSP + report JSON, after Core/report/transcription changes
 ./scripts/test.sh                 # Core + Session unit tests
-./scripts/test.sh --all           # Same tests CI runs before the app build
+./scripts/test.sh --all           # What CI job `test` runs before `build-app.sh`
 ./script/build_and_run.sh         # Dev app. Flags: --debug --logs --telemetry --verify
 ./scripts/build-app.sh            # build/Ichido.app, ad-hoc codesign
 ./scripts/render-previews.sh      # SelfTest + DEBUG layout PNGs in build/previews
@@ -47,8 +47,6 @@ Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 - Cloud and Linux agents (`.cursor/environment.json` runs `scripts/cloud-agent-install.sh`) build **only** `VoiceCoachSelfTest`. Do not build or run `VoiceCoachApp` there.
 - AVFoundation builds need `--disable-sandbox` (already set in `build-app.sh` and `render-previews.sh`).
 - ASR override: `VOICE_COACH_NEMO_SPEECH_PATH`.
-- DEBUG layouts: `VoiceCoachApp --render-previews <dir>`.
-- Optional SelfTest helpers, with `--self-test`: `--transcribe`, `--timeline`, `--inspect-pitch`, `--dump-sample-report`.
 - If macOS blocks on an unaccepted Xcode license, the human runs `sudo xcodebuild -license`. Agents cannot accept it.
 
 ## Verification
@@ -60,14 +58,14 @@ Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 | Session or persistence | `./scripts/test.sh` plus a focused persistence test |
 | App UI or layout | `./scripts/render-previews.sh` on macOS. If you cannot run it, say the UI was not visually verified |
 | Live Mac UI | `docs/PEEKABOO.md` after a local build. Not a CI job |
-| Website | `docs/marketing-website.md` |
+| Website | `node scripts/check-website.mjs`. Not part of CI job `test`. See `docs/marketing-website.md` |
 | Release | `docs/RELEASE.md` |
 
 Synthetic tests do not prove microphone, headphone, system-audio, or route behavior.
 
 ## Product constraints
 
-- **Local-first:** No recording-upload path. Update checks and optional model downloads may use the network. Do not shorten privacy copy to “never uses the internet.”
+- **Local-first:** No recording-upload path. Update checks and optional model downloads may use the network. The privacy line is “No account. No recording uploads. No analytics.” followed by that network sentence. Do not shorten it to “never uses the internet.”
 - **Not medical:** HNR and CPP are acoustic coaching signals. Do not diagnose, claim diaphragm proof, grade accents, or certify fluency. Report JSON must not contain `baseline`, `throat`, or `please`.
 - **Platform:** `Package.swift` and `Resources/Info.plist` target **macOS 26**. Do not lower that without an explicit product decision.
 - **Materials:** System chrome may use Liquid Glass (`.glass`, `.glassProminent`, `ControlGlass`). Content panels stay on `.desktopPanel` / `.studioCard` (regularMaterial). Honor Reduce Transparency and Reduce Motion through `Studio` / `StudioMotion`.
@@ -97,10 +95,23 @@ Root: `~/Library/Application Support/VoiceCoach/`
 
 ## Visual reference
 
-`docs/screenshots/` is the committed picture of the app: home, library, practice, mimic practice, compare, analysis, take, settings, new mimic, and recording. Read those images before asking the user to describe a screen or launching the app. Refresh a capture when that screen’s layout changes. `build/previews` is synthetic layout output and stays gitignored.
+`docs/screenshots/` is the committed picture of the app. Open the matching PNG before asking what a screen looks like. Do not launch the app to answer a layout question. Refresh a capture when that screen’s layout changes. `build/previews` is synthetic layout output and stays gitignored.
+
+| File | Screen |
+| --- | --- |
+| `01-home.png` | Home |
+| `02-library.png` | Library |
+| `03-mimics.png` | Practice list |
+| `04-mimic-practice.png` | Reference practice |
+| `05-mimic-compare.png` | Compare |
+| `06-mimic-analysis.png` | Analysis |
+| `07-take.png` | Take |
+| `08-settings.png` | Settings |
+| `08b-settings-transcription.png` | Settings → Transcription |
+| `09-new-mimic.png` | New reference practice |
+| `10-recording.png` | Recording |
 
 ## Boundaries
 
-- Do not commit `.build/`, `build/`, or personal recordings. Keep `docs/screenshots/` as the visual reference.
+- Do not commit `.build/`, `build/`, or personal recordings. Keep `docs/screenshots/`.
 - Ask before adding a dependency, lowering the deployment target, or adding network or cloud analysis.
-- When a report key or acoustic invariant changes, extend SelfTest in the same change.

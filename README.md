@@ -42,6 +42,8 @@ Reference practice lets you study how another speaker delivers a phrase:
 2. **Repeat**: Record your attempt right alongside it.
 3. **Compare**: Inspect side-by-side pitch curves, rhythm alignments, and word-level emphasis. When the words line up, two practice targets name a difference from the reference.
 
+The two practice styles are **Listen & Repeat** (the reference plays, then you record) and **Speak Along** (you follow the reference; use headphones so speaker playback does not leak into the mic). The marketing page adds an Understand step for Words. The app’s own loop stays Listen, Repeat, Compare.
+
 ### 4. Stacked Takes and Timeline Scrubbing
 All attempts in a session stay grouped together (`Take 1`, `Take 2`, etc.). You can scrub the waveform, click any transcribed word to jump playback directly to that moment, and hear how your delivery changes from one take to the next.
 
@@ -103,4 +105,4 @@ Tagged releases (`v*`) are built and verified automatically by GitHub Actions. F
 
 ## License
 
-See release notes and repository terms for distribution details.
+Distribution terms are in the GitHub release notes for each version.
