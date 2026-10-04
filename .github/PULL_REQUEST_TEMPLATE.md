@@ -7,7 +7,7 @@
 - [ ] CI job `test` is green (`./scripts/test.sh --all` + `./scripts/build-app.sh` on `macos-26`)
 - [ ] UI changes: live Peekaboo on a Mac **after** green CI (not in Actions)
 - [ ] Layout / chrome changes: `./scripts/render-previews.sh` when feasible (local or agent, **not** CI)
-- [ ] No secrets, personal recordings, or committed screenshots. Layout proofs stay in `build/previews`
+- [ ] No secrets or personal recordings. UI reference stays in `docs/screenshots/`; synthetic proofs stay in `build/previews`
 
 ## Soft gate
 

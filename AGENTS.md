@@ -95,8 +95,12 @@ Root: `~/Library/Application Support/VoiceCoach/`
 - Captures are 48 kHz mono PCM, auto-stop around 90s, with a discard/analyze gate around 0.6s.
 - Mimic reference capture is system output only (Core Audio process tap), uses the same gates, and requires `NSAudioCaptureUsageDescription`.
 
+## Visual reference
+
+`docs/screenshots/` is the committed picture of the app: home, library, practice, mimic practice, compare, analysis, take, settings, new mimic, and recording. Read those images before asking the user to describe a screen or launching the app. Refresh a capture when that screen’s layout changes. `build/previews` is synthetic layout output and stays gitignored.
+
 ## Boundaries
 
-- Do not commit `.build/`, `build/`, personal recordings, or screenshots. Layout proofs stay in `build/previews`.
+- Do not commit `.build/`, `build/`, or personal recordings. Keep `docs/screenshots/` as the visual reference.
 - Ask before adding a dependency, lowering the deployment target, or adding network or cloud analysis.
 - When a report key or acoustic invariant changes, extend SelfTest in the same change.
