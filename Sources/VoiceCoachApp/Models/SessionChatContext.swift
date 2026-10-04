@@ -34,11 +34,6 @@ struct SessionChatContext: Equatable, Sendable {
     }
   }
 
-  var usesTranscriptExcerpt: Bool {
-    (transcript?.count ?? 0) > (isMimic ? 500 : 1000)
-      || (referenceTranscript?.count ?? 0) > 500
-  }
-
   var passages: [SessionChatPassage] {
     SessionChatPassages.make(origin: .attempt, text: transcript)
       + SessionChatPassages.make(origin: .reference, text: referenceTranscript)
@@ -48,17 +43,12 @@ struct SessionChatContext: Equatable, Sendable {
 
   /// The line a question uses when the person has not picked one.
   var fallbackQuote: String {
-    if let line = passages.first(where: { $0.origin == .attempt })?.text ?? passages.first?.text {
+    if let line = passages.first(where: { $0.origin == (isMimic ? .reference : .attempt) })?.text
+      ?? passages.first?.text
+    {
       return line
     }
     return Self.missingTranscript
   }
 
-  var transcriptExcerpt: String {
-    let limit = isMimic ? 500 : 1000
-    guard let transcript, !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-      return Self.missingTranscript
-    }
-    return SessionChatPassages.clip(transcript, limit: limit)
-  }
 }

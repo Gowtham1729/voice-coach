@@ -28,7 +28,9 @@ struct ContentView: View {
         Button("Replace Older", role: .destructive) { model.confirmReplaceOldest() }
         Button("Cancel", role: .cancel) { model.pendingReplaceOnly = nil }
       } message: {
-        Text("This session used to keep only the newest take. Keep all recordings, or replace older ones?")
+        Text(
+          "This session used to keep only the newest take. Keep all recordings, or replace older ones?"
+        )
       }
       .overlay(alignment: .bottom) { toast }
   }
@@ -50,7 +52,7 @@ struct ContentView: View {
             if showInspector {
               Divider()
               contextualInspector
-                .frame(width: 300)
+                .frame(width: 340)
                 .background(Studio.inspector)
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
@@ -82,7 +84,7 @@ struct ContentView: View {
 
       if showInspector {
         contextualInspector
-          .frame(width: 300)
+          .frame(width: 340)
           .frame(maxHeight: .infinity, alignment: .top)
           .background(Studio.inspector)
       }
@@ -135,7 +137,8 @@ struct ContentView: View {
         snapshotSegment("Details", selected: selectedPane == .details)
         snapshotSegment("Ask", selected: selectedPane == .ask)
       }
-      .frame(width: 268)
+      .frame(maxWidth: .infinity)
+      .padding(.horizontal, 16)
       .background(Studio.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
       .padding(.top, 12)
       .padding(.bottom, 4)
@@ -148,7 +151,8 @@ struct ContentView: View {
       }
       .pickerStyle(.segmented)
       .labelsHidden()
-      .frame(width: 268)
+      .frame(maxWidth: .infinity)
+      .padding(.horizontal, 16)
       .padding(.top, 12)
       .padding(.bottom, 4)
       .accessibilityLabel("Inspector")

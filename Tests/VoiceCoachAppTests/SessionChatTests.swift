@@ -50,15 +50,15 @@ struct SessionChatTests {
     ).prompt
     #expect(explain.contains("remainder omitted"))
     #expect(!explain.contains("SECRET_TAIL"))
-    #expect(!explain.contains("Earlier:"))
-    #expect(!explain.contains("question-9"))
+    #expect(explain.contains("Earlier:"))
+    #expect(explain.contains("question-9"))
     let prompt = SessionChatPromptComposer.make(
-      context: context, focus: nil, history: exchanges, task: .ask("What should I try next?")
+      context: context, focus: nil, history: exchanges, task: .ask("Why does that word fit?")
     ).prompt
-    #expect(!prompt.contains("question-7"))
+    #expect(!prompt.contains("question-6"))
     #expect(prompt.contains("question-8"))
     #expect(prompt.contains("question-9"))
-    #expect(prompt.count < 2500)
+    #expect(prompt.count < 4500)
     let (emptySession, emptyTake) = fixture(text: " ")
     let empty = try #require(SessionChatContext(session: emptySession, take: emptyTake))
     #expect(!empty.hasTranscript)
@@ -114,7 +114,7 @@ struct SessionChatTests {
     chat.send()
     try await waitUntil { responder.pending != nil }
     chat.clear()
-    responder.complete(.success(SessionChatReply(answer: "This late answer must be discarded", practiceLine: nil)))
+    responder.complete(.success(SessionChatReply(answer: "This late answer must be discarded")))
     try await Task.sleep(for: .milliseconds(30))
     #expect(chat.exchanges.isEmpty)
     #expect(chat.draft.isEmpty)
@@ -132,16 +132,18 @@ struct SessionChatTests {
     chat.draft = "Explain pause"
     chat.send()
     try await waitUntil { responder.pending != nil }
-    responder.complete(.success(SessionChatReply(answer: "A short break in speech.", practiceLine: nil)))
+    responder.complete(.success(SessionChatReply(answer: "A short break in speech.")))
     try await waitUntil { !chat.isResponding }
     chat.draft = "Give me a synonym"
     chat.send()
     try await waitUntil { responder.pending != nil }
-    #expect(responder.requests.last?.prompt.contains("A short break in speech.") == false)
+    #expect(responder.requests.last?.prompt.contains("A short break in speech.") == true)
     #expect(responder.requests.last?.prompt.contains("Give me a synonym") == true)
-    #expect(responder.requests.last?.instructions.contains("more naturally") == true)
+    #expect(responder.requests.last?.instructions.contains("follow-ups") == true)
     responder.complete(
-      .success(SessionChatReply(answer: "\"A brief pause gives an idea room to land.\" Brief replaces thoughtful.", practiceLine: "A brief pause gives an idea room to land.")))
+      .success(
+        SessionChatReply(
+          answer: "\"A brief pause gives an idea room to land.\" Brief replaces thoughtful.")))
     try await waitUntil { !chat.isResponding }
     chat.draft = "Why does that word fit?"
     chat.send()
@@ -149,7 +151,7 @@ struct SessionChatTests {
     #expect(responder.requests.last?.prompt.contains("Earlier:") == true)
     #expect(responder.requests.last?.prompt.contains("brief pause") == true)
     chat.cancel()
-    responder.complete(.success(SessionChatReply(answer: "break", practiceLine: nil)))
+    responder.complete(.success(SessionChatReply(answer: "break")))
     #expect(chat.exchanges.count == 2)
   }
 
@@ -177,8 +179,8 @@ struct SessionChatTests {
       to: SessionChatPromptComposer.make(
         context: context, focus: nil, history: history,
         task: .synonym("Give me a synonym that fits here and explain any difference.")))
-    print("Local chat synonym response: \(second.answer) / \(second.practiceLine ?? "")")
-    #expect(second.practiceLine?.isEmpty == false)
+    print("Local chat synonym response: \(second.answer)")
+    #expect(!second.answer.isEmpty)
     #expect(!second.answer.localizedCaseInsensitiveContains("can't hear"))
     let misheard = try await responder.respond(
       to: SessionChatPromptComposer.make(
@@ -192,14 +194,18 @@ struct SessionChatTests {
       to: SessionChatPromptComposer.make(
         context: context, focus: nil, history: [],
         task: .translate(language: "French", question: "Translate this into French.")))
-    print("Local chat translation response: \(translation.answer) / \(translation.practiceLine ?? "")")
+    print("Local chat translation response: \(translation.answer)")
     #expect(!translation.answer.isEmpty)
-    let clearer = try await responder.respond(
+    let wordMeanings = try await responder.respond(
       to: SessionChatPromptComposer.make(
-        context: context, focus: nil, history: [],
-        task: .rephrase("Give me a more natural way to say this.")))
-    print("Local chat rephrase response: \(clearer.answer) / \(clearer.practiceLine ?? "")")
-    #expect(clearer.practiceLine?.isEmpty == false)
+        context: context, focus: "Nous sommes de retour à Paris.", history: [],
+        task: .ask(
+          "Translate each word or phrase into English. One mapping per line: nous sommes = we are.")
+      ))
+    print("Local chat word mappings: \(wordMeanings.answer)")
+    #expect(wordMeanings.answer.contains("="))
+    #expect(wordMeanings.answer.components(separatedBy: .newlines).count > 1)
+
   }
 
   @Test func meaningQuestionsDoNotAskTheModelAboutHearing() async throws {
@@ -214,14 +220,13 @@ struct SessionChatTests {
     let request = try #require(responder.requests.last)
     #expect(request.prompt.contains("A thoughtful pause"))
     #expect(request.prompt.contains("What does pause mean here?"))
-    #expect(request.instructions.contains("Define the word"))
+    #expect(request.instructions.contains("Explain meanings"))
     #expect(!request.instructions.localizedCaseInsensitiveContains("can't hear"))
     #expect(!request.instructions.localizedCaseInsensitiveContains("cannot hear"))
     responder.complete(
       .success(
         SessionChatReply(
-          answer: "Sorry, I can't hear you. Pause means a brief stop so the idea can settle.",
-          practiceLine: nil)))
+          answer: "Sorry, I can't hear you. Pause means a brief stop so the idea can settle.")))
     try await waitUntil { !chat.isResponding }
     #expect(chat.exchanges.last?.answer == "Pause means a brief stop so the idea can settle.")
 
@@ -229,18 +234,21 @@ struct SessionChatTests {
     chat.send()
     #expect(chat.exchanges.count == 2)
     #expect(responder.requests.count == 1)
-    #expect(chat.exchanges.last?.answer.contains("words") == true)
-
-    chat.draft = "Translate this."
-    chat.send()
     #expect(chat.exchanges.last?.answer.contains("language") == true)
-    #expect(responder.requests.count == 1)
 
     chat.send(.translate(language: "French", question: "Translate this into French."))
     try await waitUntil { responder.requests.count == 2 }
-    responder.complete(.success(SessionChatReply(answer: "Une pause réfléchie.", practiceLine: nil)))
+    responder.complete(.success(SessionChatReply(answer: "Une pause réfléchie.")))
     try await waitUntil { !chat.isResponding }
-    #expect(chat.exchanges.last?.practiceLine == "Une pause réfléchie.")
+    #expect(chat.exchanges.last?.answer == "Une pause réfléchie.")
+
+  }
+
+  @Test func sentenceSelectionPreservesAbbreviationsAndDecimals() {
+    let sentences = SessionChatPassages.sentences(in: "Dr. Smith paid 3.50 euros. Then she left.")
+    #expect(sentences == ["Dr. Smith paid 3.50 euros.", "Then she left."])
+    let long = (1...12).map { "Sentence \($0)." }.joined(separator: " ")
+    #expect(SessionChatPassages.make(origin: .reference, text: long).count == 12)
   }
 
   @Test func passagesFollowWordSelectionAndTasksStaySeparate() {
@@ -255,31 +263,107 @@ struct SessionChatTests {
       SessionChatPassages.sentence(containingWordAt: 2, words: words, text: text)?.contains("pause")
         == true)
     #expect(
-      SessionChatPassages.sentence(containingWordAt: 9, words: words, text: text)?.contains("budget")
+      SessionChatPassages.sentence(containingWordAt: 9, words: words, text: text)?.contains(
+        "budget")
         == true)
     #expect(
       SessionChatAnswerCleaner.clean("Sorry, I can't hear you. Pause means a brief stop.")
         == "Pause means a brief stop.")
-    #expect(SessionChatAnswerCleaner.clean("Pause means a brief stop.") == "Pause means a brief stop.")
     #expect(
-      SessionChatAnswerCleaner.clean("\"Stake\" means the cut of beef.\n\nPracticeLine: [ ]")
-        == "\"Stake\" means the cut of beef.")
-    #expect(SessionChatReply(answer: "Steak.", practiceLine: "[ ]").practiceLine == nil)
-    #expect(SessionChatRouter.route("What does pause mean here?") == .model(.explain("What does pause mean here?")))
-    if case .model(.translate(let language, _)) = SessionChatRouter.route("Translate this into French.") {
-      #expect(language == "French")
-    } else {
-      Issue.record("French translation was not routed to the model")
+      SessionChatAnswerCleaner.clean("Pause means a brief stop.") == "Pause means a brief stop.")
+    #expect(
+      SessionChatRouter.route("What does pause mean here?")
+        == .model(.ask("What does pause mean here?")))
+    let task: SessionChatTask = .ask("Translate each word into English, one mapping per line.")
+    #expect(task.instructions.contains("source = meaning"))
+    #expect(!task.instructions.contains("Stay under 60 words"))
+  }
+
+  @Test func coachingRequestsAreBlockedAcrossTypedAndExplicitPaths() async throws {
+    let (session, take) = fixture()
+    let responder = ControlledChatResponder()
+    let chat = SessionChatConversation(
+      context: try #require(SessionChatContext(session: session, take: take)), responder: responder)
+    for question in [
+      "How is my take and what can I improve?", "Give me feedback", "What should I work on?",
+      "How can I improve my fluency?", "How should I practise this line?",
+      "Does my voice sound confident?", "What does my voice sound like?",
+    ] {
+      chat.draft = question
+      chat.send()
+      #expect(chat.exchanges.last?.answer == SessionChatReply.voiceBoundary.answer)
     }
-    #expect(SessionChatRouter.route("Give me a more natural way to say this.") == .model(.rephrase("Give me a more natural way to say this.")))
-    let tasks: [SessionChatTask] = [
-      .explain("q"), .rephrase("q"), .synonym("q"), .translate(language: "French", question: "q"),
-      .practise("q"), .ask("q"),
-    ]
-    for task in tasks {
-      #expect(!task.instructions.localizedCaseInsensitiveContains("can't hear"))
-      #expect(!task.instructions.localizedCaseInsensitiveContains("cannot hear"))
+    chat.send(.ask("Rate my take"))
+    #expect(responder.requests.isEmpty)
+    #expect(!chat.isResponding)
+    for question in [
+      "What does improve mean?", "Translate the word feedback", "Give me synonyms for pause",
+      "I want it like nous sommes = we are", "Explain the grammar of nous sommes",
+    ] {
+      #expect(SessionChatRouter.route(question) == .model(.ask(question)))
     }
+    chat.draft = "What does pause mean?"
+    chat.send()
+    try await waitUntil { responder.pending != nil }
+    responder.complete(
+      .success(SessionChatReply(answer: "You should pause more to sound confident.")))
+    try await waitUntil { !chat.isResponding }
+    #expect(chat.exchanges.last?.answer == SessionChatReply.voiceBoundary.answer)
+  }
+
+  @Test func sourceIdentityAndSubmittedTextSurviveSelectionChanges() async throws {
+    let (session, take) = fixture(text: "Identical sentence.")
+    var mimic = session
+    mimic.mode = .mimic
+    let (_, reference) = fixture(text: "Identical sentence.")
+    mimic.mimicReference = MimicReference(
+      sourceName: "Reference", take: reference, sourceStart: 0, sourceEnd: 1)
+    let context = try #require(SessionChatContext(session: mimic, take: take))
+    let responder = ControlledChatResponder()
+    let chat = SessionChatConversation(context: context, responder: responder)
+    #expect(chat.activePassage?.origin == .reference)
+    chat.draft = "Explain this sentence"
+    chat.send()
+    try await waitUntil { responder.pending != nil }
+    #expect(responder.requests.last?.prompt.contains("Reference transcript") == true)
+    chat.selection = context.passages.first { $0.origin == .attempt }
+    #expect(chat.activePassage?.origin == .attempt)
+    #expect(chat.pendingPassage?.origin == .reference)
+    responder.complete(.success(SessionChatReply(answer: "An example of sameness.")))
+    try await waitUntil { !chat.isResponding }
+    #expect(chat.exchanges.last?.source == .reference)
+    #expect(chat.exchanges.last?.quotedLine == "Identical sentence.")
+    chat.focus = "Another selected sentence."
+    chat.draft = "What does another mean?"
+    chat.send()
+    try await waitUntil { responder.pending != nil }
+    chat.focus = "A third sentence."
+    responder.complete(.success(SessionChatReply(answer: "One more.")))
+    try await waitUntil { !chat.isResponding }
+    #expect(chat.exchanges.last?.quotedLine == "Another selected sentence.")
+  }
+
+  @Test func requestedBreakdownsAndFollowupFormatsRemainIntact() throws {
+    let (session, take) = fixture(text: "Nous sommes de retour à Paris.")
+    let context = try #require(SessionChatContext(session: session, take: take))
+    let answer = "**nous sommes** = we are\n**de retour** = back\n\n**à Paris** = in Paris"
+    #expect(SessionChatReply(answer: answer).answer == answer)
+    let question = "I want it like nous sommes = we are"
+    let task = try #require(
+      { () -> SessionChatTask? in
+        if case .model(let task) = SessionChatRouter.route(question) { return task }
+        return nil
+      }())
+    let request = SessionChatPromptComposer.make(
+      context: context, focus: nil,
+      history: [
+        .init(question: "Translate each word into English", answer: "We are back in Paris.")
+      ], task: task)
+    #expect(request.prompt.contains("Translate each word into English"))
+    #expect(request.prompt.contains(question))
+    #expect(request.instructions.contains("revise the format"))
+    #expect(!request.instructions.contains("sentence only"))
+    #expect(!request.instructions.contains("two or three"))
   }
 
   private func waitUntil(_ condition: () -> Bool) async throws {

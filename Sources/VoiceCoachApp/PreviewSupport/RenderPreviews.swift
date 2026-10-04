@@ -111,14 +111,14 @@
           .init(
             question: "What does this line mean?",
             quotedLine: quote,
-            answer: "Here, the line is a short break that lets an idea settle.",
-            practiceLine: nil
+            answer:
+              "**Pause** means a brief break in speech. Here, it gives the listener time to absorb an idea."
           ),
           .init(
-            question: "Give me a more natural way to say this.",
+            question: "Give me synonyms for pause and explain the difference.",
             quotedLine: quote,
-            answer: "This keeps the meaning and sounds more like something you would say.",
-            practiceLine: "A quiet moment lets the idea settle."
+            answer:
+              "**Break** = a general interruption.\n**Moment of silence** = a pause without speaking.\n**Hesitation** = a pause caused by uncertainty."
           ),
         ])
         let view = SessionChatInspector(conversation: conversation)

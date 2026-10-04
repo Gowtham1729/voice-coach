@@ -8,26 +8,44 @@ final class SessionChatConversation: ObservableObject {
     let question: String
     let quotedLine: String?
     let answer: String
-    let practiceLine: String?
+    let source: SessionChatPassage.Origin?
 
     init(
       id: UUID = UUID(),
       question: String,
       quotedLine: String? = nil,
       answer: String,
-      practiceLine: String? = nil
+      source: SessionChatPassage.Origin? = nil
     ) {
       self.id = id
       self.question = question
       self.quotedLine = quotedLine
       self.answer = answer
-      self.practiceLine = practiceLine
+      self.source = source
     }
   }
 
   let context: SessionChatContext
   @Published var draft = ""
-  @Published var focus: String?
+  @Published var selection: SessionChatPassage?
+  var focus: String? {
+    get { selection?.text }
+    set {
+      guard let newValue else {
+        selection = nil
+        return
+      }
+      selection =
+        context.passages.first { $0.origin == .attempt && $0.text == newValue }
+        ?? context.passages.first { $0.text == newValue }
+        ?? SessionChatPassage(origin: .attempt, index: -1, text: newValue)
+    }
+  }
+  var activePassage: SessionChatPassage? {
+    selection ?? context.passages.first { $0.origin == (context.isMimic ? .reference : .attempt) }
+      ?? context.passages.first
+  }
+  @Published private(set) var pendingPassage: SessionChatPassage?
   @Published private(set) var exchanges: [Exchange] = []
   @Published private(set) var pendingQuestion: String?
   @Published private(set) var errorMessage: String?
@@ -50,7 +68,7 @@ final class SessionChatConversation: ObservableObject {
     guard canSubmit(question) else { return }
     switch SessionChatRouter.route(question) {
     case .local(let reply):
-      commit(question: question, reply: reply)
+      commit(question: question, passage: activePassage, reply: reply)
     case .model(let task):
       submit(task)
     }
@@ -58,7 +76,11 @@ final class SessionChatConversation: ObservableObject {
 
   func send(_ task: SessionChatTask) {
     guard canSubmit(task.question) else { return }
-    submit(task)
+    if SessionChatRouter.isCoachingRequest(task.question) {
+      commit(question: task.question, passage: activePassage, reply: .voiceBoundary)
+    } else {
+      submit(task)
+    }
   }
 
   func cancel() {
@@ -91,37 +113,19 @@ final class SessionChatConversation: ObservableObject {
     pendingQuestion = question
     errorMessage = nil
     if draft.trimmingCharacters(in: .whitespacesAndNewlines) == question { draft = "" }
+    let passage = activePassage
+    pendingPassage = passage
     let request = SessionChatPromptComposer.make(
-      context: context, focus: focus, history: exchanges, task: task)
-    taskRun(id: id, question: question) {
-      let reply = try await self.responder.respond(to: request)
-      return self.speakableLine(in: reply, for: task)
-    }
-  }
-
-  /// Rewrites and translations are there to be said. If the model leaves the
-  /// practice line empty, use its first sentence so the inspector can offer Copy.
-  private func speakableLine(in reply: SessionChatReply, for task: SessionChatTask) -> SessionChatReply {
-    if reply.practiceLine != nil { return reply }
-    switch task {
-    case .explain, .practise, .ask:
-      return reply
-    case .translate, .rephrase, .synonym:
-      let line = SessionChatAnswerCleaner.stripQuotes(
-        SessionChatAnswerCleaner.firstSentence(reply.answer))
-      guard line.count > 1, line.count < 180 else { return reply }
-      return SessionChatReply(answer: reply.answer, practiceLine: line)
-    }
-  }
-
-  private func taskRun(
-    id: UUID, question: String, operation: @escaping @MainActor () async throws -> SessionChatReply
-  ) {
-    task = Task { [weak self] in
+      context: context, focus: passage?.text, history: exchanges, task: task,
+      source: passage?.origin)
+    let responder = responder
+    self.task = Task { [weak self] in
       do {
-        let reply = try await operation()
+        let reply = try await responder.respond(to: request)
         guard let self, !Task.isCancelled, self.requestID == id else { return }
-        self.commit(question: question, reply: reply)
+        self.commit(
+          question: question, passage: passage,
+          reply: SessionChatRouter.containsCoachingAdvice(reply.answer) ? .voiceBoundary : reply)
         self.finishRequest()
       } catch {
         guard let self, !Task.isCancelled, self.requestID == id else { return }
@@ -136,14 +140,13 @@ final class SessionChatConversation: ObservableObject {
     }
   }
 
-  private func commit(question: String, reply: SessionChatReply) {
-    let quoted = focus ?? context.fallbackQuote
+  private func commit(question: String, passage: SessionChatPassage?, reply: SessionChatReply) {
     exchanges.append(
       Exchange(
         question: question,
-        quotedLine: quoted == SessionChatContext.missingTranscript ? nil : quoted,
+        quotedLine: passage?.text,
         answer: reply.answer,
-        practiceLine: reply.practiceLine
+        source: passage?.origin
       )
     )
     exchanges = Array(exchanges.suffix(12))
@@ -153,6 +156,7 @@ final class SessionChatConversation: ObservableObject {
 
   private func finishRequest() {
     pendingQuestion = nil
+    pendingPassage = nil
     requestID = nil
     task = nil
   }

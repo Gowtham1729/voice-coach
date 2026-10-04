@@ -29,61 +29,30 @@ enum SessionChatError: LocalizedError {
   }
 }
 
-/// Adapts Apple's on-device model to a guided reply. A fresh session keeps one
+/// Adapts Apple's on-device model to a language reply. A fresh session keeps one
 /// recording's question from inheriting another recording's transcript.
 struct LocalSessionChatResponder: SessionChatResponding {
   func respond(to request: SessionChatRequest) async throws -> SessionChatReply {
     guard CoachingWordingGenerator.status == .available else { throw SessionChatError.unavailable }
     #if canImport(FoundationModels)
-      let options = GenerationOptions(temperature: 0.2, maximumResponseTokens: 200)
+      let options = GenerationOptions(temperature: 0.2, maximumResponseTokens: 768)
       let session = LanguageModelSession(instructions: request.instructions)
       do {
-        let response = try await session.respond(
-          to: request.prompt,
-          generating: SessionChatDraft.self,
-          options: options
-        )
+        let response = try await session.respond(to: request.prompt, options: options)
         try Task.checkCancellation()
-        return try finalized(response.content.answer, practiceLine: response.content.practiceLine)
-      } catch let error as SessionChatError {
-        throw error
+        let reply = SessionChatReply(answer: response.content)
+        guard !reply.answer.isEmpty else { throw SessionChatError.emptyResponse }
+        return reply
       } catch LanguageModelSession.GenerationError.exceededContextWindowSize {
         throw SessionChatError.contextTooLarge
       } catch LanguageModelSession.GenerationError.unsupportedLanguageOrLocale {
         throw SessionChatError.unsupportedLanguage
       } catch LanguageModelSession.GenerationError.guardrailViolation {
         throw SessionChatError.refused
-      } catch is CancellationError {
-        throw CancellationError()
-      } catch {
-        let response = try await LanguageModelSession(instructions: request.instructions).respond(
-          to: request.prompt,
-          options: options
-        )
-        try Task.checkCancellation()
-        return try finalized(response.content, practiceLine: nil)
       }
     #else
       throw SessionChatError.unavailable
     #endif
   }
 
-  private func finalized(_ answer: String, practiceLine: String?) throws -> SessionChatReply {
-    let reply = SessionChatReply(answer: answer, practiceLine: practiceLine)
-    if !reply.answer.isEmpty || reply.practiceLine != nil { return reply }
-    if !answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-      return .voiceBoundary
-    }
-    throw SessionChatError.emptyResponse
-  }
 }
-
-#if canImport(FoundationModels)
-  @Generable
-  struct SessionChatDraft {
-    @Guide(description: "The answer itself, in plain sentences. No preamble.")
-    var answer: String
-    @Guide(description: "A single sentence to say aloud, or empty.")
-    var practiceLine: String
-  }
-#endif
