@@ -69,7 +69,7 @@ for (const requiredCopy of [
   "No account, no upload, no cloud processing.",
   "Free while in early access. No account required.",
   "Is this an AI speech coach?",
-  "Two practice signals come from on-device acoustic analysis and, in Mimic, reliable reference matching.",
+  "Two practice targets come from reliable reference matching in Mimic.",
   "System audio access is needed when you capture Mac audio.",
   "Choose a key word for a pitch lift, then compare it with the words around it.",
 ]) {

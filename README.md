@@ -17,7 +17,7 @@ Download the latest pre-built application:
 1. Unzip the downloaded file and move `Voice Coach.app` to your `/Applications` folder.
 2. Launch the app. Because releases are currently ad-hoc signed, macOS Gatekeeper may prompt you on first run. If blocked, right-click `Voice Coach.app` in Finder and select **Open**.
 
-Version 3.3.4 introduced in-app update checks. If you already have 3.3.4 or newer installed, use **Voice Coach > Check for Updates…** or wait for an automatic update check to receive new releases. Older releases need one manual installation of an updater-enabled version.
+The current early-access release is **0.0.1 (build 13)**, restarting public version numbering with multilingual transcription and experimental on-device language chat. Internal build numbers continue increasing so existing updater-enabled installations can receive it. Use **Voice Coach > Check for Updates…** or wait for an automatic update check. Installations without that menu need one manual installation.
 
 **System Requirements:** macOS 26.0 or later (Apple Silicon recommended).
 
@@ -71,7 +71,7 @@ Voice Coach extracts objective acoustic properties to guide practice. It does no
 
 ## Privacy by Design
 
-Voice Coach runs entirely on your Mac. It requires no user account, collects no telemetry, and makes no network requests.
+Voice Coach processes recordings entirely on your Mac. It requires no user account and collects no telemetry. Update checks and optional language/model downloads use the network; recordings are never uploaded.
 
 * **Local Storage**: All recordings, transcripts, and acoustic metrics live exclusively in:
   ```
@@ -79,7 +79,7 @@ Voice Coach runs entirely on your Mac. It requires no user account, collects no 
   ```
 * **Explicit Permissions**: Microphone access is requested only when you click record. System audio capture access is requested only when capturing Mac output.
 * **Clean Deletion**: Deleting a take or session permanently purges the underlying WAV and analysis files from disk.
-* **Zero Network Traffic**: Audio analysis and speech transcription execute on-device using local machine learning and Core Audio DSP.
+* **On-Device Processing**: Audio analysis, speech transcription, and experimental chat execute on-device. Network access is used for update checks and optional model downloads.
 
 ## Development
 

@@ -151,9 +151,9 @@ jobs:
               printf '%s\n' "${TAG_MSG}"
               echo
             fi
-            echo "<!-- Editors: add changelog notes for this tag (see v3.2.0 for tone). -->"
           } > "${NOTES}"
           gh release create "${TAG}" "${ZIP}" release-assets/Voice-Coach-macOS.zip release-assets/appcast.xml \
             --title "Voice Coach ${VERSION}" \
             --notes-file "${NOTES}" \
+            --latest \
             --verify-tag
