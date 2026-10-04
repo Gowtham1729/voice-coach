@@ -178,12 +178,12 @@
       model.transcriptionEngine = .system
       model.transcriptionLocaleIdentifier = "ja_JP"
       model.systemTranscriptionStatus = .ready(localeIdentifier: "ja_JP")
-      try renderSettings("07-settings", height: 680)
+      try renderSettings("07-settings", height: 820)
       model.transcriptionEngine = .parakeet
-      try renderSettings("07b-settings-parakeet", height: 680)
+      try renderSettings("07b-settings-parakeet", height: 820)
       model.transcriptionEngine = .system
       previewDefaults.set(true, forKey: ExperimentalFeaturesPreference.storageKey)
-      try renderSettings("19-settings-experiments", height: 680)
+      try renderSettings("19-settings-experiments", height: 820)
       previewDefaults.set(false, forKey: ExperimentalFeaturesPreference.storageKey)
       model.destination = .home
       model.selectedSessionID = nil
