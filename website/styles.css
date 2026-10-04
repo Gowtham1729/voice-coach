@@ -1897,8 +1897,8 @@ dialog::backdrop {
 .screenshot-link > img { width: 100%; height: auto; display: block; }
 .screen-expand { position: absolute; right: 12px; bottom: 12px; padding: 7px 12px; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; font: 700 11px var(--body); }
 .words-visual > .screenshot-link { width: min(350px, 100%); border: 1px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 14px 16px 0 rgba(40,72,232,.18); }
-.inspector-crop { position: relative; aspect-ratio: 350 / 1050; overflow: hidden; background: #202020; }
-.inspector-crop img { position: absolute; right: 0; top: -33px; height: calc(100% + 33px); width: auto; max-width: none; }
+.inspector-crop { position: relative; aspect-ratio: 350 / 740; overflow: hidden; background: #202020; }
+.inspector-crop img { position: absolute; right: 0; top: -33px; width: 500%; height: auto; max-width: none; }
 .recording-screen { border: 1px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 12px 14px 0 rgba(31,36,31,.1); }
 .screenshot-dialog { width: min(1600px, calc(100vw - 32px)); max-width: none; }
 .screenshot-dialog > img { display: block; width: 100%; height: auto; border-radius: 8px; }
