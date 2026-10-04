@@ -1,0 +1,10 @@
+node_modules
+dist
+.DS_Store
+.env
+.agents
+.cursor
+skills-lock.json
+
+# Rendered output (keep imported media under public/)
+out
