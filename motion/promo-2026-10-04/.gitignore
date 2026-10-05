@@ -1,0 +1,6 @@
+# Local Words recording. The film uses the plates already in public/.
+/assets/product/recordings/
+
+# Renders. The finished film is committed; other exports stay local.
+/out/*
+!/out/ichido-promo-scored.mp4
