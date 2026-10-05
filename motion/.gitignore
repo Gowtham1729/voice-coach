@@ -6,8 +6,10 @@ dist
 .cursor
 skills-lock.json
 
-# Rendered output (keep imported media under public/)
-out
+# Rendered output (keep imported media under public/).
+# The finished launch film is the one committed export.
+**/out/*
+!**/out/ichido-promo-scored.mp4
 
 # Finished soundtrack. The repo ignores *.wav so personal recordings stay out.
 !public/promo-2026-10-04/vo/*.wav
