@@ -110,7 +110,6 @@ def build():
     plates = {
         "words-idle": (idle, "frames 570-649 median", "Empty chat"),
         "words-menu": (menu, "frame 653; button patched from frame 670", "Suggested questions open"),
-        "words-menu-explain": (explain, "frame 685; pointer patch", "Explain the meaning highlighted"),
         "words-filled": (filled, "frames 705-745 median", "What does this transcript mean? in the field"),
         "words-thinking": (thinking, "frame 800", "Thinking… with the stop button"),
         "words-answer": (answer, "frame 892", "Assistant reply with three glosses"),

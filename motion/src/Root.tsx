@@ -26,7 +26,7 @@ export const RemotionRoot: React.FC = () => {
           fps={60}
           width={1920}
           height={1080}
-          defaultProps={{ guides: false, scratchVo: false }}
+          defaultProps={{ guides: false, scratchVo: false, finalVo: true }}
         />
         <Composition
           id="IchidoPromo20261004-Animatic"
@@ -35,7 +35,7 @@ export const RemotionRoot: React.FC = () => {
           fps={60}
           width={1920}
           height={1080}
-          defaultProps={{ guides: true, scratchVo: true }}
+          defaultProps={{ guides: true, scratchVo: true, finalVo: false }}
         />
         {/* Full-length on purpose: a <Still> clips every inner Sequence to one frame. */}
         <Folder name="Style-frames">

@@ -17,8 +17,7 @@ const label: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-// Review overlay for the animatic only: storyboard scene, timecode, safe area,
-// capture slots and the scratch line being read.
+// Animatic overlay: scene name, timecode, safe area, capture slots, and the scratch line.
 export const Guides: React.FC = () => {
   const frame = useCurrentFrame();
   const scene = storyAt(frame);

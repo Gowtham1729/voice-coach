@@ -103,40 +103,6 @@
       "pixel_policy": "Exact unresized crop; no retouching or replacement text."
     },
     {
-      "id": "practice-mode",
-      "path": "assets/components/practice-mode.png",
-      "source": "assets/product/docs/04-mimic-practice.png",
-      "source_sha256": "dbdfd01e65d1ea75a59d0a458816bb171684c69e956c5a8d77056130b697a82a",
-      "source_dimensions": [
-        3420,
-        2146
-      ],
-      "rect_xyxy": [
-        630,
-        865,
-        1305,
-        942
-      ],
-      "crop_dimensions": [
-        675,
-        77
-      ],
-      "anchors_source_px": {
-        "listen-repeat": [
-          940,
-          909
-        ]
-      },
-      "anchors_crop_px": {
-        "listen-repeat": [
-          310,
-          44
-        ]
-      },
-      "notes": "Listen & Repeat is already selected; no new state implied",
-      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
-    },
-    {
       "id": "practice-actions",
       "path": "assets/components/practice-actions.png",
       "source": "assets/product/docs/04-mimic-practice.png",
@@ -226,56 +192,6 @@
         ]
       },
       "notes": "English comparison, Take 7; real Pitch chart and legend",
-      "pixel_policy": "Exact unresized crop; no retouching or replacement text."
-    },
-    {
-      "id": "compare-modes",
-      "path": "assets/components/compare-modes.png",
-      "source": "assets/product/docs/05-mimic-compare.png",
-      "source_sha256": "ff8175e3e3d205c05d37c4d426a975bda12ffd36c567f2027badede170a17309",
-      "source_dimensions": [
-        3420,
-        2146
-      ],
-      "rect_xyxy": [
-        2088,
-        790,
-        2600,
-        868
-      ],
-      "crop_dimensions": [
-        512,
-        78
-      ],
-      "anchors_source_px": {
-        "pitch": [
-          2175,
-          832
-        ],
-        "timing": [
-          2344,
-          832
-        ],
-        "emphasis": [
-          2505,
-          832
-        ]
-      },
-      "anchors_crop_px": {
-        "pitch": [
-          87,
-          42
-        ],
-        "timing": [
-          256,
-          42
-        ],
-        "emphasis": [
-          417,
-          42
-        ]
-      },
-      "notes": "Pitch, Timing, Emphasis; only Pitch response is captured",
       "pixel_policy": "Exact unresized crop; no retouching or replacement text."
     },
     {
@@ -448,29 +364,6 @@
         1186
       ],
       "notes": "Words inspector, French reference practice Take 2. Suggested questions open.",
-      "pixel_policy": "Joined crop: window rows 190-975 above rows 1745-2146; the empty chat area between them is dropped. Recorded pointer removed by temporal median or a same-state patch. No text, reply, or control retouched."
-    },
-    {
-      "id": "words-menu-explain",
-      "path": "assets/components/words-menu-explain.png",
-      "source": "assets/product/recordings/words-chat-2026-10-05.mov",
-      "source_sha256": "1020def8a8bd47896d45a354d8c23ea23fa1eef5a914faa952851de499e27aaf",
-      "source_dimensions": [
-        3420,
-        2214
-      ],
-      "source_frames": "frame 685; pointer patch",
-      "rect_xyxy": [
-        2740,
-        258,
-        3420,
-        2214
-      ],
-      "crop_dimensions": [
-        680,
-        1186
-      ],
-      "notes": "Words inspector, French reference practice Take 2. Explain the meaning highlighted.",
       "pixel_policy": "Joined crop: window rows 190-975 above rows 1745-2146; the empty chat area between them is dropped. Recorded pointer removed by temporal median or a same-state patch. No text, reply, or control retouched."
     },
     {

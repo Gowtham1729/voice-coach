@@ -13,12 +13,12 @@ npm run dev
 ## Render
 
 ```sh
-npx remotion render MyComp out/promo.mp4
+npx remotion render IchidoPromo20261004 promo-2026-10-04/out/ichido-promo.mp4
 ```
 
 ## Films
 
-- `IchidoPromo20261004`: the Ichido launch and walkthrough film (59.5 s). Source is in `src/promo/`; the kit, script, storyboard and review log are in [`promo-2026-10-04/`](promo-2026-10-04/README.md). The `-Animatic` version plays a scratch read that is generated, not committed: run `./scripts/make-scratch-vo.sh` (macOS) first.
+- `IchidoPromo20261004`: the finished Ichido launch film (63.2 s). Picture, timing, and audio notes are in [`promo-2026-10-04/README.md`](promo-2026-10-04/README.md).
 
 ## Notes
 

@@ -11,3 +11,6 @@ out
 
 # Scratch VO (regenerate with scripts/make-scratch-vo.sh)
 public/promo-2026-10-04/scratch-vo/
+
+# Finished soundtrack. The repo ignores *.wav so personal recordings stay out.
+!public/promo-2026-10-04/vo/*.wav

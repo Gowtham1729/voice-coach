@@ -9,7 +9,8 @@ export const SEGMENTS = [
   { id: "compare", title: "Compare and choose", dur: 1000, enter: 40 },
   { id: "recording", title: "Your own voice, too", dur: 350, enter: 40 },
   { id: "privacy", title: "Private on your Mac", dur: 824, enter: 40 },
-  { id: "cta", title: "Get Ichido", dur: 250, enter: 60 },
+  // The finished read runs past the end card, so the card holds to the last word.
+  { id: "cta", title: "Get Ichido", dur: 473, enter: 60 },
 ] as const;
 
 export type SegmentId = (typeof SEGMENTS)[number]["id"];
@@ -24,7 +25,7 @@ export const START = SEGMENTS.reduce(
 );
 
 export const DURATION =
-  START.cta + SEGMENTS[SEGMENTS.length - 1].dur; // 3570 frames, 59.5 s
+  START.cta + SEGMENTS[SEGMENTS.length - 1].dur; // 3793 frames, 63.2 s
 
 // Storyboard scene boundaries: the midpoint of each joining move, or the
 // in-scene camera move that changes the subject.

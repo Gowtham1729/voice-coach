@@ -38,7 +38,7 @@ export const cursorAt = (frame: number, s: CursorScript): Point => {
   return at;
 };
 
-// Source: promo-2026-10-04/assets/interaction/cursor.svg (hotspot 9,5 in a 48×64 box).
+// Hotspot is (9, 5) in a 48×64 box, drawn at 28 px wide.
 const VIEW = { w: 48, h: 64, hx: 9, hy: 5 };
 const WIDTH = 28;
 

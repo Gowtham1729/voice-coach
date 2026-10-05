@@ -32,7 +32,7 @@ const EXPLAIN_CLICK = 276;
 const FILLED = 298; // the app fills in the question just after the menu closes
 const SEND_CLICK = 324;
 const SENT = SEND_CLICK + 2;
-const ANSWER = 382; // Thinking… ran 4.5 s in the recording; shortened, and disclosed in the storyboard
+const ANSWER = 382; // Thinking… ran 4.5 s in the recording; held here for under a second.
 // Body copy and the gloss ring leave before the camera moves, so the glide
 // carries only the panels and the headline swap.
 const CLEAR = 516;

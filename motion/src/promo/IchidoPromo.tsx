@@ -2,7 +2,7 @@ import { linearTiming, TransitionSeries } from "@remotion/transitions";
 import React from "react";
 import { AbsoluteFill, Freeze } from "remotion";
 import { Guides } from "./components/Guides";
-import { ScratchVo } from "./components/ScratchVo";
+import { FinalVo, ScratchVo } from "./components/ScratchVo";
 import { Paper } from "./components/Stage";
 import { FontsGate } from "./fonts";
 import { ctaLockup, recordingPeriod } from "./layout";
@@ -20,6 +20,7 @@ import { SEGMENTS, type SegmentId } from "./timeline";
 export type PromoProps = {
   guides: boolean;
   scratchVo: boolean;
+  finalVo: boolean;
 };
 
 const dur = (id: SegmentId) => {
@@ -79,12 +80,13 @@ const Timeline: React.FC = () => {
   );
 };
 
-export const IchidoPromo: React.FC<PromoProps> = ({ guides, scratchVo }) => (
+export const IchidoPromo: React.FC<PromoProps> = ({ guides, scratchVo, finalVo }) => (
   <AbsoluteFill>
     <Paper />
     <FontsGate>
       <Timeline />
-      {scratchVo ? <ScratchVo /> : null}
+      {finalVo ? <FinalVo /> : null}
+      {finalVo || !scratchVo ? null : <ScratchVo />}
       {guides ? <Guides /> : null}
     </FontsGate>
   </AbsoluteFill>
@@ -95,7 +97,7 @@ export const StyleFrame: React.FC<{ frame: number; guides: boolean }> = ({
   guides,
 }) => (
   <Freeze frame={frame}>
-    <IchidoPromo guides={guides} scratchVo={false} />
+    <IchidoPromo guides={guides} scratchVo={false} finalVo={false} />
   </Freeze>
 );
 

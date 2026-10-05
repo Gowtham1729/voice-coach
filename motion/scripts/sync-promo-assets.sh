@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Copies the active assets of the 2026-10-04 promo kit into Remotion's public/ folder.
-# Only assets used by the timeline are copied; reference media and reserve art stay in the kit.
+# Copies the launch-film assets into Remotion's public/ folder.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
