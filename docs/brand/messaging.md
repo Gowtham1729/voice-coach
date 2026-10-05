@@ -60,7 +60,7 @@ The website’s experimental section introduces **Words**; it is optional and do
 
 ## Proof and limits
 
-Show the actual app and describe what people can do. Mark synthetic recordings and illustrative chat responses as examples. The old Voice Coach tour is historical footage. Do not present its screens as the current Ichido interface. Do not invent testimonials, social proof, or outcome claims. A later demo or campaign needs its own brief and evidence.
+Show the actual app and describe what people can do. Mark synthetic recordings and illustrative chat responses as examples. The launch film is the current walkthrough. Do not present older Voice Coach footage as the current Ichido interface. Do not invent testimonials, social proof, or outcome claims. A later demo or campaign needs its own brief and evidence.
 
 Reference practice offers two measured targets when enough words reliably match. Ordinary recordings show measurements. Neither pathway grades an accent, certifies fluency, nor supplies phoneme-level pronunciation correction.
 

@@ -67,7 +67,7 @@ for (const requiredCopy of [
   "Words can’t hear or evaluate your audio.",
   "Free while in early access. No account required.",
   "System audio access is needed when you capture Mac audio.",
-  "Real app captures", "Earlier Voice Coach footage.",
+  "Real app captures", "Watch the film",
 ]) {
   assert.ok(normalizedHtml.includes(requiredCopy), `Missing product boundary: ${requiredCopy}`);
 }

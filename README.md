@@ -6,7 +6,7 @@ A Mac app for speaking practice. Record yourself, practice with a reference clip
 
 [Download for macOS](https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip) · [Website](https://voice-coach-studio.gowtham.chatgpt.site) · [Release notes](https://github.com/Gowtham1729/voice-coach/releases/latest)
 
-![Ichido Home, with recording and reference practice controls](docs/screenshots/01-home.png)
+https://github.com/user-attachments/assets/3efb9a61-5bff-4cef-8706-50102a6433b4
 
 ## Get started
 
@@ -31,16 +31,6 @@ Already using Voice Coach? Ichido is the same app with a new name. Your library 
 Apple transcription is the default. Choose your spoken language in **Settings → Transcription**. Optional Parakeet detects 25 European languages automatically; use Apple for Japanese.
 
 Enable Words in **Settings → Experiments**. Chat requires Apple Intelligence, works from text, and can make mistakes. Chats clear when you quit.
-
-[View current app screenshots](docs/screenshots/)
-
-## Tour
-
-This earlier tour shows Voice Coach before the Ichido name and interface updates. The screenshots in this README show the current app.
-
-https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
-
-[Download the tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4)
 
 ## Privacy
 

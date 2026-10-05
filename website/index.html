@@ -82,7 +82,7 @@
           <p class="hero-description">Record a take. Try again, or practice against a reference.</p>
           <div class="hero-actions">
             <a class="button button-blue" href="#download" data-open-download>Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></a>
-            <a class="text-button" href="#practice">Explore practice</a>
+            <a class="text-button watch-button" href="assets/ichido-launch-film.mp4" data-open-tour aria-haspopup="dialog" aria-controls="tour-dialog"><span class="play-symbol" aria-hidden="true">▶</span>Watch Ichido<span class="film-duration">1:03</span></a>
           </div>
           <p class="trust-line">macOS 26+ · Free early access · No account</p>
           <p class="brand-pronunciation">ichido <span>/ ee-chee-doh /</span></p>
@@ -148,7 +148,7 @@
             <article class="way-card"><span class="way-number">03</span><img src="assets/icons/arrow-down.svg" alt="" /><h3>Import a file</h3><p>Bring in an audio or video file. Ichido prepares the audio locally so you can listen and practice.</p></article>
           </div>
           <p class="honesty-line"><img src="assets/icons/check.svg" alt="" />Playing a clip in your browser? Choose Capture Mac audio to use it as a reference.</p>
-          <div class="recording-proof"><a class="screenshot-link recording-screen" href="assets/take-analysis.jpg" data-screenshot><img src="assets/take-analysis.jpg" width="3420" height="2146" alt="Live recording analysis with a word transcript, timeline, and measured acoustic properties" loading="lazy" /></a><div><span class="demo-label">A PLACE FOR YOUR OWN WORDS</span><h3>Reference optional.<br />Practice always.</h3><p>Start with your own recording whenever you want. Replay a word, notice a pause, and keep another take alongside it.</p><p class="product-footnote">Ordinary recordings show measurements. Reference practice adds matched comparison targets.</p><button class="inline-link" data-open-tour>Watch the earlier app tour <span aria-hidden="true">↗</span></button></div></div>
+          <div class="recording-proof"><a class="screenshot-link recording-screen" href="assets/take-analysis.jpg" data-screenshot><img src="assets/take-analysis.jpg" width="3420" height="2146" alt="Live recording analysis with a word transcript, timeline, and measured acoustic properties" loading="lazy" /></a><div><span class="demo-label">A PLACE FOR YOUR OWN WORDS</span><h3>Reference optional.<br />Practice always.</h3><p>Start with your own recording whenever you want. Replay a word, notice a pause, and keep another take alongside it.</p><p class="product-footnote">Ordinary recordings show measurements. Reference practice adds matched comparison targets.</p><button class="inline-link" data-open-tour>Watch the film <span aria-hidden="true">↗</span></button></div></div>
         </div>
       </section>
 
@@ -214,13 +214,13 @@
     >
       <div class="dialog-top">
         <div>
-          <span class="mini-label">EARLIER APP TOUR</span>
-          <h2 id="tour-dialog-title">Voice Coach, before Ichido.</h2>
+          <span class="mini-label">ICHIDO · 63 SECONDS</span>
+          <h2 id="tour-dialog-title">One more try.</h2>
         </div>
         <button
           class="icon-button"
           data-close-dialog
-          aria-label="Close app tour"
+          aria-label="Close film"
         >
           <img class="icon" src="assets/icons/x.svg" alt="" />
         </button>
@@ -230,27 +230,21 @@
         controls
         playsinline
         preload="none"
-        poster="assets/tour-poster.jpg"
+        poster="assets/ichido-film-poster.jpg"
       >
-        <source src="assets/voice-coach-tour.mp4" type="video/mp4" />
-        <track
-          kind="captions"
-          src="assets/tour-captions.vtt"
-          srclang="en"
-          label="English scene descriptions"
-          default
-        />
+        <source src="assets/ichido-launch-film.mp4" type="video/mp4" />
       </video>
-      <div class="tour-chapters" aria-label="Jump to a part of the tour">
-        <button data-seek="0">00:00 Library</button>
-        <button data-seek="6">00:06 Practice</button>
-        <button data-seek="18">00:18 Compare</button>
-        <button data-seek="36">00:36 Analysis</button>
-        <button data-seek="48">00:48 Import</button>
+      <div class="tour-chapters" aria-label="Jump to a part of the film">
+        <button data-seek="0">00:00 One more try</button>
+        <button data-seek="10">00:10 Listen</button>
+        <button data-seek="13">00:13 Understand</button>
+        <button data-seek="22">00:22 Compare</button>
+        <button data-seek="38">00:38 Your voice</button>
+        <button data-seek="43">00:43 Private</button>
       </div>
+      <p class="tour-note" id="film-load-error" role="status" hidden>Couldn’t load the film. <a href="assets/ichido-launch-film.mp4">Open the video directly</a>.</p>
       <p class="tour-note">
-        Earlier Voice Coach footage. The practice workflow carries into Ichido;
-        this video predates the rebrand and experimental Words inspector.
+        Words is experimental and off by default. Chat requires available Apple Intelligence.
       </p>
     </dialog>
 
@@ -346,7 +340,7 @@
           the latest Ichido release
         </a>
         for macOS 26+. The release is ad-hoc signed and not notarized.
-        <a href="assets/voice-coach-tour.mp4">Watch the app tour.</a>
+        <a href="assets/ichido-launch-film.mp4">Watch the film.</a>
       </div>
     </noscript>
   </body>
