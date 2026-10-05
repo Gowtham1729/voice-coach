@@ -1,8 +1,7 @@
+import { Audio } from "@remotion/media";
 import { linearTiming, TransitionSeries } from "@remotion/transitions";
 import React from "react";
-import { AbsoluteFill, Freeze } from "remotion";
-import { Guides } from "./components/Guides";
-import { FinalVo, ScratchVo } from "./components/ScratchVo";
+import { AbsoluteFill, staticFile } from "remotion";
 import { Paper } from "./components/Stage";
 import { FontsGate } from "./fonts";
 import { ctaLockup, recordingPeriod } from "./layout";
@@ -16,12 +15,6 @@ import { Picker } from "./scenes/Picker";
 import { Privacy } from "./scenes/Privacy";
 import { Recording } from "./scenes/Recording";
 import { SEGMENTS, type SegmentId } from "./timeline";
-
-export type PromoProps = {
-  guides: boolean;
-  scratchVo: boolean;
-  finalVo: boolean;
-};
 
 const dur = (id: SegmentId) => {
   const seg = SEGMENTS.find((s) => s.id === id);
@@ -80,46 +73,12 @@ const Timeline: React.FC = () => {
   );
 };
 
-export const IchidoPromo: React.FC<PromoProps> = ({ guides, scratchVo, finalVo }) => (
+export const IchidoPromo: React.FC = () => (
   <AbsoluteFill>
     <Paper />
     <FontsGate>
       <Timeline />
-      {finalVo ? <FinalVo /> : null}
-      {finalVo || !scratchVo ? null : <ScratchVo />}
-      {guides ? <Guides /> : null}
+      <Audio src={staticFile("promo-2026-10-04/vo/ichido-promo-mix.wav")} />
     </FontsGate>
   </AbsoluteFill>
 );
-
-export const StyleFrame: React.FC<{ frame: number; guides: boolean }> = ({
-  frame,
-  guides,
-}) => (
-  <Freeze frame={frame}>
-    <IchidoPromo guides={guides} scratchVo={false} finalVo={false} />
-  </Freeze>
-);
-
-const SCENES: Record<SegmentId, React.FC> = {
-  opening: Opening,
-  picker: Picker,
-  listen: FrenchPractice,
-  compare: Compare,
-  recording: Recording,
-  privacy: Privacy,
-  cta: Cta,
-};
-
-// One scene on its own, for editing it in the Studio.
-export const SceneOnly: React.FC<{ scene: SegmentId }> = ({ scene }) => {
-  const Scene = SCENES[scene];
-  return (
-    <AbsoluteFill>
-      <Paper />
-      <FontsGate>
-        <Scene />
-      </FontsGate>
-    </AbsoluteFill>
-  );
-};

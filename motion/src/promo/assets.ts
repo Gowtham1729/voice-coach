@@ -3,9 +3,8 @@ import { rect, type Rect } from "./motion";
 
 const file = (path: string) => staticFile(`promo-2026-10-04/${path}`);
 
-// Every rectangle is in source pixels of the unresized crop (see
-// promo-2026-10-04/assets/components/crop-map.json). Bounds were measured by
-// flood-filling each control's own fill, so focus rings sit on the real edges.
+// Every rectangle is in source pixels of the unresized crop. Bounds were
+// measured by flood-filling each control's own fill, so focus rings sit on the real edges.
 const crop = <K extends string>(
   path: string,
   w: number,
@@ -72,7 +71,7 @@ export const UI = {
 };
 
 // Words inspector from the 2026-10-05 screen recording, one plate per captured
-// state (scripts/make-words-plates.py). Every plate shares this card geometry.
+// state. Every plate shares this card geometry.
 export const WORDS = {
   w: 680,
   h: 1186,
