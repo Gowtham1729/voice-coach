@@ -24,5 +24,5 @@ The download URL stays `https://github.com/Gowtham1729/voice-coach/releases/late
 ## Assets
 
 - Product images are real app captures. Do not retouch labels, transcripts, replies, or measurements, and do not replace them with `build/previews` fixtures.
-- `voice-coach-tour.mp4` is earlier Voice Coach footage. Keep it labelled historical. Do not present those frames as the current Ichido interface. The caption track may describe scenes. Do not rewrite it as a verbatim speech transcript.
+- `ichido-launch-film.mp4` is the launch film. Captions follow that read. Do not put older Voice Coach footage back in its place, and do not present those old frames as the current interface.
 - The desktop ribbon is decorative. Mobile omits it. Reduced motion keeps the still image. Do not add a runtime dependency, microphone use, or an outbound data path.
