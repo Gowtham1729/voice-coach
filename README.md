@@ -34,13 +34,11 @@ Enable Words in **Settings → Experiments**. Chat requires Apple Intelligence, 
 
 [View current app screenshots](docs/screenshots/)
 
-## Tour
+## Film
 
-This earlier tour shows Voice Coach before the Ichido name and interface updates. The screenshots in this README show the current app.
+[Watch the launch film](website/assets/ichido-launch-film.mp4)
 
-https://github.com/user-attachments/assets/32e156b7-0485-4435-9262-570c739e3e4e
-
-[Download the tour](https://github.com/Gowtham1729/voice-coach/releases/download/demo-readme/voice-coach-tour.mp4)
+It runs 63 seconds: bring a clip, listen, explore the words, repeat, compare, then record on your own. The screenshots in this README show the current app.
 
 ## Privacy
 
