@@ -8,25 +8,28 @@ const $$ = (selector, parent = document) => [
 const tourDialog = $("#tour-dialog");
 const tourVideo = $("#tour-video");
 const downloadDialog = $("#download-dialog");
+let tourStartTime = 0;
+
+tourVideo.addEventListener("loadedmetadata", () => {
+  tourVideo.currentTime = tourStartTime;
+});
+tourVideo.addEventListener("error", () => {
+  $("#film-load-error").hidden = false;
+});
 
 function openTour(time = 0) {
+  tourStartTime = time;
   tourDialog.showModal();
-  const seekAndPlay = () => {
-    if (!tourDialog.open) return;
-    tourVideo.currentTime = time;
-    tourVideo.play().catch(() => {
-      // Native controls remain available when autoplay is blocked.
-    });
-  };
-  if (tourVideo.readyState >= 1) seekAndPlay();
-  else {
-    tourVideo.addEventListener("loadedmetadata", seekAndPlay, { once: true });
-  }
-  if (tourVideo.readyState === 0) tourVideo.load();
+  if (tourVideo.readyState >= 1) tourVideo.currentTime = time;
+  // Request playback during the click so browsers retain the user gesture.
+  tourVideo.play().catch(() => {
+    // Native controls remain available when autoplay is blocked.
+  });
 }
 
 $$("[data-open-tour]").forEach((button) => {
-  button.addEventListener("click", () => {
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
     openTour(Number(button.dataset.tourTime || 0));
   });
 });
