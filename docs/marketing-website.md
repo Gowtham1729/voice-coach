@@ -25,4 +25,5 @@ The download URL stays `https://github.com/Gowtham1729/voice-coach/releases/late
 
 - Product images are real app captures. Do not retouch labels, transcripts, replies, or measurements, and do not replace them with `build/previews` fixtures.
 - `ichido-launch-film.mp4` is the launch film. Captions follow that read. Do not put older Voice Coach footage back in its place, and do not present those old frames as the current interface.
+- **Watch Ichido** in the hero opens the film dialog, with a direct MP4 link when JavaScript is unavailable. Closing the dialog pauses playback. The README uses a bare GitHub video-attachment URL for an inline player; repository MP4 links alone do not embed a player.
 - The desktop ribbon is decorative. Mobile omits it. Reduced motion keeps the still image. Do not add a runtime dependency, microphone use, or an outbound data path.
