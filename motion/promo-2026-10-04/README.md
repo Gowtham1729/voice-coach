@@ -9,7 +9,7 @@ npm run dev
 npx remotion render IchidoPromo20261004 promo-2026-10-04/out/ichido-promo.mp4 --crf=15 --audio-bitrate=320k
 ```
 
-Renders stay in gitignored `out/`. The master on this machine is `out/ichido-promo-scored.mp4`.
+The finished film is `out/ichido-promo-scored.mp4`. Other renders in `out/` stay local.
 
 The film plays `vo/ichido-promo-mix.wav`. The voice alone is `vo/ichido-promo.wav`, and Calculated Grace is `music/calculated-grace.mp3`. To replace the read, run `PYTHONPATH=build/pylib python3 scripts/finish-vo.py <read.wav>`, then `PYTHONPATH=build/pylib python3 scripts/mix-score.py`. Both need numpy and ffmpeg.
 
