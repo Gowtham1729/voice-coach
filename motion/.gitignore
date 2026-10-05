@@ -8,3 +8,6 @@ skills-lock.json
 
 # Rendered output (keep imported media under public/)
 out
+
+# Finished soundtrack. The repo ignores *.wav so personal recordings stay out.
+!public/promo-2026-10-04/vo/*.wav
