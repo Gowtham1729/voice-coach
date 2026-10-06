@@ -105,7 +105,7 @@ function supportTabKeys(tabs, activate) {
 }
 
 const insightTabs = $$("[data-insight]");
-const insightOrder = ["listen", "understand", "repeat", "compare"];
+const insightOrder = ["listen", "repeat", "compare"];
 const insightTabsRoot = $(".insight-tabs");
 const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
 let activeInsight = "listen";
