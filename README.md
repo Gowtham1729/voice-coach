@@ -2,7 +2,7 @@
 
 **Your private speaking room.**
 
-A Mac app for speaking practice. Record yourself, practise with a reference clip, and explore the words in your transcript. Audio, transcripts, and analysis stay on your Mac.
+A Mac app for speaking practice. Record yourself, practice with a reference clip, and explore the words in your transcript. Audio, transcripts, and analysis stay on your Mac.
 
 [Download for macOS](https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip) · [Website](https://voice-coach-studio.gowtham.chatgpt.site) · [Release notes](https://github.com/Gowtham1729/voice-coach/releases/latest)
 
@@ -14,7 +14,7 @@ Requires **macOS 26 or later**. Apple Silicon recommended. Free while in early a
 
 1. Download the ZIP, unzip it, and move **Ichido.app** to Applications.
 2. Open Ichido. The app is not Apple-notarized yet. If macOS blocks it, follow [Apple’s opening guidance](https://support.apple.com/en-us/102445).
-3. Choose **Record** for your own recording, or **Practice → New reference practice…** to practise with a clip.
+3. Choose **Record** for your own recording, or **Practice → New reference practice…** to practice with a clip.
 
 Already using Voice Coach? Ichido is the same app with a new name. Your library and preferences carry over. Get updates from **Ichido → Check for Updates…**.
 
