@@ -1,6 +1,6 @@
 # Releasing Ichido
 
-GitHub Releases host the **ad-hoc signed** app zip and a signed [Sparkle](https://sparkle-project.org/documentation/) appcast. Pushing a `v*` semver tag runs [`.github/workflows/release.yml`](../.github/workflows/release.yml) on `macos-26`: tests, `build-app.sh`, zip, sign the update feed, and publish the ZIP aliases and appcast. There is no Developer ID signing or notarization.
+GitHub Releases host the **ad-hoc signed** app zip and a signed [Sparkle](https://sparkle-project.org/documentation/) appcast. Pushing a `v*` semver tag runs [`.github/workflows/release.yml`](../.github/workflows/release.yml) on `macos-26`: tests, `build-app.sh`, zip, sign the update feed, and publish the ZIP alias and appcast. There is no Developer ID signing or notarization.
 
 ## Soft gate
 
@@ -25,10 +25,9 @@ Do not ship from a red `test` run. `render-previews` and Peekaboo are not CI; ru
 
 ## Who cuts the release
 
-The **repo owner** bumps `Info.plist` in a PR, waits for green `test`, merges, and tags the merge commit. Actions builds the zip and signed `appcast.xml` and attaches both to the GitHub Release. Edit the release body with the changelog (the workflow leaves an ad-hoc / Gatekeeper stub plus the tag message). Keep the README and website on the stable latest-release alias. Verify that both
-stable ZIP aliases and the signed appcast exist before publishing website copy for a new version.
+The **repo owner** bumps `Info.plist` in a PR, waits for green `test`, merges, and tags the merge commit. Actions builds the zip and signed `appcast.xml` and attaches both to the GitHub Release. Edit the release body with the changelog (the workflow leaves an ad-hoc / Gatekeeper stub plus the tag message). Keep the README and website on the stable latest-release alias. Verify that the stable ZIP alias and the signed appcast exist before publishing website copy for a new version.
 
-If Actions fails, repair the release job or create the ZIP aliases and appcast with Sparkle's tools before publishing. A zip alone will not reach existing app installations through auto-update.
+If Actions fails, repair the release job or create the ZIP alias and appcast with Sparkle's tools before publishing. A zip alone will not reach existing app installations through auto-update.
 
 ## Build the zip
 
@@ -59,9 +58,7 @@ and README. Their stable download URL is
 `https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip`;
 release notes use `/releases/latest`. Keep this alias in every release so future
 downloads follow GitHub's latest release without a website deployment. The
-Sparkle appcast continues to reference the versioned archive. Keep the identical legacy
-`Voice-Coach-macOS.zip` alias so old website and README links continue to work. The
-app remains `com.gowtham.voicecoach` and uses the existing `Application Support/VoiceCoach`
+Sparkle appcast continues to reference the versioned archive. The app remains `com.gowtham.voicecoach` and uses the existing `Application Support/VoiceCoach`
 library and preference keys; the visible bundle is now `Ichido.app`.
 
 The zip is **ad-hoc signed** (`codesign --sign -` in `build-app.sh`), not Developer ID and not notarized. See Distribution limitation below.
@@ -75,9 +72,9 @@ The zip is **ad-hoc signed** (`codesign --sign -` in `build-app.sh`), not Develo
 
 1. Bump both plist keys in a PR, wait for green `test`, merge.
 2. Tag the merge commit: `git tag -a vX.Y.Z -m "Ichido X.Y.Z"` and push the tag.
-3. Wait for the **Release** workflow on that tag. It creates the GitHub Release and attaches `Ichido-X.Y.Z-macOS.zip`, `Ichido-macOS.zip`, `Voice-Coach-macOS.zip`, and `appcast.xml`.
+3. Wait for the **Release** workflow on that tag. It creates the GitHub Release and attaches `Ichido-X.Y.Z-macOS.zip`, `Ichido-macOS.zip`, and `appcast.xml`.
 4. Edit the release body with the changelog, matching the tone of the latest release notes. The workflow already includes the ad-hoc, Gatekeeper, and no-Parakeet notes. Editing those notes does not change the signed appcast.
-5. If the workflow fails, fix it before publishing. The versioned ZIP, both stable aliases, and the signed appcast must all be present.
+5. If the workflow fails, fix it before publishing. The versioned ZIP, `Ichido-macOS.zip`, and the signed appcast must all be present.
 
 ## Sparkle signing key and update checks
 
