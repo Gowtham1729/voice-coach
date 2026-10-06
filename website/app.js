@@ -107,60 +107,34 @@ function supportTabKeys(tabs, activate) {
 const insightTabs = $$("[data-insight]");
 const insightOrder = ["listen", "understand", "repeat", "compare"];
 const insightTabsRoot = $(".insight-tabs");
-const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
 let activeInsight = "listen";
+let insightRequest = 0;
 
-function prefersReducedMotion() {
-  return motionQuery.matches;
-}
+// Hidden steps still download and decode before their first selection.
+const insightImages = new Map(
+  $$("[data-insight-view]").map((view) => [
+    view.dataset.insightView,
+    $("img", view).decode().catch(() => {}),
+  ]),
+);
 
-let viewChange = null;
-
-function runViewTransition(update, type) {
-  if (
-    viewChange ||
-    prefersReducedMotion() ||
-    typeof document.startViewTransition !== "function"
-  ) {
-    update();
-    return Promise.resolve();
-  }
-  let transition;
-  try {
-    transition = document.startViewTransition({ update, types: [type] });
-  } catch {
-    try {
-      transition = document.startViewTransition(update);
-    } catch {
-      update();
-      return Promise.resolve();
-    }
-  }
-  viewChange = transition.finished.catch(() => {}).finally(() => {
-    viewChange = null;
-  });
-  return viewChange;
-}
-
-function showInsight(name) {
+async function showInsight(name) {
+  const request = ++insightRequest;
   if (name === activeInsight) return;
-  const direction = insightOrder.indexOf(name) > insightOrder.indexOf(activeInsight)
-    ? "practice-forward"
-    : "practice-back";
-  runViewTransition(() => {
-    const active = insightTabs.find((tab) => tab.dataset.insight === name);
-    if (!active) return;
-    selectTab(insightTabs, active);
-    $("#insight-panel").setAttribute("aria-labelledby", active.id);
-    $$("[data-insight-view]").forEach((view) => {
-      view.hidden = view.dataset.insightView !== name;
-    });
-    insightTabsRoot?.style.setProperty(
-      "--insight-index",
-      String(Math.max(0, insightOrder.indexOf(name))),
-    );
-    activeInsight = name;
-  }, direction);
+  const active = insightTabs.find((tab) => tab.dataset.insight === name);
+  if (!active) return;
+  await insightImages.get(name);
+  if (request !== insightRequest) return;
+  selectTab(insightTabs, active);
+  $("#insight-panel").setAttribute("aria-labelledby", active.id);
+  $$("[data-insight-view]").forEach((view) => {
+    view.hidden = view.dataset.insightView !== name;
+  });
+  insightTabsRoot?.style.setProperty(
+    "--insight-index",
+    String(Math.max(0, insightOrder.indexOf(name))),
+  );
+  activeInsight = name;
 }
 
 insightTabs.forEach((tab) => {
@@ -172,6 +146,7 @@ supportTabKeys(insightTabs, (tab) => showInsight(tab.dataset.insight));
 const screenshotDialog = $("#screenshot-dialog");
 const expandedScreenshot = $("#expanded-screenshot");
 let screenshotSource = null;
+let screenshotOpener = null;
 let screenshotRequest = 0;
 
 function closeDialog(dialog) {
@@ -182,64 +157,42 @@ function closeDialog(dialog) {
   dialog?.close();
 }
 
-function openScreenshot(link) {
+async function openScreenshot(link) {
+  if (screenshotDialog.open) return;
   const request = ++screenshotRequest;
   const source = $("img", link);
+  expandedScreenshot.src = link.href;
   expandedScreenshot.alt = source.alt;
   $("#screenshot-caption").textContent = link.dataset.caption ||
     "Real app capture. Transcripts and Words replies can contain errors.";
-  let revealed = false;
-  const reveal = () => {
-    if (revealed || request !== screenshotRequest) return;
-    revealed = true;
-    screenshotSource = source;
-    const animate = !prefersReducedMotion() &&
-      typeof document.startViewTransition === "function";
-    if (!animate) {
-      screenshotDialog.showModal();
-      return;
-    }
-    source.style.viewTransitionName = "expanded-shot";
-    runViewTransition(() => {
-      screenshotDialog.showModal();
-      source.style.viewTransitionName = "";
-      source.style.visibility = "hidden";
-      expandedScreenshot.style.viewTransitionName = "expanded-shot";
-    }, "screenshot").finally(() => {
-      source.style.visibility = "";
-      source.style.viewTransitionName = "";
-      expandedScreenshot.style.viewTransitionName = "";
-    });
-  };
-  if (expandedScreenshot.src !== link.href) {
-    expandedScreenshot.addEventListener("load", reveal, { once: true });
-    expandedScreenshot.src = link.href;
-    if (expandedScreenshot.complete && expandedScreenshot.naturalWidth) reveal();
-    return;
-  }
-  reveal();
+  await expandedScreenshot.decode().catch(() => {});
+  if (request !== screenshotRequest || !expandedScreenshot.naturalWidth) return;
+  expandedScreenshot.width = expandedScreenshot.naturalWidth;
+  expandedScreenshot.height = expandedScreenshot.naturalHeight;
+  screenshotSource = link.closest(".screen-frame") || link;
+  screenshotOpener = link;
+  screenshotSource.classList.add("screenshot-source-hidden");
+  screenshotDialog.showModal();
 }
 
 function closeScreenshot() {
-  const source = screenshotSource;
-  const animate = source && !prefersReducedMotion() &&
-    typeof document.startViewTransition === "function";
-  if (!animate) {
-    screenshotDialog.close();
-    screenshotSource = null;
-    return;
-  }
-  expandedScreenshot.style.viewTransitionName = "expanded-shot";
-  runViewTransition(() => {
-    screenshotDialog.close();
-    expandedScreenshot.style.viewTransitionName = "";
-    source.style.viewTransitionName = "expanded-shot";
-  }, "screenshot").finally(() => {
-    source.style.viewTransitionName = "";
-    expandedScreenshot.style.viewTransitionName = "";
-    screenshotSource = null;
-  });
+  ++screenshotRequest;
+  screenshotDialog.close();
 }
+
+screenshotDialog.addEventListener("close", async () => {
+  const source = screenshotSource;
+  const opener = screenshotOpener;
+  screenshotSource = null;
+  screenshotOpener = null;
+  await Promise.allSettled(
+    screenshotDialog.getAnimations().map((animation) => animation.finished),
+  );
+  if (source !== screenshotSource) {
+    source?.classList.remove("screenshot-source-hidden");
+  }
+  if (!screenshotDialog.open) opener?.focus({ preventScroll: true });
+});
 
 screenshotDialog.addEventListener("cancel", (event) => {
   event.preventDefault();

@@ -2007,6 +2007,7 @@ dialog[open]::backdrop {
 .practice-demo .demo-copy .inline-link { margin-top: 16px; }
 .screenshot-link { display: block; position: relative; color: inherit; cursor: pointer; }
 .screenshot-link > img { width: 100%; height: auto; display: block; }
+.screenshot-source-hidden { visibility: hidden; }
 .words-visual > .screenshot-link { width: min(350px, 100%); border: 1px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 14px 16px 0 rgba(40,72,232,.18); }
 .inspector-crop { position: relative; aspect-ratio: 350 / 740; overflow: hidden; background: #202020; }
 .inspector-crop img { position: absolute; right: 0; top: -33px; width: 500%; height: auto; max-width: none; }
@@ -2020,25 +2021,13 @@ dialog[open]::backdrop {
   max-height: calc(100svh - 64px);
   margin: auto;
   overflow: hidden;
-  opacity: 1;
-  transform: none;
-  transition: none;
+  box-shadow: 0 20px 70px rgba(15, 19, 17, 0.24);
 }
 .screenshot-dialog[open] {
   display: flex;
-  opacity: 1;
-  transform: none;
-  transition: none;
-
-  @starting-style {
-    opacity: 1;
-    transform: none;
-  }
 }
 .screenshot-dialog .dialog-top { margin-bottom: 16px; }
 .screenshot-dialog .small-note { margin: 14px 0 0; }
-.screenshot-dialog[open] .dialog-top,
-.screenshot-dialog[open] #screenshot-caption { animation: practice-copy-in 320ms ease both; }
 .screenshot-frame {
   min-height: 0;
   min-width: 0;
@@ -2100,55 +2089,13 @@ dialog[open]::backdrop {
   .inline-link:hover span { transform: translate(3px, -3px); }
 }
 
-/* Practice steps and screenshot zooms share one element across the swap. The page itself stays still. */
-::view-transition-old(root),
-::view-transition-new(root) { animation: none; }
-
-.practice-demo .insight-view:not([hidden]) .screen-frame { view-transition-name: practice-screen; }
-.practice-demo .insight-view:not([hidden]) .demo-note { view-transition-name: practice-copy; }
-
-::view-transition-group(practice-screen),
-::view-transition-group(practice-copy),
-::view-transition-group(expanded-shot) {
-  animation-duration: 440ms;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+/* Animate only the incoming step so tabs and screenshot links stay clickable. */
+.practice-demo .insight-view:not([hidden]) .screen-frame,
+.practice-demo .insight-view:not([hidden]) .demo-note {
+  animation: practice-copy-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-::view-transition-old(expanded-shot),
-::view-transition-new(expanded-shot) {
-  height: 100%;
-  overflow: clip;
-}
-
-html:active-view-transition-type(practice-forward)::view-transition-old(practice-screen) {
-  animation: 440ms cubic-bezier(0.22, 1, 0.36, 1) both practice-leave-left;
-}
-html:active-view-transition-type(practice-forward)::view-transition-new(practice-screen) {
-  animation: 440ms cubic-bezier(0.22, 1, 0.36, 1) both practice-enter-right;
-}
-html:active-view-transition-type(practice-back)::view-transition-old(practice-screen) {
-  animation: 440ms cubic-bezier(0.22, 1, 0.36, 1) both practice-leave-right;
-}
-html:active-view-transition-type(practice-back)::view-transition-new(practice-screen) {
-  animation: 440ms cubic-bezier(0.22, 1, 0.36, 1) both practice-enter-left;
-}
-
-::view-transition-old(practice-copy) { animation: 280ms ease both practice-copy-out; }
-::view-transition-new(practice-copy) { animation: 420ms ease 50ms both practice-copy-in; }
-
-@keyframes practice-leave-left { to { opacity: 0; transform: translateX(-32px); } }
-@keyframes practice-enter-right { from { opacity: 0; transform: translateX(32px); } }
-@keyframes practice-leave-right { to { opacity: 0; transform: translateX(32px); } }
-@keyframes practice-enter-left { from { opacity: 0; transform: translateX(-32px); } }
-@keyframes practice-copy-out { to { opacity: 0; transform: translateY(8px); } }
 @keyframes practice-copy-in { from { opacity: 0; transform: translateY(10px); } }
-
-@supports not (view-transition-name: none) {
-  .practice-demo .insight-view:not([hidden]) .screen-frame,
-  .practice-demo .insight-view:not([hidden]) .demo-note {
-    animation: practice-copy-in 420ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-}
 
 @supports (animation-timeline: view()) {
   .insights-heading,
@@ -2169,22 +2116,19 @@ html:active-view-transition-type(practice-back)::view-transition-new(practice-sc
 }
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) { animation: none !important; }
-
   dialog,
-  dialog[open] { transform: none; }
+  dialog[open] { transform: none; transition: none; }
+  dialog::backdrop { transition: none; }
 
   .status-dot,
+  .practice-demo .insight-view .screen-frame,
+  .practice-demo .insight-view .demo-note,
   .insights-heading,
   .ways-grid,
   .words-layout,
   .privacy-layout,
   .faq-list,
-  .download-copy,
-  .screenshot-dialog[open] .dialog-top,
-  .screenshot-dialog[open] #screenshot-caption {
+  .download-copy {
     animation: none !important;
     opacity: 1;
     translate: none;
