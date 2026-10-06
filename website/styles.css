@@ -1950,30 +1950,49 @@ dialog[open]::backdrop {
 .inline-link { display: inline-flex; align-items: center; gap: 12px; padding: 0; margin-top: 20px; border: 0; background: none; color: var(--blue); font: 700 14px var(--body); cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
 .product-footnote { margin: 20px 0 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
 .when-section {
-  padding-block: 64px;
+  padding-top: 40px;
+  padding-bottom: 48px;
   background: var(--paper);
-  border-bottom: 1px solid var(--line);
 }
-.when-section h2 {
-  margin: 0 0 28px;
-  font: 500 clamp(36px, 5vw, 64px)/.98 var(--display);
-  letter-spacing: -.055em;
+
+.when-section .section-kicker {
+  margin-bottom: 24px;
 }
+
+.when-section .section-kicker span {
+  display: inline;
+}
+
 .when-moments {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
-  max-width: 640px;
 }
+
 .when-moments li {
-  padding-block: 14px;
-  border-bottom: 1px solid var(--line);
   font-size: 18px;
+  line-height: 1.4;
+  color: var(--ink);
+  padding-right: 24px;
 }
+
 @media (max-width: 780px) {
-  .when-section { padding-block: 48px; }
-  .when-section h2 { font-size: clamp(32px, 10vw, 48px); }
-  .when-moments li { font-size: 17px; }
+  .when-section {
+    padding-top: 32px;
+    padding-bottom: 36px;
+  }
+
+  .when-moments {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .when-moments li {
+    font-size: 17px;
+    padding-right: 0;
+  }
 }
 
 .words-section { padding-block: 100px; background: var(--blue-pale); border-block: 1px solid var(--line); }
