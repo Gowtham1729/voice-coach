@@ -105,7 +105,7 @@ function supportTabKeys(tabs, activate) {
 }
 
 const insightTabs = $$("[data-insight]");
-const insightOrder = ["listen", "repeat", "compare"];
+const insightOrder = ["listen", "understand", "repeat", "compare"];
 const insightTabsRoot = $(".insight-tabs");
 let activeInsight = "listen";
 let insightRequest = 0;
@@ -175,23 +175,23 @@ async function openScreenshot(link) {
   screenshotDialog.showModal();
 }
 
-function closeScreenshot() {
+async function closeScreenshot() {
+  if (!screenshotDialog.open || screenshotDialog.classList.contains("screenshot-closing")) return;
   ++screenshotRequest;
-  screenshotDialog.close();
-}
-
-screenshotDialog.addEventListener("close", async () => {
-  const source = screenshotSource;
-  const opener = screenshotOpener;
-  screenshotSource = null;
-  screenshotOpener = null;
+  screenshotDialog.classList.add("screenshot-closing");
   await Promise.allSettled(
     screenshotDialog.getAnimations().map((animation) => animation.finished),
   );
-  if (source !== screenshotSource) {
-    source?.classList.remove("screenshot-source-hidden");
-  }
-  if (!screenshotDialog.open) opener?.focus({ preventScroll: true });
+  screenshotDialog.close();
+}
+
+screenshotDialog.addEventListener("close", () => {
+  const opener = screenshotOpener;
+  screenshotDialog.classList.remove("screenshot-closing");
+  screenshotSource?.classList.remove("screenshot-source-hidden");
+  screenshotSource = null;
+  screenshotOpener = null;
+  opener?.focus({ preventScroll: true });
 });
 
 screenshotDialog.addEventListener("cancel", (event) => {

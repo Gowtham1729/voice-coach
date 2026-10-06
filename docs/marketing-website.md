@@ -11,11 +11,11 @@ node scripts/build-website.mjs
 node scripts/serve-website.mjs --port 4173
 ```
 
-`check-website.mjs` is the contract, and it is not part of CI job `test`. It checks local assets, unique IDs, ARIA targets, three workflow tabs, the latest-release download with no pinned version, no external scripts, no capture or analytics APIs, no em dashes, and the exact strings in its `requiredCopy` array. Change one of those sentences only by editing `website/index.html` and the checker in the same change. Browser checks for dialogs, focus return, tabs, the mobile menu, FAQ, video chapters, overflow, and the ribbon are separate from that script. Neither those checks nor `check-website.mjs` prove app contracts, signing, persistence, language accuracy, or hardware audio.
+`check-website.mjs` is the contract, and it is not part of CI job `test`. It checks local assets, unique IDs, ARIA targets, four workflow tabs, the latest-release download with no pinned version, no external scripts, no capture or analytics APIs, no em dashes, and the exact strings in its `requiredCopy` array. Change one of those sentences only by editing `website/index.html` and the checker in the same change. Browser checks for dialogs, focus return, tabs, the mobile menu, FAQ, video chapters, overflow, and the ribbon are separate from that script. Neither those checks nor `check-website.mjs` prove app contracts, signing, persistence, language accuracy, or hardware audio.
 
 ## Copy and claims
 
-Follow `docs/brand/messaging.md`. The page says **Listen → Repeat → Compare**. Words stays in the experimental section. The app’s own reference loop remains Listen → Repeat → Compare. No accent grades, fluency guarantees, or medical claims.
+Follow `docs/brand/messaging.md`. The page says **Listen → Understand → Repeat → Compare**. Understand is the optional language step; Words also stays in the experimental section. The app’s own reference loop remains Listen → Repeat → Compare. No accent grades, fluency guarantees, or medical claims.
 
 Use the shared product terms from the messaging guide in headings, instructions, FAQs, and image captions. The FAQ gives short answers to practical questions; avoid internal storage details and former feature names. Keep the Ichido name, descriptor, and website headline consistent with that guide. Replace product screenshots with real captures when visible labels change.
 

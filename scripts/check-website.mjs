@@ -63,6 +63,7 @@ for (const requiredCopy of [
   "Record with your mic", "Capture Mac audio", "Import a file",
   "Choose Capture Mac audio to use it as a reference.",
   "When enough words reliably match, two measured practice targets",
+  "Experimental and off by default. You can skip this step.",
   "AI can be wrong.",
   "Words can’t hear or evaluate your audio.",
   "Free while in early access. No account required.",
@@ -72,7 +73,7 @@ for (const requiredCopy of [
   assert.ok(normalizedHtml.includes(requiredCopy), `Missing product boundary: ${requiredCopy}`);
 }
 assert.ok(!/confidence score|personality score/.test(html), "No unsupported subjective scores");
-assert.equal((html.match(/\brole="tab"/g) || []).length, 3, "The reference loop has three accessible tabs");
+assert.equal((html.match(/\brole="tab"/g) || []).length, 4, "The reference loop has four accessible tabs");
 assert.equal((html.match(/practise/gi) || []).length, 0, "Website copy uses practice, not practise");
 assert.ok(html.includes(">A real practice session<"), "Practice-session heading is sentence case");
 assert.ok(!html.includes("A REAL PRACTICE SESSION"), "Practice-session heading is not shouted");
@@ -95,7 +96,11 @@ assert.ok(
   ),
   "Meta description matches the brief",
 );
-assert.ok(!html.includes('data-insight="understand"'), "Understand is not a numbered demo step");
+assert.deepEqual(
+  [...html.matchAll(/data-insight="([^"]+)"/g)].map((match) => match[1]),
+  ["listen", "understand", "repeat", "compare"],
+  "The website keeps Understand between Listen and Repeat",
+);
 for (const nav of html.matchAll(/<nav\b[^>]*>[\s\S]*?<\/nav>/g)) {
   assert.ok(!/>Words</.test(nav[0]), "Words is not a navigation item");
 }

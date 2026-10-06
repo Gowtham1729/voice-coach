@@ -23,7 +23,7 @@ Ichido is a native Mac app for private speaking practice. Record yourself, pract
 
 Use **Ichido** in prose and **ichido.** in the website wordmark. Keep the period as visual punctuation, outside product names, file names, and sentences where it would confuse readers. Ichido means one time; the story is inspired by mō ichido, once more. Do not claim that Ichido alone translates to “again” or “once more.” It is a multilingual practice product, rather than a Japanese-only course.
 
-Use **Practice** for the app sidebar, **Reference practice** for the feature, and **Words** for the language inspector. Reference-practice modes are **Listen & Repeat** and **Speak Along**. The website sequence Listen → Repeat → Compare is the marketing page. The app sequence is Listen → Repeat → Compare. A take is one recorded attempt. A reference is the audio someone chooses to practice with. Historical release files and internal Swift names may still contain Voice Coach or Mimic for compatibility.
+Use **Practice** for the app sidebar, **Reference practice** for the feature, and **Words** for the language inspector. Reference-practice modes are **Listen & Repeat** and **Speak Along**. The website sequence is Listen → Understand → Repeat → Compare; Understand is the optional Words step. The app sequence is Listen → Repeat → Compare. A take is one recorded attempt. A reference is the audio someone chooses to practice with. Historical release files and internal Swift names may still contain Voice Coach or Mimic for compatibility.
 
 ### Shared product terms
 
