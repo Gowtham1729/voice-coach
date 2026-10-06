@@ -115,10 +115,8 @@ jobs:
           set -euo pipefail
           cp "release-assets/Ichido-${VERSION}-macOS.zip" \
             release-assets/Ichido-macOS.zip
-          cp "release-assets/Ichido-${VERSION}-macOS.zip" \
-            release-assets/Voice-Coach-macOS.zip
           cmp "release-assets/Ichido-${VERSION}-macOS.zip" \
-            release-assets/Voice-Coach-macOS.zip
+            release-assets/Ichido-macOS.zip
 
       - name: Upload zip (dry-run artifact)
         if: github.event_name == 'workflow_dispatch'
@@ -154,7 +152,7 @@ jobs:
               echo
             fi
           } > "${NOTES}"
-          gh release create "${TAG}" "${ZIP}" release-assets/Ichido-macOS.zip release-assets/Voice-Coach-macOS.zip release-assets/appcast.xml \
+          gh release create "${TAG}" "${ZIP}" release-assets/Ichido-macOS.zip release-assets/appcast.xml \
             --title "Ichido ${VERSION}" \
             --notes-file "${NOTES}" \
             --latest \
