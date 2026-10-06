@@ -25,7 +25,7 @@ struct HomeView: View {
         SectionEyebrow(text: "Ichido")
         Text("Your private speaking room.")
           .font(.title2.weight(.semibold))
-        Text("Record a phrase, or practise with a reference.")
+        Text(TakeScreenCopy.homeSubtitle)
           .font(.callout)
           .foregroundStyle(Studio.secondary)
       }
@@ -98,7 +98,7 @@ struct HomeView: View {
       if model.isAnalyzing {
         HStack(spacing: 8) {
           ProgressView().controlSize(.small)
-          Text("Analyzing…")
+          Text(TakeScreenCopy.analyzing)
             .font(.caption)
             .foregroundStyle(Studio.secondary)
         }

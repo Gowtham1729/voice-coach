@@ -17,9 +17,14 @@ extension TakeView {
           .help("Uses the speech language and engine selected in Settings → Transcription.")
         }
         if let transcription = take.transcription {
-          Text("\(transcription.words.count) words")
-            .font(.caption)
-            .foregroundStyle(Studio.secondary)
+          if let count = TakeScreenCopy.wordCountLabel(
+            wordCount: transcription.words.count,
+            transcriptionRunning: model.isAnalyzing
+          ) {
+            Text(count)
+              .font(.caption)
+              .foregroundStyle(Studio.secondary)
+          }
           copyTranscriptButton(transcription.text)
         }
       }
