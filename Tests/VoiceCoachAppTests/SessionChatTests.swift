@@ -233,7 +233,8 @@ struct SessionChatTests {
     chat.send()
     #expect(chat.exchanges.count == 2)
     #expect(responder.requests.count == 1)
-    #expect(chat.exchanges.last?.answer == SessionChatReply.voiceBoundary.answer)
+    #expect(chat.exchanges.last?.answer == Self.wordsCannotAnswerLine)
+    #expect(chat.exchanges.last?.answer.split(whereSeparator: \.isNewline).count == 1)
 
     chat.send(.translate(language: "French", question: "Translate this into French."))
     try await waitUntil { responder.requests.count == 2 }
@@ -370,6 +371,71 @@ struct SessionChatTests {
     #expect(!task.instructions.contains("Stay under 60 words"))
   }
 
+  @Test func wordsCannotAnswerAudioUsesOneLockedLine() {
+    #expect(SessionChatReply.voiceBoundary.answer == Self.wordsCannotAnswerLine)
+    #expect(Self.wordsCannotAnswerLine.split(whereSeparator: \.isNewline).count == 1)
+  }
+
+  @Test func practiceNextChromeAndPlannerCopyStayPut() throws {
+    let ordinary = CoachingPlanner.recording(current: plannerMetrics())
+    #expect(ordinary.signals.isEmpty)
+    #expect(ordinary.notice == nil)
+
+    let clipped = CoachingPlanner.recording(current: plannerMetrics(clippingPercent: 2.5))
+    #expect(clipped.signals.isEmpty)
+    #expect(clipped.notice == "2.5% of this take's samples clipped.")
+
+    let severeNoise = CoachingPlanner.recording(current: plannerMetrics(snrDB: 3.9))
+    #expect(severeNoise.signals.isEmpty)
+    #expect(
+      severeNoise.notice
+        == "Speech was 3.9 dB above the measured noise floor. Pitch and pause estimates may be unreliable."
+    )
+
+    let unmeasured = CoachingPlanner.recording(
+      current: plannerMetrics(snrDB: .nan, clippingPercent: .nan))
+    #expect(unmeasured.signals.isEmpty)
+    #expect(
+      unmeasured.notice == "This take did not provide a dependable recording-quality measurement.")
+
+    let unreliable = CoachingPlanner.recording(
+      current: plannerMetrics(snrDB: 20, clippingPercent: .nan))
+    #expect(unreliable.notice == "Pitch and pause estimates may be unreliable at this recording quality.")
+
+    let silent = AudioAnalyzer().analyze(
+      samples: Array(repeating: Float(0), count: 1600), sampleRate: 16_000)
+    let bare = PracticeSession(
+      audioURL: URL(fileURLWithPath: "/tmp/no-words.wav"),
+      result: silent,
+      transcription: TranscriptionResult(text: "", words: []))
+    let unmatched = CoachingPlanner.mimic(reference: bare, attempt: bare)
+    #expect(unmatched.signals.isEmpty)
+    #expect(unmatched.notice == "Word matching is too limited for a reference comparison.")
+
+    let insights = try repositorySource("Sources/VoiceCoachApp/DesignSystem/TakeInsightsView.swift")
+    #expect(insights.contains("SectionEyebrow(text: \"Practice next\")"))
+    #expect(insights.contains("\"Metrics and practice next\""))
+    let settings = try repositorySource("Sources/VoiceCoachApp/Features/Settings/SettingsView.swift")
+    #expect(settings.contains("Text(\"Practice next\")"))
+    #expect(
+      settings.contains(
+        "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
+      ))
+    let planner = try repositorySource("Sources/VoiceCoachCore/Coaching/CoachingPlan.swift")
+    for phrase in [
+      "Reference comparison is limited by recording quality.",
+      "Phrase timing",
+      "Match the reference pace across the phrase, using the transition into",
+      "Repeat the phrase at the reference pace, then check where the last word lands.",
+      "Pitch across the phrase",
+      "Follow the reference's pitch movement across the phrase, using",
+      "Emphasis across the phrase",
+      "Follow the reference's emphasis across the phrase, using",
+    ] {
+      #expect(planner.contains(phrase))
+    }
+  }
+
   @Test func coachingRequestsAreBlockedAcrossTypedAndExplicitPaths() async throws {
     let (session, take) = fixture()
     let responder = ControlledChatResponder()
@@ -382,7 +448,7 @@ struct SessionChatTests {
     ] {
       chat.draft = question
       chat.send()
-      #expect(chat.exchanges.last?.answer == SessionChatReply.voiceBoundary.answer)
+      #expect(chat.exchanges.last?.answer == Self.wordsCannotAnswerLine)
     }
     chat.send(.ask("Rate my take"))
     #expect(responder.requests.isEmpty)
@@ -399,7 +465,7 @@ struct SessionChatTests {
     responder.complete(
       .success(SessionChatReply(answer: "You should pause more to sound confident.")))
     try await waitUntil { !chat.isResponding }
-    #expect(chat.exchanges.last?.answer == SessionChatReply.voiceBoundary.answer)
+    #expect(chat.exchanges.last?.answer == Self.wordsCannotAnswerLine)
   }
 
   @Test func sourceIdentityAndSubmittedTextSurviveSelectionChanges() async throws {
@@ -446,6 +512,58 @@ struct SessionChatTests {
     #expect(request.instructions.contains("revise the format"))
     #expect(!request.instructions.contains("sentence only"))
     #expect(!request.instructions.contains("two or three"))
+  }
+
+  private static let wordsCannotAnswerLine =
+    "Words can’t hear the audio. Ask about a word, a phrase, or a translation."
+
+  private func plannerMetrics(
+    snrDB: Double = 20,
+    clippingPercent: Double = 0
+  ) -> VoiceMetrics {
+    VoiceMetrics(
+      duration: 12,
+      activeSpeechDuration: 12,
+      sampleRateHz: 16_000,
+      noiseFloorDBFS: -55,
+      snrDB: snrDB,
+      clippingPercent: clippingPercent,
+      nonSpeechRatio: 0,
+      internalPauseCount: 0,
+      internalPauseTotalMs: 0,
+      meanInternalPauseMs: 0,
+      medianInternalPauseMs: 0,
+      longestInternalPauseMs: 0,
+      leadingSilenceMs: 0,
+      trailingSilenceMs: 0,
+      meanLoudnessDBFS: -20,
+      loudnessDynamicRangeDB: 6,
+      loudnessStandardDeviationDB: 1.5,
+      phraseStartDBFS: -19,
+      phraseEndDBFS: -21,
+      phraseDecayDB: -1,
+      medianPitchHz: 160,
+      pitchLowHz: 145,
+      pitchHighHz: 180,
+      pitchVariationHz: 8,
+      pitchRangeSemitones: 8,
+      pitchStandardDeviationSemitones: 1.2,
+      pitchInstabilityPercent: 2,
+      hnrDB: 18,
+      cppDB: 12
+    )
+  }
+
+  private func repositorySource(_ relativePath: String) throws -> String {
+    let root = relativePath.split(separator: "/").reduce(
+      URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+    ) { url, component in
+      url.appendingPathComponent(String(component))
+    }
+    return try String(contentsOf: root, encoding: .utf8)
   }
 
   private func waitUntil(_ condition: () -> Bool) async throws {

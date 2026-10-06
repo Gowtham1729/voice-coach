@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f4f1e9" />
     <meta
       name="description"
-      content="Ichido is your private speaking room for Mac. Record yourself, practise with a reference, and explore language on-device."
+      content="Ichido is your private speaking room for Mac. Record a take, practice with a reference, and try again."
     />
     <meta
       property="og:title"
@@ -53,7 +53,6 @@
       <nav class="desktop-nav" aria-label="Main navigation">
         <a href="#ways-in">Ways in</a>
         <a href="#practice">Practice</a>
-        <a href="#words">Words</a>
         <a href="#questions">Questions</a>
       </nav>
       <a
@@ -69,7 +68,6 @@
         <nav aria-label="Mobile navigation">
           <a href="#ways-in">Ways in</a>
           <a href="#practice">Practice</a>
-          <a href="#words">Words</a>
           <a href="#questions">Questions</a>
           <a href="#download">Get Ichido for Mac</a>
         </nav>
@@ -81,7 +79,7 @@
         <div class="hero-copy">
           <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span>Your private speaking room for Mac</p>
           <h1 id="hero-title">Your words.<br />Your voice.<br /><em>One more try.</em></h1>
-          <p class="hero-description">Record yourself. Practise with a reference. Explore the words behind a phrase, then try another take.</p>
+          <p class="hero-description">Record a take. Try again, or practice against a reference.</p>
           <div class="hero-actions">
             <a class="button button-blue" href="#download" data-open-download>Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></a>
             <a class="text-button watch-button" href="assets/ichido-launch-film.mp4" data-open-tour aria-haspopup="dialog" aria-controls="tour-dialog"><span class="play-symbol" aria-hidden="true">▶</span>Watch Ichido<span class="film-duration">1:03</span></a>
@@ -100,23 +98,18 @@
         <div class="section-kicker"><span>MAKE THE PHRASE YOURS</span><span>ONE TAKE AT A TIME</span></div>
         <div class="insights-heading">
           <h2 id="practice-title">Listen closely.<br />Then <em>try it.</em></h2>
-          <p>Choose a phrase you want to practise. Listen, record, and compare your take with the reference.</p>
+          <p>Choose a phrase you want to practice. Listen, record, and compare your take with the reference.</p>
         </div>
         <div class="insight-demo practice-demo">
           <div class="insight-tabs" role="tablist" aria-label="Explore reference practice">
             <button id="insight-tab-listen" role="tab" aria-selected="true" aria-controls="insight-panel" data-insight="listen"><span>01</span><strong>Listen</strong><small>Start with a reference</small></button>
-            <button id="insight-tab-understand" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="understand"><span>02</span><strong>Understand</strong><small>Explore the words</small></button>
-            <button id="insight-tab-repeat" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="repeat"><span>03</span><strong>Repeat</strong><small>Record your version</small></button>
-            <button id="insight-tab-compare" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="compare"><span>04</span><strong>Compare</strong><small>Hear what changed</small></button>
+            <button id="insight-tab-repeat" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="repeat"><span>02</span><strong>Repeat</strong><small>Record your version</small></button>
+            <button id="insight-tab-compare" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="compare"><span>03</span><strong>Compare</strong><small>Hear what changed</small></button>
           </div>
           <div class="insight-panel" id="insight-panel" role="tabpanel" aria-labelledby="insight-tab-listen" tabindex="0">
             <div class="insight-view" data-insight-view="listen">
               <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE PRACTICE · LISTEN</strong></div><a class="screenshot-link" href="assets/reference-practice.jpg" data-screenshot><img src="assets/reference-practice.jpg" width="3420" height="2146" alt="Ichido reference practice with a transcript, playback controls, and Listen & Repeat mode" loading="eager" decoding="async" /></a></div>
               <div class="demo-note"><span class="demo-label">A PHRASE WORTH REPEATING</span><h3>Bring your own reference.</h3><div class="demo-copy"><p>Import a clip or choose Capture Mac audio. Select a phrase, then listen to its rhythm, pauses, and emphasis.</p><p class="step-detail">Click a transcribed word to replay that moment.</p></div></div>
-            </div>
-            <div class="insight-view" data-insight-view="understand" hidden>
-              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>WORDS · EXPERIMENTAL</strong></div><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot><img src="assets/language-chat.jpg" width="3420" height="2146" alt="Live French reference practice with an on-device explanation in the Words inspector" loading="eager" decoding="async" /></a></div>
-              <div class="demo-note"><span class="demo-label">OPTIONAL LANGUAGE HELP</span><h3>Make sense of what you hear.</h3><div class="demo-copy"><p>Open Words beside your transcript to explore meanings, grammar, synonyms, and translations on your Mac.</p><p class="step-detail">Experimental and off by default. You can skip this step.</p><a class="inline-link" href="#words">See how Words works <span aria-hidden="true">↗</span></a></div></div>
             </div>
             <div class="insight-view" data-insight-view="repeat" hidden>
               <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE PRACTICE · YOUR TAKE</strong></div><a class="screenshot-link" href="assets/repeat-practice.jpg" data-screenshot><img src="assets/repeat-practice.jpg" width="3420" height="2146" alt="Ichido reference practice ready to record another take, with the reference transcript visible" loading="eager" decoding="async" /></a></div>
@@ -141,18 +134,18 @@
             <p class="words-requirements">Enable it in Settings → Experiments. Chat requires available Apple Intelligence. Translation languages may need a download.</p>
             <p class="product-footnote">AI can be wrong. Words can’t hear or evaluate your audio. Chats clear when you quit.</p>
           </div>
-          <figure class="words-visual"><div class="words-caption"><span class="demo-label">A REAL PRACTICE SESSION</span><span>French audio. A question. More context.</span></div><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot data-caption="French reference practice with on-device language help. Captured in the rebuilt Ichido app."><div class="inspector-crop"><img src="assets/language-chat.jpg" width="3420" height="2146" alt="The real language inspector explaining a French transcript about unusually cold June weather" loading="lazy" /></div></a><figcaption>Actual on-device reply. Language help can make mistakes.</figcaption></figure>
+          <figure class="words-visual"><div class="words-caption"><span class="demo-label sentence-case">A real practice session</span><span>French audio. A question. More context.</span></div><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot data-caption="French reference practice with on-device language help. Captured in the rebuilt Ichido app."><div class="inspector-crop"><img src="assets/language-chat.jpg" width="3420" height="2146" alt="The real language inspector explaining a French transcript about unusually cold June weather" loading="lazy" /></div></a><figcaption>Actual on-device reply. Language help can make mistakes.</figcaption></figure>
         </div>
       </section>
 
       <section class="ways-section" id="ways-in" aria-labelledby="ways-title">
         <div class="container">
           <div class="section-kicker"><span>THREE WAYS IN</span><span>START WITH WHAT YOU HAVE</span></div>
-          <div class="ways-heading"><h2 id="ways-title">A phrase. A clip.<br />Your own voice.</h2><p>Practise a language, rehearse a presentation, or simply hear yourself back. Choose the source that fits.</p></div>
+          <div class="ways-heading"><h2 id="ways-title">A phrase. A clip.<br />Your own voice.</h2><p>Practice a language, rehearse a presentation, or simply hear yourself back. Choose the source that fits.</p></div>
           <div class="ways-grid">
             <article class="way-card"><span class="way-number">01</span><img src="assets/icons/microphone.svg" alt="" /><h3>Record with your mic</h3><p>Try a phrase, an interview answer, or a talk. Review measured pauses, pitch, and loudness on the timeline.</p></article>
             <article class="way-card"><span class="way-number">02</span><img src="assets/icons/laptop.svg" alt="" /><h3>Capture Mac audio</h3><p>Turn a moment from a talk, podcast, or browser clip into a reference for practice.</p></article>
-            <article class="way-card"><span class="way-number">03</span><img src="assets/icons/arrow-down.svg" alt="" /><h3>Import a file</h3><p>Bring in an audio or video file. Ichido prepares the audio locally so you can listen and practise.</p></article>
+            <article class="way-card"><span class="way-number">03</span><img src="assets/icons/arrow-down.svg" alt="" /><h3>Import a file</h3><p>Bring in an audio or video file. Ichido prepares the audio locally so you can listen and practice.</p></article>
           </div>
           <p class="honesty-line"><img src="assets/icons/check.svg" alt="" />Playing a clip in your browser? Choose Capture Mac audio to use it as a reference.</p>
           <div class="recording-proof"><a class="screenshot-link recording-screen" href="assets/take-analysis.jpg" data-screenshot><img src="assets/take-analysis.jpg" width="3420" height="2146" alt="Live recording analysis with a word transcript, timeline, and measured acoustic properties" loading="lazy" /></a><div><span class="demo-label">A PLACE FOR YOUR OWN WORDS</span><h3>Reference optional.<br />Practice always.</h3><p>Start with your own recording whenever you want. Replay a word, notice a pause, and keep another take alongside it.</p><p class="product-footnote">Ordinary recordings show measurements. Reference practice adds matched comparison targets.</p><button class="inline-link" data-open-tour>Watch the film <span aria-hidden="true">↗</span></button></div></div>
@@ -160,15 +153,15 @@
       </section>
 
       <section class="privacy-section" id="privacy" aria-labelledby="privacy-title">
-        <div class="container privacy-layout"><div><span class="eyebrow">LOCAL BY DESIGN</span><h2 id="privacy-title">A room of<br />your own.</h2></div><div class="privacy-copy"><img src="assets/icons/lock-key.svg" alt="" /><p>Your recordings, transcripts, analysis, and language chat stay on your Mac.</p><p>No account. No recording uploads. No analytics. Update checks and optional model downloads use the network.</p><span class="privacy-signoff">YOUR VOICE BELONGS TO YOU.</span></div></div>
+        <div class="container privacy-layout"><div><span class="eyebrow">LOCAL BY DESIGN</span><h2 id="privacy-title">A room of<br />your own.</h2></div><div class="privacy-copy"><img src="assets/icons/lock-key.svg" alt="" /><p>Your recordings, transcripts, analysis, and language chat stay on your Mac.</p><p>No account. No recording uploads. No analytics. Update checks and optional model downloads use the network.</p></div></div>
       </section>
 
       <section class="faq-section container" id="questions" aria-labelledby="faq-title">
         <div class="faq-heading"><span class="eyebrow">BEFORE YOUR FIRST TAKE</span><h2 id="faq-title">A few things<br />to know.</h2><p>Getting started, language support, and what stays private.</p></div>
         <div class="faq-list">
           <details><summary>What do I need to run Ichido?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><div class="faq-panel"><div class="faq-panel-inner"><p>macOS 26 or later. Apple Silicon is recommended. Ichido is free while in early access. Words chat also needs available Apple Intelligence.</p></div></div></details>
-          <details><summary>How do I start practising?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><div class="faq-panel"><div class="faq-panel-inner"><p>Choose Record to practise on your own. For reference practice, open Practice → New reference practice… and add a clip. Choose a phrase, then Start practice.</p></div></div></details>
-          <details><summary>Which languages can I practise?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><div class="faq-panel"><div class="faq-panel-inner"><p>Choose the spoken language in Settings → Transcription. Apple supports a range of languages, with downloads when needed. Optional Parakeet detects 25 European languages automatically. For Japanese, choose Apple. Transcription, translation, and Words chat support different languages.</p></div></div></details>
+          <details><summary>How do I start practicing?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><div class="faq-panel"><div class="faq-panel-inner"><p>Choose Record to practice on your own. For reference practice, open Practice → New reference practice… and add a clip. Choose a phrase, then Start practice.</p></div></div></details>
+          <details><summary>Which languages can I practice?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><div class="faq-panel"><div class="faq-panel-inner"><p>Choose the spoken language in Settings → Transcription. Apple supports a range of languages, with downloads when needed. Optional Parakeet detects 25 European languages automatically. For Japanese, choose Apple. Transcription, translation, and Words chat support different languages.</p></div></div></details>
           <details><summary>Will Ichido correct my pronunciation?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><div class="faq-panel"><div class="faq-panel-inner"><p>No. Reference practice compares timing, pitch, and loudness. It can suggest two measured practice targets when enough words match reliably. It does not grade your accent or assess fluency.</p></div></div></details>
           <details><summary>What does Words do?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><div class="faq-panel"><div class="faq-panel-inner"><p>Words explains meanings, grammar, synonyms, and translations from your transcript. Enable it in Settings → Experiments. Chat runs on your Mac and clears when you quit. AI can be wrong; Words can’t hear or evaluate your audio.</p></div></div></details>
           <details><summary>Are my recordings uploaded?<img class="icon" src="assets/icons/plus.svg" alt="" /></summary><div class="faq-panel"><div class="faq-panel-inner"><p>No account. No recording uploads. No analytics. Your audio, transcripts, and analysis stay on your Mac. Update checks and optional model downloads use the network.</p></div></div></details>
