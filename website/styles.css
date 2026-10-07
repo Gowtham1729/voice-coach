@@ -387,7 +387,30 @@ img {
 .hero-art {
   position: relative;
   min-width: 0;
+}
+
+.hero-capture {
+  position: relative;
+  width: 100%;
+  margin: 0;
+}
+
+.hero-capture .screenshot-link {
   overflow: hidden;
+  aspect-ratio: 3420 / 2146;
+}
+
+.hero-capture .screenshot-link img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: bottom center;
+}
+
+.hero-art .sound-sculpture,
+.hero-art .sound-ribbon {
+  display: none;
 }
 
 .sound-sculpture {
@@ -1494,8 +1517,8 @@ dialog[open]::backdrop {
 }
 
 @media (max-width: 780px) {
-  .hero-art {
-    display: none !important;
+  .hero-copy {
+    display: contents;
   }
 
   :root {
@@ -1514,33 +1537,58 @@ dialog[open]::backdrop {
 
   .hero {
     grid-template-columns: 1fr;
-    gap: 10px;
+    align-items: start;
+    gap: 0;
     min-height: auto;
-    padding-block: 32px 64px;
+    padding-block: 16px 48px;
+  }
+
+  .hero .eyebrow {
+    order: 1;
+    margin-bottom: 16px;
   }
 
   .hero h1 {
+    order: 2;
     font-size: clamp(3rem, 12.7vw, 5.5rem);
     line-height: 0.98;
     letter-spacing: -0.065em;
   }
 
   .hero-description {
+    order: 3;
     font-size: 18px;
-    margin-top: 24px;
+    margin-top: 18px;
   }
 
   .hero-actions {
+    order: 4;
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
-    margin-top: 24px;
+    margin-top: 18px;
   }
 
   .hero-actions > * {
     width: 100%;
     justify-content: center;
     min-height: 52px;
+  }
+
+  .hero-art {
+    order: 5;
+    width: 100%;
+    margin-top: 16px;
+  }
+
+  .trust-line {
+    order: 6;
+    margin-top: 18px;
+  }
+
+  .brand-pronunciation {
+    order: 7;
+    margin-top: 12px;
   }
 
   .eyebrow,
@@ -1753,7 +1801,7 @@ dialog[open]::backdrop {
   }
 
   .hero .eyebrow {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
 
   .trust-line {
@@ -1981,7 +2029,7 @@ dialog[open]::backdrop {
 @media (max-width: 780px) {
   .wordmark { font-size: 22px; }
   .hero h1 em { margin-left: 0; }
-  .hero-index { position: static; margin-top: 24px; gap: 15px; }
+  .hero-index { order: 8; position: static; margin-top: 24px; gap: 15px; }
   .hero-index span:last-child { text-align: right; max-width: 190px; }
   .practice-demo .insight-tabs button { min-height: 92px; padding: 15px 8px; }
   .practice-demo .insight-tabs strong { font-size: 12px; letter-spacing: -.025em; }

@@ -179,8 +179,10 @@ function makeMesh(gl) {
 
 export function initSoundRibbon() {
   const scene = document.querySelector(".hero-art");
+  if (!scene) return;
   const canvas = scene.querySelector("canvas");
   const fallback = scene.querySelector(".sound-sculpture");
+  if (!canvas || !fallback) return;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const mobile = matchMedia("(max-width: 780px)");
   // Mobile has no artwork and must not create a graphics context.
@@ -271,7 +273,7 @@ export function initSoundRibbon() {
     const still = reducedMotion.matches || mobile.matches || lost;
     scene.classList.toggle("ribbon-ready", !still);
     canvas.hidden = still;
-    fallback.setAttribute("aria-hidden", String(!still));
+    if (fallback) fallback.setAttribute("aria-hidden", String(!still));
     if (!still && visible && !document.hidden) {
       frame = requestAnimationFrame(animate);
     }

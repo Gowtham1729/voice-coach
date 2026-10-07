@@ -83,7 +83,7 @@ assert.ok(
   "Download line stays Version 0.0.3",
 );
 assert.ok(
-  html.includes("Record a take. Try again, or practice against a reference."),
+  html.includes("Practice a language by shadowing a clip, or rehearse a talk. Compare your take, then try again."),
   "Hero subhead is the agreed short line",
 );
 assert.ok(
@@ -92,7 +92,7 @@ assert.ok(
 );
 assert.ok(
   html.includes(
-    'content="Ichido is your private speaking room for Mac. Record a take, practice with a reference, and try again."',
+    'content="Ichido is your private speaking room for Mac. Shadow a clip in another language or rehearse a talk, then compare your take and try again."',
   ),
   "Meta description matches the brief",
 );
