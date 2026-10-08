@@ -401,6 +401,10 @@ img {
   aspect-ratio: 1540 / 844;
 }
 
+.hero-capture .screenshot-link:focus-visible {
+  outline-offset: -3px;
+}
+
 .hero-capture .screenshot-link picture,
 .hero-capture .screenshot-link img {
   display: block;
