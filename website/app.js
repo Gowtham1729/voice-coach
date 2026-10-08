@@ -239,4 +239,37 @@ $$(".faq-list details").forEach((detail) => {
     });
   });
 });
+
+function initMobileDownloadBar() {
+  const bar = $(".mobile-download-bar");
+  const heroButton = $(".hero-actions .button-blue");
+  if (!bar || !heroButton || !("IntersectionObserver" in window)) return;
+
+  function updateBar(isHeroButtonVisible) {
+    if (isHeroButtonVisible) {
+      bar.classList.add("mobile-bar-hidden");
+      bar.setAttribute("aria-hidden", "true");
+      bar.setAttribute("inert", "");
+    } else {
+      bar.classList.remove("mobile-bar-hidden");
+      bar.removeAttribute("aria-hidden");
+      bar.removeAttribute("inert");
+    }
+  }
+
+  const rect = heroButton.getBoundingClientRect();
+  const initialVisible = rect.bottom > 0 && rect.top < window.innerHeight;
+  updateBar(initialVisible);
+
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      updateBar(entry.isIntersecting);
+    },
+    { threshold: 0 }
+  );
+
+  observer.observe(heroButton);
+}
+
+initMobileDownloadBar();
 initSoundRibbon();

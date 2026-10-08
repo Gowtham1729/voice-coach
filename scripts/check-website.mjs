@@ -29,7 +29,7 @@ const js = modules.map((file) => readFileSync(resolve(root, file), "utf8")).join
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(ids).size, ids.length, "HTML IDs must be unique");
 const urls = new Set([
-  ...[...html.matchAll(/\b(?:src|href|poster)="([^"]+)"/g)].map(
+  ...[...html.matchAll(/\b(?:src|href|poster|srcset)="([^"]+)"/g)].map(
     (match) => match[1],
   ),
   ...[...css.matchAll(/url\(['"]?([^'"\)]+)['"]?\)/g)].map((match) => match[1]),
