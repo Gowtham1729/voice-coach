@@ -16,7 +16,7 @@ PROVIDER_ID="github-actions"
 SA_NAME="website-deploy"
 SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 REPO="Gowtham1729/voice-coach"
-ATTR_CONDITION="assertion.repository=='${REPO}' && assertion.ref=='refs/heads/main' && assertion.event_name=='push'"
+ATTR_CONDITION="assertion.repository=='${REPO}' && assertion.ref=='refs/heads/main' && assertion.event_name=='push' && assertion.workflow_ref=='${REPO}/.github/workflows/deploy-website.yml@refs/heads/main'"
 ATTR_MAPPING="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref,attribute.event_name=assertion.event_name"
 
 export CLOUDSDK_CORE_DISABLE_PROMPTS=1
