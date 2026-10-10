@@ -49,7 +49,7 @@ assert.ok(
   "Open Graph URL is the Firebase host",
 );
 assert.ok(
-  html.includes(`content="${publicOrigin}/assets/ichido-share.png"`),
+  html.includes(`content="${publicOrigin}/assets/ichido-share.jpg"`),
   "Share image URL is the Firebase host",
 );
 assert.equal(
@@ -64,12 +64,13 @@ assert.ok(
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
 const modules = readdirSync(root).filter((file) => file.endsWith(".js"));
 const js = modules.map((file) => readFileSync(resolve(root, file), "utf8")).join("\n");
-for (const asset of ["styles.css", "app.js"]) {
+const appModule = readFileSync(resolve(root, "app.js"), "utf8");
+for (const [asset, source] of [["styles.css", html], ["app.js", html], ["./sound-ribbon.js", appModule]]) {
   const version = createHash("sha256")
     .update(readFileSync(resolve(root, asset)))
     .digest("hex")
     .slice(0, 12);
-  assert.ok(html.includes(`"${asset}?v=${version}"`), `Refresh the content version for ${asset}`);
+  assert.ok(source.includes(`"${asset}?v=${version}"`), `Refresh the content version for ${asset}`);
 }
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(ids).size, ids.length, "HTML IDs must be unique");
@@ -154,7 +155,7 @@ assert.ok(
 );
 assert.ok(
   html.includes(
-    'content="Ichido is your private speaking room for Mac. Practice a language, rehearse a talk, and hear yourself back."',
+    'content="Ichido is a private Mac app for speaking practice. Practice a language, rehearse a talk, and hear yourself back."',
   ),
   "Meta description matches the brief",
 );

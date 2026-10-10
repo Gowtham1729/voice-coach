@@ -1,0 +1,19 @@
+<!-- Copy to website/share-preview.html, serve the website, and capture at 1200 by 630 after fonts and the ribbon load. Export to website/assets/ichido-share.jpg, then remove the temporary preview. -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"/><title>Ichido share card</title>
+<style>
+@font-face {font-family:Space;src:url('assets/fonts/space-grotesk-bold.ttf');font-weight:700}
+@font-face {font-family:DM;src:url('assets/fonts/dm-sans.ttf')}
+*{box-sizing:border-box}body{margin:0;width:1200px;height:630px;overflow:hidden;background:#f4f1e9;color:#1f241f;font-family:DM,sans-serif}
+.brand{position:absolute;left:56px;top:42px;display:flex;align-items:center;gap:12px;font:700 30px Space,sans-serif;letter-spacing:-1.5px}.brand img{width:52px;height:auto}.brand span{color:#2848e8}
+h1{position:absolute;left:56px;top:180px;width:760px;margin:0;font:700 68px/1.08 Space,sans-serif;letter-spacing:-4px}em{font:italic 74px/1.2 Georgia,serif;color:#2848e8;letter-spacing:-3px}
+.sound-scene{position:absolute;right:16px;top:142px;width:520px;height:346px}
+.sound-sculpture,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.ribbon-ready .sound-sculpture{visibility:hidden}[hidden]{display:none!important}
+.description{position:absolute;left:56px;bottom:66px;margin:0;font-size:21px;line-height:1.5}.platform{color:#62645e;font-size:15px;margin-top:12px;display:block}
+</style></head><body>
+<div class="brand"><img src="assets/brand-mark.png" alt=""/><div>ichido<span>.</span></div></div>
+<div class="sound-scene"><img class="sound-sculpture" src="assets/sound-sculpture.jpg" alt=""/><canvas hidden></canvas></div>
+<h1>Speaking practice.<br/><em>At your own pace.</em></h1>
+<p class="description">Practice a language. Rehearse a talk.<span class="platform">Private speaking practice for Mac · macOS 26+</span></p>
+<script type="module">import { initSoundRibbon } from "./sound-ribbon.js"; initSoundRibbon();</script></body></html>

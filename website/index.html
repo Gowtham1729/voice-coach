@@ -6,11 +6,11 @@
     <meta name="theme-color" content="#f4f1e9" />
     <meta
       name="description"
-      content="Ichido is your private speaking room for Mac. Practice a language, rehearse a talk, and hear yourself back."
+      content="Ichido is a private Mac app for speaking practice. Practice a language, rehearse a talk, and hear yourself back."
     />
     <meta
       property="og:title"
-      content="Ichido | Your private speaking room for Mac"
+      content="Ichido | Private speaking practice for Mac"
     />
     <meta
       property="og:description"
@@ -23,14 +23,14 @@
     />
     <meta
       property="og:image"
-      content="https://ichido-511210.web.app/assets/ichido-share.png"
+      content="https://ichido-511210.web.app/assets/ichido-share.jpg"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <link
       rel="canonical"
       href="https://ichido-511210.web.app/"
     />
-    <title>Ichido | Your private speaking room for Mac</title>
+    <title>Ichido | Private speaking practice for Mac</title>
     <link rel="icon" href="assets/favicon.png" type="image/png" />
     <link
       rel="preload"
@@ -39,8 +39,8 @@
       type="font/ttf"
       crossorigin
     />
-    <link rel="stylesheet" href="styles.css?v=9ab88f47acf5" />
-    <script type="module" src="app.js?v=7d89a23eb3eb"></script>
+    <link rel="stylesheet" href="styles.css?v=d7861f014242" />
+    <script type="module" src="app.js?v=bc7ec9e235f4"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -57,7 +57,7 @@
       <a
         class="button button-blue nav-download"
         href="#download"
-        data-open-download
+        data-open-download aria-haspopup="dialog" aria-controls="download-dialog"
       >
         Get Ichido for Mac
         <img class="icon light" src="assets/icons/arrow-down.svg" alt="" />
@@ -71,7 +71,7 @@
           <h1 id="hero-title">Speaking practice.<br /><em>At your own pace.</em></h1>
           <p class="hero-description">Practice a language. Rehearse a talk.<br />Hear yourself back and find something to try next.</p>
           <div class="hero-actions">
-            <a class="button button-blue" href="#download" data-open-download>Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></a>
+            <a class="button button-blue" href="#download" data-open-download aria-haspopup="dialog" aria-controls="download-dialog">Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></a>
             <a class="text-button watch-button" href="assets/ichido-launch-film.mp4" data-open-tour aria-haspopup="dialog" aria-controls="tour-dialog"><span class="play-symbol" aria-hidden="true">▶</span>Watch Ichido<span class="film-duration">1:03</span></a>
           </div>
           <p class="trust-line">macOS 26+ · Free early access · No account</p>
@@ -99,24 +99,24 @@
           </div>
           <div class="insight-panel" id="insight-panel" role="tabpanel" aria-labelledby="insight-tab-listen" tabindex="0">
             <div class="insight-view" data-insight-view="listen">
-              <div class="screen-frame"><a class="screenshot-link" href="assets/reference-practice.jpg" data-screenshot><img src="assets/reference-practice.jpg" width="3420" height="2146" alt="Ichido reference practice with a transcript, playback controls, and Listen & Repeat mode" loading="lazy" decoding="async" /></a></div>
               <div class="demo-note"><h3>Find a voice that moves you.</h3><div class="demo-copy"><p>A line from a film. A moment in a podcast. Listen closely to the rhythm, pauses, and emphasis you want to explore.</p><p class="step-detail">Bring a clip you love. Choose Capture Mac audio to use it as a reference.</p></div></div>
+              <div class="screen-frame"><a class="screenshot-link" href="assets/reference-practice.jpg" data-screenshot><img src="assets/reference-practice.jpg" width="3420" height="2146" alt="Ichido reference practice with a transcript, playback controls, and Listen & Repeat mode" loading="lazy" decoding="async" /></a></div>
             </div>
             <div class="insight-view" data-insight-view="understand" hidden>
-              <div class="screen-frame"><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot><img src="assets/language-chat.jpg" width="3420" height="2146" alt="Live French reference practice with an on-device explanation in the Words inspector" loading="lazy" decoding="async" /></a></div>
               <div class="demo-note"><span class="demo-label">Words <span class="feature-badge">Experimental</span></span><h3>Make sense of what you hear.</h3><div class="demo-copy"><p>Open Words beside your transcript to explore meanings, grammar, synonyms, and translations on your Mac.</p><p class="step-detail">Optional. Chat requires available Apple Intelligence.</p></div></div>
+              <div class="screen-frame"><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot><img src="assets/language-chat.jpg" width="3420" height="2146" alt="Live French reference practice with an on-device explanation in the Words inspector" loading="lazy" decoding="async" /></a></div>
             </div>
             <div class="insight-view" data-insight-view="repeat" hidden>
-              <div class="screen-frame"><a class="screenshot-link" href="assets/repeat-practice.jpg" data-screenshot><img src="assets/repeat-practice.jpg" width="3420" height="2146" alt="Ichido reference practice ready to record another take, with the reference transcript visible" loading="lazy" decoding="async" /></a></div>
               <div class="demo-note"><h3>Make the phrase your own.</h3><div class="demo-copy"><p>Take your time with a phrase. Listen, give it your voice, and keep another take alongside it.</p><p class="step-detail">Listen &amp; Repeat plays the reference first. Speak Along plays it while you record; use headphones.</p></div></div>
+              <div class="screen-frame"><a class="screenshot-link" href="assets/repeat-practice.jpg" data-screenshot><img src="assets/repeat-practice.jpg" width="3420" height="2146" alt="Ichido reference practice ready to record another take, with the reference transcript visible" loading="lazy" decoding="async" /></a></div>
             </div>
             <div class="insight-view" data-insight-view="compare" hidden>
-              <div class="screen-frame"><a class="screenshot-link" href="assets/mimic-compare.jpg" data-screenshot><img src="assets/mimic-compare.jpg" width="3420" height="2146" alt="Live reference comparison showing matched pitch curves and two measured practice targets" loading="lazy" decoding="async" /></a></div>
               <div class="demo-note"><h3>Notice something. Try it differently.</h3><div class="demo-copy"><p>Hear where your timing, pitch, and loudness differ from the reference. When enough words reliably match, two measured practice targets suggest what to try next.</p></div></div>
+              <div class="screen-frame"><a class="screenshot-link" href="assets/mimic-compare.jpg" data-screenshot><img src="assets/mimic-compare.jpg" width="3420" height="2146" alt="Live reference comparison showing matched pitch curves and two measured practice targets" loading="lazy" decoding="async" /></a></div>
             </div>
           </div>
         </div>
-        <div class="practice-caption"><p class="product-footnote">Real app captures. Select an image for a closer look.</p><button class="inline-link" data-open-tour>Watch the film <span aria-hidden="true">↗</span></button></div>
+        <div class="practice-caption"><p class="product-footnote">Real app captures. Select an image for a closer look.</p><button class="inline-link" data-open-tour aria-haspopup="dialog" aria-controls="tour-dialog">Watch the film <span aria-hidden="true">↗</span></button></div>
       </section>
 
       <section class="faq-section container" id="questions" aria-labelledby="faq-title">
@@ -139,7 +139,7 @@
       </section>
 
       <section class="download-section" id="download" aria-labelledby="download-title">
-        <div class="container download-grid"><div class="download-copy"><h2 id="download-title">Make room<br />for your next take.</h2><p>Free while in early access. No account required.</p><button class="button button-blue" data-open-download>Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></button><span class="release-meta">Version 0.0.3 · Early access · macOS 26+</span></div><div class="download-art"><img class="download-icon" src="assets/app-icon.png" width="256" height="256" alt="Ichido app icon" loading="lazy" /></div></div>
+        <div class="container download-grid"><div class="download-copy"><h2 id="download-title">Make room<br />for your next take.</h2><p>Free while in early access. No account required.</p><button class="button button-blue" data-open-download aria-haspopup="dialog" aria-controls="download-dialog">Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></button><span class="release-meta">Version 0.0.3 · Early access · macOS 26+</span></div><div class="download-art"><img class="download-icon" src="assets/app-icon.png" width="256" height="256" alt="Ichido app icon" loading="lazy" /></div></div>
       </section>
     </main>
 
@@ -148,7 +148,6 @@
         <img src="assets/brand-mark.png" width="40" height="22" alt="" />
         <span>ichido.</span>
       </a>
-      <span class="footer-line">Your private speaking room.</span>
       <div>
         <a
           href="https://github.com/Gowtham1729/voice-coach/issues/new"

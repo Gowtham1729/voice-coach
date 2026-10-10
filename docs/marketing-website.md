@@ -13,7 +13,7 @@ node scripts/serve-website.mjs --port 4173
 
 `node scripts/build-website.mjs` copies `website/` to `dist/` for Firebase Hosting. `node scripts/serve-website.mjs` previews the `website/` source. The server does not serve the `dist/` copy.
 
-The stylesheet and app module URLs include the first 12 characters of each file’s SHA-256 as a `v` query parameter so returning browsers load changed assets immediately. Refresh the corresponding version in `website/index.html` whenever either file changes; the checker verifies those versions.
+The stylesheet, app module, and ribbon import URLs include the first 12 characters of each file’s SHA-256 as a `v` query parameter so returning browsers load changed assets immediately. After changing the ribbon, update its import version in `website/app.js` first. Then refresh the stylesheet and app versions in `website/index.html` for changed files; the checker verifies all three versions.
 
 `check-website.mjs` is the contract, and it is not part of CI job `test`. It checks local assets, unique IDs, ARIA targets, four workflow tabs, the latest-release download with no pinned version, no external scripts, no capture or analytics APIs, no em dashes, and the exact strings in its `requiredCopy` array. Change one of those sentences only by editing `website/index.html` and the checker in the same change. Browser checks for dialogs, focus return, tabs, navigation, FAQ, video chapters, overflow, and the ribbon are separate from that script. Neither those checks nor `check-website.mjs` prove app contracts, signing, persistence, language accuracy, or hardware audio.
 
@@ -28,6 +28,8 @@ Use the shared product terms from the messaging guide in headings, instructions,
 The download URL stays `https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip`. Publish copy for a new version only after that release’s ZIP aliases and signed appcast exist. The app is ad-hoc signed and not notarized.
 
 ## Assets
+
+- The social preview uses `ichido-share.jpg`. Its code-based composition is kept in `docs/brand/share-card.html`; it uses the same typography, messaging, and ribbon as the website.
 
 - Product images are real app captures. Do not retouch labels, transcripts, replies, or measurements, and do not replace them with `build/previews` fixtures.
 - `ichido-launch-film.mp4` is the launch film. The website player has no subtitle track. Do not put older Voice Coach footage back in its place, and do not present those old frames as the current interface.

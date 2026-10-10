@@ -205,7 +205,6 @@ test("left and right clicks excite different projected locations while the sculp
   assert.equal(page.frames.size, 0);
 });
 
-
 test("the motion control freezes the ribbon and resumes one loop", () => {
   const page = setup();
   assert.equal(page.motionToggle.hidden, false);

@@ -1,4 +1,4 @@
-import { initSoundRibbon } from "./sound-ribbon.js";
+import { initSoundRibbon } from "./sound-ribbon.js?v=5652ea022be2";
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [

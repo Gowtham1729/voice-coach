@@ -7,7 +7,7 @@
 - **Descriptor:** Your private speaking room.
 - **Website headline:** Speaking practice. At your own pace.
 - **Website introduction:** Practice a language. Rehearse a talk. Hear yourself back and find something to try next.
-- **Checker title:** Your private speaking room for Mac. The footer sign-off stays “Your private speaking room.”
+- **Page title:** Ichido | Private speaking practice for Mac.
 
 ## Product description
 
