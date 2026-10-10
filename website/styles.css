@@ -24,9 +24,11 @@
   --line: #d4d3cb;
   --blue: #2848e8;
   --blue-deep: #1736c8;
+  --blue-pale: #e8eeff;
+  --night: #171d1a;
   --body: "DM Sans", sans-serif;
   --display: "Space Grotesk", sans-serif;
-  --container: min(1440px, calc(100% - 96px));
+  --container: min(1600px, calc(100% - 96px));
 }
 
 * { box-sizing: border-box; }
@@ -133,13 +135,13 @@ h1 em { letter-spacing: -0.045em; }
 .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 32px; }
 .trust-line { margin-top: 18px; color: var(--muted); font-size: 13px; }
 .hero-art { min-width: 0; }
-.sound-scene { position: relative; width: 100%; aspect-ratio: 1.35; }
+.sound-scene { position: relative; width: calc(100% + clamp(12px, 2.8vw, 48px)); margin-left: calc(-1 * clamp(6px, 1.4vw, 24px)); aspect-ratio: 1.5; }
 .sound-sculpture { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .sound-ribbon { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
 .ribbon-ready .sound-sculpture { visibility: hidden; }
 .ribbon-toggle {
   position: absolute;
-  right: 0;
+  right: clamp(6px, 1.4vw, 24px);
   bottom: 0;
   min-height: 44px;
   padding: 8px 12px;
@@ -151,14 +153,12 @@ h1 em { letter-spacing: -0.045em; }
 }
 .ribbon-toggle:hover { color: var(--ink); }
 
-.insights-section, .faq-section, .download-section { border-top: 1px solid var(--line); }
-
 /* One overview, with four chapters sharing a gridded practice room. */
-.insights-section { padding-block: 64px 100px; }
+.insights-section { padding-block: 72px 88px; background: var(--blue-pale); }
 .insights-heading { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 64px; margin-bottom: 44px; }
 h2 { font-size: clamp(36px, 3.8vw, 56px); }
 .insights-heading p { max-width: 48ch; color: var(--muted); font-size: 18px; }
-.insight-demo { border: 1px solid var(--ink); }
+.insight-demo { border: 1px solid var(--ink); background: var(--paper); }
 .insight-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--ink); }
 .insight-tabs button {
   position: relative;
@@ -208,7 +208,8 @@ h2 { font-size: clamp(36px, 3.8vw, 56px); }
 .practice-caption { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 24px; }
 .product-footnote { color: var(--muted); font-size: 13px; }
 
-.faq-section { display: grid; grid-template-columns: 1fr 1.35fr; gap: 96px; padding-block: 80px 100px; }
+.faq-section { padding-block: 80px 100px; }
+.faq-layout { display: grid; grid-template-columns: 1fr 1.35fr; gap: 96px; }
 .faq-heading h2 { max-width: 12ch; }
 .privacy-note { max-width: 37ch; margin-top: 48px; }
 .privacy-note h3 { margin-bottom: 14px; font-size: 22px; }
@@ -221,12 +222,13 @@ summary::-webkit-details-marker { display: none; }
 .faq-panel-inner { max-width: 60ch; padding: 0 36px 24px 0; color: var(--muted); font-size: 15px; }
 .faq-panel a, .install-details a, .tour-note a, .noscript-note a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
 
-.download-section { padding-block: 88px 96px; background: #e8ecfa; }
+.download-section { padding-block: 88px 96px; background: var(--night); color: white; }
+.download-section :focus-visible { outline-color: white; }
 .download-grid { display: grid; grid-template-columns: 1fr 0.7fr; align-items: center; gap: 48px; }
 .download-copy h2 { max-width: 14ch; }
-.download-copy p { margin-top: 24px; color: var(--muted); }
+.download-copy p { margin-top: 24px; color: #bdc3be; }
 .download-copy .button { margin-top: 28px; }
-.release-meta { display: block; margin-top: 16px; color: var(--muted); font-size: 13px; }
+.release-meta { display: block; margin-top: 16px; color: #bdc3be; font-size: 13px; }
 .download-art { justify-self: center; }
 .download-icon { width: 190px; }
 .site-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 32px; min-height: 124px; padding-block: 32px; }
@@ -296,7 +298,7 @@ dialog::backdrop { background: #111820b8; }
   .insight-tabs button { padding-inline: 16px; gap: 12px; }
   .insight-panel { padding: 28px; }
   .insight-view { grid-template-columns: 1fr 1.3fr; gap: 36px; }
-  .faq-section { gap: 56px; }
+  .faq-layout { gap: 56px; }
 }
 
 @media (max-width: 780px) {
@@ -334,7 +336,8 @@ dialog::backdrop { background: #111820b8; }
   .practice-caption { align-items: flex-start; flex-direction: column; gap: 4px; margin-top: 16px; }
   .product-footnote { font-size: 12px; }
   .inline-link { font-size: 14px; }
-  .faq-section { display: flex; flex-direction: column; gap: 36px; padding-block: 48px 64px; }
+  .faq-section { padding-block: 48px 64px; }
+  .faq-layout { display: flex; flex-direction: column; gap: 36px; }
   .faq-heading h2 { max-width: 15ch; }
   .privacy-note { max-width: 52ch; margin-top: 28px; }
   .faq-list summary { min-height: 70px; gap: 16px; font-size: 15px; }
