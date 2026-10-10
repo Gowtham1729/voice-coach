@@ -151,37 +151,57 @@ h1 em { letter-spacing: -0.045em; }
 }
 .ribbon-toggle:hover { color: var(--ink); }
 
-/* One overview; plain tabs reveal detail without extending the page. */
+/* One overview, with four chapters sharing a gridded practice room. */
 .insights-section { padding-block: 64px 100px; }
 .insights-heading { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 64px; margin-bottom: 44px; }
 h2 { font-size: clamp(36px, 3.8vw, 56px); }
 .insights-heading p { max-width: 48ch; color: var(--muted); font-size: 18px; }
-.insight-tabs { display: flex; gap: 36px; width: max-content; max-width: 100%; margin-bottom: 40px; }
+.insight-demo { border: 1px solid var(--ink); }
+.insight-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--ink); }
 .insight-tabs button {
   position: relative;
-  min-height: 50px;
-  min-width: 44px;
-  padding: 10px 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: center;
+  gap: 16px;
+  min-height: 112px;
+  min-width: 0;
+  padding: 22px 24px;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-right: 1px solid var(--ink);
   background: transparent;
-  color: var(--muted);
-  font-size: 16px;
+  text-align: left;
 }
-.insight-tabs strong { font-weight: 500; }
-.insight-tabs [aria-selected="true"] { color: var(--blue); border-bottom-color: var(--blue); }
-.insight-tabs button:hover { color: var(--ink); }
-.insight-view { display: grid; grid-template-columns: 1fr 1.7fr; align-items: center; gap: 64px; }
-.screen-frame { min-width: 0; }
-.screenshot-link { display: block; border-radius: 10px; cursor: zoom-in; }
-.screenshot-link img { width: 100%; border-radius: 10px; }
+.insight-tabs button:last-child { border-right: 0; }
+.insight-tabs button > span { grid-row: 1 / 3; padding-top: 3px; font: 700 11px var(--display); }
+.insight-tabs strong { font: 700 17px var(--display); }
+.insight-tabs small { grid-column: 2; color: var(--muted); font-size: 14px; }
+.insight-tabs [aria-selected="true"] { background: var(--blue); color: white; }
+.insight-tabs [aria-selected="true"] small { color: #d8dfff; }
+.insight-tabs button:focus-visible { z-index: 1; outline-offset: -6px; outline-color: var(--ink); }
+.insight-tabs [aria-selected="true"]:focus-visible { outline-color: white; }
+@media (hover: hover) { .insight-tabs button:not([aria-selected="true"]):hover { background: #ebece5; } }
+.insight-panel {
+  padding: 34px;
+  background-image: linear-gradient(rgba(40, 72, 232, .055) 1px, transparent 1px), linear-gradient(90deg, rgba(40, 72, 232, .055) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.insight-view { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); align-items: center; gap: 64px; }
+.screen-frame { min-width: 0; overflow: hidden; border: 1px solid var(--ink); border-radius: 13px; background: #ebeae4; box-shadow: 12px 14px 0 rgba(31, 36, 31, .11); }
+.screen-bar { display: flex; align-items: center; gap: 7px; height: 36px; padding-inline: 14px; border-bottom: 1px solid var(--ink); }
+.screen-bar > span { width: 8px; height: 8px; flex-shrink: 0; border: 1px solid var(--ink); border-radius: 50%; }
+.screen-bar strong { margin-left: auto; font: 700 9px var(--display); letter-spacing: .14em; text-transform: uppercase; }
+.screenshot-link { display: block; cursor: zoom-in; }
+.screenshot-link:focus-visible { outline-offset: -6px; outline-color: white; }
+.screenshot-link img { width: 100%; }
 .screenshot-source-hidden { visibility: hidden; }
-.demo-note { max-width: 40ch; }
+.demo-note { max-width: 52ch; }
 .demo-label, .mini-label { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 10px; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.09em; }
 .demo-note h3 { font-size: clamp(27px, 2.5vw, 36px); }
 .demo-copy p { margin-top: 20px; }
 .demo-copy .step-detail { color: var(--muted); font-size: 14px; }
 .demo-label + h3 { margin-top: 16px; }
+.demo-note > .demo-label { color: var(--ink); text-transform: uppercase; }
 .feature-badge { padding: 3px 7px; border-radius: 4px; background: #e1e5f4; color: #384979; font-size: 11px; font-weight: 500; letter-spacing: 0; }
 .practice-caption { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 24px; }
 .product-footnote { color: var(--muted); font-size: 13px; }
@@ -271,7 +291,9 @@ dialog::backdrop { background: #111820b8; }
   .hero { min-height: 600px; padding-block: 56px 80px; }
   .hero-description { font-size: 18px; }
   .hero-actions { gap: 16px; }
-  .insight-view { grid-template-columns: 1fr 1.6fr; gap: 36px; }
+  .insight-tabs button { padding-inline: 16px; gap: 12px; }
+  .insight-panel { padding: 28px; }
+  .insight-view { grid-template-columns: 1fr 1.3fr; gap: 36px; }
   .faq-section { gap: 56px; }
 }
 
@@ -293,9 +315,15 @@ dialog::backdrop { background: #111820b8; }
   .insights-section { padding-block: 20px 56px; }
   .insights-heading { display: block; margin-bottom: 28px; }
   .insights-heading p { margin-top: 22px; font-size: 16px; }
-  .insight-tabs { width: 100%; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
-  .insight-tabs button { font-size: 14px; }
+  .insight-tabs button { grid-template-columns: 1fr; gap: 8px; min-height: 76px; padding: 14px 8px; }
+  .insight-tabs button > span { grid-row: auto; padding: 0; font-size: 10px; }
+  .insight-tabs strong { font-size: clamp(11px, 3.3vw, 14px); }
+  .insight-tabs small { display: none; }
+  .insight-panel { padding: 24px 20px 30px; }
   .insight-view { display: flex; flex-direction: column; align-items: stretch; gap: 24px; }
+  .screen-frame { box-shadow: 7px 8px 0 rgba(31, 36, 31, .11); border-radius: 10px; }
+  .screen-bar { height: 30px; padding-inline: 10px; }
+  .screen-bar strong { font-size: 8px; letter-spacing: .05em; }
   .demo-note { max-width: 54ch; }
   .demo-note h3 { font-size: 28px; }
   .demo-label + h3 { margin-top: 10px; }
@@ -333,8 +361,7 @@ dialog::backdrop { background: #111820b8; }
   .desktop-nav { gap: 16px; }
   .download-grid { grid-template-columns: 1fr; }
   .download-art { display: none; }
-  .insight-tabs { gap: 8px; }
-  .insight-tabs button { font-size: 13px; }
+  .insight-tabs button { padding-inline: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

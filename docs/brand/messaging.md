@@ -63,7 +63,7 @@ The optional Understand tab introduces **Words**; it is optional and does not na
 
 Lead with what Ichido makes room for: a language someone is learning, a talk they are rehearsing, or their own words. Keep the warm paper, expressive typography, and cobalt sound ribbon as the opening identity. The ribbon is a silent, playful expression of voice, not an acoustic measurement or an app preview.
 
-Use one product overview further down with a real capture beside each relevant story. Keep Words in the optional Understand step, and privacy alongside the questions. Avoid repeating the same screenshot or claim across separate sections. Mobile omits the ribbon and brings the product explanation and next action forward. Do not turn the hero into a cropped app panel or a feature inventory. Keep input methods and setup details secondary to purpose, with precise instructions available where needed.
+Use one product overview further down with a real capture beside each relevant story. Keep its numbered Listen → Understand → Repeat → Compare tabs, cobalt selected chapter, and subtle graph-paper panel. These borders group one interactive overview; avoid using them to divide every section of the page. Keep Words in the optional Understand step, and privacy alongside the questions. Avoid repeating the same screenshot or claim across separate sections. Mobile omits the ribbon and brings the product explanation and next action forward. Do not turn the hero into a cropped app panel or a feature inventory. Keep input methods and setup details secondary to purpose, with precise instructions available where needed.
 
 ## Proof and limits
 
