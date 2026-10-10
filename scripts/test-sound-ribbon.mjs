@@ -29,13 +29,14 @@ function target(properties = {}) {
   }, properties);
 }
 
-function setup({ reduced = false, mobile = false, gpu = true, compile = true } = {}) {
+function setup({ reduced = false, mobile = false, gpu = true, compile = true, hidden = false } = {}) {
   const frames = new Map();
   const values = {};
   let nextFrame = 0;
   let draws = 0;
   let contexts = 0;
   let intersect;
+  let resize;
   const gl = new Proxy({
     getShaderParameter: () => compile,
     getProgramParameter: () => true,
@@ -51,11 +52,14 @@ function setup({ reduced = false, mobile = false, gpu = true, compile = true } =
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 600, height: 450 }),
   });
   const fallback = target();
+  const motionToggle = target({ hidden: true, textContent: "Pause motion" });
   const classes = new Set();
   const scene = {
+    clientWidth: hidden ? 0 : 600,
+    clientHeight: hidden ? 0 : 450,
     classList: { toggle: (name, on) => on ? classes.add(name) : classes.delete(name) },
     querySelector: (selector) => ({
-      canvas, ".sound-sculpture": fallback,
+      canvas, ".sound-sculpture": fallback, ".ribbon-toggle": motionToggle,
     })[selector],
   };
   const media = target({ matches: reduced });
@@ -74,12 +78,16 @@ function setup({ reduced = false, mobile = false, gpu = true, compile = true } =
       constructor(callback) { intersect = callback; }
       observe() {}
     },
-    ResizeObserver: class { observe() {} },
+    ResizeObserver: class {
+      constructor(callback) { resize = callback; }
+      observe() {}
+    },
   });
   return {
-    canvas, fallback, media, phone, document, frames, values, classes,
+    canvas, fallback, motionToggle, scene, media, phone, document, frames, values, classes,
     draws: () => draws, contexts: () => contexts,
     intersect: (visible) => intersect([{ isIntersecting: visible }]),
+    resize: () => resize(),
     tick(time) {
       for (const [id, callback] of [...frames]) {
         frames.delete(id);
@@ -88,6 +96,27 @@ function setup({ reduced = false, mobile = false, gpu = true, compile = true } =
     },
   };
 }
+
+test("a hidden ribbon scene allocates no graphics context or animation loop", () => {
+  const page = setup({ hidden: true });
+  assert.equal(page.contexts(), 0);
+  assert.equal(page.frames.size, 0);
+  assert.equal(page.draws(), 0);
+});
+
+test("resizing does not draw while the ribbon is offscreen or the page is hidden", () => {
+  const page = setup();
+  const initialDraws = page.draws();
+  page.intersect(false);
+  page.resize();
+  assert.equal(page.draws(), initialDraws);
+  page.intersect(true);
+  page.document.hidden = true;
+  page.document.emit("visibilitychange");
+  page.resize();
+  assert.equal(page.draws(), initialDraws);
+  assert.equal(page.frames.size, 0);
+});
 
 test("reduced motion starts with the still image and never opens a GPU context", () => {
   const page = setup({ reduced: true });
@@ -110,10 +139,12 @@ test("missing WebGL or shader failure leaves the original image available", () =
 });
 
 test("mobile never starts the effect, including after crossing the desktop breakpoint", () => {
-  const page = setup({ mobile: true });
+  const page = setup({ mobile: true, hidden: true });
   assert.equal(page.contexts(), 0);
   assert.equal(page.frames.size, 0);
   assert.equal(page.canvas.hidden, true);
+  page.scene.clientWidth = 600;
+  page.scene.clientHeight = 450;
   page.phone.matches = false;
   page.phone.emit("change");
   assert.equal(page.contexts(), 1);
@@ -172,4 +203,19 @@ test("left and right clicks excite different projected locations while the sculp
   page.canvas.emit("webglcontextlost", { preventDefault() {} });
   assert.equal(page.canvas.hidden, true);
   assert.equal(page.frames.size, 0);
+});
+
+test("the motion control freezes the ribbon and resumes one loop", () => {
+  const page = setup();
+  assert.equal(page.motionToggle.hidden, false);
+  page.motionToggle.emit("click");
+  assert.equal(page.motionToggle.textContent, "Resume motion");
+  assert.equal(page.frames.size, 0);
+  assert.equal(page.canvas.hidden, false, "pause keeps the current sculpture visible");
+  page.canvas.emit("keydown", { key: "Enter", preventDefault() {} });
+  page.canvas.emit("pointermove", { pointerType: "mouse", clientX: 450, clientY: 200 });
+  assert.equal(page.frames.size, 0, "input does not override the pause");
+  page.motionToggle.emit("click");
+  assert.equal(page.motionToggle.textContent, "Pause motion");
+  assert.equal(page.frames.size, 1);
 });

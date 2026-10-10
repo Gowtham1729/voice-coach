@@ -49,7 +49,7 @@ assert.ok(
   "Open Graph URL is the Firebase host",
 );
 assert.ok(
-  html.includes(`content="${publicOrigin}/assets/ichido-share.png"`),
+  html.includes(`content="${publicOrigin}/assets/ichido-share.jpg"`),
   "Share image URL is the Firebase host",
 );
 assert.equal(
@@ -64,12 +64,13 @@ assert.ok(
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
 const modules = readdirSync(root).filter((file) => file.endsWith(".js"));
 const js = modules.map((file) => readFileSync(resolve(root, file), "utf8")).join("\n");
-for (const asset of ["styles.css", "app.js"]) {
+const appModule = readFileSync(resolve(root, "app.js"), "utf8");
+for (const [asset, source] of [["styles.css", html], ["app.js", html], ["./sound-ribbon.js", appModule]]) {
   const version = createHash("sha256")
     .update(readFileSync(resolve(root, asset)))
     .digest("hex")
     .slice(0, 12);
-  assert.ok(html.includes(`"${asset}?v=${version}"`), `Refresh the content version for ${asset}`);
+  assert.ok(source.includes(`"${asset}?v=${version}"`), `Refresh the content version for ${asset}`);
 }
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(ids).size, ids.length, "HTML IDs must be unique");
@@ -108,7 +109,8 @@ assert.ok(!html.includes("—"), "Landing-page strings must not use em dashes");
 assert.ok(!js.includes("—"), "Interactive strings must not use em dashes");
 for (const requiredCopy of [
   "Your private speaking room for Mac",
-  "Record with your mic", "Capture Mac audio", "Import a file",
+  "Speaking practice.<br /><em>At your own pace.</em>",
+  "Capture Mac audio",
   "Choose Capture Mac audio to use it as a reference.",
   "When enough words reliably match, two measured practice targets",
   "Free while in early access. No account required.",
@@ -129,7 +131,7 @@ for (const requiredCopy of [
 }
 assert.ok(
   html.includes("No account. No recording uploads. No analytics. Update checks and optional model downloads use the network."),
-  "The dedicated privacy section retains the full privacy statement",
+  "The privacy note retains the full privacy statement",
 );
 const downloadDialog = html.match(/<dialog[^>]*id="download-dialog"[\s\S]*?<\/dialog>/)?.[0] || "";
 assert.ok(downloadDialog.includes("This release is not Apple-notarized yet."), "Installation disclosure stays in the download dialog");
@@ -137,7 +139,6 @@ assert.ok(downloadDialog.includes('<details class="install-details">'), "Install
 assert.ok(!/confidence score|personality score/.test(html), "No unsupported subjective scores");
 assert.equal((html.match(/\brole="tab"/g) || []).length, 4, "The reference loop has four accessible tabs");
 assert.equal((html.match(/practise/gi) || []).length, 0, "Website copy uses practice, not practise");
-assert.ok(html.includes(">A real practice session<"), "Practice-session heading is sentence case");
 assert.ok(!html.includes("A REAL PRACTICE SESSION"), "Practice-session heading is not shouted");
 assert.ok(!html.includes("YOUR VOICE BELONGS TO YOU"), "The privacy sign-off line is removed");
 assert.ok(
@@ -145,8 +146,8 @@ assert.ok(
   "Download line stays Version 0.0.3",
 );
 assert.ok(
-  html.includes("Record a take. Try again, or practice against a reference."),
-  "Hero subhead is the agreed short line",
+  normalizedHtml.includes("Practice a language. Rehearse a talk.<br />Hear yourself back and find something to try next."),
+  "Hero introduces speaking and language practice",
 );
 assert.ok(
   !html.includes("Record a take, then try another take, or practice against a reference."),
@@ -154,7 +155,7 @@ assert.ok(
 );
 assert.ok(
   html.includes(
-    'content="Ichido is your private speaking room for Mac. Record a take, practice with a reference, and try again."',
+    'content="Ichido is a private Mac app for speaking practice. Practice a language, rehearse a talk, and hear yourself back."',
   ),
   "Meta description matches the brief",
 );

@@ -1,4 +1,4 @@
-// A silent, desktop-only WebGL sculpture. Mobile omits the entire artwork.
+// A silent, desktop-only WebGL sculpture. Mobile omits the artwork.
 const vertexSource = `
   precision highp float;
   attribute vec3 a_position;
@@ -178,12 +178,14 @@ function makeMesh(gl) {
 }
 
 export function initSoundRibbon() {
-  const scene = document.querySelector(".hero-art");
+  const scene = document.querySelector(".sound-scene");
+  if (!scene) return;
   const canvas = scene.querySelector("canvas");
   const fallback = scene.querySelector(".sound-sculpture");
+  if (!canvas || !fallback) return;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const mobile = matchMedia("(max-width: 780px)");
-  // Mobile has no artwork and must not create a graphics context.
+  // Mobile omits the artwork and must not create a graphics context.
   if (reducedMotion.matches || mobile.matches) {
     function startWhenEligible() {
       if (reducedMotion.matches || mobile.matches) return;
@@ -195,6 +197,9 @@ export function initSoundRibbon() {
     mobile.addEventListener("change", startWhenEligible);
     return;
   }
+  if (scene.clientWidth === 0 || scene.clientHeight === 0) return;
+  const motionToggle = scene.querySelector(".ribbon-toggle");
+  let paused = false;
   let gl;
   let program;
   try {
@@ -272,20 +277,21 @@ export function initSoundRibbon() {
     scene.classList.toggle("ribbon-ready", !still);
     canvas.hidden = still;
     fallback.setAttribute("aria-hidden", String(!still));
-    if (!still && visible && !document.hidden) {
+    if (motionToggle) motionToggle.hidden = still;
+    if (!still && !paused && visible && !document.hidden) {
       frame = requestAnimationFrame(animate);
     }
   }
 
   function wake() {
-    if (!frame && !reducedMotion.matches && !mobile.matches
+    if (!frame && !paused && !reducedMotion.matches && !mobile.matches
         && !lost && visible && !document.hidden) {
       frame = requestAnimationFrame(animate);
     }
   }
 
   function ripple(position) {
-    if (reducedMotion.matches || mobile.matches || lost) return;
+    if (paused || reducedMotion.matches || mobile.matches || lost) return;
     const strength = 0.38;
     pulses.set([position, elapsed, strength, 0], pulseIndex * 4);
     pulseIndex = (pulseIndex + 1) % 4;
@@ -367,6 +373,11 @@ export function initSoundRibbon() {
     lost = true;
     updatePlayback();
   });
+  motionToggle?.addEventListener("click", () => {
+    paused = !paused;
+    motionToggle.textContent = paused ? "Resume motion" : "Pause motion";
+    updatePlayback();
+  });
   document.addEventListener("visibilitychange", updatePlayback);
   reducedMotion.addEventListener("change", updatePlayback);
   mobile.addEventListener("change", updatePlayback);
@@ -375,7 +386,7 @@ export function initSoundRibbon() {
     updatePlayback();
   }).observe(scene);
   new ResizeObserver(() => {
-    if (!lost && !reducedMotion.matches && !mobile.matches) render();
+    if (!lost && visible && !document.hidden && !reducedMotion.matches && !mobile.matches) render();
   }).observe(scene);
   canvas.hidden = false;
   render();

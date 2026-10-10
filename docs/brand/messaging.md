@@ -5,8 +5,9 @@
 - **Name:** Ichido
 - **Pronunciation:** approximately ee-chee-doh
 - **Descriptor:** Your private speaking room.
-- **Website headline:** Your words. Your voice. One more try.
-- **Checker title:** Your private speaking room for Mac. The footer sign-off stays “Your private speaking room.”
+- **Website headline:** Speaking practice. At your own pace.
+- **Website introduction:** Practice a language. Rehearse a talk. Hear yourself back and find something to try next.
+- **Page title:** Ichido | Private speaking practice for Mac.
 
 ## Product description
 
@@ -45,7 +46,7 @@ Use this guide for the app, website, README, and release notes. Marketing may ex
 | Settings → Transcription | Choose the speech engine and spoken language. |
 | Settings → Experiments | Enable Words. |
 
-The website’s experimental section introduces **Words**; it is optional and does not name another app feature. Keep **Your private speaking room.** as the shared descriptor and **Your words. Your voice. One more try.** as the website headline.
+The optional Understand tab introduces **Words**; it is optional and does not name another app feature. Keep **Your private speaking room.** as the shared descriptor and **Speaking practice. At your own pace.** as the website headline.
 
 ## Interface writing
 
@@ -57,6 +58,12 @@ The website’s experimental section introduces **Words**; it is optional and do
 - Name actions by their result: **Play selection**, **Retry saving**, **Clear chat**. Use an ellipsis when the user must choose something before the action proceeds.
 - Describe optional features precisely. Rephrasing exercises changes their wording, not the measured targets or selected coaching actions.
 - State deletion scope, audio retention, privacy, and AI limitations plainly. Brevity must not hide consequences or imply abilities the app does not have.
+
+## Website direction
+
+Lead with what Ichido makes room for: a language someone is learning, a talk they are rehearsing, or their own words. Keep the warm paper, expressive typography, and cobalt sound ribbon as the opening identity. The ribbon is a silent, playful expression of voice, not an acoustic measurement or an app preview.
+
+Use one product overview further down with a real capture beside each relevant story. Keep Words in the optional Understand step, and privacy alongside the questions. Avoid repeating the same screenshot or claim across separate sections. Mobile omits the ribbon and brings the product explanation and next action forward. Do not turn the hero into a cropped app panel or a feature inventory. Keep input methods and setup details secondary to purpose, with precise instructions available where needed.
 
 ## Proof and limits
 
