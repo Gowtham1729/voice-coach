@@ -4,7 +4,7 @@
 
 A Mac app for speaking practice. Record yourself, practice with a reference clip, and explore the words in your transcript. Audio, transcripts, and analysis stay on your Mac.
 
-[Download for macOS](https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip) · [Website](https://voice-coach-studio.gowtham.chatgpt.site) · [Release notes](https://github.com/Gowtham1729/voice-coach/releases/latest)
+[Download for macOS](https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip) · [Website](https://ichido-511210.web.app) · [Release notes](https://github.com/Gowtham1729/voice-coach/releases/latest)
 
 https://github.com/user-attachments/assets/3efb9a61-5bff-4cef-8706-50102a6433b4
 

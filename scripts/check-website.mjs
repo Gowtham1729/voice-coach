@@ -5,19 +5,56 @@ import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
 const root = fileURLToPath(new URL("../website/", import.meta.url));
-const hosting = JSON.parse(
-  readFileSync(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
+const publicOrigin = "https://ichido-511210.web.app";
+assert.equal(
+  existsSync(fileURLToPath(new URL("../.openai/hosting.json", import.meta.url))),
+  false,
+  "ChatGPT Sites hosting config must stay deleted",
+);
+const firebase = JSON.parse(
+  readFileSync(new URL("../firebase.json", import.meta.url), "utf8"),
+);
+assert.deepEqual(
+  Object.keys(firebase),
+  ["hosting"],
+  "Firebase config must be Hosting only",
+);
+assert.equal(firebase.hosting.public, "dist", "Firebase Hosting publishes dist/");
+assert.equal(
+  firebase.hosting.site,
+  "ichido-511210",
+  "Firebase Hosting site is ichido-511210",
+);
+const firebaseRc = JSON.parse(
+  readFileSync(new URL("../.firebaserc", import.meta.url), "utf8"),
 );
 assert.equal(
-  hosting.static.directory,
-  "dist",
-  "Sites static output must use the supported dist root",
+  firebaseRc.projects.default,
+  "ichido-511210",
+  "Firebase project is ichido-511210",
 );
 const html = readFileSync(resolve(root, "index.html"), "utf8");
 const normalizedHtml = html.replace(/\s+/g, " ");
 assert.ok(
   html.includes('href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip"'),
   "Website download must follow GitHub's latest release",
+);
+assert.ok(
+  html.includes(`href="${publicOrigin}/"`),
+  "Canonical URL is the Firebase host",
+);
+assert.ok(
+  html.includes(`content="${publicOrigin}/"`),
+  "Open Graph URL is the Firebase host",
+);
+assert.ok(
+  html.includes(`content="${publicOrigin}/assets/ichido-share.png"`),
+  "Share image URL is the Firebase host",
+);
+assert.equal(
+  /chatgpt\.site|openai\.com\/hosting/i.test(html),
+  false,
+  "Promo page must not point at ChatGPT Sites",
 );
 assert.ok(
   !/releases\/(?:tag|download)\/v\d/.test(html),
