@@ -52,6 +52,52 @@ assert.ok(
   "Share image URL is on https://ichido.app",
 );
 assert.equal(
+  /noindex|nofollow/i.test(html),
+  false,
+  "Promo page must stay indexable",
+);
+assert.match(
+  html,
+  /<title>Ichido \| Private speaking practice for Mac<\/title>/,
+  "Title tells a search result this is private speaking practice for Mac",
+);
+assert.ok(
+  html.includes(
+    'content="Ichido is a private Mac app for speaking practice. Practice a language, rehearse a talk, and hear yourself back."',
+  ),
+  "Meta description uses the page language for language practice and rehearsing a talk",
+);
+const robots = readFileSync(resolve(root, "robots.txt"), "utf8");
+assert.match(robots, /^User-agent:\s*\*\s*$/m, "robots.txt allows every crawler");
+assert.match(robots, /^Allow:\s*\/\s*$/m, "robots.txt allows the site");
+assert.equal(/^\s*Disallow:/m.test(robots), false, "robots.txt must not disallow paths");
+assert.match(
+  robots,
+  new RegExp(`^Sitemap:\\s*${publicOrigin}/sitemap\\.xml\\s*$`, "m"),
+  "robots.txt points at the sitemap",
+);
+const sitemap = readFileSync(resolve(root, "sitemap.xml"), "utf8");
+const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+assert.deepEqual(locations, [`${publicOrigin}/`], "Sitemap lists only https://ichido.app/");
+const jsonLdMatch = html.match(
+  /<script type="application\/ld\+json">([\s\S]*?)<\/script>/,
+);
+assert.ok(jsonLdMatch, "Software JSON-LD is present");
+const software = JSON.parse(jsonLdMatch[1]);
+assert.equal(software["@context"], "https://schema.org");
+assert.equal(software["@type"], "SoftwareApplication");
+assert.equal(software.name, "Ichido");
+assert.equal(software.url, `${publicOrigin}/`);
+assert.match(software.operatingSystem, /^macOS$/);
+assert.equal(
+  software.description,
+  "Ichido is a private Mac app for speaking practice. Practice a language, rehearse a talk, and hear yourself back. Free early access.",
+);
+assert.equal(software.isAccessibleForFree, true);
+assert.equal(software.aggregateRating, undefined, "Do not invent ratings");
+assert.equal(software.review, undefined, "Do not invent reviews");
+assert.equal(software.offers, undefined, "Do not invent offers");
+assert.equal(
   /chatgpt\.site|openai\.com\/hosting|ichido-511210\.web\.app|firebaseapp\.com|www\.ichido\.app/i.test(html),
   false,
   "Promo page uses the apex public URL, not a former host",
