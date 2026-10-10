@@ -17,7 +17,7 @@ Local-first **Ichido** (formerly Voice Coach): a **macOS 26+** SwiftUI speaking-
 | App coordination tests | `Tests/VoiceCoachAppTests/` | macOS-only save and rejection checks |
 | Contract smoke | `Sources/VoiceCoachSelfTest/main.swift` | Acoustic and report invariants. Do not grow this for ordinary unit tests |
 | Bundle resources | `Resources/` | Packaged by `scripts/build-app.sh` |
-| Marketing site | `website/` | Static. Change a required sentence in `website/index.html` and `scripts/check-website.mjs` together. See `docs/marketing-website.md` |
+| Marketing site | `website/` | Static promo site at https://ichido.app/. See `docs/marketing-website.md` |
 | Scripts | `scripts/`, `script/build_and_run.sh` | Use these. Do not invent build steps |
 
 **Naming:** UI “recording”, the retry stack, and Mimic are a `CoachingSession`. A UI “take” is a Core `PracticeSession`. Do not rename those storage types. Visible copy uses **Practice**, **Reference practice**, and **Words**. Reference-practice modes stay **Listen & Repeat** and **Speak Along**. Before changing user-facing strings, read `docs/brand/messaging.md`.
@@ -44,7 +44,7 @@ Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 ./scripts/setup-transcription.sh  # Optional local ASR (~714 MB). Not in CI or cloud unless asked
 ```
 
-- Cloud and Linux agents (`.cursor/environment.json` runs `scripts/cloud-agent-install.sh`) build **only** `VoiceCoachSelfTest`. Do not build or run `VoiceCoachApp` there.
+- Cloud and Linux agents: see **Cursor Cloud specific instructions**. Do not build or run `VoiceCoachApp` there.
 - AVFoundation builds need `--disable-sandbox` (already set in `build-app.sh` and `render-previews.sh`).
 - ASR override: `VOICE_COACH_NEMO_SPEECH_PATH`.
 - If macOS blocks on an unaccepted Xcode license, the human runs `sudo xcodebuild -license`. Agents cannot accept it.
@@ -59,7 +59,7 @@ Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 | Session or persistence | `./scripts/test.sh` plus a focused persistence test |
 | App UI or layout | `./scripts/render-previews.sh` on macOS. If you cannot run it, say the UI was not visually verified |
 | Live Mac UI | `docs/PEEKABOO.md` after a local build. Not a CI job |
-| Website | `node scripts/check-website.mjs`. Not part of CI job `test`. See `docs/marketing-website.md` |
+| Website | `node scripts/check-website.mjs` and `node scripts/build-website.mjs`. Not part of CI job `test`. See `docs/marketing-website.md` |
 | Release | `docs/RELEASE.md` |
 
 Synthetic tests do not prove microphone, headphone, system-audio, or route behavior. Smoke-test those on a Mac when audio routing changes.
@@ -116,6 +116,12 @@ Root: `~/Library/Application Support/VoiceCoach/`
 | `09-new-mimic.png` | New reference practice |
 | `10-recording.png` | Recording |
 | `11-words.png` | Words |
+
+## Cursor Cloud specific instructions
+
+`.cursor/environment.json` runs `scripts/cloud-agent-install.sh`, which builds the Linux Swift targets only (`VoiceCoachSelfTest`). Do not build or run the Mac app here.
+
+The promo site needs Node. `node scripts/check-website.mjs` and `node scripts/build-website.mjs` verify it. `node scripts/serve-website.mjs` previews `website/` locally. GitHub Actions deploys `dist/` to Firebase Hosting project `ichido-511210` on push to `main`. The public site is https://ichido.app/.
 
 ## Boundaries
 
