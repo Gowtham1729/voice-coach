@@ -5,6 +5,9 @@ import VoiceCoachSession
 
 extension AppModel {
   func requestPermissionAndRecord() {
+    guard !isRecording, !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference,
+      !mimicIsPreparing, !hasMenuBarReference
+    else { return }
     if selectedSessionID == nil {
       prepareStandaloneCapture()
     }
@@ -69,7 +72,7 @@ extension AppModel {
 
   func beginRecording() {
     guard let sessionID = selectedSessionID else { return }
-    guard !isRecording, !isCapturingMimicReference else { return }
+    guard !isRecording, !isCapturingMimicReference, !hasMenuBarReference else { return }
     if !mimicAlong {
       recorder.stopPlayback()
       isPlaying = false

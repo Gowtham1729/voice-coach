@@ -13,6 +13,8 @@ final class AppModel: ObservableObject {
   @Published var lastUsedMimicID: UUID?
   @Published var isRecording = false
   @Published var isCapturingMimicReference = false
+  /// A background capture stays here until reviewed or explicitly discarded.
+  @Published var hasMenuBarReference = false
   @Published var isAnalyzing = false
   @Published var isSuggestingTitle = false
   @Published var isRequestingPermission = false

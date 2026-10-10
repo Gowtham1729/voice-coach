@@ -13,7 +13,7 @@ struct VoiceCoachCommands: Commands {
     CommandGroup(replacing: .newItem) {
       Button("Record") { model.startHomeRecording() }
         .keyboardShortcut("n", modifiers: .command)
-        .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+        .disabled(!model.canStartQuickPractice)
 
       Button("Reference practice…") { model.startMimic() }
         .keyboardShortcut("m", modifiers: [.command, .shift])
@@ -25,6 +25,7 @@ struct VoiceCoachCommands: Commands {
         .keyboardShortcut("i", modifiers: [.command, .shift])
         .disabled(
           model.isRecording || model.isAnalyzing || model.isRequestingPermission
+            || model.isCapturingMimicReference || model.mimicIsPreparing || model.hasMenuBarReference
             || (model.selectedSession?.mode == .mimic && model.destination.isWorkspace))
 
       Button("Export…") { model.exportCurrent() }

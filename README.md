@@ -28,6 +28,11 @@ Already using Voice Coach? Ichido is the same app with a new name. Your library 
 
 **Listen & Repeat** plays the reference before you record. **Speak Along** plays it while you record; use headphones. When enough words match reliably, **Practice next** gives two measured targets. Ichido does not grade accents or correct individual sounds.
 
+For a quick reference, click the Ichido ribbon in the menu bar → **Capture Mac audio**.
+**Stop and review** opens the clip for trimming and reference practice. The menu also
+offers voice recording and a shortcut back to your last practice. Control the icon
+in **Settings → General**. See the [menu bar guide](docs/menu-bar-quick-practice.md).
+
 Apple transcription is the default. Choose your spoken language in **Settings → Transcription**. Optional Parakeet detects 25 European languages automatically; use Apple for Japanese.
 
 Enable Words in **Settings → Experiments**. Chat requires Apple Intelligence, works from text, and can make mistakes. Chats clear when you quit.
