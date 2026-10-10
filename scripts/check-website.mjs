@@ -74,10 +74,15 @@ for (const [asset, source] of [["styles.css", html], ["app.js", html], ["./sound
 }
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(ids).size, ids.length, "HTML IDs must be unique");
+const srcsetUrls = [...html.matchAll(/\b(?:srcset|imagesrcset)="([^"]+)"/g)]
+  .flatMap((match) => match[1].split(","))
+  .map((part) => part.trim().split(/\s+/)[0])
+  .filter((url) => url && !url.startsWith("data:"));
 const urls = new Set([
   ...[...html.matchAll(/\b(?:src|href|poster)="([^"]+)"/g)].map(
     (match) => match[1],
   ),
+  ...srcsetUrls,
   ...[...css.matchAll(/url\(['"]?([^'"\)]+)['"]?\)/g)].map((match) => match[1]),
   ...[...js.matchAll(/['"](assets\/[^'"\s]+)['"]/g)].map((match) => match[1]),
   ...[...js.matchAll(/\bfrom ["']\.\/([^"']+)["']/g)].map((match) => match[1]),
