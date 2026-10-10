@@ -61,7 +61,9 @@ extension AppModel {
   }
 
   func importClip() {
-    guard !isRecording, !isAnalyzing, !isRequestingPermission else { return }
+    guard !isRecording, !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference,
+      !mimicIsPreparing, !hasMenuBarReference, mimicPhase == .ready
+    else { return }
     if selectedSession?.isMimic == true, destination.isWorkspace { return }
     guard let session = selectedSession,
       !session.isMimic,

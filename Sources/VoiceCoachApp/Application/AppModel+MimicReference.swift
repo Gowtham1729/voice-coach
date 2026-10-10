@@ -6,7 +6,9 @@ import VoiceCoachSession
 
 extension AppModel {
   func captureMimicReferencePressed() {
-    guard !mimicIsPreparing, !isRecording, !isAnalyzing else { return }
+    guard !mimicIsPreparing, !isRecording, !isAnalyzing, !isRequestingPermission,
+      mimicPhase == .ready, !hasPendingMimicWork
+    else { return }
     if isCapturingMimicReference {
       finishMimicReferenceCapture()
       return
@@ -54,6 +56,7 @@ extension AppModel {
     mimicReferenceCaptureStartedAt = nil
 
     guard let url, let id else {
+      hasMenuBarReference = false
       clearMimicReferenceCaptureMeters()
       return
     }
@@ -78,6 +81,7 @@ extension AppModel {
   }
 
   private func failMimicReferenceCapture(url: URL, message: String) {
+    hasMenuBarReference = false
     try? FileManager.default.removeItem(at: url)
     presentError(title: "Capture failed", message: message)
     clearMimicReferenceCaptureMeters()
@@ -136,6 +140,7 @@ extension AppModel {
       } catch {
         try? FileManager.default.removeItem(at: url)
         if mimicPreparationID == id {
+          hasMenuBarReference = false
           mimicIsPreparing = false
           mimicPreparationID = nil
           clearMimicReferenceCaptureMeters()

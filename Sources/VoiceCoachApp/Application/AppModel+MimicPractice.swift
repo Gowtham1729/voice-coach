@@ -50,6 +50,7 @@ extension AppModel {
   }
 
   func cancelMimicPreparation() {
+    hasMenuBarReference = false
     if isCapturingMimicReference {
       systemAudioCapture.stop()
       stopMimicReferenceCaptureTimer()
@@ -174,6 +175,7 @@ extension AppModel {
 
   func startMimicPractice(skipReference: Bool = false) {
     guard !isRecording, !isPlaying, !isAnalyzing, !isRequestingPermission,
+      !isCapturingMimicReference, !mimicIsPreparing, !hasMenuBarReference,
       mimicPhase == .ready, !hasPendingMimicWork,
       let reference = selectedSession?.mimicReference
     else { return }

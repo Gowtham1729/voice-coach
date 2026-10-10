@@ -103,7 +103,7 @@ struct MimicReferencePicker: View {
             Label("Capturing Mac audio", systemImage: "speaker.wave.2.fill")
               .font(.body.weight(.medium))
               .foregroundStyle(Color.red)
-            LiveMeterView(level: model.mimicReferenceCaptureLevel)
+            LiveMeterView(level: model.mimicReferenceCaptureLevel, accessibilityName: "Mac audio level")
               .frame(maxWidth: .infinity)
             Text(vcDuration(model.mimicReferenceCaptureElapsed))
               .font(.system(.caption, design: .monospaced))

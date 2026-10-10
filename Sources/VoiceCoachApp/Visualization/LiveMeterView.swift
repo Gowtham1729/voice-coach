@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LiveMeterView: View {
   let level: Double
+  var accessibilityName = "Microphone level"
 
   var body: some View {
     GeometryReader { geometry in
@@ -15,7 +16,7 @@ struct LiveMeterView: View {
         }
     }
     .frame(height: 8)
-    .accessibilityLabel("Microphone level")
+    .accessibilityLabel(accessibilityName)
     .accessibilityValue("\(Int(level)) decibels full scale")
   }
 }

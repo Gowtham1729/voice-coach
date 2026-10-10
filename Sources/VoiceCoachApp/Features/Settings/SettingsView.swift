@@ -15,6 +15,7 @@ struct SettingsView: View {
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
   @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
   @AppStorage("voiceCoach.autoGenerateTitles") private var autoGenerateTitles = false
+  @AppStorage("voiceCoach.showMenuBarExtra") private var showsMenuBarExtra = true
   @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording =
     InsightWordingPreference.default
 
@@ -100,6 +101,15 @@ struct SettingsView: View {
   private var generalPane: some View {
     let intelligenceStatus = SmartTitleGenerator.status
     return Form {
+      Section {
+        Toggle("Show Ichido in the menu bar", isOn: $showsMenuBarExtra)
+          .disabled(model.isCapturingMimicReference || model.hasMenuBarReference)
+      } header: {
+        Text("Quick practice")
+      } footer: {
+        Text("Capture Mac audio and return to practice without opening the main window first.")
+      }
+
       Section {
         Toggle("Confirm before deleting", isOn: $confirmDelete)
         Toggle("Hide transcript snippets in Library", isOn: $hideTranscriptSnippets)
@@ -304,6 +314,12 @@ struct SettingsView: View {
         .font(.title2.weight(.semibold))
 
       snapshotCard("General", symbol: "gearshape") {
+        HStack {
+          Text("Show Ichido in the menu bar")
+          Spacer()
+          Image(systemName: showsMenuBarExtra ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(Studio.accent)
+        }
         HStack {
           Text("Confirm before deleting")
           Spacer()

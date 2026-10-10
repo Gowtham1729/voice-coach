@@ -2,8 +2,10 @@ import SwiftUI
 
 @main
 struct VoiceCoachApplication: App {
+  @NSApplicationDelegateAdaptor(VoiceCoachApplicationDelegate.self) private var appDelegate
   @StateObject private var model = AppModel()
   @StateObject private var updater = AppUpdater()
+  @AppStorage("voiceCoach.showMenuBarExtra") private var showsMenuBarExtra = true
 
   init() {
     #if DEBUG
@@ -17,11 +19,13 @@ struct VoiceCoachApplication: App {
   }
 
   var body: some Scene {
-    WindowGroup("Ichido") {
+    WindowGroup("Ichido", id: IchidoMainWindow.sceneID) {
       SystemAppearanceRoot {
         ContentView()
           .environmentObject(model)
           .frame(minWidth: 920, minHeight: 640)
+          .background(IchidoMainWindowMarker())
+          .onAppear { appDelegate.model = model }
           #if DEBUG
             .background(PreviewRenderLauncher())
           #endif
@@ -31,6 +35,16 @@ struct VoiceCoachApplication: App {
     .commands {
       VoiceCoachCommands(model: model, updater: updater)
     }
+
+    MenuBarExtra(isInserted: $showsMenuBarExtra) {
+      SystemAppearanceRoot {
+        QuickPracticeMenu(model: model)
+          .onAppear { appDelegate.model = model }
+      }
+    } label: {
+      IchidoMenuBarLabel(model: model)
+    }
+    .menuBarExtraStyle(.window)
 
     Settings {
       SystemAppearanceRoot {
