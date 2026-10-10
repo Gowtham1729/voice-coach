@@ -6,7 +6,7 @@ import VoiceCoachSession
 
 @testable import VoiceCoachApp
 
-@Suite("Menu bar quick practice")
+@Suite("Menu bar quick practice", .serialized)
 @MainActor
 struct QuickPracticeTests {
   @Test("Capture stays in the background; repeated clicks cannot stop it")
@@ -157,7 +157,9 @@ struct QuickPracticeTests {
   }
 
   private func waitUntil(_ condition: () -> Bool) async throws {
-    let deadline = ContinuousClock.now + .seconds(5)
+    // Other app suites also analyze audio on this runner. Allow their main-actor
+    // work to finish rather than treating scheduling delay as a capture failure.
+    let deadline = ContinuousClock.now + .seconds(30)
     while !condition() {
       guard ContinuousClock.now < deadline else { throw TestTimeout.expired }
       try await Task.sleep(for: .milliseconds(10))
