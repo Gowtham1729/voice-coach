@@ -28,8 +28,8 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${WORKLOAD_IDENTITY_PROVIDER}" || -z "${WORKLOAD_IDENTITY_SERVICE_ACCOUNT}" ]]; then
-            echo "Actions variables WORKLOAD_IDENTITY_PROVIDER and WORKLOAD_IDENTITY_SERVICE_ACCOUNT must be set."
-            echo "They are variables, not secrets. Run scripts/setup-firebase-wif.sh, then the gh variable set commands it prints."
+            echo "Actions variables WORKLOAD_IDENTITY_PROVIDER and WORKLOAD_IDENTITY_SERVICE_ACCOUNT must be set on this repository."
+            echo "They are variables, not secrets."
             exit 1
           fi
           if [[ ! "${WORKLOAD_IDENTITY_PROVIDER}" =~ ^projects/[0-9]+/locations/global/workloadIdentityPools/github/providers/github-actions$ ]]; then
