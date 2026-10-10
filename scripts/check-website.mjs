@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
 const root = fileURLToPath(new URL("../website/", import.meta.url));
-const publicOrigin = "https://ichido-511210.web.app";
+const publicOrigin = "https://ichido.app";
 assert.equal(
   existsSync(fileURLToPath(new URL("../.openai/hosting.json", import.meta.url))),
   false,
@@ -42,20 +42,20 @@ assert.ok(
 );
 assert.ok(
   html.includes(`href="${publicOrigin}/"`),
-  "Canonical URL is the Firebase host",
+  "Canonical URL is https://ichido.app/",
 );
 assert.ok(
   html.includes(`content="${publicOrigin}/"`),
-  "Open Graph URL is the Firebase host",
+  "Open Graph URL is https://ichido.app/",
 );
 assert.ok(
   html.includes(`content="${publicOrigin}/assets/ichido-share.jpg"`),
-  "Share image URL is the Firebase host",
+  "Share image URL is on https://ichido.app",
 );
 assert.equal(
-  /chatgpt\.site|openai\.com\/hosting/i.test(html),
+  /chatgpt\.site|openai\.com\/hosting|ichido-511210\.web\.app|firebaseapp\.com|www\.ichido\.app/i.test(html),
   false,
-  "Promo page must not point at ChatGPT Sites",
+  "Promo page uses the apex public URL, not a former host",
 );
 assert.ok(
   !/releases\/(?:tag|download)\/v\d/.test(html),
