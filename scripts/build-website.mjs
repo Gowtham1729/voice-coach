@@ -1,7 +1,7 @@
 import "./check-website.mjs";
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { extname, join, relative, sep } from "node:path";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const source = fileURLToPath(new URL("../website/", import.meta.url));
@@ -58,17 +58,72 @@ for (const file of walk(output)) {
   replacements.set(before, after);
 }
 
-for (const ext of [".css", ".js"]) {
-  const files = walk(output).filter((file) => extname(file) === ext);
-  for (const file of files) rewrite(file, replacements);
-  for (const file of files) {
-    const [before, after] = hashFile(file);
-    replacements.set(before, after);
+// Hash a module only after the modules it imports are already renamed.
+// Hashing every script in one pass leaves `sound-ribbon.js` renamed while
+// `app.js` still imports the old name, so the built page never runs.
+function fingerprintText(ext) {
+  let pending = walk(output).filter((file) => extname(file) === ext);
+  for (const file of pending) rewrite(file, replacements);
+  let guard = pending.length + 1;
+  while (pending.length) {
+    if (guard-- < 0) {
+      throw new Error(`Could not fingerprint ${ext} files: ${pending.map(relPosix).join(", ")}`);
+    }
+    const ready = pending.filter((file) => {
+      const text = readFileSync(file, "utf8");
+      return pending.every((other) => other === file || !text.includes(relPosix(other)));
+    });
+    const batch = ready.length ? ready : pending.slice(0, 1);
+    for (const file of batch) {
+      const [before, after] = hashFile(file);
+      replacements.set(before, after);
+    }
+    pending = pending.filter((file) => !batch.includes(file));
+    for (const file of pending) rewrite(file, replacements);
   }
 }
 
+fingerprintText(".css");
+fingerprintText(".js");
+
 for (const file of walk(output).filter((item) => extname(item) === ".html")) {
   rewrite(file, replacements);
+}
+
+const localUrl = /^(?:[a-z]+:|#|\/\/)/i;
+const refPatterns = [
+  /\b(?:src|href)=["']([^"']+)["']/g,
+  /\bsrcset=["']([^"']+)["']/g,
+  /\bfrom\s+["']([^"']+)["']/g,
+  /\burl\(\s*["']([^"']+)["']/g,
+  /["'](assets\/[^"'?#\s]+)["']/g,
+];
+for (const file of walk(output).filter((item) => textExtensions.has(extname(item)))) {
+  const text = readFileSync(file, "utf8");
+  const urls = [];
+  for (const pattern of refPatterns) {
+    for (const match of text.matchAll(pattern)) {
+      if (pattern.source.includes("srcset")) {
+        for (const part of match[1].split(",")) {
+          const url = part.trim().split(/\s+/)[0];
+          if (url) urls.push(url);
+        }
+      } else urls.push(match[1]);
+    }
+  }
+  for (const url of urls) {
+    if (localUrl.test(url)) continue;
+    const path = url.split(/[?#]/, 1)[0];
+    if (!path || path.endsWith("/")) continue;
+    const target = resolve(dirname(file), path);
+    const root = output.endsWith(sep) ? output : output + sep;
+    if (!target.startsWith(root)) {
+      throw new Error(`${relPosix(file)} points outside dist: ${url}`);
+    }
+    if (!existsSync(target)) {
+      throw new Error(`${relPosix(file)} references missing ${url}`);
+    }
+  }
 }
 
 console.log(`Static website built in dist/ with ${replacements.size} fingerprinted assets.`);
