@@ -98,6 +98,32 @@ struct SessionStoreTests {
     #expect(FileManager.default.fileExists(atPath: orphanURL.path) == false)
   }
 
+  @Test("Orphan cleanup failure cannot invalidate an already committed library")
+  func cleanupFailureAfterCommit() throws {
+    let root = try SessionTestFixtures.temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = try SessionStore(rootURL: root)
+    let sessionID = UUID()
+    let takeID = UUID()
+    let take = SessionTestFixtures.take(
+      id: takeID, audioURL: try store.recordingURL(sessionID: sessionID, takeID: takeID))
+    var session = SessionTestFixtures.session(id: sessionID, take: take)
+    try store.save([session], analysisTakeIDs: [takeID])
+    let orphan = store.analysisURL(sessionID: sessionID, takeID: UUID())
+    try FileManager.default.createDirectory(at: orphan, withIntermediateDirectories: false)
+    try Data("locked orphan".utf8).write(to: orphan.appendingPathComponent("child"))
+    try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: orphan.path)
+    defer {
+      try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: orphan.path)
+    }
+    session.name = "Committed"
+
+    try store.save([session], analysisTakeIDs: [])
+
+    #expect(try store.load() == [session])
+    #expect(FileManager.default.fileExists(atPath: store.analysisURL(sessionID: sessionID, takeID: takeID).path))
+  }
+
   @Test("Version two libraries migrate once and keep a backup")
   func legacyMigration() throws {
     struct LegacyDocument: Codable {

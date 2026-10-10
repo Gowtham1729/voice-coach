@@ -6,7 +6,7 @@ import VoiceCoachSession
 
 extension AppModel {
   func chooseMimicReference() {
-    guard !mimicIsPreparing, !isRecording, !isCapturingMimicReference else { return }
+    guard !mimicIsPreparing, !isRecording, !isAnalyzing, !isCapturingMimicReference else { return }
     let panel = NSOpenPanel()
     panel.title = "Choose a practice reference"
     panel.message = "Import a clip, then trim a short excerpt."
@@ -355,6 +355,7 @@ extension AppModel {
   }
 
   func finishMimicPlayback() {
+    practiceClipPreviewID = nil
     stopPlaybackTimer()
     isPlaying = false
     playbackTime = 0

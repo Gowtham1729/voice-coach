@@ -9,6 +9,8 @@ extension AppModel {
       return
     }
     guard let take = selectedTake else { return }
+    practiceClipPreviewID = nil
+    mimicPlaybackEnd = nil
     let duration = take.result.metrics.duration
     let startTime = playbackTime >= max(duration - 0.05, 0) ? 0 : playbackTime
     do {
@@ -24,12 +26,14 @@ extension AppModel {
   }
 
   func pausePlayback() {
+    practiceClipPreviewID = nil
     recorder.pausePlayback()
     stopPlaybackTimer()
     isPlaying = false
   }
 
   func stopPlayback() {
+    practiceClipPreviewID = nil
     recorder.stopPlayback()
     stopPlaybackTimer()
     isPlaying = false
@@ -43,6 +47,8 @@ extension AppModel {
 
   func seek(to time: TimeInterval, autoplay: Bool = false) {
     guard let take = selectedTake, !isRecording, !isAnalyzing else { return }
+    practiceClipPreviewID = nil
+    mimicPlaybackEnd = nil
     let clamped = max(0, min(time, take.result.metrics.duration))
     playbackTime = clamped
     if isPlaying {

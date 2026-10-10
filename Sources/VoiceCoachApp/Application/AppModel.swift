@@ -49,6 +49,8 @@ final class AppModel: ObservableObject {
   @Published var pendingMimicTake: PracticeSession?
   @Published var pendingMimicAudio: (url: URL, id: UUID)?
   @Published var pendingMimicSessionID: UUID?
+  @Published var practiceClipPreviewID: Int?
+  @Published var practiceClipCreationProgress: (completed: Int, total: Int)?
 
   let recorder: any AudioRecording
   let systemAudioCapture: any SystemAudioCapturing
@@ -56,6 +58,9 @@ final class AppModel: ObservableObject {
   let transcribe:
     @Sendable (URL, TranscriptionEnginePreference, Locale?) async throws -> TranscriptionOutcome
   let sessionChatResponder: any SessionChatResponding
+  let preparePracticeClip:
+    @Sendable (URL, URL, Double, Double) async throws -> AnalysisResult
+  var practiceClipCreationTask: Task<Void, Never>?
   var timer: Timer?
   var playbackTimer: Timer?
   var mimicReferenceCaptureTimer: Timer?
@@ -102,6 +107,7 @@ final class AppModel: ObservableObject {
       store = dependencies.sessionStore
       transcribe = dependencies.transcribe
       sessionChatResponder = dependencies.sessionChatResponder
+      preparePracticeClip = dependencies.preparePracticeClip
     } catch {
       fatalError("Ichido could not open local storage: \(error.localizedDescription)")
     }
