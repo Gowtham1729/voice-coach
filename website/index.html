@@ -34,20 +34,31 @@
     <link rel="icon" href="assets/favicon.png" type="image/png" />
     <link
       rel="preload"
-      href="assets/fonts/space-grotesk-bold.ttf"
+      href="assets/fonts/space-grotesk.woff2"
       as="font"
-      type="font/ttf"
+      type="font/woff2"
       crossorigin
     />
-    <link rel="stylesheet" href="styles.css?v=ab14cd785d01" />
-    <script type="module" src="app.js?v=a7baa665d93a"></script>
+    <link
+      rel="preload"
+      as="image"
+      href="assets/sound-sculpture-1536.avif"
+      type="image/avif"
+      media="(min-width: 781px)"
+      fetchpriority="high"
+    />
+    <link rel="stylesheet" href="styles.css?v=162da1779b9e" />
+    <script type="module" src="app.js?v=c068f54861b1"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
 
     <header class="site-header">
       <a class="wordmark" href="#" aria-label="Ichido home">
-        <img src="assets/brand-mark.png" width="48" height="26" alt="" />
+        <picture>
+          <source srcset="assets/brand-mark.webp" type="image/webp" />
+          <img src="assets/brand-mark.png" width="48" height="26" alt="" />
+        </picture>
         <span>ichido<span class="wordmark-period">.</span></span>
       </a>
       <nav class="desktop-nav" aria-label="Main navigation">
@@ -82,13 +93,18 @@
           <p class="hero-description">Record a take. Try again, or practice against a reference.</p>
           <div class="hero-actions">
             <a class="button button-blue" href="#download" data-open-download>Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></a>
-            <a class="text-button watch-button" href="assets/ichido-launch-film.mp4" data-open-tour aria-haspopup="dialog" aria-controls="tour-dialog"><span class="play-symbol" aria-hidden="true">▶</span>Watch Ichido<span class="film-duration">1:03</span></a>
+            <button class="text-button watch-button" type="button" data-open-tour aria-haspopup="dialog" aria-controls="tour-dialog"><span class="play-symbol" aria-hidden="true">▶</span>Watch Ichido<span class="film-duration">1:03</span></button>
           </div>
           <p class="trust-line">macOS 26+ · Free early access · No account</p>
           <p class="brand-pronunciation">ichido <span>/ ee-chee-doh /</span></p>
         </div>
         <div class="hero-art">
-          <img class="sound-sculpture" src="assets/sound-sculpture.jpg" width="1536" height="1024" alt="Abstract cobalt sound wave sculpture" fetchpriority="high" />
+          <picture>
+            <source media="(max-width: 780px)" srcset="assets/blank.gif" />
+            <source media="(min-width: 781px)" srcset="assets/sound-sculpture-1536.avif" type="image/avif" />
+            <source media="(min-width: 781px)" srcset="assets/sound-sculpture-1536.webp" type="image/webp" />
+            <img class="sound-sculpture" src="assets/sound-sculpture-1100.jpg" width="1536" height="1024" alt="Abstract cobalt sound wave sculpture" fetchpriority="high" decoding="async" />
+          </picture>
           <canvas class="sound-ribbon" role="button" tabindex="0" aria-label="Send a wave through the sound sculpture" hidden></canvas>
         </div>
         <div class="hero-index" aria-hidden="true"><span>ICHIDO / 01</span><span>A LITTLE PRACTICE. ANOTHER TAKE.</span></div>
@@ -109,19 +125,19 @@
           </div>
           <div class="insight-panel" id="insight-panel" role="tabpanel" aria-labelledby="insight-tab-listen" tabindex="0">
             <div class="insight-view" data-insight-view="listen">
-              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE PRACTICE · LISTEN</strong></div><a class="screenshot-link" href="assets/reference-practice.jpg" data-screenshot><img src="assets/reference-practice.jpg" width="3420" height="2146" alt="Ichido reference practice with a transcript, playback controls, and Listen & Repeat mode" loading="eager" decoding="async" /></a></div>
+              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE PRACTICE · LISTEN</strong></div><a class="screenshot-link" href="assets/reference-practice-full.avif" data-screenshot><picture><source type="image/avif" srcset="assets/reference-practice-720.avif 720w, assets/reference-practice-1100.avif 1100w, assets/reference-practice-1600.avif 1600w" sizes="(max-width: 1050px) calc(100vw - 40px), 980px" /><source type="image/webp" srcset="assets/reference-practice-720.webp 720w, assets/reference-practice-1100.webp 1100w, assets/reference-practice-1600.webp 1600w" sizes="(max-width: 1050px) calc(100vw - 40px), 980px" /><img src="assets/reference-practice-1100.jpg" width="3420" height="2146" alt="Ichido reference practice with a transcript, playback controls, and Listen & Repeat mode" loading="lazy" decoding="async" /></picture></a></div>
               <div class="demo-note"><span class="demo-label">A PHRASE WORTH REPEATING</span><h3>Bring your own reference.</h3><div class="demo-copy"><p>Import a clip or choose Capture Mac audio. Select a phrase, then listen to its rhythm, pauses, and emphasis.</p><p class="step-detail">Click a transcribed word to replay that moment.</p></div></div>
             </div>
             <div class="insight-view" data-insight-view="understand" hidden>
-              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>WORDS · EXPERIMENTAL</strong></div><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot><img src="assets/language-chat.jpg" width="3420" height="2146" alt="Live French reference practice with an on-device explanation in the Words inspector" loading="eager" decoding="async" /></a></div>
+              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>WORDS · EXPERIMENTAL</strong></div><a class="screenshot-link" href="assets/language-chat-full.avif" data-screenshot><picture><source type="image/avif" srcset="assets/language-chat-720.avif 720w, assets/language-chat-1100.avif 1100w, assets/language-chat-1600.avif 1600w" sizes="(max-width: 1050px) calc(100vw - 40px), 980px" /><source type="image/webp" srcset="assets/language-chat-720.webp 720w, assets/language-chat-1100.webp 1100w, assets/language-chat-1600.webp 1600w" sizes="(max-width: 1050px) calc(100vw - 40px), 980px" /><img src="assets/language-chat-1100.jpg" width="3420" height="2146" alt="Live French reference practice with an on-device explanation in the Words inspector" loading="lazy" decoding="async" fetchpriority="low" /></picture></a></div>
               <div class="demo-note"><span class="demo-label">OPTIONAL LANGUAGE HELP</span><h3>Make sense of what you hear.</h3><div class="demo-copy"><p>Open Words beside your transcript to explore meanings, grammar, synonyms, and translations on your Mac.</p><a class="inline-link" href="#words">See how Words works <span aria-hidden="true">↗</span></a></div></div>
             </div>
             <div class="insight-view" data-insight-view="repeat" hidden>
-              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE PRACTICE · YOUR TAKE</strong></div><a class="screenshot-link" href="assets/repeat-practice.jpg" data-screenshot><img src="assets/repeat-practice.jpg" width="3420" height="2146" alt="Ichido reference practice ready to record another take, with the reference transcript visible" loading="eager" decoding="async" /></a></div>
+              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE PRACTICE · YOUR TAKE</strong></div><a class="screenshot-link" href="assets/reference-practice-full.avif" data-screenshot><picture><source type="image/avif" srcset="assets/reference-practice-720.avif 720w, assets/reference-practice-1100.avif 1100w, assets/reference-practice-1600.avif 1600w" sizes="(max-width: 1050px) calc(100vw - 40px), 980px" /><source type="image/webp" srcset="assets/reference-practice-720.webp 720w, assets/reference-practice-1100.webp 1100w, assets/reference-practice-1600.webp 1600w" sizes="(max-width: 1050px) calc(100vw - 40px), 980px" /><img src="assets/reference-practice-1100.jpg" width="3420" height="2146" alt="Ichido reference practice ready to record another take, with the reference transcript visible" loading="lazy" decoding="async" fetchpriority="low" /></picture></a></div>
               <div class="demo-note"><span class="demo-label">LET YOUR VOICE HAVE A GO</span><h3>Listen, then say it again.</h3><div class="demo-copy"><p>In Listen &amp; Repeat, the reference plays first, then you record. Speak Along plays it while you record; use headphones.</p><p class="step-detail">Each saved take stays in the same reference practice session.</p></div></div>
             </div>
             <div class="insight-view" data-insight-view="compare" hidden>
-              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE + YOUR TAKE · COMPARE</strong></div><a class="screenshot-link" href="assets/mimic-compare.jpg" data-screenshot><img src="assets/mimic-compare.jpg" width="3420" height="2146" alt="Live reference comparison showing matched pitch curves and two measured practice targets" loading="eager" decoding="async" /></a></div>
+              <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE + YOUR TAKE · COMPARE</strong></div><a class="screenshot-link" href="assets/mimic-compare-full.avif" data-screenshot><picture><source type="image/avif" srcset="assets/mimic-compare-720.avif 720w, assets/mimic-compare-1100.avif 1100w, assets/mimic-compare-1600.avif 1600w" sizes="(max-width: 1050px) calc(100vw - 40px), 980px" /><source type="image/webp" srcset="assets/mimic-compare-720.webp 720w, assets/mimic-compare-1100.webp 1100w, assets/mimic-compare-1600.webp 1600w" sizes="(max-width: 1050px) calc(100vw - 40px), 980px" /><img src="assets/mimic-compare-1100.jpg" width="3420" height="2146" alt="Live reference comparison showing matched pitch curves and two measured practice targets" loading="lazy" decoding="async" fetchpriority="low" /></picture></a></div>
               <div class="demo-note"><span class="demo-label">HEAR THE DIFFERENCE</span><h3>Compare delivery, then try another take.</h3><div class="demo-copy"><p>Replay both versions to compare timing, pitch, and loudness. When enough words reliably match, two measured practice targets suggest what to try next.</p></div></div>
             </div>
           </div>
@@ -138,7 +154,7 @@
             <ul class="language-jobs"><li><span>01</span>Understand a word or phrase in context.</li><li><span>02</span>Explore synonyms and grammar.</li><li><span>03</span>Translate the transcript with macOS.</li></ul>
             <p class="words-requirements">Optional. Chat requires available Apple Intelligence.</p>
           </div>
-          <figure class="words-visual"><div class="words-caption"><span class="demo-label sentence-case">A real practice session</span><span>French audio. A question. More context.</span></div><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot data-caption="French reference practice with on-device language help. Captured in the rebuilt Ichido app."><div class="inspector-crop"><img src="assets/language-chat.jpg" width="3420" height="2146" alt="The real language inspector explaining a French transcript about unusually cold June weather" loading="lazy" /></div></a><figcaption>French reference practice with Words.</figcaption></figure>
+          <figure class="words-visual"><div class="words-caption"><span class="demo-label sentence-case">A real practice session</span><span>French audio. A question. More context.</span></div><a class="screenshot-link" href="assets/language-chat-full.avif" data-screenshot data-caption="French reference practice with on-device language help. Captured in the rebuilt Ichido app."><div class="inspector-crop"><picture><source srcset="assets/language-inspector.avif" type="image/avif" /><source srcset="assets/language-inspector.webp" type="image/webp" /><img src="assets/language-inspector.jpg" width="684" height="1446" alt="The real language inspector explaining a French transcript about unusually cold June weather" loading="lazy" decoding="async" /></picture></div></a><figcaption>French reference practice with Words.</figcaption></figure>
         </div>
       </section>
 
@@ -152,12 +168,12 @@
             <article class="way-card"><span class="way-number">03</span><img src="assets/icons/arrow-down.svg" alt="" /><h3>Import a file</h3><p>Bring in an audio or video file. Ichido prepares the audio locally so you can listen and practice.</p></article>
           </div>
           <p class="honesty-line"><img src="assets/icons/check.svg" alt="" />Playing a clip in your browser? Choose Capture Mac audio to use it as a reference.</p>
-          <div class="recording-proof"><a class="screenshot-link recording-screen" href="assets/take-analysis.jpg" data-screenshot><img src="assets/take-analysis.jpg" width="3420" height="2146" alt="Live recording analysis with a word transcript, timeline, and measured acoustic properties" loading="lazy" /></a><div><span class="demo-label">A PLACE FOR YOUR OWN WORDS</span><h3>Reference optional.<br />Practice always.</h3><p>Start with your own recording whenever you want. Replay a word, notice a pause, and keep another take alongside it.</p><button class="inline-link" data-open-tour>Watch the film <span aria-hidden="true">↗</span></button></div></div>
+          <div class="recording-proof"><a class="screenshot-link recording-screen" href="assets/take-analysis-full.avif" data-screenshot><picture><source type="image/avif" srcset="assets/take-analysis-720.avif 720w, assets/take-analysis-1100.avif 1100w, assets/take-analysis-1600.avif 1600w" sizes="(max-width: 780px) calc(100vw - 40px), 900px" /><source type="image/webp" srcset="assets/take-analysis-720.webp 720w, assets/take-analysis-1100.webp 1100w, assets/take-analysis-1600.webp 1600w" sizes="(max-width: 780px) calc(100vw - 40px), 900px" /><img src="assets/take-analysis-1100.jpg" width="3420" height="2146" alt="Live recording analysis with a word transcript, timeline, and measured acoustic properties" loading="lazy" decoding="async" /></picture></a><div><span class="demo-label">A PLACE FOR YOUR OWN WORDS</span><h3>Reference optional.<br />Practice always.</h3><p>Start with your own recording whenever you want. Replay a word, notice a pause, and keep another take alongside it.</p><button class="inline-link" data-open-tour>Watch the film <span aria-hidden="true">↗</span></button></div></div>
         </div>
       </section>
 
       <section class="privacy-section" id="privacy" aria-labelledby="privacy-title">
-        <div class="container privacy-layout"><div><span class="eyebrow">LOCAL BY DESIGN</span><h2 id="privacy-title">A room of<br />your own.</h2></div><div class="privacy-copy"><img src="assets/icons/lock-key.svg" alt="" /><p>Your recordings, transcripts, analysis, and language chat stay on your Mac.</p><p>No account. No recording uploads. No analytics. Update checks and optional model downloads use the network.</p></div></div>
+        <div class="container privacy-layout"><div><span class="eyebrow">LOCAL BY DESIGN</span><h2 id="privacy-title">A room of<br />your own.</h2></div><div class="privacy-copy"><img src="assets/icons/lock-key.svg" width="40" height="40" alt="" /><p>Your recordings, transcripts, analysis, and language chat stay on your Mac.</p><p>No account. No recording uploads. No analytics. Update checks and optional model downloads use the network.</p></div></div>
       </section>
 
       <section class="faq-section container" id="questions" aria-labelledby="faq-title">
@@ -175,13 +191,16 @@
       </section>
 
       <section class="download-section" id="download" aria-labelledby="download-title">
-        <div class="container download-grid"><div class="download-copy"><span class="eyebrow">ONCE MORE, AT YOUR OWN PACE</span><h2 id="download-title">Make room<br />for your next take.</h2><p>Free while in early access. No account required.</p><button class="button button-blue" data-open-download>Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></button><span class="release-meta">Version 0.0.3 · Early access · macOS 26+</span></div><div class="download-art"><img class="download-icon" src="assets/app-icon.png" width="256" height="256" alt="Ichido app icon" loading="lazy" /></div></div>
+        <div class="container download-grid"><div class="download-copy"><span class="eyebrow">ONCE MORE, AT YOUR OWN PACE</span><h2 id="download-title">Make room<br />for your next take.</h2><p>Free while in early access. No account required.</p><button class="button button-blue" data-open-download>Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></button><span class="release-meta">Version 0.0.3 · Early access · macOS 26+</span></div><div class="download-art"><picture><source srcset="assets/app-icon.webp" type="image/webp" /><img class="download-icon" src="assets/app-icon.png" width="256" height="256" alt="Ichido app icon" loading="lazy" decoding="async" /></picture></div></div>
       </section>
     </main>
 
     <footer class="site-footer container">
       <a class="wordmark" href="#" aria-label="Ichido home">
-        <img src="assets/brand-mark.png" width="40" height="22" alt="" />
+        <picture>
+          <source srcset="assets/brand-mark.webp" type="image/webp" />
+          <img src="assets/brand-mark.png" width="40" height="22" alt="" />
+        </picture>
         <span>ichido.</span>
       </a>
       <span class="footer-line">Your private speaking room.</span>
@@ -229,15 +248,7 @@
           <img class="icon" src="assets/icons/x.svg" alt="" />
         </button>
       </div>
-      <video
-        id="tour-video"
-        controls
-        playsinline
-        preload="none"
-        poster="assets/ichido-film-poster.jpg"
-      >
-        <source src="assets/ichido-launch-film.mp4" type="video/mp4" />
-      </video>
+      <video id="tour-video" controls playsinline preload="none"></video>
       <div class="tour-chapters" aria-label="Jump to a part of the film">
         <button data-seek="0">00:00 One more try</button>
         <button data-seek="10">00:10 Listen</button>
@@ -264,13 +275,17 @@
           <img class="icon" src="assets/icons/x.svg" alt="" />
         </button>
       </div>
-      <img
-        class="download-app-icon"
-        src="assets/app-icon.png"
-        width="72"
-        height="72"
-        alt=""
-      />
+      <picture>
+        <source srcset="assets/app-icon.webp" type="image/webp" />
+        <img
+          class="download-app-icon"
+          src="assets/app-icon.png"
+          width="72"
+          height="72"
+          alt=""
+          decoding="async"
+        />
+      </picture>
       <h2 id="download-dialog-title">Your next take starts here.</h2>
       <p class="dialog-description">Ichido 0.0.3 · Early access · macOS 26+</p>
       <p class="dialog-commercial">Free while in early access. No account required.</p>

@@ -8,6 +8,8 @@ const $$ = (selector, parent = document) => [
 const tourDialog = $("#tour-dialog");
 const tourVideo = $("#tour-video");
 const downloadDialog = $("#download-dialog");
+const filmSource = "assets/ichido-launch-film.mp4";
+const filmPoster = "assets/ichido-film-poster.webp";
 let tourStartTime = 0;
 
 tourVideo.addEventListener("loadedmetadata", () => {
@@ -17,8 +19,19 @@ tourVideo.addEventListener("error", () => {
   $("#film-load-error").hidden = false;
 });
 
+function attachFilm() {
+  if (tourVideo.querySelector("source")) return;
+  tourVideo.poster = filmPoster;
+  const source = document.createElement("source");
+  source.src = filmSource;
+  source.type = "video/mp4";
+  tourVideo.append(source);
+  tourVideo.load();
+}
+
 function openTour(time = 0) {
   tourStartTime = time;
+  attachFilm();
   tourDialog.showModal();
   if (tourVideo.readyState >= 1) tourVideo.currentTime = time;
   // Request playback during the click so browsers retain the user gesture.
@@ -109,27 +122,22 @@ const insightTabs = $$("[data-insight]");
 const insightOrder = ["listen", "understand", "repeat", "compare"];
 const insightTabsRoot = $(".insight-tabs");
 let activeInsight = "listen";
-let insightRequest = 0;
 
-// Hidden steps still download and decode before their first selection.
-const insightImages = new Map(
-  $$("[data-insight-view]").map((view) => [
-    view.dataset.insightView,
-    $("img", view).decode().catch(() => {}),
-  ]),
-);
-
-async function showInsight(name) {
-  const request = ++insightRequest;
+function showInsight(name) {
   if (name === activeInsight) return;
   const active = insightTabs.find((tab) => tab.dataset.insight === name);
   if (!active) return;
-  await insightImages.get(name);
-  if (request !== insightRequest) return;
   selectTab(insightTabs, active);
   $("#insight-panel").setAttribute("aria-labelledby", active.id);
   $$("[data-insight-view]").forEach((view) => {
-    view.hidden = view.dataset.insightView !== name;
+    const selected = view.dataset.insightView === name;
+    view.hidden = !selected;
+    view.classList.toggle("is-entering", selected);
+    if (!selected) return;
+    const image = $("img", view);
+    if (!image) return;
+    image.loading = "eager";
+    image.fetchPriority = "high";
   });
   insightTabsRoot?.style.setProperty(
     "--insight-index",
@@ -158,18 +166,16 @@ function closeDialog(dialog) {
   dialog?.close();
 }
 
-async function openScreenshot(link) {
+function openScreenshot(link) {
   if (screenshotDialog.open) return;
-  const request = ++screenshotRequest;
+  ++screenshotRequest;
   const source = $("img", link);
-  expandedScreenshot.src = link.href;
   expandedScreenshot.alt = source.alt;
+  expandedScreenshot.width = source.width || 3420;
+  expandedScreenshot.height = source.height || 2146;
+  expandedScreenshot.src = link.href;
   $("#screenshot-caption").textContent = link.dataset.caption ||
     "Real app capture. Transcripts and Words replies can contain errors.";
-  await expandedScreenshot.decode().catch(() => {});
-  if (request !== screenshotRequest || !expandedScreenshot.naturalWidth) return;
-  expandedScreenshot.width = expandedScreenshot.naturalWidth;
-  expandedScreenshot.height = expandedScreenshot.naturalHeight;
   screenshotSource = link.closest(".screen-frame") || link;
   screenshotOpener = link;
   screenshotSource.classList.add("screenshot-source-hidden");
