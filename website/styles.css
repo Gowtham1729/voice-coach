@@ -151,6 +151,8 @@ h1 em { letter-spacing: -0.045em; }
 }
 .ribbon-toggle:hover { color: var(--ink); }
 
+.insights-section, .faq-section, .download-section { border-top: 1px solid var(--line); }
+
 /* One overview, with four chapters sharing a gridded practice room. */
 .insights-section { padding-block: 64px 100px; }
 .insights-heading { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 64px; margin-bottom: 44px; }
@@ -312,7 +314,7 @@ dialog::backdrop { background: #111820b8; }
   .hero-actions { margin-top: 28px; }
   .trust-line { margin-top: 16px; font-size: 12px; }
   h2 { font-size: 38px; }
-  .insights-section { padding-block: 20px 56px; }
+  .insights-section { padding-block: 48px 56px; }
   .insights-heading { display: block; margin-bottom: 28px; }
   .insights-heading p { margin-top: 22px; font-size: 16px; }
   .insight-tabs button { grid-template-columns: 1fr; gap: 8px; min-height: 76px; padding: 14px 8px; }
@@ -332,7 +334,7 @@ dialog::backdrop { background: #111820b8; }
   .practice-caption { align-items: flex-start; flex-direction: column; gap: 4px; margin-top: 16px; }
   .product-footnote { font-size: 12px; }
   .inline-link { font-size: 14px; }
-  .faq-section { display: flex; flex-direction: column; gap: 36px; padding-block: 40px 64px; }
+  .faq-section { display: flex; flex-direction: column; gap: 36px; padding-block: 48px 64px; }
   .faq-heading h2 { max-width: 15ch; }
   .privacy-note { max-width: 52ch; margin-top: 28px; }
   .faq-list summary { min-height: 70px; gap: 16px; font-size: 15px; }
