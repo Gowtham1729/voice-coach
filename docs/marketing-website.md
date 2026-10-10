@@ -11,13 +11,17 @@ node scripts/build-website.mjs
 node scripts/serve-website.mjs --port 4173
 ```
 
+`node scripts/build-website.mjs` copies `website/` to `dist/` for Firebase Hosting. `node scripts/serve-website.mjs` previews the `website/` source. The server does not serve the `dist/` copy.
+
 `check-website.mjs` is the contract, and it is not part of CI job `test`. It checks local assets, unique IDs, ARIA targets, four workflow tabs, the latest-release download with no pinned version, no external scripts, no capture or analytics APIs, no em dashes, and the exact strings in its `requiredCopy` array. Change one of those sentences only by editing `website/index.html` and the checker in the same change. Browser checks for dialogs, focus return, tabs, the mobile menu, FAQ, video chapters, overflow, and the ribbon are separate from that script. Neither those checks nor `check-website.mjs` prove app contracts, signing, persistence, language accuracy, or hardware audio.
+
+A website-only pull request is verified with the four commands above. It does not need Peekaboo or `./scripts/render-previews.sh`. Those Mac checks stay for app UI and layout changes.
 
 ## Copy and claims
 
 Follow `docs/brand/messaging.md`. The page says **Listen → Understand → Repeat → Compare**. Understand is the optional language step; Words also stays in the experimental section. The app’s own reference loop remains Listen → Repeat → Compare. No accent grades, fluency guarantees, or medical claims.
 
-Use the shared product terms from the messaging guide in headings, instructions, FAQs, and image captions. The FAQ gives short answers to practical questions; avoid internal storage details and former feature names. Keep the Ichido name, descriptor, and website headline consistent with that guide. Replace product screenshots with real captures when visible labels change.
+Use the shared product terms from the messaging guide in headings, instructions, FAQs, and image captions. The FAQ gives answers to practical questions and holds pronunciation and Words limitations; avoid repeating those cautions in feature copy or screenshot captions. Keep Words’ experimental badge and Apple Intelligence requirement beside the feature. Privacy has one full visible statement, with a link from the FAQ. Installation signing disclosure stays visible in the download dialog before the ZIP link, with installation steps collapsed on all screen sizes. Avoid internal storage details and former feature names. Keep the Ichido name, descriptor, and website headline consistent with that guide. Replace product screenshots with real captures when visible labels change.
 
 The download URL stays `https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip`. Publish copy for a new version only after that release’s ZIP aliases and signed appcast exist. The app is ad-hoc signed and not notarized.
 

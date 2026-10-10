@@ -1177,17 +1177,14 @@ img {
   font-weight: 700;
 }
 
-.download-notes {
+.download-art {
   display: grid;
-  gap: 32px;
-  padding: 36px;
-  color: var(--ink);
-  background: var(--blue-pale);
-  transform: rotate(1deg);
+  place-items: center;
 }
 
 .download-icon {
-  margin-top: -85px;
+  width: clamp(160px, 22vw, 256px);
+  height: auto;
   border-radius: 24px;
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
 }
@@ -1227,10 +1224,6 @@ img {
 
 .install-details > p {
   margin: 0 0 16px;
-}
-
-.download-notes p {
-  margin: 8px 0 0;
 }
 
 .site-footer {
@@ -1777,12 +1770,6 @@ dialog[open]::backdrop {
     writing-mode: horizontal-tb;
   }
 
-  .download-notes {
-    margin-top: 55px;
-    gap: 16px;
-    transform: none;
-  }
-
   .mimic-visual {
     min-width: 0;
     margin: 0 8px 16px 0;
@@ -1982,10 +1969,6 @@ dialog[open]::backdrop {
 
   .download-copy h2 {
     font-size: 52px;
-  }
-
-  .download-notes {
-    padding: 26px;
   }
 
   .site-footer {

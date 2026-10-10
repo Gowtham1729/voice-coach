@@ -100,15 +100,29 @@ for (const requiredCopy of [
   "Record with your mic", "Capture Mac audio", "Import a file",
   "Choose Capture Mac audio to use it as a reference.",
   "When enough words reliably match, two measured practice targets",
-  "Experimental and off by default. You can skip this step.",
-  "AI can be wrong.",
-  "Words can’t hear or evaluate your audio.",
   "Free while in early access. No account required.",
   "System audio access is needed when you capture Mac audio.",
   "Real app captures", "Watch the film",
 ]) {
   assert.ok(normalizedHtml.includes(requiredCopy), `Missing product boundary: ${requiredCopy}`);
 }
+const faqHtml = html.match(/<section[^>]*id="questions"[\s\S]*?<\/section>/)?.[0] || "";
+for (const requiredCopy of [
+  "It is experimental and off by default; enable it in Settings → Experiments.",
+  "AI can be wrong.",
+  "Words can’t hear or evaluate your audio.",
+  "It does not grade your accent or assess fluency.",
+]) {
+  assert.ok(faqHtml.includes(requiredCopy), `Missing FAQ boundary: ${requiredCopy}`);
+  assert.equal(html.split(requiredCopy).length - 1, 1, `Repeated boundary: ${requiredCopy}`);
+}
+assert.ok(
+  html.includes("No account. No recording uploads. No analytics. Update checks and optional model downloads use the network."),
+  "The dedicated privacy section retains the full privacy statement",
+);
+const downloadDialog = html.match(/<dialog[^>]*id="download-dialog"[\s\S]*?<\/dialog>/)?.[0] || "";
+assert.ok(downloadDialog.includes("This release is not Apple-notarized yet."), "Installation disclosure stays in the download dialog");
+assert.ok(downloadDialog.includes('<details class="install-details">'), "Installation steps start collapsed on every screen size");
 assert.ok(!/confidence score|personality score/.test(html), "No unsupported subjective scores");
 assert.equal((html.match(/\bdata-insight="/g) || []).length, 4, "The reference loop has four accessible tabs");
 assert.equal((html.match(/practise/gi) || []).length, 0, "Website copy uses practice, not practise");
