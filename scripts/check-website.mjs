@@ -68,13 +68,49 @@ assert.ok(
   "Meta description uses the page language for language practice and rehearsing a talk",
 );
 const robots = readFileSync(resolve(root, "robots.txt"), "utf8");
-assert.match(robots, /^User-agent:\s*\*\s*$/m, "robots.txt allows every crawler");
-assert.match(robots, /^Allow:\s*\/\s*$/m, "robots.txt allows the site");
 assert.equal(/^\s*Disallow:/m.test(robots), false, "robots.txt must not disallow paths");
 assert.match(
   robots,
   new RegExp(`^Sitemap:\\s*${publicOrigin}/sitemap\\.xml\\s*$`, "m"),
   "robots.txt points at the sitemap",
+);
+for (const agent of [
+  "*",
+  "GPTBot",
+  "OAI-SearchBot",
+  "ChatGPT-User",
+  "Bingbot",
+  "PerplexityBot",
+  "ClaudeBot",
+  "Google-Extended",
+]) {
+  const pattern = agent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  assert.match(
+    robots,
+    new RegExp(`^User-agent:\\s*${pattern}\\s*\\nAllow:\\s*/\\s*$`, "m"),
+    `robots.txt allows ${agent}`,
+  );
+}
+const llms = readFileSync(resolve(root, "llms.txt"), "utf8");
+assert.match(llms, /^# Ichido\s*$/m, "llms.txt names Ichido");
+assert.match(llms, /^> Ichido is a private Mac app for speaking practice\./m);
+assert.ok(llms.includes("Practice a language."), "llms.txt mentions language practice");
+assert.ok(llms.includes("Rehearse a talk."), "llms.txt mentions rehearsing a talk");
+assert.ok(llms.includes("Recordings stay on the Mac."), "llms.txt says recordings stay local");
+assert.ok(llms.includes(`${publicOrigin}/`), "llms.txt names the public site");
+assert.ok(
+  llms.includes(`[Ichido](${publicOrigin}/)`),
+  "llms.txt links the homepage",
+);
+assert.equal(
+  /fluen|diagnos|medical|diaphragm/i.test(llms),
+  false,
+  "llms.txt must not make medical or fluency claims",
+);
+assert.equal(
+  /gtag|googletagmanager|pixel|analytics/i.test(llms),
+  false,
+  "llms.txt must not add tracking",
 );
 const sitemap = readFileSync(resolve(root, "sitemap.xml"), "utf8");
 const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
