@@ -13,6 +13,8 @@ node scripts/serve-website.mjs --port 4173
 
 `node scripts/build-website.mjs` copies `website/` to `dist/` for Firebase Hosting. `node scripts/serve-website.mjs` previews the `website/` source. The server does not serve the `dist/` copy.
 
+The stylesheet and app module URLs include the first 12 characters of each file’s SHA-256 as a `v` query parameter so returning browsers load changed assets immediately. Refresh the corresponding version in `website/index.html` whenever either file changes; the checker verifies those versions.
+
 `check-website.mjs` is the contract, and it is not part of CI job `test`. It checks local assets, unique IDs, ARIA targets, four workflow tabs, the latest-release download with no pinned version, no external scripts, no capture or analytics APIs, no em dashes, and the exact strings in its `requiredCopy` array. Change one of those sentences only by editing `website/index.html` and the checker in the same change. Browser checks for dialogs, focus return, tabs, navigation, FAQ, video chapters, overflow, and the ribbon are separate from that script. Neither those checks nor `check-website.mjs` prove app contracts, signing, persistence, language accuracy, or hardware audio.
 
 A website-only pull request is verified with the four commands above. It does not need Peekaboo or `./scripts/render-previews.sh`. Those Mac checks stay for app UI and layout changes.

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -63,6 +64,13 @@ assert.ok(
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
 const modules = readdirSync(root).filter((file) => file.endsWith(".js"));
 const js = modules.map((file) => readFileSync(resolve(root, file), "utf8")).join("\n");
+for (const asset of ["styles.css", "app.js"]) {
+  const version = createHash("sha256")
+    .update(readFileSync(resolve(root, asset)))
+    .digest("hex")
+    .slice(0, 12);
+  assert.ok(html.includes(`"${asset}?v=${version}"`), `Refresh the content version for ${asset}`);
+}
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(ids).size, ids.length, "HTML IDs must be unique");
 const urls = new Set([
@@ -77,7 +85,10 @@ for (const url of urls) {
   if (url === "#" || url.startsWith("https://")) continue;
   if (url.startsWith("#"))
     assert.ok(ids.includes(url.slice(1)), `Missing anchor: ${url}`);
-  else assert.ok(existsSync(resolve(root, url)), `Missing local asset: ${url}`);
+  else {
+    const localPath = url.split(/[?#]/, 1)[0];
+    assert.ok(existsSync(resolve(root, localPath)), `Missing local asset: ${url}`);
+  }
 }
 for (const match of html.matchAll(
   /\baria-(?:controls|labelledby)="([^"]+)"/g,
