@@ -1,0 +1,15 @@
+{
+  "hosting": {
+    "site": "ichido-511210",
+    "public": "dist",
+    "predeploy": [
+      "node scripts/check-website.mjs",
+      "node scripts/build-website.mjs"
+    ],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

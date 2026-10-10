@@ -1,0 +1,68 @@
+# Publishes website/ to Firebase Hosting on ichido-511210.
+# Push to main only. No pull_request, pull_request_target, or preview channel.
+# Auth is Workload Identity Federation. No FIREBASE_TOKEN and no service account key.
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-hosting-ichido-511210
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy hosting
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Require Workload Identity variables
+        env:
+          WORKLOAD_IDENTITY_PROVIDER: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          WORKLOAD_IDENTITY_SERVICE_ACCOUNT: ${{ vars.WORKLOAD_IDENTITY_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${WORKLOAD_IDENTITY_PROVIDER}" || -z "${WORKLOAD_IDENTITY_SERVICE_ACCOUNT}" ]]; then
+            echo "Actions variables WORKLOAD_IDENTITY_PROVIDER and WORKLOAD_IDENTITY_SERVICE_ACCOUNT must be set."
+            echo "They are variables, not secrets. Run scripts/setup-firebase-wif.sh, then the gh variable set commands it prints."
+            exit 1
+          fi
+          if [[ ! "${WORKLOAD_IDENTITY_PROVIDER}" =~ ^projects/[0-9]+/locations/global/workloadIdentityPools/github/providers/github-actions$ ]]; then
+            echo "WORKLOAD_IDENTITY_PROVIDER must be projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github-actions."
+            exit 1
+          fi
+          if [[ "${WORKLOAD_IDENTITY_SERVICE_ACCOUNT}" != "website-deploy@ichido-511210.iam.gserviceaccount.com" ]]; then
+            echo "WORKLOAD_IDENTITY_SERVICE_ACCOUNT must be website-deploy@ichido-511210.iam.gserviceaccount.com."
+            exit 1
+          fi
+
+      # actions/checkout v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      # actions/setup-node v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22.23.3
+
+      - name: Check and build the promo site
+        run: |
+          node scripts/check-website.mjs
+          node scripts/build-website.mjs
+
+      # google-github-actions/auth v3.0.0
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          project_id: ichido-511210
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.WORKLOAD_IDENTITY_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Deploy Hosting
+        run: npx --yes firebase-tools@15.33.0 deploy --only hosting --project ichido-511210 --non-interactive

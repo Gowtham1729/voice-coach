@@ -6,3 +6,7 @@ build/
 *.m4a
 *.pcm
 .swiftpm/
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+gha-creds-*.json
