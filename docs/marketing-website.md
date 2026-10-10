@@ -11,7 +11,44 @@ node scripts/build-website.mjs
 node scripts/serve-website.mjs --port 4173
 ```
 
-`check-website.mjs` is the contract, and it is not part of CI job `test`. It checks local assets, unique IDs, ARIA targets, four workflow tabs, the latest-release download with no pinned version, no external scripts, no capture or analytics APIs, no em dashes, and the exact strings in its `requiredCopy` array. Change one of those sentences only by editing `website/index.html` and the checker in the same change. Browser checks for dialogs, focus return, tabs, the mobile menu, FAQ, video chapters, overflow, and the ribbon are separate from that script. Neither those checks nor `check-website.mjs` prove app contracts, signing, persistence, language accuracy, or hardware audio.
+`node scripts/build-website.mjs` copies `website/` to `dist/` for Firebase Hosting. `node scripts/serve-website.mjs` previews the `website/` source. The server does not serve the `dist/` copy.
+
+`check-website.mjs` is the contract, and it is not part of CI job `test`. It checks local assets, unique IDs, ARIA targets, four workflow tabs, the latest-release download with no pinned version, no external scripts, no capture or analytics APIs, no em dashes, and the locked sentences and URLs below. Browser checks for dialogs, focus return, tabs, the mobile menu, FAQ, video chapters, overflow, and the ribbon are separate from that script. Neither those checks nor `check-website.mjs` prove app contracts, signing, persistence, language accuracy, or hardware audio.
+
+A website-only pull request is verified with the four commands above. It does not need Peekaboo or `./scripts/render-previews.sh`. Those Mac checks stay for app UI and layout changes.
+
+### Locked sentences and URLs
+
+Changing a locked sentence or URL means editing `website/index.html` and `scripts/check-website.mjs` in the same change. A page sentence outside this list can change in `website/` alone. The other checks in the script still apply.
+
+`requiredCopy` in `scripts/check-website.mjs`:
+
+- Your private speaking room for Mac
+- Record with your mic
+- Capture Mac audio
+- Import a file
+- Choose Capture Mac audio to use it as a reference.
+- When enough words reliably match, two measured practice targets
+- Experimental and off by default. You can skip this step.
+- AI can be wrong.
+- Words can’t hear or evaluate your audio. The apostrophe is a right single quotation mark (U+2019).
+- Free while in early access. No account required.
+- System audio access is needed when you capture Mac audio.
+- Real app captures
+- Watch the film
+
+Host, download, and share URLs:
+
+- Host: `https://ichido-511210.web.app/` (canonical link and Open Graph URL)
+- Download: `https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip`
+- Share image: `https://ichido-511210.web.app/assets/ichido-share.png`
+
+The same script also locks these exact strings:
+
+- Record a take. Try again, or practice against a reference.
+- Version 0.0.3 · Early access · macOS 26+
+- Ichido is your private speaking room for Mac. Record a take, practice with a reference, and try again. (meta description)
+- A real practice session (sentence-case heading)
 
 ## Copy and claims
 
