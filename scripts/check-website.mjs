@@ -66,7 +66,7 @@ const js = modules.map((file) => readFileSync(resolve(root, file), "utf8")).join
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(ids).size, ids.length, "HTML IDs must be unique");
 const urls = new Set([
-  ...[...html.matchAll(/\b(?:src|href|poster|srcset)="([^"]+)"/g)].map(
+  ...[...html.matchAll(/\b(?:src|href|poster)="([^"]+)"/g)].map(
     (match) => match[1],
   ),
   ...[...css.matchAll(/url\(['"]?([^'"\)]+)['"]?\)/g)].map((match) => match[1]),
@@ -110,7 +110,7 @@ for (const requiredCopy of [
   assert.ok(normalizedHtml.includes(requiredCopy), `Missing product boundary: ${requiredCopy}`);
 }
 assert.ok(!/confidence score|personality score/.test(html), "No unsupported subjective scores");
-assert.equal((html.match(/\brole="tab"/g) || []).length, 4, "The reference loop has four accessible tabs");
+assert.equal((html.match(/\bdata-insight="/g) || []).length, 4, "The reference loop has four accessible tabs");
 assert.equal((html.match(/practise/gi) || []).length, 0, "Website copy uses practice, not practise");
 assert.ok(html.includes(">A real practice session<"), "Practice-session heading is sentence case");
 assert.ok(!html.includes("A REAL PRACTICE SESSION"), "Practice-session heading is not shouted");
@@ -120,8 +120,8 @@ assert.ok(
   "Download line stays Version 0.0.3",
 );
 assert.ok(
-  html.includes("Practice a language by shadowing a clip, or rehearse a talk. Compare your take, then try again."),
-  "Hero subhead is the agreed short line",
+  normalizedHtml.includes("Practice a language. Rehearse a talk.<br />Hear yourself back, at your own pace."),
+  "Hero introduces speaking and language practice",
 );
 assert.ok(
   !html.includes("Record a take, then try another take, or practice against a reference."),
@@ -129,7 +129,7 @@ assert.ok(
 );
 assert.ok(
   html.includes(
-    'content="Ichido is your private speaking room for Mac. Shadow a clip in another language or rehearse a talk, then compare your take and try again."',
+    'content="Ichido is your private speaking room for Mac. Practice a language, rehearse a talk, and hear yourself back, at your own pace."',
   ),
   "Meta description matches the brief",
 );

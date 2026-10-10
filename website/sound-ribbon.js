@@ -1,4 +1,4 @@
-// A silent, desktop-only WebGL sculpture. Mobile omits the entire artwork.
+// A silent, desktop-only WebGL sculpture. Mobile keeps the still image.
 const vertexSource = `
   precision highp float;
   attribute vec3 a_position;
@@ -178,14 +178,14 @@ function makeMesh(gl) {
 }
 
 export function initSoundRibbon() {
-  const scene = document.querySelector(".hero-art");
+  const scene = document.querySelector(".sound-scene");
   if (!scene) return;
   const canvas = scene.querySelector("canvas");
   const fallback = scene.querySelector(".sound-sculpture");
-  if (!canvas || !fallback) return;
+  if (!canvas || !fallback || scene.clientWidth === 0 || scene.clientHeight === 0) return;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const mobile = matchMedia("(max-width: 780px)");
-  // Mobile has no artwork and must not create a graphics context.
+  // Mobile keeps the still image and must not create a graphics context.
   if (reducedMotion.matches || mobile.matches) {
     function startWhenEligible() {
       if (reducedMotion.matches || mobile.matches) return;
@@ -273,7 +273,7 @@ export function initSoundRibbon() {
     const still = reducedMotion.matches || mobile.matches || lost;
     scene.classList.toggle("ribbon-ready", !still);
     canvas.hidden = still;
-    if (fallback) fallback.setAttribute("aria-hidden", String(!still));
+    fallback.setAttribute("aria-hidden", String(!still));
     if (!still && visible && !document.hidden) {
       frame = requestAnimationFrame(animate);
     }
@@ -377,7 +377,7 @@ export function initSoundRibbon() {
     updatePlayback();
   }).observe(scene);
   new ResizeObserver(() => {
-    if (!lost && !reducedMotion.matches && !mobile.matches) render();
+    if (!lost && visible && !document.hidden && !reducedMotion.matches && !mobile.matches) render();
   }).observe(scene);
   canvas.hidden = false;
   render();

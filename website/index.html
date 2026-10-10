@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f4f1e9" />
     <meta
       name="description"
-      content="Ichido is your private speaking room for Mac. Shadow a clip in another language or rehearse a talk, then compare your take and try again."
+      content="Ichido is your private speaking room for Mac. Practice a language, rehearse a talk, and hear yourself back, at your own pace."
     />
     <meta
       property="og:title"
@@ -51,7 +51,7 @@
         <span>ichido<span class="wordmark-period">.</span></span>
       </a>
       <nav class="desktop-nav" aria-label="Main navigation">
-        <a href="#ways-in">Ways in</a>
+        <a href="#ways-in">Made for you</a>
         <a href="#practice">Practice</a>
         <a href="#questions">Questions</a>
       </nav>
@@ -66,7 +66,7 @@
       <details class="mobile-menu">
         <summary>Menu <img class="icon" src="assets/icons/plus.svg" alt="" /></summary>
         <nav aria-label="Mobile navigation">
-          <a href="#ways-in">Ways in</a>
+          <a href="#ways-in">Made for you</a>
           <a href="#practice">Practice</a>
           <a href="#questions">Questions</a>
           <a href="#download">Get Ichido for Mac</a>
@@ -79,7 +79,7 @@
         <div class="hero-copy">
           <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span>Your private speaking room for Mac</p>
           <h1 id="hero-title">Your words.<br />Your voice.<br /><em>One more try.</em></h1>
-          <p class="hero-description">Practice a language by shadowing a clip, or rehearse a talk. Compare your take, then try again.</p>
+          <p class="hero-description">Practice a language. Rehearse a talk.<br />Hear yourself back, at your own pace.</p>
           <div class="hero-actions">
             <a class="button button-blue" href="#download" data-open-download>Get Ichido for Mac<img class="icon light" src="assets/icons/arrow-down.svg" alt="" /></a>
             <a class="text-button watch-button" href="assets/ichido-launch-film.mp4" data-open-tour aria-haspopup="dialog" aria-controls="tour-dialog"><span class="play-symbol" aria-hidden="true">▶</span>Watch Ichido<span class="film-duration">1:03</span></a>
@@ -88,33 +88,39 @@
           <p class="brand-pronunciation">ichido <span>/ ee-chee-doh /</span></p>
         </div>
         <div class="hero-art">
-          <figure class="hero-capture screen-frame">
-            <div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE + YOUR TAKE · COMPARE</strong></div>
-            <a class="screenshot-link" href="assets/mimic-compare.jpg" data-screenshot>
-              <picture>
-                <source media="(max-width: 780px)" srcset="assets/mimic-compare-hero-mobile.jpg" width="680" height="288" />
-                <img
-                  src="assets/mimic-compare-hero.jpg"
-                  width="679"
-                  height="548"
-                  alt="Ichido’s Practice next panel after a comparison: Phrase timing, and Pitch on “about”: replay ‘about’ and lift its pitch relative to the surrounding words"
-                  fetchpriority="high"
-                  decoding="async"
-                />
-              </picture>
-            </a>
-          </figure>
-          <img class="sound-sculpture" src="assets/sound-sculpture.jpg" width="1536" height="1024" alt="Abstract cobalt sound wave sculpture" loading="lazy" />
-          <canvas class="sound-ribbon" role="button" tabindex="0" aria-label="Send a wave through the sound sculpture" hidden></canvas>
+          <div class="sound-scene">
+            <img class="sound-sculpture" src="assets/sound-sculpture.jpg" width="1536" height="1024" alt="A cobalt ribbon flowing like a voice through space" fetchpriority="high" />
+            <canvas class="sound-ribbon" role="button" tabindex="0" aria-label="Send a ripple through the ribbon" hidden></canvas>
+            <span class="ribbon-hint" aria-hidden="true">Give it a little nudge.</span>
+          </div>
+          <div class="purpose-tabs" role="tablist" aria-label="What would you like to practice?">
+            <button id="purpose-language" role="tab" aria-selected="true" aria-controls="purpose-language-panel" data-purpose="language">A language</button>
+            <button id="purpose-talk" role="tab" aria-selected="false" aria-controls="purpose-talk-panel" tabindex="-1" data-purpose="talk">A talk</button>
+            <button id="purpose-voice" role="tab" aria-selected="false" aria-controls="purpose-voice-panel" tabindex="-1" data-purpose="voice">My own words</button>
+          </div>
+          <div class="purpose-stories">
+            <div id="purpose-language-panel" role="tabpanel" aria-labelledby="purpose-language" data-purpose-story="language" tabindex="0">
+              <h2>Make a phrase <em>your own.</em></h2>
+              <p>Listen for the rhythm. Explore the meaning. Give it your voice.</p>
+            </div>
+            <div id="purpose-talk-panel" role="tabpanel" aria-labelledby="purpose-talk" data-purpose-story="talk" tabindex="0" hidden>
+              <h2>Find room for <em>your next talk.</em></h2>
+              <p>An opening line. An interview answer. A story worth telling. Hear it before you share it.</p>
+            </div>
+            <div id="purpose-voice-panel" role="tabpanel" aria-labelledby="purpose-voice" data-purpose-story="voice" tabindex="0" hidden>
+              <h2>Hear yourself with <em>fresh ears.</em></h2>
+              <p>A pause, a little emphasis, a different pace. Discover what you want to try next.</p>
+            </div>
+          </div>
         </div>
-        <div class="hero-index" aria-hidden="true"><span>ICHIDO / 01</span><span>A LITTLE PRACTICE. ANOTHER TAKE.</span></div>
+        <div class="hero-index" aria-hidden="true"><span>A LITTLE ROOM TO PRACTICE</span><span>ONCE MORE, AT YOUR OWN PACE.</span></div>
       </section>
 
       <section class="insights-section container" id="practice" aria-labelledby="practice-title">
         <div class="section-kicker"><span>MAKE THE PHRASE YOURS</span><span>ONE TAKE AT A TIME</span></div>
         <div class="insights-heading">
-          <h2 id="practice-title">Listen closely.<br />Then <em>try it.</em></h2>
-          <p>Choose a phrase you want to practice. Listen, record, and compare your take with the reference.</p>
+          <h2 id="practice-title">A little closer.<br /><em>One more try.</em></h2>
+          <p>Hear the rhythm of a phrase. Notice what changes in your own voice. Find one thing to try differently.</p>
         </div>
         <div class="insight-demo practice-demo">
           <div class="insight-tabs" role="tablist" aria-label="Explore reference practice">
@@ -126,7 +132,7 @@
           <div class="insight-panel" id="insight-panel" role="tabpanel" aria-labelledby="insight-tab-listen" tabindex="0">
             <div class="insight-view" data-insight-view="listen">
               <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE PRACTICE · LISTEN</strong></div><a class="screenshot-link" href="assets/reference-practice.jpg" data-screenshot><img src="assets/reference-practice.jpg" width="3420" height="2146" alt="Ichido reference practice with a transcript, playback controls, and Listen & Repeat mode" loading="eager" decoding="async" /></a></div>
-              <div class="demo-note"><span class="demo-label">A PHRASE WORTH REPEATING</span><h3>Bring your own reference.</h3><div class="demo-copy"><p>Import a clip or choose Capture Mac audio. Select a phrase, then listen to its rhythm, pauses, and emphasis.</p><p class="step-detail">Click a transcribed word to replay that moment.</p></div></div>
+              <div class="demo-note"><span class="demo-label">A PHRASE WORTH REPEATING</span><h3>Find a voice that moves you.</h3><div class="demo-copy"><p>A line from a film. A moment in a podcast. Listen closely to the rhythm, pauses, and emphasis you want to explore.</p><p class="step-detail">Bring a clip you love. Choose Capture Mac audio to use it as a reference.</p></div></div>
             </div>
             <div class="insight-view" data-insight-view="understand" hidden>
               <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>WORDS · EXPERIMENTAL</strong></div><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot><img src="assets/language-chat.jpg" width="3420" height="2146" alt="Live French reference practice with an on-device explanation in the Words inspector" loading="eager" decoding="async" /></a></div>
@@ -134,11 +140,11 @@
             </div>
             <div class="insight-view" data-insight-view="repeat" hidden>
               <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE PRACTICE · YOUR TAKE</strong></div><a class="screenshot-link" href="assets/repeat-practice.jpg" data-screenshot><img src="assets/repeat-practice.jpg" width="3420" height="2146" alt="Ichido reference practice ready to record another take, with the reference transcript visible" loading="eager" decoding="async" /></a></div>
-              <div class="demo-note"><span class="demo-label">LET YOUR VOICE HAVE A GO</span><h3>Listen, then say it again.</h3><div class="demo-copy"><p>In Listen &amp; Repeat, the reference plays first, then you record. Speak Along plays it while you record; use headphones.</p><p class="step-detail">Each saved take stays in the same reference practice session.</p></div></div>
+              <div class="demo-note"><span class="demo-label">LET YOUR VOICE HAVE A GO</span><h3>A little space to try.</h3><div class="demo-copy"><p>Take your time with a phrase. Listen, give it your voice, and keep another take alongside it.</p><p class="step-detail">Listen &amp; Repeat plays the reference first. Speak Along plays it while you record; use headphones.</p></div></div>
             </div>
             <div class="insight-view" data-insight-view="compare" hidden>
               <div class="screen-frame"><div class="screen-bar"><span></span><span></span><span></span><strong>REFERENCE + YOUR TAKE · COMPARE</strong></div><a class="screenshot-link" href="assets/mimic-compare.jpg" data-screenshot><img src="assets/mimic-compare.jpg" width="3420" height="2146" alt="Live reference comparison showing matched pitch curves and two measured practice targets" loading="eager" decoding="async" /></a></div>
-              <div class="demo-note"><span class="demo-label">HEAR THE DIFFERENCE</span><h3>Compare delivery, then try another take.</h3><div class="demo-copy"><p>Replay both versions to compare timing, pitch, and loudness. When enough words reliably match, two measured practice targets suggest what to try next.</p><p class="step-detail">Ichido does not grade accents or certify pronunciation.</p></div></div>
+              <div class="demo-note"><span class="demo-label">HEAR THE DIFFERENCE</span><h3>Notice something. Try it differently.</h3><div class="demo-copy"><p>Hear where your timing, pitch, and loudness differ from the reference. When enough words reliably match, two measured practice targets suggest what to try next.</p><p class="step-detail">Ichido does not grade accents or certify pronunciation.</p></div></div>
             </div>
           </div>
         </div>
@@ -161,14 +167,14 @@
 
       <section class="ways-section" id="ways-in" aria-labelledby="ways-title">
         <div class="container">
-          <div class="section-kicker"><span>THREE WAYS IN</span><span>START WITH WHAT YOU HAVE</span></div>
-          <div class="ways-heading"><h2 id="ways-title">A phrase. A clip.<br />Your own voice.</h2><p>Practice a language, rehearse a presentation, or simply hear yourself back. Choose the source that fits.</p></div>
+          <div class="section-kicker"><span>MADE FOR YOUR EVERYDAY</span><span>BIG MOMENTS. LITTLE PHRASES.</span></div>
+          <div class="ways-heading"><h2 id="ways-title">For the things<br />you want to say.</h2><p>Some days it’s a new phrase. Some days it’s the first line of a talk. There’s room for both.</p></div>
           <div class="ways-grid">
-            <article class="way-card"><span class="way-number">01</span><img src="assets/icons/microphone.svg" alt="" /><h3>Record with your mic</h3><p>Try a phrase, an interview answer, or a talk. Review measured pauses, pitch, and loudness on the timeline.</p></article>
-            <article class="way-card"><span class="way-number">02</span><img src="assets/icons/laptop.svg" alt="" /><h3>Capture Mac audio</h3><p>Turn a moment from a talk, podcast, or browser clip into a reference for practice.</p></article>
-            <article class="way-card"><span class="way-number">03</span><img src="assets/icons/arrow-down.svg" alt="" /><h3>Import a file</h3><p>Bring in an audio or video file. Ichido prepares the audio locally so you can listen and practice.</p></article>
+            <article class="way-card"><span class="way-number">01 / A LANGUAGE</span><h3>Make the unfamiliar<br /><em>feel familiar.</em></h3><p>A phrase you keep hearing. A line you want to say. Explore the words and practice the rhythm in your own voice.</p></article>
+            <article class="way-card"><span class="way-number">02 / A TALK</span><h3>Before the room,<br /><em>room to rehearse.</em></h3><p>Give an opening, a story, or an interview answer a little space. Hear your pace and pauses before the moment arrives.</p></article>
+            <article class="way-card"><span class="way-number">03 / YOUR OWN WORDS</span><h3>Your voice.<br /><em>A fresh perspective.</em></h3><p>No reference needed. Hear yourself back, notice your delivery, and keep another take whenever you want.</p></article>
           </div>
-          <p class="honesty-line"><img src="assets/icons/check.svg" alt="" />Playing a clip in your browser? Choose Capture Mac audio to use it as a reference.</p>
+          <div class="source-line"><span>Start with what you have.</span><span>Record with your mic</span><span>Capture Mac audio</span><span>Import a file</span></div>
           <div class="recording-proof"><a class="screenshot-link recording-screen" href="assets/take-analysis.jpg" data-screenshot><img src="assets/take-analysis.jpg" width="3420" height="2146" alt="Live recording analysis with a word transcript, timeline, and measured acoustic properties" loading="lazy" /></a><div><span class="demo-label">A PLACE FOR YOUR OWN WORDS</span><h3>Reference optional.<br />Practice always.</h3><p>Start with your own recording whenever you want. Replay a word, notice a pause, and keep another take alongside it.</p><p class="product-footnote">Ordinary recordings show measurements. Reference practice adds matched comparison targets.</p><button class="inline-link" data-open-tour>Watch the film <span aria-hidden="true">↗</span></button></div></div>
         </div>
       </section>

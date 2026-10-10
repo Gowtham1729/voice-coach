@@ -105,6 +105,18 @@ function supportTabKeys(tabs, activate) {
   });
 }
 
+const purposeTabs = $$("[data-purpose]");
+function selectPurpose(active) {
+  selectTab(purposeTabs, active);
+  $$("[data-purpose-story]").forEach((story) => {
+    story.hidden = story.dataset.purposeStory !== active.dataset.purpose;
+  });
+}
+purposeTabs.forEach((tab) => {
+  tab.addEventListener("click", () => selectPurpose(tab));
+});
+supportTabKeys(purposeTabs, selectPurpose);
+
 const insightTabs = $$("[data-insight]");
 const insightOrder = ["listen", "understand", "repeat", "compare"];
 const insightTabsRoot = $(".insight-tabs");
@@ -247,15 +259,10 @@ function initMobileDownloadBar() {
   if (!bar || !heroButton || !("IntersectionObserver" in window)) return;
 
   function updateBar(isHeroButtonVisible) {
-    if (isHeroButtonVisible) {
-      bar.classList.add("mobile-bar-hidden");
-      bar.setAttribute("aria-hidden", "true");
-      bar.setAttribute("inert", "");
-    } else {
-      bar.classList.remove("mobile-bar-hidden");
-      bar.removeAttribute("aria-hidden");
-      bar.removeAttribute("inert");
-    }
+    bar.classList.toggle("mobile-bar-hidden", isHeroButtonVisible);
+    bar.toggleAttribute("aria-hidden", isHeroButtonVisible);
+    if (isHeroButtonVisible) bar.setAttribute("aria-hidden", "true");
+    bar.inert = isHeroButtonVisible;
   }
 
   const rect = heroButton.getBoundingClientRect();
@@ -266,7 +273,7 @@ function initMobileDownloadBar() {
     ([entry]) => {
       updateBar(entry.isIntersecting);
     },
-    { threshold: 0 }
+    { threshold: 0 },
   );
 
   observer.observe(heroButton);
