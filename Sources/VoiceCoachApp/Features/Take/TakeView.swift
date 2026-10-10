@@ -39,6 +39,10 @@ struct TakeView: View {
       StudioScroll {
         VStack(alignment: .leading, spacing: 14) {
           takeBar(session, take: take)
+          if !embedded, !session.isMimic {
+            SuggestedPracticeClipsView(take: take)
+              .id(take.id)
+          }
           transcriptCard(take)
           analysisCard(take)
         }
@@ -123,12 +127,6 @@ struct TakeView: View {
               prominent: TakeActionChrome.plainTake().isFilled(TakeScreenCopy.record))
             .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
         }
-      }
-      if !embedded, take.takeSource != .recorded {
-        Button("Practise with this clip") { model.useCurrentRecordingAsMimicReference() }
-          .tint(.primary)
-          .studioGlassButton()
-          .disabled(model.isRecording || model.isAnalyzing)
       }
     }
     .frame(minHeight: 32)

@@ -15,6 +15,14 @@ struct AppDependencies {
       url, engine, locale in
       try await TranscriptionService(preferredEngine: engine, locale: locale).transcribe(url: url)
     }
+  var preparePracticeClip:
+    @Sendable (URL, URL, Double, Double) async throws -> AnalysisResult = {
+      source, destination, start, end in
+      try await Task.detached(priority: .userInitiated) {
+        try AudioImportService.trimAudio(from: source, to: destination, start: start, end: end)
+        return try AudioAnalyzer().analyze(url: destination)
+      }.value
+    }
 
   static func live(storageRoot: URL? = nil) throws -> AppDependencies {
     AppDependencies(
