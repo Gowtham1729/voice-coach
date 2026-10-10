@@ -105,48 +105,18 @@ function supportTabKeys(tabs, activate) {
   });
 }
 
-const purposeTabs = $$("[data-purpose]");
-function selectPurpose(active) {
-  selectTab(purposeTabs, active);
-  $$("[data-purpose-story]").forEach((story) => {
-    story.hidden = story.dataset.purposeStory !== active.dataset.purpose;
-  });
-}
-purposeTabs.forEach((tab) => {
-  tab.addEventListener("click", () => selectPurpose(tab));
-});
-supportTabKeys(purposeTabs, selectPurpose);
-
 const insightTabs = $$("[data-insight]");
-const insightOrder = ["listen", "understand", "repeat", "compare"];
-const insightTabsRoot = $(".insight-tabs");
 let activeInsight = "listen";
-let insightRequest = 0;
 
-// Hidden steps still download and decode before their first selection.
-const insightImages = new Map(
-  $$("[data-insight-view]").map((view) => [
-    view.dataset.insightView,
-    $("img", view).decode().catch(() => {}),
-  ]),
-);
-
-async function showInsight(name) {
-  const request = ++insightRequest;
+function showInsight(name) {
   if (name === activeInsight) return;
   const active = insightTabs.find((tab) => tab.dataset.insight === name);
   if (!active) return;
-  await insightImages.get(name);
-  if (request !== insightRequest) return;
   selectTab(insightTabs, active);
   $("#insight-panel").setAttribute("aria-labelledby", active.id);
   $$("[data-insight-view]").forEach((view) => {
     view.hidden = view.dataset.insightView !== name;
   });
-  insightTabsRoot?.style.setProperty(
-    "--insight-index",
-    String(Math.max(0, insightOrder.indexOf(name))),
-  );
   activeInsight = name;
 }
 
@@ -219,22 +189,6 @@ $$("[data-screenshot]").forEach((link) => {
   });
 });
 
-const mobileMenu = $(".mobile-menu");
-$$("a", mobileMenu).forEach((link) => {
-  link.addEventListener("click", () => {
-    mobileMenu.open = false;
-  });
-});
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && mobileMenu.open) {
-    mobileMenu.open = false;
-    $("summary", mobileMenu).focus();
-  }
-});
-document.addEventListener("click", (event) => {
-  if (!mobileMenu.contains(event.target)) mobileMenu.open = false;
-});
-
 $$(".faq-list details").forEach((detail) => {
   detail.addEventListener("toggle", () => {
     if (!detail.open) return;
@@ -244,31 +198,4 @@ $$(".faq-list details").forEach((detail) => {
   });
 });
 
-function initMobileDownloadBar() {
-  const bar = $(".mobile-download-bar");
-  const heroButton = $(".hero-actions .button-blue");
-  if (!bar || !heroButton || !("IntersectionObserver" in window)) return;
-
-  function updateBar(isHeroButtonVisible) {
-    bar.classList.toggle("mobile-bar-hidden", isHeroButtonVisible);
-    bar.toggleAttribute("aria-hidden", isHeroButtonVisible);
-    if (isHeroButtonVisible) bar.setAttribute("aria-hidden", "true");
-    bar.inert = isHeroButtonVisible;
-  }
-
-  const rect = heroButton.getBoundingClientRect();
-  const initialVisible = rect.bottom > 0 && rect.top < window.innerHeight;
-  updateBar(initialVisible);
-
-  const observer = new IntersectionObserver(
-    ([entry]) => {
-      updateBar(entry.isIntersecting);
-    },
-    { threshold: 0 },
-  );
-
-  observer.observe(heroButton);
-}
-
-initMobileDownloadBar();
 initSoundRibbon();

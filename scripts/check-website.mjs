@@ -97,7 +97,8 @@ assert.ok(!html.includes("—"), "Landing-page strings must not use em dashes");
 assert.ok(!js.includes("—"), "Interactive strings must not use em dashes");
 for (const requiredCopy of [
   "Your private speaking room for Mac",
-  "Record with your mic", "Capture Mac audio", "Import a file",
+  "Speaking practice.<br /><em>At your own pace.</em>",
+  "Capture Mac audio",
   "Choose Capture Mac audio to use it as a reference.",
   "When enough words reliably match, two measured practice targets",
   "Free while in early access. No account required.",
@@ -118,15 +119,14 @@ for (const requiredCopy of [
 }
 assert.ok(
   html.includes("No account. No recording uploads. No analytics. Update checks and optional model downloads use the network."),
-  "The dedicated privacy section retains the full privacy statement",
+  "The privacy note retains the full privacy statement",
 );
 const downloadDialog = html.match(/<dialog[^>]*id="download-dialog"[\s\S]*?<\/dialog>/)?.[0] || "";
 assert.ok(downloadDialog.includes("This release is not Apple-notarized yet."), "Installation disclosure stays in the download dialog");
 assert.ok(downloadDialog.includes('<details class="install-details">'), "Installation steps start collapsed on every screen size");
 assert.ok(!/confidence score|personality score/.test(html), "No unsupported subjective scores");
-assert.equal((html.match(/\bdata-insight="/g) || []).length, 4, "The reference loop has four accessible tabs");
+assert.equal((html.match(/\brole="tab"/g) || []).length, 4, "The reference loop has four accessible tabs");
 assert.equal((html.match(/practise/gi) || []).length, 0, "Website copy uses practice, not practise");
-assert.ok(html.includes(">A real practice session<"), "Practice-session heading is sentence case");
 assert.ok(!html.includes("A REAL PRACTICE SESSION"), "Practice-session heading is not shouted");
 assert.ok(!html.includes("YOUR VOICE BELONGS TO YOU"), "The privacy sign-off line is removed");
 assert.ok(
@@ -134,7 +134,7 @@ assert.ok(
   "Download line stays Version 0.0.3",
 );
 assert.ok(
-  normalizedHtml.includes("Practice a language. Rehearse a talk.<br />Hear yourself back, at your own pace."),
+  normalizedHtml.includes("Practice a language. Rehearse a talk.<br />Hear yourself back and find something to try next."),
   "Hero introduces speaking and language practice",
 );
 assert.ok(
@@ -143,7 +143,7 @@ assert.ok(
 );
 assert.ok(
   html.includes(
-    'content="Ichido is your private speaking room for Mac. Practice a language, rehearse a talk, and hear yourself back, at your own pace."',
+    'content="Ichido is your private speaking room for Mac. Practice a language, rehearse a talk, and hear yourself back."',
   ),
   "Meta description matches the brief",
 );
