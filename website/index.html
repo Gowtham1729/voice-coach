@@ -39,7 +39,7 @@
       type="font/ttf"
       crossorigin
     />
-    <link rel="stylesheet" href="styles.css?v=d6de2421b342" />
+    <link rel="stylesheet" href="styles.css?v=d0f0507c2cfa" />
     <script type="module" src="app.js?v=bc7ec9e235f4"></script>
   </head>
   <body>
@@ -92,27 +92,27 @@
         </div>
         <div class="insight-demo practice-demo">
           <div class="insight-tabs" role="tablist" aria-label="Explore reference practice">
-            <button id="insight-tab-listen" role="tab" aria-selected="true" aria-controls="insight-panel" data-insight="listen"><strong>Listen</strong></button>
-            <button id="insight-tab-understand" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="understand"><strong>Understand</strong></button>
-            <button id="insight-tab-repeat" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="repeat"><strong>Repeat</strong></button>
-            <button id="insight-tab-compare" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="compare"><strong>Compare</strong></button>
+            <button id="insight-tab-listen" role="tab" aria-selected="true" aria-controls="insight-panel" data-insight="listen"><span aria-hidden="true">01</span><strong>Listen</strong><small>Start with a reference</small></button>
+            <button id="insight-tab-understand" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="understand"><span aria-hidden="true">02</span><strong>Understand</strong><small>Explore the words</small></button>
+            <button id="insight-tab-repeat" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="repeat"><span aria-hidden="true">03</span><strong>Repeat</strong><small>Record your version</small></button>
+            <button id="insight-tab-compare" role="tab" aria-selected="false" aria-controls="insight-panel" tabindex="-1" data-insight="compare"><span aria-hidden="true">04</span><strong>Compare</strong><small>Hear what changed</small></button>
           </div>
           <div class="insight-panel" id="insight-panel" role="tabpanel" aria-labelledby="insight-tab-listen" tabindex="0">
             <div class="insight-view" data-insight-view="listen">
-              <div class="demo-note"><h3>Find a voice that moves you.</h3><div class="demo-copy"><p>A line from a film. A moment in a podcast. Listen closely to the rhythm, pauses, and emphasis you want to explore.</p><p class="step-detail">Bring a clip you love. Choose Capture Mac audio to use it as a reference.</p></div></div>
-              <div class="screen-frame"><a class="screenshot-link" href="assets/reference-practice.jpg" data-screenshot><img src="assets/reference-practice.jpg" width="3420" height="2146" alt="Ichido reference practice with a transcript, playback controls, and Listen & Repeat mode" loading="lazy" decoding="async" /></a></div>
+              <div class="demo-note"><span class="demo-label">A phrase worth repeating</span><h3>Find a voice that moves you.</h3><div class="demo-copy"><p>A line from a film. A moment in a podcast. Listen closely to the rhythm, pauses, and emphasis you want to explore.</p><p class="step-detail">Bring a clip you love. Choose Capture Mac audio to use it as a reference.</p></div></div>
+              <div class="screen-frame"><div class="screen-bar" aria-hidden="true"><span></span><span></span><span></span><strong>Reference practice · Listen</strong></div><a class="screenshot-link" href="assets/reference-practice.jpg" data-screenshot><img src="assets/reference-practice.jpg" width="3420" height="2146" alt="Ichido reference practice with a transcript, playback controls, and Listen & Repeat mode" loading="lazy" decoding="async" /></a></div>
             </div>
             <div class="insight-view" data-insight-view="understand" hidden>
               <div class="demo-note"><span class="demo-label">Words <span class="feature-badge">Experimental</span></span><h3>Make sense of what you hear.</h3><div class="demo-copy"><p>Open Words beside your transcript to explore meanings, grammar, synonyms, and translations on your Mac.</p><p class="step-detail">Optional. Chat requires available Apple Intelligence.</p></div></div>
-              <div class="screen-frame"><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot><img src="assets/language-chat.jpg" width="3420" height="2146" alt="Live French reference practice with an on-device explanation in the Words inspector" loading="lazy" decoding="async" /></a></div>
+              <div class="screen-frame"><div class="screen-bar" aria-hidden="true"><span></span><span></span><span></span><strong>Words · Understand</strong></div><a class="screenshot-link" href="assets/language-chat.jpg" data-screenshot><img src="assets/language-chat.jpg" width="3420" height="2146" alt="Live French reference practice with an on-device explanation in the Words inspector" loading="lazy" decoding="async" /></a></div>
             </div>
             <div class="insight-view" data-insight-view="repeat" hidden>
-              <div class="demo-note"><h3>Make the phrase your own.</h3><div class="demo-copy"><p>Take your time with a phrase. Listen, give it your voice, and keep another take alongside it.</p><p class="step-detail">Listen &amp; Repeat plays the reference first. Speak Along plays it while you record; use headphones.</p></div></div>
-              <div class="screen-frame"><a class="screenshot-link" href="assets/repeat-practice.jpg" data-screenshot><img src="assets/repeat-practice.jpg" width="3420" height="2146" alt="Ichido reference practice ready to record another take, with the reference transcript visible" loading="lazy" decoding="async" /></a></div>
+              <div class="demo-note"><span class="demo-label">Your next take</span><h3>Make the phrase your own.</h3><div class="demo-copy"><p>Take your time with a phrase. Listen, give it your voice, and keep another take alongside it.</p><p class="step-detail">Listen &amp; Repeat plays the reference first. Speak Along plays it while you record; use headphones.</p></div></div>
+              <div class="screen-frame"><div class="screen-bar" aria-hidden="true"><span></span><span></span><span></span><strong>Reference practice · Repeat</strong></div><a class="screenshot-link" href="assets/repeat-practice.jpg" data-screenshot><img src="assets/repeat-practice.jpg" width="3420" height="2146" alt="Ichido reference practice ready to record another take, with the reference transcript visible" loading="lazy" decoding="async" /></a></div>
             </div>
             <div class="insight-view" data-insight-view="compare" hidden>
-              <div class="demo-note"><h3>Notice something. Try it differently.</h3><div class="demo-copy"><p>Hear where your timing, pitch, and loudness differ from the reference. When enough words reliably match, two measured practice targets suggest what to try next.</p></div></div>
-              <div class="screen-frame"><a class="screenshot-link" href="assets/mimic-compare.jpg" data-screenshot><img src="assets/mimic-compare.jpg" width="3420" height="2146" alt="Live reference comparison showing matched pitch curves and two measured practice targets" loading="lazy" decoding="async" /></a></div>
+              <div class="demo-note"><span class="demo-label">Listen side by side</span><h3>Notice something. Try it differently.</h3><div class="demo-copy"><p>Hear where your timing, pitch, and loudness differ from the reference. When enough words reliably match, two measured practice targets suggest what to try next.</p></div></div>
+              <div class="screen-frame"><div class="screen-bar" aria-hidden="true"><span></span><span></span><span></span><strong>Reference practice · Compare</strong></div><a class="screenshot-link" href="assets/mimic-compare.jpg" data-screenshot><img src="assets/mimic-compare.jpg" width="3420" height="2146" alt="Live reference comparison showing matched pitch curves and two measured practice targets" loading="lazy" decoding="async" /></a></div>
             </div>
           </div>
         </div>
