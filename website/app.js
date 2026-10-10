@@ -223,15 +223,6 @@ document.addEventListener("click", (event) => {
   if (!mobileMenu.contains(event.target)) mobileMenu.open = false;
 });
 
-const phoneLayout = matchMedia("(max-width: 780px)");
-function updateInstallDetails() {
-  $$("[data-responsive-details]").forEach((details) => {
-    details.open = !phoneLayout.matches;
-  });
-}
-updateInstallDetails();
-phoneLayout.addEventListener("change", updateInstallDetails);
-
 $$(".faq-list details").forEach((detail) => {
   detail.addEventListener("toggle", () => {
     if (!detail.open) return;
