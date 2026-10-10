@@ -46,7 +46,7 @@ Use this guide for the app, website, README, and release notes. Marketing may ex
 | Settings → Transcription | Choose the speech engine and spoken language. |
 | Settings → Experiments | Enable Words. |
 
-The optional Understand tab introduces **Words**; it is optional and does not name another app feature. Keep **Your private speaking room.** as the shared descriptor and **Speaking practice. At your own pace.** as the website headline.
+The optional Understand step introduces **Words**. **Your private speaking room.** is the shared descriptor. **Speaking practice. At your own pace.** is the current website headline.
 
 ## Interface writing
 
@@ -61,9 +61,9 @@ The optional Understand tab introduces **Words**; it is optional and does not na
 
 ## Website direction
 
-Lead with what Ichido makes room for: a language someone is learning, a talk they are rehearsing, or their own words. Keep the warm paper, expressive typography, and cobalt sound ribbon as the opening identity. The ribbon is a silent, playful expression of voice, not an acoustic measurement or an app preview.
+The public site is https://ichido.app/. Lead with what Ichido is for: a language someone is learning, a talk they are rehearsing, or their own words. Warm paper, expressive type, and the cobalt ribbon are the current opening. The ribbon is decorative. It is not a measurement and it does not use the microphone.
 
-Use one product overview further down with a real capture beside each relevant story. Keep its numbered Listen → Understand → Repeat → Compare tabs, cobalt selected chapter, and subtle graph-paper panel. Use full-width changes of background to separate the main sections: warm paper for the introduction and questions, pale blue around the framed practice overview, and the original dark green for the download section. Keep the content centered with responsive side gutters; the desktop ribbon grows with its available space. Keep Words in the optional Understand step, and privacy alongside the questions. Avoid repeating the same screenshot or claim across separate sections. Mobile omits the ribbon and brings the product explanation and next action forward. Do not turn the hero into a cropped app panel or a feature inventory. Keep input methods and setup details secondary to purpose, with precise instructions available where needed.
+Show the real app when a section is about a product surface. The current overview is Listen, Understand, Repeat, Compare, with Understand as the optional Words step. Layout, navigation labels, and section order can change with the page. Product names and the limits below still apply.
 
 ## Proof and limits
 

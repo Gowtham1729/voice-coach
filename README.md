@@ -47,7 +47,7 @@ Requires macOS 26+, Xcode 26.x, and Swift 6.2.
 ./scripts/test.sh --all
 ```
 
-See [AGENTS.md](AGENTS.md) for build commands and the code layout, and the [release guide](docs/RELEASE.md) for publishing.
+See [AGENTS.md](AGENTS.md) for build commands and the code layout, and the [release guide](docs/RELEASE.md) for publishing. The promo site source is [`website/`](website/); see [docs/marketing-website.md](docs/marketing-website.md). It is published at [ichido.app](https://ichido.app/).
 
 ## Help
 
