@@ -61,6 +61,7 @@ tourDialog.addEventListener("close", () => tourVideo.pause());
 
 $$("[data-seek]").forEach((button) => {
   button.addEventListener("click", () => {
+    tourStartTime = Number(button.dataset.seek);
     tourVideo.currentTime = Number(button.dataset.seek);
     tourVideo.play().catch(() => {});
   });

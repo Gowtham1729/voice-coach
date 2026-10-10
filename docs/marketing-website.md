@@ -1,6 +1,6 @@
 # Marketing website
 
-`website/` is the static site for the Mac app. The public URL is https://voice-coach-studio.gowtham.chatgpt.site/ and stays that address through the rebrand. `.openai/hosting.json` publishes the `dist` directory. The site does not record, analyse audio, or require an account.
+`website/` is the static site for the Mac app. The public URL is https://ichido-511210.web.app. Firebase Hosting on project `ichido-511210` publishes `dist/` when GitHub Actions pushes to `main`, using Workload Identity Federation. Local checks still use the scripts below. The site does not record, analyse audio, or require an account.
 
 ## Check and build
 
