@@ -126,4 +126,16 @@ for (const file of walk(output).filter((item) => textExtensions.has(extname(item
   }
 }
 
+// Crawl and agent hints stay at the site root. Copy them after fingerprinting
+// so they are published even if a later filter skips non-asset files.
+for (const name of ["robots.txt", "sitemap.xml", "llms.txt"]) {
+  const from = join(source, name);
+  const to = join(output, name);
+  if (!existsSync(from)) throw new Error(`website/${name} is required`);
+  cpSync(from, to);
+  if (!readFileSync(from).equals(readFileSync(to))) {
+    throw new Error(`dist/${name} does not match website/${name}`);
+  }
+}
+
 console.log(`Static website built in dist/ with ${replacements.size} fingerprinted assets.`);

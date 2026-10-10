@@ -52,6 +52,88 @@ assert.ok(
   "Share image URL is on https://ichido.app",
 );
 assert.equal(
+  /noindex|nofollow/i.test(html),
+  false,
+  "Promo page must stay indexable",
+);
+assert.match(
+  html,
+  /<title>Ichido \| Private speaking practice for Mac<\/title>/,
+  "Title tells a search result this is private speaking practice for Mac",
+);
+assert.ok(
+  html.includes(
+    'content="Ichido is a private Mac app for speaking practice. Practice a language, rehearse a talk, and hear yourself back."',
+  ),
+  "Meta description uses the page language for language practice and rehearsing a talk",
+);
+const robots = readFileSync(resolve(root, "robots.txt"), "utf8");
+assert.equal(/^\s*Disallow:/m.test(robots), false, "robots.txt must not disallow paths");
+assert.match(
+  robots,
+  new RegExp(`^Sitemap:\\s*${publicOrigin}/sitemap\\.xml\\s*$`, "m"),
+  "robots.txt points at the sitemap",
+);
+for (const agent of [
+  "*",
+  "GPTBot",
+  "OAI-SearchBot",
+  "ChatGPT-User",
+  "Bingbot",
+  "PerplexityBot",
+  "ClaudeBot",
+  "Google-Extended",
+]) {
+  const pattern = agent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  assert.match(
+    robots,
+    new RegExp(`^User-agent:\\s*${pattern}\\s*\\nAllow:\\s*/\\s*$`, "m"),
+    `robots.txt allows ${agent}`,
+  );
+}
+const llms = readFileSync(resolve(root, "llms.txt"), "utf8");
+assert.match(llms, /^# Ichido\s*$/m, "llms.txt names Ichido");
+assert.match(llms, /^> Ichido is a private Mac app for speaking practice\./m);
+assert.ok(llms.includes("Practice a language."), "llms.txt mentions language practice");
+assert.ok(llms.includes("Rehearse a talk."), "llms.txt mentions rehearsing a talk");
+assert.ok(llms.includes("Recordings stay on the Mac."), "llms.txt says recordings stay local");
+assert.ok(llms.includes(`${publicOrigin}/`), "llms.txt names the public site");
+assert.ok(
+  llms.includes(`[Ichido](${publicOrigin}/)`),
+  "llms.txt links the homepage",
+);
+assert.equal(
+  /fluen|diagnos|medical|diaphragm/i.test(llms),
+  false,
+  "llms.txt must not make medical or fluency claims",
+);
+assert.equal(
+  /gtag|googletagmanager|pixel|analytics/i.test(llms),
+  false,
+  "llms.txt must not add tracking",
+);
+const sitemap = readFileSync(resolve(root, "sitemap.xml"), "utf8");
+const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+assert.deepEqual(locations, [`${publicOrigin}/`], "Sitemap lists only https://ichido.app/");
+const jsonLdMatch = html.match(
+  /<script type="application\/ld\+json">([\s\S]*?)<\/script>/,
+);
+assert.ok(jsonLdMatch, "Software JSON-LD is present");
+const software = JSON.parse(jsonLdMatch[1]);
+assert.equal(software["@context"], "https://schema.org");
+assert.equal(software["@type"], "SoftwareApplication");
+assert.equal(software.name, "Ichido");
+assert.equal(software.url, `${publicOrigin}/`);
+assert.match(software.operatingSystem, /^macOS$/);
+assert.equal(
+  software.description,
+  "Ichido is a private Mac app for speaking practice. Practice a language, rehearse a talk, and hear yourself back. Free early access.",
+);
+assert.equal(software.isAccessibleForFree, true);
+assert.equal(software.aggregateRating, undefined, "Do not invent ratings");
+assert.equal(software.review, undefined, "Do not invent reviews");
+assert.equal(software.offers, undefined, "Do not invent offers");
+assert.equal(
   /chatgpt\.site|openai\.com\/hosting|ichido-511210\.web\.app|firebaseapp\.com|www\.ichido\.app/i.test(html),
   false,
   "Promo page uses the apex public URL, not a former host",

@@ -1,0 +1,9 @@
+# Ichido
+
+> Ichido is a private Mac app for speaking practice. Practice a language. Rehearse a talk. Recordings stay on the Mac.
+
+The public site is https://ichido.app/.
+
+## Site
+
+- [Ichido](https://ichido.app/): Private speaking practice for Mac
