@@ -8,6 +8,8 @@ const $$ = (selector, parent = document) => [
 const tourDialog = $("#tour-dialog");
 const tourVideo = $("#tour-video");
 const downloadDialog = $("#download-dialog");
+const filmSource = "assets/ichido-launch-film.mp4";
+const filmPoster = "assets/ichido-film-poster.webp";
 let tourStartTime = 0;
 
 tourVideo.addEventListener("loadedmetadata", () => {
@@ -17,8 +19,19 @@ tourVideo.addEventListener("error", () => {
   $("#film-load-error").hidden = false;
 });
 
+function attachFilm() {
+  if (tourVideo.querySelector("source")) return;
+  tourVideo.poster = filmPoster;
+  const source = document.createElement("source");
+  source.src = filmSource;
+  source.type = "video/mp4";
+  tourVideo.append(source);
+  tourVideo.load();
+}
+
 function openTour(time = 0) {
   tourStartTime = time;
+  attachFilm();
   tourDialog.showModal();
   if (tourVideo.readyState >= 1) tourVideo.currentTime = time;
   // Request playback during the click so browsers retain the user gesture.
