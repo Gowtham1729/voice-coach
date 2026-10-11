@@ -43,8 +43,9 @@ available when the icon is hidden. This does not enable launch at login.
   reuse the shipping process-tap service and its audio permission rather than
   introduce screen capture or a second recording pipeline.
 
-The local Mac follow-up uses one continuous native popup surface, system glass
-buttons, full-row secondary actions, and a native options menu.
+The local Mac follow-up uses one continuous native popup surface, matching action
+rows, and a native options menu. Capture, stop, review, and discard use the same
+quiet row style as the app shortcuts; active capture still shows its meter and timer.
 Recent practice includes its name and duration. Capture errors give a short
 recovery step; **Show details…** opens the full error in Ichido.
 

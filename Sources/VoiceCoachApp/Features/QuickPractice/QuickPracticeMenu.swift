@@ -18,10 +18,9 @@ struct QuickPracticeMenu: View {
       }
       .padding(.horizontal, 4)
 
-      VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: 8) {
         captureControls
       }
-      .padding(12)
       .frame(maxWidth: .infinity, alignment: .leading)
 
       if let message = model.errorMessage {
@@ -73,35 +72,31 @@ struct QuickPracticeMenu: View {
       preparationStatus("Waiting for permission…")
       caption("Respond to the macOS permission prompt.")
       if model.hasMenuBarReference {
-        Button("Cancel capture") { model.discardMenuBarReference() }
-          .studioGlassButton()
+        QuickPracticeAction(title: "Cancel capture", systemImage: "xmark", showsChevron: false) {
+          model.discardMenuBarReference()
+        }
       }
     } else if model.isCapturingMimicReference {
       captureHeading("Capturing Mac audio", icon: "record.circle", elapsed: model.mimicReferenceCaptureElapsed)
       LiveMeterView(level: model.mimicReferenceCaptureLevel, accessibilityName: "Mac audio level")
+        .padding(.horizontal, 8)
       HStack {
         Text(model.mimicReferenceCaptureLevel > -60 ? "Receiving audio" : "Play audio on your Mac")
         Spacer()
         Text("90 sec max")
       }
       .font(.caption).foregroundStyle(.secondary)
-      HStack {
+      .padding(.horizontal, 8)
+      QuickPracticeAction(title: "Stop and review", systemImage: "stop.fill") {
         if model.hasMenuBarReference {
-          Button("Discard", role: .destructive) { model.discardMenuBarReference() }
-            .studioGlassButton()
+          model.reviewMenuBarReference()
+        } else {
+          model.finishMimicReferenceCapture()
         }
-        Button {
-          if model.hasMenuBarReference {
-            model.reviewMenuBarReference()
-          } else {
-            model.finishMimicReferenceCapture()
-          }
-          showIchido()
-        } label: {
-          Label("Stop and review", systemImage: "stop.fill")
-            .frame(maxWidth: .infinity)
-        }
-        .studioGlassButton(prominent: true)
+        showIchido()
+      }
+      if model.hasMenuBarReference {
+        discardCaptureAction
       }
     } else if model.hasMenuBarReference {
       if model.mimicIsPreparing {
@@ -110,50 +105,45 @@ struct QuickPracticeMenu: View {
       } else {
         captureHeading("Clip ready", icon: "checkmark.circle", elapsed: model.mimicDraft?.duration)
         caption("Choose a phrase, then listen and repeat.")
-        Button {
+        QuickPracticeAction(title: "Review capture…", systemImage: "waveform") {
           model.reviewMenuBarReference()
           showIchido()
-        } label: {
-          Label("Review capture…", systemImage: "waveform")
-            .frame(maxWidth: .infinity)
         }
-        .studioGlassButton(prominent: true)
       }
-      Button("Discard capture", role: .destructive) { model.discardMenuBarReference() }
-        .buttonStyle(.plain).font(.caption).foregroundStyle(.secondary)
+      discardCaptureAction
         .disabled(model.destination == .mimicStart)
     } else if model.isRecording {
       captureHeading("Recording my voice", icon: "mic", elapsed: model.elapsed)
-      LiveMeterView(level: model.liveLevel)
-      Button {
+      LiveMeterView(level: model.liveLevel).padding(.horizontal, 8)
+      QuickPracticeAction(title: "Stop and save", systemImage: "stop.fill") {
         model.stopRecording()
         showIchido()
-      } label: {
-        Label("Stop and save", systemImage: "stop.fill").frame(maxWidth: .infinity)
       }
-      .studioGlassButton(prominent: true)
     } else if model.isAnalyzing || model.mimicIsPreparing {
       preparationStatus("Preparing audio…")
     } else if model.mimicDraft != nil || model.destination == .mimicStart {
-      captureHeading("Reference in progress", icon: "waveform")
-      caption("Finish or cancel the reference in Ichido.")
-      Button("Finish reference practice…") { showIchido() }
-        .studioGlassButton()
+      QuickPracticeAction(
+        title: "Finish reference practice…", systemImage: "waveform",
+        detail: "Finish or cancel the current reference."
+      ) { showIchido() }
     } else if model.mimicPhase != .ready || model.hasPendingMimicWork {
-      captureHeading("Practice in progress", icon: "waveform")
-      Button("Return to practice") { showIchido() }
-        .studioGlassButton()
+      QuickPracticeAction(title: "Return to practice", systemImage: "waveform") { showIchido() }
     } else {
-      captureHeading("Capture a phrase", icon: "speaker.wave.2")
-      caption("Play a video, podcast, or other Mac audio.")
-      Button {
+      QuickPracticeAction(
+        title: "Capture Mac audio", systemImage: "speaker.wave.2",
+        showsChevron: false
+      ) {
         model.startMenuBarReferenceCapture()
-      } label: {
-        Text("Capture Mac audio").frame(maxWidth: .infinity)
       }
       .disabled(!model.canStartQuickPractice)
-      .studioGlassButton(prominent: true)
+      .help("Capture a clip playing on your Mac for reference practice.")
     }
+  }
+
+  private var discardCaptureAction: some View {
+    QuickPracticeAction(
+      title: "Discard capture", systemImage: "trash", role: .destructive, showsChevron: false
+    ) { model.discardMenuBarReference() }
   }
 
   @ViewBuilder
@@ -187,20 +177,25 @@ struct QuickPracticeMenu: View {
           .accessibilityLabel("Duration \(vcDuration(elapsed))")
       }
     }
+    .padding(.horizontal, 8)
   }
 
   private func caption(_ title: String) -> some View {
     Text(title).font(.caption).foregroundStyle(.secondary)
       .fixedSize(horizontal: false, vertical: true)
+      .padding(.horizontal, 8)
   }
 
   @ViewBuilder
   private func preparationStatus(_ title: String) -> some View {
-    if snapshot {
-      Label(title, systemImage: "hourglass").font(.callout)
-    } else {
-      ProgressView(title).controlSize(.small)
+    Group {
+      if snapshot {
+        Label(title, systemImage: "hourglass").font(.callout)
+      } else {
+        ProgressView(title).controlSize(.small)
+      }
     }
+    .padding(.horizontal, 8)
   }
 
   private func showSettings() {
@@ -220,10 +215,12 @@ private struct QuickPracticeAction: View {
   let systemImage: String
   var detail: String? = nil
   var trailing: String? = nil
+  var role: ButtonRole? = nil
+  var showsChevron = true
   let action: () -> Void
 
   var body: some View {
-    Button(action: action) {
+    Button(role: role, action: action) {
       HStack(spacing: 10) {
         Image(systemName: systemImage).frame(width: 18)
           .foregroundStyle(.secondary)
@@ -237,8 +234,10 @@ private struct QuickPracticeAction: View {
         if let trailing {
           Text(trailing).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
         }
-        Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold))
-          .foregroundStyle(.tertiary)
+        if showsChevron {
+          Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(.tertiary)
+        }
       }
       .padding(.horizontal, 8).padding(.vertical, 8)
       .contentShape(Rectangle())
