@@ -4,7 +4,7 @@ Operating manual for coding agents. Prefer this file over guessing, and prefer `
 
 ## What this repo is
 
-Local-first **Ichido** (formerly Voice Coach): a **macOS 26+** SwiftUI speaking-practice studio (Swift 6.2). Record or import takes, run on-device acoustic analysis and optional transcription, and persist a private library. Not a web app. Recordings are never uploaded.
+Local-first **Ichido**: a **macOS 26+** SwiftUI speaking-practice studio (Swift 6.2). Record or import takes, run on-device acoustic analysis and optional transcription, and persist a private library. Not a web app. Recordings are never uploaded.
 
 ## Layout
 

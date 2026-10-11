@@ -24,7 +24,7 @@ Ichido is a native Mac app for private speaking practice. Record yourself, pract
 
 Use **Ichido** in prose and **ichido.** in the website wordmark. Keep the period as visual punctuation, outside product names, file names, and sentences where it would confuse readers. Ichido means one time; the story is inspired by mō ichido, once more. Do not claim that Ichido alone translates to “again” or “once more.” It is a multilingual practice product, rather than a Japanese-only course.
 
-Use **Practice** for the app sidebar, **Reference practice** for the feature, and **Words** for the language inspector. Reference-practice modes are **Listen & Repeat** and **Speak Along**. The website sequence is Listen → Understand → Repeat → Compare; Understand is the optional Words step. The app sequence is Listen → Repeat → Compare. A take is one recorded attempt. A reference is the audio someone chooses to practice with. Historical release files and internal Swift names may still contain Voice Coach or Mimic for compatibility.
+Use **Practice** for the app sidebar, **Reference practice** for the feature, and **Words** for the language inspector. Reference-practice modes are **Listen & Repeat** and **Speak Along**. The website sequence is Listen → Understand → Repeat → Compare; Understand is the optional Words step. The app sequence is Listen → Repeat → Compare. A take is one recorded attempt. A reference is the audio someone chooses to practice with. Historical release files and internal Swift names stay as they are for compatibility, including Mimic.
 
 ### Shared product terms
 
@@ -67,7 +67,7 @@ Show the real app when a section is about a product surface. The current overvie
 
 ## Proof and limits
 
-Show the actual app and describe what people can do. Mark synthetic recordings and illustrative chat responses as examples. The launch film is the current walkthrough. Do not present older Voice Coach footage as the current Ichido interface. Do not invent testimonials, social proof, or outcome claims. A later demo or campaign needs its own brief and evidence.
+Show the actual app and describe what people can do. Mark synthetic recordings and illustrative chat responses as examples. The launch film is the current walkthrough. Do not present older footage as the current Ichido interface. Do not invent testimonials, social proof, or outcome claims. A later demo or campaign needs its own brief and evidence.
 
 Reference practice offers two measured targets when enough words reliably match. Ordinary recordings show measurements. Neither pathway grades an accent, certifies fluency, nor supplies phoneme-level pronunciation correction.
 
