@@ -75,9 +75,11 @@ struct SuggestedPracticeCreationTests {
     #expect(!model.isAnalyzing)
   }
 
-  @Test("Cancellation after staging a clip removes the batch")
-  func cancellation() async throws {
-    let (model, root, take) = try fixture(suspendPreparation: true)
+  @Test("Cancellation after staging a clip removes the batch without surfacing late failures",
+    arguments: [false, true])
+  func cancellation(lateFailure: Bool) async throws {
+    let (model, root, take) = try fixture(
+      suspendPreparation: true, failAfterCancellation: lateFailure)
     defer { try? FileManager.default.removeItem(at: root) }
     let task = try #require(model.createSuggestedPracticeSessions(draftID: model.mimicDraft!.id, clipIDs: [0, 2]))
     // The injected preparation writes a staged file before suspending.
@@ -278,6 +280,7 @@ struct SuggestedPracticeCreationTests {
 
   private func fixture(
     failLaterClip: Bool = false, suspendPreparation: Bool = false,
+    failAfterCancellation: Bool = false,
     transcriptionOutcome: TranscriptionResult? = nil,
     transcriptionError: TranscriptionError? = nil
   ) throws -> (AppModel, URL, PracticeSession) {
@@ -307,7 +310,13 @@ struct SuggestedPracticeCreationTests {
       },
       preparePracticeClip: { _, destination, start, end in
         try Data("reference audio fixture".utf8).write(to: destination)
-        if suspendPreparation { try await Task.sleep(for: .seconds(60)) }
+        if suspendPreparation {
+          do { try await Task.sleep(for: .seconds(60)) }
+          catch {
+            if failAfterCancellation { throw AudioImportError.invalidExcerpt }
+            throw error
+          }
+        }
         if failLaterClip && start > 2 { throw AudioImportError.invalidExcerpt }
         return analysis(duration: end - start)
       })

@@ -134,9 +134,11 @@ extension AppModel {
       } catch is CancellationError {
         // A cancelled or dismissed creation never publishes staged references.
       } catch {
-        presentError(
-          title: "Practices weren’t created", error: error,
-          fallback: "Couldn’t prepare the selected phrases. Try again.")
+        if !Task.isCancelled, mimicPreparationID == draftID {
+          presentError(
+            title: "Practices weren’t created", error: error,
+            fallback: "Couldn’t prepare the selected phrases. Try again.")
+        }
       }
     }
     practiceClipCreationTask = task
