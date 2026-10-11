@@ -77,4 +77,4 @@ The privacy statement is **No account. No recording uploads. No analytics.** Rec
 
 ## Distribution copy
 
-Free while in early access. macOS 26+. Apple Silicon recommended. The app is ad-hoc signed and not Apple-notarized yet. Use the current GitHub release and verified ZIP aliases. Do not promise seamless updates without an installed-build test.
+Free while in early access. macOS 26+. Apple Silicon recommended. The GitHub download is signed with Developer ID and notarized by Apple. It is a direct download, not a Mac App Store app. Use the current GitHub release and verified ZIP aliases. Do not promise seamless updates without an installed-build test.
