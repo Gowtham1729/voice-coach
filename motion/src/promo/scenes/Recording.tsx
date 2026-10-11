@@ -26,7 +26,7 @@ export const Recording: React.FC = () => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill>
-      <Kicker text="New example · Recording" at={22} y={110} />
+      <Kicker text="Your own words" at={22} y={110} />
       <Phrase
         text={RECORDING_HEADLINE.text}
         at={36}

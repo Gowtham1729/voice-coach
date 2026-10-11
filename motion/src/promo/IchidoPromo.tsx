@@ -1,7 +1,6 @@
-import { Audio } from "@remotion/media";
 import { linearTiming, TransitionSeries } from "@remotion/transitions";
 import React from "react";
-import { AbsoluteFill, staticFile } from "remotion";
+import { AbsoluteFill } from "remotion";
 import { Paper } from "./components/Stage";
 import { FontsGate } from "./fonts";
 import { ctaLockup, recordingPeriod } from "./layout";
@@ -77,8 +76,8 @@ export const IchidoPromo: React.FC = () => (
   <AbsoluteFill>
     <Paper />
     <FontsGate>
+      {/* Silent picture. The read and the score are added on the exported file. */}
       <Timeline />
-      <Audio src={staticFile("promo-2026-10-04/vo/ichido-promo-mix.wav")} />
     </FontsGate>
   </AbsoluteFill>
 );
