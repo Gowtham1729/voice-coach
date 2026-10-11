@@ -58,11 +58,13 @@ mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/$APP_NAME"
 
 hdiutil create -volname "$VOLUME_NAME" -srcfolder "$STAGE" -ov -format UDRW -fs HFS+ "$RW_IMAGE" >/dev/null
-min_mb="$(hdiutil resize -limits "$RW_IMAGE" | awk 'NR==1 { print int($1 / 2048 + 1) }')"
-if [[ -z "$min_mb" || "$min_mb" == "0" ]]; then
+# -limits prints a header, then minimum, current, and maximum in 512-byte sectors.
+min_sectors="$(hdiutil resize -limits "$RW_IMAGE" | awk '$1 ~ /^[0-9]+$/ { print $1; exit }')"
+if [[ ! "$min_sectors" =~ ^[0-9]+$ || "$min_sectors" -eq 0 ]]; then
     echo "Could not measure the disk image." >&2
     exit 1
 fi
+min_mb="$(( (min_sectors + 2047) / 2048 ))"
 hdiutil resize -size "$((min_mb + 32))m" "$RW_IMAGE" >/dev/null
 
 attach_log="$(hdiutil attach -readwrite -noverify -noautoopen -nobrowse "$RW_IMAGE")"
