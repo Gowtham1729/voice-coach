@@ -39,6 +39,37 @@ assert.ok(
   html.includes('href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip"'),
   "Website download must follow GitHub's latest release",
 );
+assert.equal(
+  /ad-hoc|unsigned|notariz|developer id|gatekeeper|may block the first launch|mac app store|\bsign(?:ed|ing)\b/i.test(
+    html,
+  ),
+  false,
+  "Public download copy stays a normal Mac download, without signing, notarization, Gatekeeper, or Mac App Store talk",
+);
+assert.equal(
+  html.includes("Is the Mac download notarized?"),
+  false,
+  "The notarization FAQ is not on the public site",
+);
+assert.match(
+  html,
+  /Ichido 0\.0\.4 · Early access · macOS 26\+/,
+  "Download dialog shows Ichido 0.0.4 for macOS 26+",
+);
+assert.match(
+  html,
+  /Version 0\.0\.4 · Early access · macOS 26\+/,
+  "Download section shows version 0.0.4 for macOS 26+",
+);
+assert.equal(html.includes("0.0.3"), false, "Public site does not advertise 0.0.3");
+assert.ok(
+  html.includes("No account. No recording uploads. No analytics."),
+  "Privacy line stays local-only",
+);
+assert.ok(
+  html.includes("stay on your Mac"),
+  "Recordings stay on the Mac",
+);
 assert.ok(
   html.includes(`href="${publicOrigin}/"`),
   "Canonical URL is https://ichido.app/",

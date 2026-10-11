@@ -16,6 +16,6 @@ node scripts/serve-website.mjs
 
 Stylesheet, app, and ribbon URLs carry a short content hash (`?v=`). The checker expects those hashes to match the files. Hosting rewrites asset names again at build time.
 
-`check-website.mjs` confirms local files, unique IDs, ARIA targets, JavaScript syntax, the apex canonical and share URLs, the latest-release download, and that the page does not load external scripts, capture audio, or add analytics. It does not lock sentences. It is not part of CI job `test`. A website-only change does not need Peekaboo or `./scripts/render-previews.sh`.
+`check-website.mjs` confirms local files, unique IDs, ARIA targets, JavaScript syntax, the apex canonical and share URLs, the latest-release download, and that the page does not load external scripts, capture audio, or add analytics. It expects the download to name Ichido 0.0.4 and macOS 26+. It rejects notarization, Developer ID, Gatekeeper, signing, and Mac App Store wording, including ad-hoc or first-launch scare copy. It does not require a notarization FAQ. It keeps the local-only privacy line. It does not lock the rest of the page’s sentences. It is not part of CI job `test`. A website-only change does not need Peekaboo or `./scripts/render-previews.sh`.
 
 Product names and claims are in `docs/brand/messaging.md`. The published share image is `website/assets/ichido-share.jpg`. Do not add analytics, a recording path, Terraform, or a paid host. Do not point the page at a former host.

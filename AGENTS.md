@@ -39,13 +39,14 @@ Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 ./scripts/test.sh                 # Core + Session unit tests
 ./scripts/test.sh --all           # What CI job `test` runs before `build-app.sh`
 ./script/build_and_run.sh         # Dev app. Flags: --debug --logs --telemetry --verify
-./scripts/build-app.sh            # build/Ichido.app, ad-hoc codesign
+./scripts/build-app.sh            # CI and local bundle; ad-hoc unless --developer-id
 ./scripts/render-previews.sh      # SelfTest + DEBUG layout PNGs in build/previews
 ./scripts/setup-transcription.sh  # Optional local ASR (~714 MB). Not in CI or cloud unless asked
 ```
 
 - Cloud and Linux agents: see **Cursor Cloud specific instructions**. Do not build or run `VoiceCoachApp` there.
 - AVFoundation builds need `--disable-sandbox` (already set in `build-app.sh` and `render-previews.sh`).
+- A `v*` tag runs `.github/workflows/release.yml`, which publishes through `.github/workflows/notarize.yml` (Developer ID, notarize, staple, appcast). Missing signing or notary secrets fail the job. No ad-hoc fallback. Notarize `workflow_dispatch` does not publish a release.
 - ASR override: `VOICE_COACH_NEMO_SPEECH_PATH`.
 - If macOS blocks on an unaccepted Xcode license, the human runs `sudo xcodebuild -license`. Agents cannot accept it.
 - Optional Words chat smoke, only when asked and Apple Intelligence is ready. Not part of CI: `VOICE_COACH_TEST_LOCAL_CHAT=1 ./scripts/test.sh --unit --filter liveDeviceModelSmoke`.

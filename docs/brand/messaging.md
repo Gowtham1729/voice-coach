@@ -77,4 +77,4 @@ The privacy statement is **No account. No recording uploads. No analytics.** Rec
 
 ## Distribution copy
 
-Free while in early access. macOS 26+. Apple Silicon recommended. The app is ad-hoc signed and not Apple-notarized yet. Use the current GitHub release and verified ZIP aliases. Do not promise seamless updates without an installed-build test.
+Free while in early access. macOS 26+. Apple Silicon recommended. On the public site, name Ichido, the current version (0.0.4), and macOS 26+, with a download button. Unzip, move Ichido to Applications, and microphone permission can stay in the installation disclosure. Do not mention notarization, Developer ID, Gatekeeper, signing, or the Mac App Store there, and do not add a notarization FAQ. Use the current GitHub release and the stable ZIP alias. Do not promise seamless updates without an installed-build test. Tag releases stay notarized; that record lives in `docs/RELEASE.md` and the notarize workflow, not in visitor-facing website copy.
