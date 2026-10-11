@@ -2,6 +2,8 @@
 # Read `security find-identity -v -p codesigning` text on stdin.
 # Print the one Developer ID Application identity for the given Team ID.
 # The certificate common name comes from that text. This script does not invent one.
+# macos-26 zsh does not always inherit the system directories.
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 set -euo pipefail
 
 if [[ $# -ne 1 || -z "${1:-}" ]]; then
