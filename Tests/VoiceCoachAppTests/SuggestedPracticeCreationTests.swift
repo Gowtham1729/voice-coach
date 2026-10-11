@@ -115,7 +115,8 @@ struct SuggestedPracticeCreationTests {
     let samples = try #require(buffer.floatChannelData?[0])
     for index in 0..<Int(frameCount) {
       let time = Double(index) / sampleRate
-      samples[index] = Float(0.2 * sin(2 * .pi * (160 * time + 12 * time * time)))
+      let phase = 2 * Double.pi * (160 * time + 12 * time * time)
+      samples[index] = Float(0.2 * sin(phase))
     }
     // Close the writer before the production preparation service reads the WAV.
     do {
@@ -211,8 +212,12 @@ struct SuggestedPracticeCreationTests {
 }
 
 private func analysis(duration: Double) -> AnalysisResult {
-  let samples = (0..<Int(duration * 8_000)).map {
-    Float(0.2 * sin(2 * .pi * 160 * Double($0) / 8_000))
+  let sampleRate = 8_000.0
+  let frameCount = Int(duration * sampleRate)
+  let samples: [Float] = (0..<frameCount).map { index -> Float in
+    let time = Double(index) / sampleRate
+    let phase = 2 * Double.pi * 160 * time
+    return Float(0.2 * sin(phase))
   }
-  return AudioAnalyzer().analyze(samples: samples, sampleRate: 8_000)
+  return AudioAnalyzer().analyze(samples: samples, sampleRate: sampleRate)
 }
