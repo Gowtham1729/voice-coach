@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Testing
 import VoiceCoachCore
@@ -100,6 +101,59 @@ struct SuggestedPracticeCreationTests {
     #expect(model.createSuggestedPracticeSessions(takeID: take.id, clipIDs: []) == nil)
     #expect(model.createSuggestedPracticeSessions(takeID: take.id, clipIDs: [0, 999]) == nil)
     #expect(!model.isAnalyzing)
+  }
+
+  @Test("Native WAV trimming preserves the exact source samples and survives reload",
+    arguments: [16_000.0, 48_000.0])
+  func nativeAudioBatch(sampleRate: Double) async throws {
+    let (fixtureModel, root, take) = try fixture()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let format = try #require(AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1))
+    let frameCount = AVAudioFrameCount(sampleRate * 5)
+    let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount))
+    buffer.frameLength = frameCount
+    let samples = try #require(buffer.floatChannelData?[0])
+    for index in 0..<Int(frameCount) {
+      let time = Double(index) / sampleRate
+      samples[index] = Float(0.2 * sin(2 * .pi * (160 * time + 12 * time * time)))
+    }
+    // Close the writer before the production preparation service reads the WAV.
+    do {
+      let file = try AVAudioFile(forWriting: take.audioURL, settings: format.settings)
+      try file.write(from: buffer)
+    }
+    let original = try Data(contentsOf: take.audioURL)
+    let model = AppModel(storageRoot: root)
+    let sourceSession = try #require(fixtureModel.selectedSession)
+    model.openTake(sessionID: sourceSession.id, takeID: take.id)
+    let clips = model.suggestedPracticeClips(for: take)
+    let task = try #require(model.createSuggestedPracticeSessions(
+      takeID: take.id, clipIDs: Set(clips.map(\.id))))
+    await task.value
+    #expect(model.errorMessage == nil)
+    let reloaded = AppModel(storageRoot: root)
+    let practices = reloaded.sessions.filter(\.isMimic)
+    #expect(practices.count == clips.count)
+    #expect(try Data(contentsOf: take.audioURL) == original)
+    for clip in clips {
+      let session = try #require(practices.first { $0.mimicReference?.sourceStart == clip.start })
+      let reference = try #require(session.mimicReference)
+      let file = try AVAudioFile(forReading: reference.take.audioURL)
+      let first = Int((clip.start * sampleRate).rounded())
+      let last = Int((clip.end * sampleRate).rounded())
+      #expect(file.processingFormat.sampleRate == sampleRate)
+      #expect(file.length == Int64(last - first))
+      let trimmed = try #require(AVAudioPCMBuffer(
+        pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)))
+      try file.read(into: trimmed)
+      let actual = try #require(trimmed.floatChannelData?[0])
+      #expect((0..<Int(trimmed.frameLength)).allSatisfy { actual[$0] == samples[first + $0] })
+      #expect(reference.take.transcription == clip.transcription)
+      #expect(abs(reference.take.result.metrics.duration - Double(file.length) / sampleRate) < 0.00001)
+      #expect(reference.take.transcription?.words.allSatisfy {
+        $0.start >= 0 && $0.end <= reference.take.result.metrics.duration + 1 / sampleRate
+      } == true)
+    }
   }
 
   private func fixture(

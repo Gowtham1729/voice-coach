@@ -162,6 +162,7 @@
         model.openTake(sessionID: model.sessions[0].id, takeID: latest.id)
       }
       try render("04-take", height: 1_360)
+      try render("04b-take-compact", width: 920, height: 640)
       previewDefaults.set(true, forKey: ExperimentalFeaturesPreference.storageKey)
       previewDefaults.set(InspectorPane.ask.rawValue, forKey: InspectorPane.storageKey)
       try render("15-recording-chat", height: 980)

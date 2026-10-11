@@ -34,21 +34,25 @@ struct SuggestedPracticeClipsView: View {
         Text("Clip suggestions need word timing. Re-transcribe, or choose a clip manually.")
           .font(.callout)
           .foregroundStyle(Studio.secondary)
+          .fixedSize(horizontal: false, vertical: true)
       } else {
         Text("Choose phrases to repeat. Each selected clip becomes a practice session.")
           .font(.callout)
           .foregroundStyle(Studio.secondary)
+          .fixedSize(horizontal: false, vertical: true)
 
-        ScrollView {
-          LazyVStack(alignment: .leading, spacing: 12) {
-            ForEach(clips) { clip in
-              clipRow(clip)
-              if clip.id != clips.last?.id { Divider() }
+        Group {
+          if snapshot {
+            VStack(alignment: .leading, spacing: 12) { clipRows }
+          } else {
+            ScrollView {
+              LazyVStack(alignment: .leading, spacing: 12) { clipRows }
+                .padding(.trailing, 8)
             }
           }
-          .padding(.trailing, 8)
         }
-        .frame(height: min(280, CGFloat(clips.count) * 88))
+        .frame(height: min(280, CGFloat(clips.count) * 88), alignment: .top)
+        .clipped()
         .accessibilityLabel("Suggested practice clips")
       }
 
@@ -73,39 +77,70 @@ struct SuggestedPracticeClipsView: View {
     }
   }
 
+  private var clipRows: some View {
+    ForEach(clips) { clip in
+      clipRow(clip)
+      if clip.id != clips.last?.id { Divider() }
+    }
+  }
+
   private func clipRow(_ clip: SuggestedPracticeClip) -> some View {
     HStack(alignment: .top, spacing: 12) {
-      Toggle(isOn: Binding(
-        get: { selectedIDs.contains(clip.id) },
-        set: { selected in
-          if selected { selectedIDs.insert(clip.id) } else { selectedIDs.remove(clip.id) }
+      if snapshot {
+        Image(systemName: "square")
+          .foregroundStyle(Studio.secondary)
+        clipLabel(clip)
+      } else {
+        Toggle(isOn: Binding(
+          get: { selectedIDs.contains(clip.id) },
+          set: { selected in
+            if selected { selectedIDs.insert(clip.id) } else { selectedIDs.remove(clip.id) }
+          }
+        )) {
+          clipLabel(clip)
         }
-      )) {
-        VStack(alignment: .leading, spacing: 5) {
-          Text(clip.text)
-            .font(.callout)
-            .lineLimit(2)
-            .help(clip.text)
-          Text("\(vcNumber(clip.start, 1))–\(vcNumber(clip.end, 1))s · \(vcNumber(clip.duration, 1))s")
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(Studio.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .toggleStyle(.checkbox)
+        .disabled(isBusy)
       }
-      .toggleStyle(.checkbox)
-      .disabled(isBusy)
 
-      let isPreviewing = model.isPlaying && model.practiceClipPreviewID == clip.id
-      Button {
-        model.previewSuggestedPracticeClip(takeID: take.id, clipID: clip.id)
-      } label: {
-        Image(systemName: isPreviewing ? "stop.fill" : "play.fill")
+      if snapshot {
+        Image(systemName: "play.fill")
+          .foregroundStyle(Studio.accent)
           .frame(width: 28, height: 28)
+      } else {
+        let isPreviewing = model.isPlaying && model.practiceClipPreviewID == clip.id
+        Button {
+          model.previewSuggestedPracticeClip(takeID: take.id, clipID: clip.id)
+        } label: {
+          Image(systemName: isPreviewing ? "stop.fill" : "play.fill")
+            .frame(width: 28, height: 28)
+        }
+        .buttonStyle(.borderless)
+        .disabled(isBusy)
+        .help(isPreviewing ? "Stop clip" : "Preview clip")
+        .accessibilityLabel(isPreviewing ? "Stop clip" : "Preview: \(clip.text)")
       }
-      .buttonStyle(.borderless)
-      .disabled(isBusy)
-      .help(isPreviewing ? "Stop clip" : "Preview clip")
-      .accessibilityLabel(isPreviewing ? "Stop clip" : "Preview: \(clip.text)")
+    }
+  }
+
+  private func clipLabel(_ clip: SuggestedPracticeClip) -> some View {
+    VStack(alignment: .leading, spacing: 5) {
+      Text(clip.text)
+        .font(.callout)
+        .lineLimit(2)
+        .help(clip.text)
+      Text("\(vcNumber(clip.start, 1))–\(vcNumber(clip.end, 1))s · \(vcNumber(clip.duration, 1))s")
+        .font(.caption.monospacedDigit())
+        .foregroundStyle(Studio.secondary)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var creationTitle: String {
+    switch selectedIDs.count {
+    case 0: "Create practice sessions"
+    case 1: "Create practice session"
+    default: "Create \(selectedIDs.count) practice sessions"
     }
   }
 
@@ -120,7 +155,7 @@ struct SuggestedPracticeClipsView: View {
         Button("Cancel", action: model.cancelSuggestedPracticeCreation)
       }
     } else if !clips.isEmpty {
-      Button(selectedIDs.count == 1 ? "Create practice session" : "Create \(selectedIDs.count) practice sessions") {
+      Button(creationTitle) {
         model.createSuggestedPracticeSessions(takeID: take.id, clipIDs: selectedIDs)
       }
       .studioGlassButton(prominent: true)

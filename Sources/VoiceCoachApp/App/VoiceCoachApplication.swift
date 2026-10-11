@@ -2,12 +2,15 @@ import SwiftUI
 
 @main
 struct VoiceCoachApplication: App {
-  @StateObject private var model = AppModel()
+  @StateObject private var model: AppModel
   @StateObject private var updater = AppUpdater()
 
   init() {
     #if DEBUG
+      _model = StateObject(wrappedValue: interactiveFixtureModelIfRequested() ?? AppModel())
       renderStudioPreviewsIfRequested()
+    #else
+      _model = StateObject(wrappedValue: AppModel())
     #endif
     // Clear this before AppKit latches appearance. A saved YES value forces
     // Aqua for the life of the process and ignores System Settings.
