@@ -1,6 +1,6 @@
 # Releasing Ichido
 
-GitHub Releases host the **ad-hoc signed** app zip and a signed [Sparkle](https://sparkle-project.org/documentation/) appcast. Pushing a `v*` semver tag runs [`.github/workflows/release.yml`](../.github/workflows/release.yml) on `macos-26`: tests, `build-app.sh`, zip, sign the update feed, and publish the ZIP alias and appcast. There is no Developer ID signing or notarization.
+GitHub Releases host the **ad-hoc signed** app zip and a signed [Sparkle](https://sparkle-project.org/documentation/) appcast. Pushing a `v*` semver tag runs [`.github/workflows/release.yml`](../.github/workflows/release.yml) on `macos-26`: tests, `build-app.sh`, zip, sign the update feed, and publish the ZIP alias and appcast. That tag workflow does not Developer ID-sign or notarize. A separate dry-run does; see [Distribution limitation](#distribution-limitation).
 
 ## Soft gate
 
@@ -86,4 +86,8 @@ The zip is **ad-hoc signed** (`codesign --sign -` in `build-app.sh`), not Develo
 
 ## Distribution limitation
 
-Developer ID signing, Apple notarization, and stapling are **out of scope**. Gatekeeper may block the first launch; follow [Apple’s opening guidance](https://support.apple.com/en-us/102445), including **System Settings > Privacy & Security** approval when appropriate. The ad-hoc signed update flow must be validated on a separate installed build before calling it seamless.
+The tag workflow does not Developer ID-sign, notarize, or staple. Gatekeeper may block the first launch of that zip; follow [Apple’s opening guidance](https://support.apple.com/en-us/102445), including **System Settings > Privacy & Security** approval when appropriate. The ad-hoc signed update flow must be validated on a separate installed build before calling it seamless.
+
+A separate **Notarize** workflow ([`.github/workflows/notarize.yml`](../.github/workflows/notarize.yml)) runs only from **Actions → Notarize → Run workflow**. It signs with the Developer ID Application certificate for team `88HMB5SB4X` (the common name is taken from the imported certificate), notarizes, staples, and uploads the stapled zip and appcast as workflow artifacts. It does not create a GitHub Release. If a required secret is missing, or the certificate is not a Developer ID Application identity for that team, the job fails and does not fall back to an ad-hoc zip. Do not describe the public download as notarized until that dry-run has passed and tag releases are switched over.
+
+Secrets for that workflow, set in GitHub Actions and not committed: `CSC_P12_BASE64` (base64 of the Developer ID Application `.p12`), `CSC_P12_PASSWORD`, `NOTARY_KEY` (App Store Connect API `.p8` contents, or base64 of that file), `NOTARY_KEY_ID`, `NOTARY_ISSUER`, and the existing `SPARKLE_ED25519_PRIVATE_KEY`. Leave the Sparkle key as it is.

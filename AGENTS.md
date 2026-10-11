@@ -46,6 +46,7 @@ Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 
 - Cloud and Linux agents: see **Cursor Cloud specific instructions**. Do not build or run `VoiceCoachApp` there.
 - AVFoundation builds need `--disable-sandbox` (already set in `build-app.sh` and `render-previews.sh`).
+- Tag releases stay ad-hoc (`release.yml`). Notarization is `workflow_dispatch` only: `.github/workflows/notarize.yml`.
 - ASR override: `VOICE_COACH_NEMO_SPEECH_PATH`.
 - If macOS blocks on an unaccepted Xcode license, the human runs `sudo xcodebuild -license`. Agents cannot accept it.
 - Optional Words chat smoke, only when asked and Apple Intelligence is ready. Not part of CI: `VOICE_COACH_TEST_LOCAL_CHAT=1 ./scripts/test.sh --unit --filter liveDeviceModelSmoke`.

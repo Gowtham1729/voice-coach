@@ -1,0 +1,313 @@
+# workflow_dispatch dry-run for a notarized direct download.
+# Tag publishes stay on release.yml and remain ad-hoc. This job does not
+# create a GitHub Release and does not fall back to an ad-hoc signature.
+#
+# GitHub Actions secrets (names only; values stay out of the repo):
+#   CSC_P12_BASE64              base64 of the Developer ID Application .p12
+#   CSC_P12_PASSWORD            password for that .p12
+#   NOTARY_KEY                  App Store Connect API .p8 PEM, or base64 of that file
+#   NOTARY_KEY_ID               API key id
+#   NOTARY_ISSUER               API issuer id
+#   SPARKLE_ED25519_PRIVATE_KEY existing Sparkle Ed25519 secret; do not rotate it
+#
+# The certificate common name is read from the imported .p12. It is not stored here.
+# Team ID is 88HMB5SB4X.
+name: Notarize
+
+on:
+  workflow_dispatch: {}
+
+# contents stays read-only so this job cannot publish a GitHub Release.
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  notarize:
+    name: notarize
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode 26.6
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+
+      - name: Show toolchain
+        run: |
+          xcode-select -p
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-version
+          swift --version
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+          if [[ -z "${VERSION}" || "${VERSION}" == v* ]]; then
+            echo "Expected CFBundleShortVersionString without a v prefix (got '${VERSION}')" >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=v${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved VERSION=${VERSION}"
+
+      - name: Require signing secrets
+        env:
+          CSC_P12_BASE64: ${{ secrets.CSC_P12_BASE64 }}
+          CSC_P12_PASSWORD: ${{ secrets.CSC_P12_PASSWORD }}
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER }}
+          SPARKLE_ED25519_PRIVATE_KEY: ${{ secrets.SPARKLE_ED25519_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in CSC_P12_BASE64 CSC_P12_PASSWORD NOTARY_KEY NOTARY_KEY_ID NOTARY_ISSUER SPARKLE_ED25519_PRIVATE_KEY; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing GitHub Actions secret: ${name}" >&2
+              missing=1
+            fi
+          done
+          if [[ "${missing}" -ne 0 ]]; then
+            echo "Notarization does not fall back to an ad-hoc signature." >&2
+            exit 1
+          fi
+
+      - name: Import Developer ID and select the team identity
+        env:
+          CSC_P12_BASE64: ${{ secrets.CSC_P12_BASE64 }}
+          CSC_P12_PASSWORD: ${{ secrets.CSC_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          TEAM_ID="88HMB5SB4X"
+          KEYCHAIN="${RUNNER_TEMP}/ichido-signing.keychain-db"
+          P12="${RUNNER_TEMP}/developer-id.p12"
+          rm -f "$P12"
+          trap 'rm -f "$P12"' EXIT
+
+          if ! printf '%s' "$CSC_P12_BASE64" | tr -d '[:space:]' | base64 -D > "$P12"; then
+            echo "CSC_P12_BASE64 is not valid base64." >&2
+            exit 1
+          fi
+          if [[ ! -s "$P12" ]]; then
+            echo "Decoded CSC_P12_BASE64 was empty." >&2
+            exit 1
+          fi
+
+          # Save the search list before create-keychain adds the temporary keychain.
+          security list-keychains -d user | sed 's/^[[:space:]]*//' > "${RUNNER_TEMP}/ichido-keychain-list.txt"
+
+          keychain_password="$(openssl rand -base64 32)"
+          if [[ -f "$KEYCHAIN" ]]; then
+            security delete-keychain "$KEYCHAIN" || rm -f "$KEYCHAIN"
+          fi
+          security create-keychain -p "$keychain_password" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$keychain_password" "$KEYCHAIN"
+          # Keep the previous keychains, and add the temporary one.
+          set -f
+          security list-keychains -d user -s "$KEYCHAIN" $(sed 's/"//g' "${RUNNER_TEMP}/ichido-keychain-list.txt")
+          set +f
+
+          security import "$P12" -k "$KEYCHAIN" -P "$CSC_P12_PASSWORD" -f pkcs12 -A -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$KEYCHAIN"
+          rm -f "$P12"
+
+          identities="$(security find-identity -v -p codesigning "$KEYCHAIN")"
+          identity="$(printf '%s\n' "$identities" | zsh ./scripts/select-developer-id.sh "$TEAM_ID")"
+          echo "Selected identity: ${identity}"
+
+          delimiter="ICHIDO_SIGN_IDENTITY_$(openssl rand -hex 16)"
+          {
+            echo "SIGN_IDENTITY<<${delimiter}"
+            printf '%s\n' "$identity"
+            echo "${delimiter}"
+          } >> "$GITHUB_ENV"
+
+      - name: Run tests
+        run: ./scripts/test.sh --all
+
+      - name: Build and sign with Developer ID
+        run: |
+          set -euo pipefail
+          if [[ -z "${SIGN_IDENTITY:-}" || "${SIGN_IDENTITY}" == "-" ]]; then
+            echo "SIGN_IDENTITY is missing. Refusing an ad-hoc signature." >&2
+            exit 1
+          fi
+          export SIGN_KEYCHAIN="${RUNNER_TEMP}/ichido-signing.keychain-db"
+          ./scripts/build-app.sh --developer-id "$SIGN_IDENTITY"
+          test -d "build/Ichido.app"
+
+      - name: Delete temporary keychain
+        if: always()
+        run: |
+          set -euo pipefail
+          KEYCHAIN="${RUNNER_TEMP}/ichido-signing.keychain-db"
+          if [[ -f "${RUNNER_TEMP}/ichido-keychain-list.txt" ]]; then
+            set -f
+            security list-keychains -d user -s $(sed 's/"//g' "${RUNNER_TEMP}/ichido-keychain-list.txt") || true
+            set +f
+          fi
+          if [[ -f "$KEYCHAIN" ]]; then
+            security delete-keychain "$KEYCHAIN" || true
+          fi
+          rm -f \
+            "${RUNNER_TEMP}/developer-id.p12" \
+            "${RUNNER_TEMP}/AuthKey.p8" \
+            "${RUNNER_TEMP}/ichido-keychain-list.txt"
+
+      - name: Zip app for notarization
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          ZIP="Ichido-${VERSION}-macOS.zip"
+          rm -f "${ZIP}"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "build/Ichido.app" \
+            "${ZIP}"
+          test -s "${ZIP}"
+          ls -lh "${ZIP}"
+
+      - name: Notarize
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER }}
+        run: |
+          set -euo pipefail
+          umask 077
+          ZIP="Ichido-${VERSION}-macOS.zip"
+          P8="${RUNNER_TEMP}/AuthKey.p8"
+          rm -f "$P8"
+          trap 'rm -f "$P8"' EXIT
+
+          if [[ "$NOTARY_KEY" == *"PRIVATE KEY"* ]]; then
+            printf '%s\n' "$NOTARY_KEY" > "$P8"
+          else
+            if ! printf '%s' "$NOTARY_KEY" | tr -d '[:space:]' | base64 -D > "$P8"; then
+              echo "NOTARY_KEY is neither a .p8 PEM nor valid base64." >&2
+              exit 1
+            fi
+          fi
+          if ! grep -q "PRIVATE KEY" "$P8"; then
+            echo "NOTARY_KEY must be the App Store Connect API .p8 PEM, or base64 of that file." >&2
+            exit 1
+          fi
+
+          submit_log="$(mktemp)"
+          set +e
+          xcrun notarytool submit "$ZIP" \
+            --key "$P8" \
+            --key-id "$NOTARY_KEY_ID" \
+            --issuer "$NOTARY_ISSUER" \
+            --wait \
+            --timeout 30m \
+            | tee "$submit_log"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$status" -ne 0 ]]; then
+            submission_id="$(sed -n 's/^[[:space:]]*id:[[:space:]]*//p' "$submit_log")"
+            submission_id="${submission_id%%$'\n'*}"
+            if [[ "$submission_id" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+              xcrun notarytool log "$submission_id" \
+                --key "$P8" \
+                --key-id "$NOTARY_KEY_ID" \
+                --issuer "$NOTARY_ISSUER" || true
+            fi
+            exit "$status"
+          fi
+
+      - name: Staple and assess
+        run: |
+          set -euo pipefail
+          stapled=0
+          for attempt in 1 2 3 4 5; do
+            if xcrun stapler staple "build/Ichido.app"; then
+              stapled=1
+              break
+            fi
+            if [[ "$attempt" -lt 5 ]]; then
+              sleep 20
+            fi
+          done
+          if [[ "$stapled" -ne 1 ]]; then
+            echo "stapler staple failed." >&2
+            exit 1
+          fi
+          xcrun stapler validate "build/Ichido.app"
+          accepted=0
+          spctl_out=""
+          for attempt in 1 2 3 4 5; do
+            if spctl_out="$(/usr/sbin/spctl -a -vvv -t install "build/Ichido.app" 2>&1)" \
+              && printf '%s\n' "$spctl_out" | grep -q "Notarized Developer ID"; then
+              accepted=1
+              break
+            fi
+            if [[ "$attempt" -lt 5 ]]; then
+              sleep 20
+            fi
+          done
+          printf '%s\n' "$spctl_out"
+          if [[ "$accepted" -ne 1 ]]; then
+            echo "spctl did not accept the app as Notarized Developer ID." >&2
+            exit 1
+          fi
+
+      - name: Zip the stapled app
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          ZIP="Ichido-${VERSION}-macOS.zip"
+          rm -f "${ZIP}"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "build/Ichido.app" \
+            "${ZIP}"
+          test -s "${ZIP}"
+          mkdir -p release-assets
+          mv "${ZIP}" "release-assets/${ZIP}"
+
+      - name: Generate signed Sparkle appcast
+        env:
+          SPARKLE_ED25519_PRIVATE_KEY: ${{ secrets.SPARKLE_ED25519_PRIVATE_KEY }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SPARKLE_ED25519_PRIVATE_KEY}" ]]; then
+            echo "Missing SPARKLE_ED25519_PRIVATE_KEY GitHub Actions secret" >&2
+            exit 1
+          fi
+          SPARKLE_BIN=".build/artifacts/sparkle/Sparkle/bin"
+          printf '%s' "${SPARKLE_ED25519_PRIVATE_KEY}" | \
+            "${SPARKLE_BIN}/generate_appcast" \
+              --ed-key-file - \
+              --download-url-prefix "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" \
+              --maximum-deltas 0 \
+              -o "$PWD/release-assets/appcast.xml" \
+              release-assets
+          printf '%s' "${SPARKLE_ED25519_PRIVATE_KEY}" | \
+            "${SPARKLE_BIN}/sign_update" --ed-key-file - --verify release-assets/appcast.xml
+          xmllint --noout release-assets/appcast.xml
+
+      - name: Add stable website download
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          cp "release-assets/Ichido-${VERSION}-macOS.zip" \
+            release-assets/Ichido-macOS.zip
+          cmp "release-assets/Ichido-${VERSION}-macOS.zip" \
+            release-assets/Ichido-macOS.zip
+
+      - name: Upload notarized dry-run artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: Ichido-notarized-${{ steps.version.outputs.version }}-macOS
+          path: release-assets/
+          if-no-files-found: error

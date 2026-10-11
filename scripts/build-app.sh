@@ -4,6 +4,21 @@ set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
 cd "$PROJECT_DIR"
 
+# No arguments: ad-hoc signature, used by CI and the tag release workflow.
+# --developer-id: notarized direct distribution. Never falls through to ad-hoc.
+DEVELOPER_ID_IDENTITY=""
+if [[ $# -gt 0 ]]; then
+    if [[ "$1" != "--developer-id" ]]; then
+        echo "usage: $0 [--developer-id <identity>]" >&2
+        exit 2
+    fi
+    if [[ $# -ne 2 || -z "${2:-}" || "$2" == "-" ]]; then
+        echo "build-app.sh: --developer-id requires a Developer ID Application identity. Refusing an ad-hoc signature." >&2
+        exit 1
+    fi
+    DEVELOPER_ID_IDENTITY="$2"
+fi
+
 XCODE_DEVELOPER="/Applications/Xcode.app/Contents/Developer"
 if [[ -x "$XCODE_DEVELOPER/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift" ]]; then
     export DEVELOPER_DIR="$XCODE_DEVELOPER"
@@ -32,6 +47,10 @@ cp "$PROJECT_DIR/Resources/AppIcon.icns" "$CONTENTS_DIR/Resources/AppIcon.icns"
 ditto "$SPARKLE_FRAMEWORK" "$CONTENTS_DIR/Frameworks/Sparkle.framework"
 chmod +x "$MACOS_DIR/VoiceCoachApp"
 
-codesign --force --sign - "$APP_DIR"
-codesign --verify --deep --strict --verbose=2 "$APP_DIR"
+if [[ -n "$DEVELOPER_ID_IDENTITY" ]]; then
+    "$PROJECT_DIR/scripts/sign-developer-id.sh" "$DEVELOPER_ID_IDENTITY" "$APP_DIR"
+else
+    codesign --force --sign - "$APP_DIR"
+    codesign --verify --deep --strict --verbose=2 "$APP_DIR"
+fi
 echo "$APP_DIR"
