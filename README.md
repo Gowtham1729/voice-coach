@@ -16,7 +16,7 @@ Requires **macOS 26 or later**. Apple Silicon recommended. Free while in early a
 2. Open Ichido.
 3. Choose **Record** for your own recording, or **Practice → New reference practice…** to practice with a clip.
 
-Already using Voice Coach? Ichido is the same app with a new name. Your library and preferences carry over. Get updates from **Ichido → Check for Updates…**.
+Get updates from **Ichido → Check for Updates…**.
 
 ## What you can do
 

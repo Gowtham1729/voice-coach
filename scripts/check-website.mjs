@@ -176,6 +176,12 @@ assert.ok(
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
 const modules = readdirSync(root).filter((file) => file.endsWith(".js"));
 const js = modules.map((file) => readFileSync(resolve(root, file), "utf8")).join("\n");
+const publicCopy = [html, css, js, robots, llms, sitemap].join("\n");
+assert.equal(
+  /\bvoice coach\b/i.test(publicCopy),
+  false,
+  'Public website copy must not contain "Voice Coach" or "voice coach"',
+);
 const appModule = readFileSync(resolve(root, "app.js"), "utf8");
 for (const [asset, source] of [["styles.css", html], ["app.js", html], ["./sound-ribbon.js", appModule]]) {
   const version = createHash("sha256")
