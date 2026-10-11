@@ -80,12 +80,17 @@ extension AppModel {
   }
 
   func startMimic() {
-    guard !isRecording, !isAnalyzing, !isRequestingPermission else { return }
+    guard !isRecording, !isAnalyzing, !isRequestingPermission,
+      !isCapturingMimicReference, !mimicIsPreparing, !hasMenuBarReference
+    else { return }
     navigate(to: .mimicStart)
   }
 
   func useCurrentRecordingAsMimicReference() {
-    guard let take = selectedTake, !isRecording, !isAnalyzing else { return }
+    guard let take = selectedTake, !isRecording, !isAnalyzing, !isRequestingPermission,
+      !isCapturingMimicReference, !mimicIsPreparing, !hasMenuBarReference,
+      mimicPhase == .ready, !hasPendingMimicWork
+    else { return }
     cancelMimicPreparation()
     let id = UUID()
     mimicPreparationID = id

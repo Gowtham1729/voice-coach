@@ -5,7 +5,7 @@ import VoiceCoachCore
 import VoiceCoachSession
 
 extension AppModel {
-  func captureMimicReferencePressed() {
+  func captureMimicReferencePressed(fromMenuBar: Bool = false) {
     guard !mimicIsPreparing, !isRecording, !isAnalyzing, !isRequestingPermission,
       mimicPhase == .ready, !hasPendingMimicWork
     else { return }
@@ -13,33 +13,48 @@ extension AppModel {
       finishMimicReferenceCapture()
       return
     }
-    beginMimicReferenceCapture()
+    beginMimicReferenceCapture(fromMenuBar: fromMenuBar)
   }
 
-  private func beginMimicReferenceCapture() {
+  private func beginMimicReferenceCapture(fromMenuBar: Bool) {
     cancelMimicPreparation()
 
     let id = UUID()
     mimicPreparationID = id
     let staged = FileManager.default.temporaryDirectory
       .appendingPathComponent("voice-coach-mimic-system-\(id).wav")
-    do {
-      try systemAudioCapture.start(url: staged)
-      mimicReferenceCaptureURL = staged
-      mimicReferenceCaptureStartedAt = Date()
-      mimicReferenceCaptureElapsed = 0
-      mimicReferenceCaptureLevel = -80
-      isCapturingMimicReference = true
-      clearError()
-      toastMessage = nil
-      startMimicReferenceCaptureTimer()
-    } catch {
-      try? FileManager.default.removeItem(at: staged)
-      mimicPreparationID = nil
-      presentError(
-        title: "Capture failed",
-        error: error,
-        fallback: "Couldn’t capture Mac audio.")
+    mimicReferenceCaptureURL = staged
+    hasMenuBarReference = fromMenuBar
+    isRequestingPermission = true
+    clearError()
+    toastMessage = nil
+    systemAudioCapture.requestStart(url: staged) { [weak self, capture = systemAudioCapture] result in
+      guard let self else {
+        capture.stop()
+        try? FileManager.default.removeItem(at: staged)
+        return
+      }
+      self.isRequestingPermission = false
+      guard self.mimicPreparationID == id else {
+        capture.stop()
+        try? FileManager.default.removeItem(at: staged)
+        return
+      }
+      switch result {
+      case .success:
+        self.mimicReferenceCaptureStartedAt = Date()
+        self.mimicReferenceCaptureElapsed = 0
+        self.mimicReferenceCaptureLevel = -80
+        self.isCapturingMimicReference = true
+        self.startMimicReferenceCaptureTimer()
+      case .failure(let error):
+        try? FileManager.default.removeItem(at: staged)
+        self.mimicReferenceCaptureURL = nil
+        self.hasMenuBarReference = false
+        self.mimicPreparationID = nil
+        self.presentError(
+          title: "Capture failed", error: error, fallback: "Couldn’t capture Mac audio.")
+      }
     }
   }
 
@@ -95,7 +110,7 @@ extension AppModel {
 
   func startMimicReferenceCaptureTimer() {
     stopMimicReferenceCaptureTimer()
-    mimicReferenceCaptureTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) {
+    let timer = Timer(timeInterval: 0.05, repeats: true) {
       [weak self] _ in
       Task { @MainActor in
         guard let self, self.isCapturingMimicReference else { return }
@@ -107,6 +122,8 @@ extension AppModel {
         }
       }
     }
+    mimicReferenceCaptureTimer = timer
+    RunLoop.main.add(timer, forMode: .common)
   }
 
   func stopMimicReferenceCaptureTimer() {

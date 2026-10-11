@@ -97,6 +97,8 @@ struct MimicReferencePicker: View {
             .font(.caption)
             .foregroundStyle(Studio.secondary)
         }
+      } else if model.isRequestingPermission {
+        ProgressView("Waiting for permission…")
       } else if model.isCapturingMimicReference {
         VStack(alignment: .leading, spacing: 10) {
           HStack(spacing: 12) {

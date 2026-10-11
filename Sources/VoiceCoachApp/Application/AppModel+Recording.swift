@@ -451,7 +451,7 @@ extension AppModel {
 
   private func startTimer() {
     timer?.invalidate()
-    timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+    let recordingTimer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
       Task { @MainActor in
         guard let self else { return }
         self.elapsed = Date().timeIntervalSince(self.startedAt ?? Date())
@@ -459,6 +459,8 @@ extension AppModel {
         if self.elapsed >= 90 { self.stopRecording() }
       }
     }
+    timer = recordingTimer
+    RunLoop.main.add(recordingTimer, forMode: .common)
   }
 
   func startPlaybackTimer() {

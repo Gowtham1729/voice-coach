@@ -267,6 +267,37 @@
         try renderCreateSession("14-mimic-long-setup", mode: .mimic)
       }
 
+      // Menu bar states use the real controls without a microphone or process tap.
+      model.destination = .home
+      model.mimicPhase = .ready
+      model.isRecording = false
+      model.mimicDraft = nil
+      for scheme in [ColorScheme.light, .dark] {
+        let appearance = scheme == .light ? "light" : "dark"
+        for state in ["idle", "permission", "capturing", "preparing", "ready", "recording", "error"] {
+          model.isCapturingMimicReference = state == "capturing"
+          model.hasMenuBarReference = ["permission", "capturing", "preparing", "ready"].contains(state)
+          model.isRequestingPermission = state == "permission"
+          model.mimicIsPreparing = state == "preparing"
+          model.isRecording = state == "recording"
+          model.mimicReferenceCaptureElapsed = 24
+          model.mimicReferenceCaptureLevel = -18
+          model.elapsed = 12
+          model.errorTitle = "Capture failed"
+          model.errorMessage = state == "error" ? SystemAudioCaptureError.permissionOrSilent.errorDescription : nil
+          let view = QuickPracticeMenu(model: model)
+            .environment(\.studioSnapshot, true)
+            .environment(\.colorScheme, scheme)
+            .background(scheme == .light ? Color.white : Color.black)
+          let renderer = ImageRenderer(content: view)
+          renderer.scale = 2
+          guard let image = renderer.cgImage,
+            let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+          else { throw NSError(domain: "VoiceCoachPreview", code: 6) }
+          try png.write(to: output.appendingPathComponent("20-quick-practice-\(state)-\(appearance).png"))
+        }
+      }
+
       // Hang regression: a multi-thousand-word transcript must layout quickly.
       // Snapshot mode caps the word grid; live mode scrolls the full set.
       let longWords = (0..<3_000).map { index in

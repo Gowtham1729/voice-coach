@@ -112,6 +112,98 @@ struct QuickPracticeTests {
     #expect(fixture.model.destination == .mimicStart)
   }
 
+  @Test("Reference actions preserve a background capture", arguments: [false, true])
+  func referenceActionsPreserveCapture(afterStop: Bool) async throws {
+    let fixture = try Fixture()
+    defer { fixture.cleanUp() }
+    fixture.model.startMenuBarReferenceCapture()
+    let url = try #require(fixture.model.mimicReferenceCaptureURL)
+    let take = PracticeSession(
+      audioURL: url, result: try AudioAnalyzer().analyze(url: url))
+    let session = CoachingSession(
+      name: "Existing recording", mode: .general, prompt: "", keepsRecordings: true, takes: [take])
+    fixture.model.sessions = [session]
+    fixture.model.selectedSessionID = session.id
+    fixture.model.selectedTakeID = take.id
+    fixture.model.destination = .take(session.id, take.id)
+    if afterStop {
+      fixture.model.mimicReferenceCaptureElapsed = 2
+      fixture.model.finishMimicReferenceCapture()
+      try await waitUntil { !fixture.model.mimicIsPreparing }
+    }
+    let destination = fixture.model.destination
+    let preparationID = fixture.model.mimicPreparationID
+    fixture.model.startMimic()
+    fixture.model.useCurrentRecordingAsMimicReference()
+    fixture.model.chooseMimicReference()
+    #expect(fixture.model.hasMenuBarReference)
+    #expect(fixture.model.isCapturingMimicReference == !afterStop)
+    #expect(fixture.model.mimicPreparationID == preparationID)
+    #expect(fixture.model.destination == destination)
+    #expect(FileManager.default.fileExists(atPath: url.path))
+  }
+
+  @Test("Quit protection includes in-app drafts, count-in, and unsaved takes")
+  func unsavedAudioProtection() throws {
+    let fixture = try Fixture()
+    defer { fixture.cleanUp() }
+    #expect(!fixture.model.hasUnsavedAudio)
+    fixture.model.mimicDraft = MimicReferenceDraft(
+      id: UUID(), url: fixture.root.appendingPathComponent("draft.wav"),
+      sourceName: "Imported clip", duration: 2, peaks: [], source: .importedAudio)
+    #expect(fixture.model.hasUnsavedAudio)
+    fixture.model.mimicDraft = nil
+    fixture.model.mimicPhase = .countIn(2)
+    #expect(fixture.model.hasUnsavedAudio)
+    fixture.model.mimicPhase = .ready
+    fixture.model.pendingMimicAudio = (fixture.root.appendingPathComponent("take.wav"), UUID())
+    #expect(fixture.model.hasUnsavedAudio)
+    fixture.model.pendingMimicAudio = nil
+    #expect(!fixture.model.hasUnsavedAudio)
+  }
+
+  @Test("Delayed capture startup blocks conflicts and cleans up after cancellation", arguments: ["granted", "denied", "cancelled"])
+  func delayedStartup(outcome: String) throws {
+    let fixture = try Fixture()
+    defer { fixture.cleanUp() }
+    fixture.capture.delaysStart = true
+    fixture.model.destination = .library
+    fixture.model.startMenuBarReferenceCapture()
+    let url = try #require(fixture.model.mimicReferenceCaptureURL)
+    #expect(fixture.model.isRequestingPermission)
+    #expect(fixture.model.hasMenuBarReference)
+    #expect(!fixture.model.isCapturingMimicReference)
+    #expect(fixture.model.mimicReferenceCaptureTimer == nil)
+    fixture.model.reviewMenuBarReference()
+    fixture.model.startMenuBarReferenceCapture()
+    fixture.model.startHomeRecording()
+    fixture.model.chooseMimicReference()
+    #expect(fixture.capture.requestCount == 1)
+    #expect(fixture.model.destination == .library)
+    if outcome == "cancelled" {
+      fixture.model.discardMenuBarReference()
+      #expect(!fixture.model.hasMenuBarReference)
+      #expect(!fixture.model.canStartQuickPractice)
+    }
+    fixture.capture.shouldFail = outcome == "denied"
+    fixture.capture.completeStart()
+    #expect(!fixture.model.isRequestingPermission)
+    if outcome == "granted" {
+      #expect(fixture.model.isCapturingMimicReference)
+      #expect(fixture.model.hasMenuBarReference)
+      #expect(fixture.model.mimicReferenceCaptureTimer != nil)
+      fixture.model.discardMenuBarReference()
+    } else {
+      #expect(!fixture.model.isCapturingMimicReference)
+      #expect(!fixture.model.hasMenuBarReference)
+      #expect(fixture.model.mimicReferenceCaptureTimer == nil)
+      #expect(!FileManager.default.fileExists(atPath: url.path))
+      #expect(fixture.model.canStartQuickPractice)
+      #expect((fixture.model.errorMessage != nil) == (outcome == "denied"))
+    }
+    #expect(fixture.model.sessions.isEmpty)
+  }
+
   @Test("Discard removes staged audio and invalidates pending preparation", arguments: [false, true])
   func discard(afterStop: Bool) async throws {
     let fixture = try Fixture()
@@ -203,6 +295,26 @@ private final class TestSystemAudioCapture: SystemAudioCapturing {
   var startCount = 0
   var stopCount = 0
   var lastURL: URL?
+  var delaysStart = false
+  var requestCount = 0
+  private var pendingStart: (@MainActor () -> Void)?
+
+  @MainActor
+  func requestStart(url: URL, completion: @escaping @MainActor @Sendable (Result<Void, Error>) -> Void) {
+    requestCount += 1
+    if delaysStart {
+      pendingStart = { completion(Result { try self.start(url: url) }) }
+    } else {
+      completion(Result { try start(url: url) })
+    }
+  }
+
+  @MainActor
+  func completeStart() {
+    let pending = pendingStart
+    pendingStart = nil
+    pending?()
+  }
 
   func peakLevel() -> Float { -20 }
   func stop() { stopCount += 1 }

@@ -17,7 +17,7 @@ struct VoiceCoachCommands: Commands {
 
       Button("Reference practice…") { model.startMimic() }
         .keyboardShortcut("m", modifiers: [.command, .shift])
-        .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+        .disabled(!model.canStartQuickPractice)
     }
 
     CommandGroup(after: .importExport) {

@@ -1,6 +1,11 @@
 import Foundation
 
 extension AppModel {
+  var hasUnsavedAudio: Bool {
+    isRecording || isCapturingMimicReference || hasMenuBarReference || mimicDraft != nil
+      || pendingMimicAudio != nil || pendingMimicTake != nil || mimicPhase != .ready
+  }
+
   var canStartQuickPractice: Bool {
     !isRecording && !isCapturingMimicReference && !isAnalyzing && !isRequestingPermission
       && !mimicIsPreparing && mimicDraft == nil && !hasMenuBarReference
@@ -11,13 +16,12 @@ extension AppModel {
   /// Reuses the reference-capture service without opening a sheet over the source app.
   func startMenuBarReferenceCapture() {
     guard canStartQuickPractice else { return }
-    captureMimicReferencePressed()
-    hasMenuBarReference = isCapturingMimicReference
+    captureMimicReferencePressed(fromMenuBar: true)
   }
 
   /// Stop first, then hand the same staged clip to the existing trim-and-practice sheet.
   func reviewMenuBarReference() {
-    guard hasMenuBarReference else { return }
+    guard hasMenuBarReference, !isRequestingPermission else { return }
     if isCapturingMimicReference { finishMimicReferenceCapture() }
     guard hasMenuBarReference else { return }
     destination = .mimicStart

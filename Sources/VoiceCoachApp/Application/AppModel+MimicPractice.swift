@@ -6,7 +6,9 @@ import VoiceCoachSession
 
 extension AppModel {
   func chooseMimicReference() {
-    guard !mimicIsPreparing, !isRecording, !isCapturingMimicReference else { return }
+    guard !mimicIsPreparing, !isRecording, !isCapturingMimicReference, !isRequestingPermission,
+      !hasMenuBarReference || destination == .mimicStart
+    else { return }
     let panel = NSOpenPanel()
     panel.title = "Choose a practice reference"
     panel.message = "Import a clip, then trim a short excerpt."
@@ -51,12 +53,10 @@ extension AppModel {
 
   func cancelMimicPreparation() {
     hasMenuBarReference = false
-    if isCapturingMimicReference {
-      systemAudioCapture.stop()
+    if let url = mimicReferenceCaptureURL {
+      if isCapturingMimicReference { systemAudioCapture.stop() }
       stopMimicReferenceCaptureTimer()
-      if let url = mimicReferenceCaptureURL {
-        try? FileManager.default.removeItem(at: url)
-      }
+      try? FileManager.default.removeItem(at: url)
       isCapturingMimicReference = false
       mimicReferenceCaptureURL = nil
       mimicReferenceCaptureStartedAt = nil

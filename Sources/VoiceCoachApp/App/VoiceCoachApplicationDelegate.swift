@@ -22,7 +22,7 @@ final class VoiceCoachApplicationDelegate: NSObject, NSApplicationDelegate {
       alert.runModal()
       return .terminateCancel
     }
-    guard model.isCapturingMimicReference || model.isRecording || model.hasMenuBarReference else {
+    guard model.hasUnsavedAudio else {
       return .terminateNow
     }
     sender.activate(ignoringOtherApps: true)
@@ -34,6 +34,7 @@ final class VoiceCoachApplicationDelegate: NSObject, NSApplicationDelegate {
     alert.addButton(withTitle: "Discard and quit")
     guard alert.runModal() == .alertSecondButtonReturn else { return .terminateCancel }
     model.cancelMimicPreparation()
+    model.mimicCountInTask?.cancel()
     model.recorder.stop()
     model.timer?.invalidate()
     if let url = model.recordingURL { try? FileManager.default.removeItem(at: url) }

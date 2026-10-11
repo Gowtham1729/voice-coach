@@ -12,8 +12,10 @@ do not bring a sheet in front of the source app. A checkmark on the ribbon marks
 a prepared clip. **Discard capture** deletes the staged audio. A capture is not a
 saved practice session until the existing creation flow succeeds.
 
-The menu also offers **Record my voice**, **Continue practice** when there is a
-saved reference, **Open Ichido**, **Settings…**, and **Quit Ichido**. Capturing,
+The compact capture panel shows elapsed time, the audio meter, and whether Mac
+audio is currently arriving. **Continue practice** identifies the saved reference
+by name and clip length. **Record my voice** and **Open Ichido** open the main
+window; the native **…** options menu holds **Settings…** and **Quit Ichido**. Capturing,
 permission requests, preparation, and unsaved practice work block conflicting
 quick actions. A filled dot on the ribbon indicates active capture or recording;
 the menu gives the status in words and shows elapsed time. Closing the main window
@@ -41,9 +43,18 @@ available when the icon is hidden. This does not enable launch at login.
   reuse the shipping process-tap service and its audio permission rather than
   introduce screen capture or a second recording pipeline.
 
+The local Mac follow-up uses the existing desktop panel material for the capture
+area, system glass buttons, full-row secondary actions, and a native options menu.
+Recent practice includes its name and duration. Capture errors give a short
+recovery step; **Show details…** opens the full error in Ichido.
+
+Actual Mac captures: [idle popup](screenshots/12-menu-bar-quick-practice.png) and
+[live audio meter](screenshots/13-menu-bar-capturing.png). These use an isolated
+library with generated speech.
+
 ## Local Mac verification
 
-Requires macOS 26+, Xcode 26.x, and Swift 6.2. Synthetic tests do not establish
+Requires macOS 26+ and an Xcode toolchain supporting Swift 6.2 or later. Synthetic tests do not establish
 real audio routing or permissions.
 
 1. Check out the PR branch and run `./scripts/test.sh --all`, then
@@ -73,3 +84,42 @@ real audio routing or permissions.
 For layout previews run `./scripts/render-previews.sh`. For live interaction
 checks use [PEEKABOO.md](PEEKABOO.md) after CI passes. Linux cannot build the Mac
 app or visually verify this menu bar surface.
+
+## Mac follow-up to PR 108
+
+Local investigation on macOS 27.0.1 / Xcode 27 found three failures that the Linux
+handoff could not expose:
+
+- MenuBarExtra repeatedly wrote its unchanged insertion state through AppStorage,
+  causing a launch-time scene-update loop. The binding now ignores unchanged values.
+- Core Audio startup could wait on the recording-permission dialog on the main
+  thread. Startup now completes asynchronously, with cancellation and stale-result
+  cleanup before another capture is allowed.
+- A dismissed reference sheet could run its disappearance cleanup after a new
+  background capture started. Cleanup now belongs to explicit cancellation,
+  sheet dismissal, and successful creation.
+
+Capture and microphone timers use common run-loop modes so menu tracking does not
+pause elapsed time or the capture limit. Reference-source actions preserve a
+background capture, and quit protection includes in-app drafts and pending takes.
+
+Automated verification includes the full Core, Session, and App test suites,
+SelfTest, the release app build and signature verification, and light/dark menu
+layout previews. An opt-in DEBUG device check uses `--test-library <isolated-path>`
+and `--capture-smoke <generated-speech.wav>`; optional flags
+`--capture-smoke-auto-stop` and `--capture-smoke-self-playback` check the 90-second
+limit, discard cleanup, and exclusion of Ichido's own playback. It writes
+`capture-smoke.json` inside the isolated test library and never reads the personal
+library. Release builds do not expose these flags.
+
+The controlled device run captured and transcribed 7.02 seconds of generated
+speech, saved and reloaded the reference, automatically stopped a repeated capture
+at 89.83 seconds of audio, deleted its staged WAV on discard, and excluded the app's
+own reference playback. This establishes the tested speaker route; it does not
+establish every microphone, headphone, Bluetooth, permission-denial, or
+assistive-technology configuration.
+
+Live popup clicks also verified Capture → incoming audio meter → Stop and review
+→ reference sheet, and Cancel returned to Home. The capture remains local and
+uses the normal reference-creation flow. Keyboard/VoiceOver traversal and all
+window/quit permutations still need the manual checklist above.
