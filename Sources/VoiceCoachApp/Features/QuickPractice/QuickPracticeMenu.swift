@@ -23,7 +23,6 @@ struct QuickPracticeMenu: View {
       }
       .padding(12)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .desktopPanel()
 
       if let message = model.errorMessage {
         VStack(alignment: .leading, spacing: 5) {

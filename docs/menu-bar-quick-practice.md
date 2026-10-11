@@ -12,7 +12,7 @@ do not bring a sheet in front of the source app. A checkmark on the ribbon marks
 a prepared clip. **Discard capture** deletes the staged audio. A capture is not a
 saved practice session until the existing creation flow succeeds.
 
-The compact capture panel shows elapsed time, the audio meter, and whether Mac
+The compact capture area shows elapsed time, the audio meter, and whether Mac
 audio is currently arriving. **Continue practice** identifies the saved reference
 by name and clip length. **Record my voice** and **Open Ichido** open the main
 window; the native **…** options menu holds **Settings…** and **Quit Ichido**. Capturing,
@@ -43,14 +43,10 @@ available when the icon is hidden. This does not enable launch at login.
   reuse the shipping process-tap service and its audio permission rather than
   introduce screen capture or a second recording pipeline.
 
-The local Mac follow-up uses the existing desktop panel material for the capture
-area, system glass buttons, full-row secondary actions, and a native options menu.
+The local Mac follow-up uses one continuous native popup surface, system glass
+buttons, full-row secondary actions, and a native options menu.
 Recent practice includes its name and duration. Capture errors give a short
 recovery step; **Show details…** opens the full error in Ichido.
-
-Actual Mac captures: [idle popup](screenshots/12-menu-bar-quick-practice.png) and
-[live audio meter](screenshots/13-menu-bar-capturing.png). These use an isolated
-library with generated speech.
 
 ## Local Mac verification
 
