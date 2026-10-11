@@ -26,7 +26,7 @@ jobs:
   notarize:
     name: notarize
     runs-on: macos-26
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
 
@@ -206,7 +206,7 @@ jobs:
             --key-id "$NOTARY_KEY_ID" \
             --issuer "$NOTARY_ISSUER" \
             --wait \
-            --timeout 30m \
+            --timeout 120m \
             | tee "$submit_log"
           status=${PIPESTATUS[0]}
           set -e
