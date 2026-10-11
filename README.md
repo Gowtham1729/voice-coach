@@ -13,7 +13,7 @@ https://github.com/user-attachments/assets/3efb9a61-5bff-4cef-8706-50102a6433b4
 Requires **macOS 26 or later**. Apple Silicon recommended. Free while in early access.
 
 1. Download the ZIP, unzip it, and move **Ichido.app** to Applications.
-2. Open Ichido. The download is signed with Developer ID and notarized by Apple. It is a direct download, not a Mac App Store install.
+2. Open Ichido.
 3. Choose **Record** for your own recording, or **Practice → New reference practice…** to practice with a clip.
 
 Already using Voice Coach? Ichido is the same app with a new name. Your library and preferences carry over. Get updates from **Ichido → Check for Updates…**.
