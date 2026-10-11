@@ -6,8 +6,8 @@ set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
 cd "$PROJECT_DIR"
 
-# No arguments: ad-hoc signature, used by CI and the tag release workflow.
-# --developer-id: notarized direct distribution. Never falls through to ad-hoc.
+# No arguments: ad-hoc signature for CI and local builds. Not a public release.
+# --developer-id: tag releases via notarize.yml. Never falls through to ad-hoc.
 DEVELOPER_ID_IDENTITY=""
 if [[ $# -gt 0 ]]; then
     if [[ "$1" != "--developer-id" ]]; then
