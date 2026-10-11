@@ -75,15 +75,16 @@ DOWNLOADER="$FRAMEWORK/Versions/B/XPCServices/Downloader.xpc"
 AUTOUPDATE="$FRAMEWORK/Versions/B/Autoupdate"
 UPDATER="$FRAMEWORK/Versions/B/Updater.app"
 
-for path in "$INSTALLER" "$DOWNLOADER" "$AUTOUPDATE" "$UPDATER" "$FRAMEWORK"; do
-    if [[ ! -e "$path" ]]; then
-        echo "Missing Sparkle component: $path" >&2
+# `path` is tied to PATH in zsh. A loop variable with that name drops mktemp and rm.
+for component in "$INSTALLER" "$DOWNLOADER" "$AUTOUPDATE" "$UPDATER" "$FRAMEWORK"; do
+    if [[ ! -e "$component" ]]; then
+        echo "Missing Sparkle component: $component" >&2
         exit 1
     fi
 done
 
 tmp="$(/usr/bin/mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+trap '/bin/rm -rf "$tmp"' EXIT
 before="$tmp/downloader-before.plist"
 after="$tmp/downloader-after.plist"
 
@@ -185,6 +186,6 @@ require_developer_id() {
     fi
 }
 
-for path in "$INSTALLER" "$DOWNLOADER" "$AUTOUPDATE" "$UPDATER" "$FRAMEWORK" "$APP"; do
-    require_developer_id "$path"
+for component in "$INSTALLER" "$DOWNLOADER" "$AUTOUPDATE" "$UPDATER" "$FRAMEWORK" "$APP"; do
+    require_developer_id "$component"
 done
