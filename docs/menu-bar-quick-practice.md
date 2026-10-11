@@ -82,27 +82,23 @@ For layout previews run `./scripts/render-previews.sh`. For live interaction
 checks use [PEEKABOO.md](PEEKABOO.md) after CI passes. Linux cannot build the Mac
 app or visually verify this menu bar surface.
 
-## Mac follow-up to PR 108
+## Capture lifecycle
 
-Local investigation on macOS 27.0.1 / Xcode 27 found three failures that the Linux
-handoff could not expose:
-
-- MenuBarExtra repeatedly wrote its unchanged insertion state through AppStorage,
-  causing a launch-time scene-update loop. The binding now ignores unchanged values.
-- Core Audio startup could wait on the recording-permission dialog on the main
-  thread. Startup now completes asynchronously, with cancellation and stale-result
-  cleanup before another capture is allowed.
-- A dismissed reference sheet could run its disappearance cleanup after a new
-  background capture started. Cleanup now belongs to explicit cancellation,
-  sheet dismissal, and successful creation.
+- The MenuBarExtra binding ignores unchanged insertion values. Repeated AppStorage
+  writes can cause a scene-update loop on macOS 27.
+- Core Audio starts off the main actor because its permission prompt can block.
+  Cancellation invalidates the preparation ID; completion stops and removes any
+  stale capture before another can start.
+- Explicit cancellation, sheet dismissal, and successful creation own reference
+  cleanup. A delayed sheet disappearance must not cancel a later capture.
 
 Capture and microphone timers use common run-loop modes so menu tracking does not
 pause elapsed time or the capture limit. Reference-source actions preserve a
 background capture, and quit protection includes in-app drafts and pending takes.
 
-Automated verification includes the full Core, Session, and App test suites,
-SelfTest, the release app build and signature verification, and light/dark menu
-layout previews. An opt-in DEBUG device check uses `--test-library <isolated-path>`
+## Device check
+
+An opt-in DEBUG device check uses `--test-library <isolated-path>`
 and `--capture-smoke <generated-speech.wav>`; optional flags
 `--capture-smoke-auto-stop` and `--capture-smoke-self-playback` check the 90-second
 limit, discard cleanup, and exclusion of Ichido's own playback. It writes
@@ -116,7 +112,6 @@ own reference playback. This establishes the tested speaker route; it does not
 establish every microphone, headphone, Bluetooth, permission-denial, or
 assistive-technology configuration.
 
-Live popup clicks also verified Capture → incoming audio meter → Stop and review
-→ reference sheet, and Cancel returned to Home. The capture remains local and
-uses the normal reference-creation flow. Keyboard/VoiceOver traversal and all
-window/quit permutations still need the manual checklist above.
+Live popup checks covered Capture → incoming audio meter → Stop and review →
+reference sheet, and Cancel returning to Home. The manual checklist above covers
+additional window, quit, and accessibility configurations.

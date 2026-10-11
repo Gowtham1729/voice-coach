@@ -29,13 +29,8 @@ extension AppModel {
     clearError()
     toastMessage = nil
     systemAudioCapture.requestStart(url: staged) { [weak self, capture = systemAudioCapture] result in
-      guard let self else {
-        capture.stop()
-        try? FileManager.default.removeItem(at: staged)
-        return
-      }
-      self.isRequestingPermission = false
-      guard self.mimicPreparationID == id else {
+      self?.isRequestingPermission = false
+      guard let self, self.mimicPreparationID == id else {
         capture.stop()
         try? FileManager.default.removeItem(at: staged)
         return

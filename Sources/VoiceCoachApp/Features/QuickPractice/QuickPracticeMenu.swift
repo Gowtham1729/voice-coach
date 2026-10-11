@@ -186,7 +186,6 @@ struct QuickPracticeMenu: View {
       .padding(.horizontal, 8)
   }
 
-  @ViewBuilder
   private func preparationStatus(_ title: String) -> some View {
     Group {
       if snapshot {

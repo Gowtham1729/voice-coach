@@ -8,17 +8,9 @@ protocol SystemAudioCapturing: AnyObject {
   var heardAudio: Bool { get }
 
   func peakLevel() -> Float
-  func start(url: URL) throws
   @MainActor
   func requestStart(url: URL, completion: @escaping @MainActor @Sendable (Result<Void, Error>) -> Void)
   func stop()
-}
-
-extension SystemAudioCapturing {
-  @MainActor
-  func requestStart(url: URL, completion: @escaping @MainActor @Sendable (Result<Void, Error>) -> Void) {
-    completion(Result { try start(url: url) })
-  }
 }
 
 /// Captures Mac system output (not the microphone) via a Core Audio process tap.
@@ -58,7 +50,7 @@ final class SystemAudioCapture: SystemAudioCapturing, @unchecked Sendable {
     }
   }
 
-  func start(url: URL) throws {
+  private func start(url: URL) throws {
     guard !state.read(\.isCapturing) else { throw SystemAudioCaptureError.alreadyCapturing }
     teardown(removing: nil)
 

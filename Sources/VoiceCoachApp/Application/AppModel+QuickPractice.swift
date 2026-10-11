@@ -1,5 +1,3 @@
-import Foundation
-
 extension AppModel {
   var hasUnsavedAudio: Bool {
     isRecording || isCapturingMimicReference || hasMenuBarReference || mimicDraft != nil

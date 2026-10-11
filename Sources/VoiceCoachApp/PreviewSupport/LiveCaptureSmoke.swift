@@ -22,9 +22,7 @@
           try report("starting")
           let priorSessionIDs = Set(model.sessions.map(\.id))
           model.destination = .library
-          model.startMenuBarReferenceCapture()
-          try await waitUntil { !model.isRequestingPermission }
-          guard model.isCapturingMimicReference else { throw SmokeError.captureDidNotStart }
+          try await startCapture(model: model)
           try report("playing-test-speech")
           try await play(speechURL)
           evidence["heardAudio"] = model.systemAudioCapture.heardAudio
@@ -48,9 +46,7 @@
           evidence["transcribed"] = !(saved.mimicReference?.take.transcription?.text.isEmpty ?? true)
           if CommandLine.arguments.contains("--capture-smoke-auto-stop") {
             model.destination = .library
-            model.startMenuBarReferenceCapture()
-            try await waitUntil { !model.isRequestingPermission }
-            guard model.isCapturingMimicReference else { throw SmokeError.captureDidNotStart }
+            try await startCapture(model: model)
             try report("checking-90-second-auto-stop")
             let deadline = ContinuousClock.now + .seconds(105)
             while model.isCapturingMimicReference {
@@ -71,16 +67,15 @@
             evidence["discardRemovedStagedAudio"] = true
           }
           if CommandLine.arguments.contains("--capture-smoke-self-playback") {
-            model.startMenuBarReferenceCapture()
-            try await waitUntil { !model.isRequestingPermission }
-            guard model.isCapturingMimicReference else { throw SmokeError.captureDidNotStart }
+            try await startCapture(model: model)
             try report("checking-own-playback-exclusion")
             model.playMimicReference()
             guard model.isPlaying else { throw SmokeError.playbackFailed }
             try await waitUntil { !model.isPlaying }
-            evidence["ownPlaybackExcluded"] = !model.systemAudioCapture.heardAudio
+            let ownPlaybackExcluded = !model.systemAudioCapture.heardAudio
+            evidence["ownPlaybackExcluded"] = ownPlaybackExcluded
             model.reviewMenuBarReference()
-            guard evidence["ownPlaybackExcluded"] as? Bool == true,
+            guard ownPlaybackExcluded,
               !model.hasMenuBarReference, model.mimicDraft == nil
             else { throw SmokeError.ownPlaybackWasCaptured }
             model.clearError()
@@ -92,6 +87,12 @@
           model.cancelMimicPreparation()
         }
       }
+    }
+
+    private static func startCapture(model: AppModel) async throws {
+      model.startMenuBarReferenceCapture()
+      try await waitUntil { !model.isRequestingPermission }
+      guard model.isCapturingMimicReference else { throw SmokeError.captureDidNotStart }
     }
 
     private static func play(_ url: URL, volume: Float = 1) async throws {

@@ -319,7 +319,7 @@ private final class TestSystemAudioCapture: SystemAudioCapturing {
   func peakLevel() -> Float { -20 }
   func stop() { stopCount += 1 }
 
-  func start(url: URL) throws {
+  private func start(url: URL) throws {
     startCount += 1
     lastURL = url
     let format = try #require(AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1))

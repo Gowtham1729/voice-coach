@@ -49,21 +49,22 @@ struct IchidoMenuBarLabel: View {
   @ObservedObject var model: AppModel
 
   var body: some View {
-    Image(nsImage: statusImage)
-      .accessibilityLabel(statusLabel)
-      .help(statusLabel)
+    let currentStatus = status
+    Image(nsImage: currentStatus.image)
+      .accessibilityLabel(currentStatus.label)
+      .help(currentStatus.label)
   }
 
-  private var statusImage: NSImage {
-    if model.isCapturingMimicReference || model.isRecording { return IchidoMenuBarIcon.recording }
-    if model.hasMenuBarReference && model.mimicDraft != nil { return IchidoMenuBarIcon.ready }
-    return IchidoMenuBarIcon.idle
-  }
-
-  private var statusLabel: String {
-    if model.isCapturingMimicReference { return "Ichido — capturing Mac audio" }
-    if model.isRecording { return "Ichido — recording" }
-    if model.hasMenuBarReference && model.mimicDraft != nil { return "Ichido — capture ready to review" }
-    return "Ichido — quick practice"
+  private var status: (image: NSImage, label: String) {
+    if model.isCapturingMimicReference {
+      return (IchidoMenuBarIcon.recording, "Ichido — capturing Mac audio")
+    }
+    if model.isRecording {
+      return (IchidoMenuBarIcon.recording, "Ichido — recording")
+    }
+    if model.hasMenuBarReference && model.mimicDraft != nil {
+      return (IchidoMenuBarIcon.ready, "Ichido — capture ready to review")
+    }
+    return (IchidoMenuBarIcon.idle, "Ichido — quick practice")
   }
 }
