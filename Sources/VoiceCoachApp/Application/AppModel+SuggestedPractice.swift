@@ -3,48 +3,61 @@ import VoiceCoachCore
 import VoiceCoachSession
 
 extension AppModel {
-  func suggestedPracticeClips(for take: PracticeSession) -> [SuggestedPracticeClip] {
-    PracticeClipSuggestions.clips(
-      transcription: take.transcription, duration: take.result.metrics.duration)
+  var suggestedPracticeClips: [SuggestedPracticeClip] {
+    guard let draft = mimicDraft else { return [] }
+    return PracticeClipSuggestions.clips(
+      transcription: draft.transcription, duration: draft.duration)
   }
 
-  func previewSuggestedPracticeClip(takeID: UUID, clipID: Int) {
-    guard !isRecording, !isAnalyzing, !mimicIsPreparing, !isCapturingMimicReference,
-      let take = selectedTake, take.id == takeID,
-      let clip = suggestedPracticeClips(for: take).first(where: { $0.id == clipID })
+  func previewSuggestedPracticeClip(draftID: UUID, clipID: Int) {
+    guard mimicDraft?.id == draftID,
+      let clip = suggestedPracticeClips.first(where: { $0.id == clipID }),
+      !mimicIsPreparing
     else { return }
     let shouldStop = isPlaying && practiceClipPreviewID == clipID
     stopPlayback()
     guard !shouldStop else { return }
-    do {
-      recorder.playbackVolume = 1
-      try recorder.play(url: take.audioURL, from: clip.start)
-      playbackTime = clip.start
-      mimicPlaybackEnd = clip.end
-      practiceClipPreviewID = clipID
-      isPlaying = true
-      startPlaybackTimer()
-    } catch {
-      presentError(title: "Playback failed", message: "This clip couldn’t be played.")
-    }
+    playMimicDraft(start: clip.start, end: clip.end)
+    if isPlaying { practiceClipPreviewID = clipID }
   }
 
-  /// Stage the entire batch before publishing it to the library. Failure or
-  /// cancellation removes every new folder and leaves the source recording intact.
   @discardableResult
-  func createSuggestedPracticeSessions(takeID: UUID, clipIDs: Set<Int>) -> Task<Void, Never>? {
-    guard !isRecording, !isAnalyzing, !isRequestingPermission,
-      !mimicIsPreparing, !isCapturingMimicReference,
-      let take = selectedTake, take.id == takeID,
-      let sourceSession = selectedSession, !sourceSession.isMimic
-    else { return nil }
-    let clips = suggestedPracticeClips(for: take).filter { clipIDs.contains($0.id) }
+  func createSuggestedPracticeSessions(draftID: UUID, clipIDs: Set<Int>) -> Task<Void, Never>? {
+    let clips = suggestedPracticeClips.filter { clipIDs.contains($0.id) }
     guard !clips.isEmpty, clips.count == clipIDs.count else { return nil }
+    return createPracticeReferences(draftID: draftID, excerpts: clips.map {
+      PracticeExcerpt(start: $0.start, end: $0.end, transcription: $0.transcription)
+    })
+  }
+
+  @discardableResult
+  func createManualPracticeSession(draftID: UUID, start: Double, end: Double) -> Task<Void, Never>? {
+    guard start.isFinite, end.isFinite, start >= 0,
+      let draft = mimicDraft, end <= draft.duration, end - start >= 1
+    else { return nil }
+    return createPracticeReferences(
+      draftID: draftID, excerpts: [PracticeExcerpt(start: start, end: end, transcription: nil)])
+  }
+
+  private func createPracticeReferences(
+    draftID: UUID, excerpts: [PracticeExcerpt]
+  ) -> Task<Void, Never>? {
+    guard !isRecording, !isAnalyzing, !isRequestingPermission, !mimicIsPreparing,
+      !isCapturingMimicReference, mimicPreparationID == draftID,
+      let draft = mimicDraft, draft.id == draftID
+    else { return nil }
     stopPlayback()
     clearError()
     toastMessage = nil
+    transcriptionNotice = nil
     isAnalyzing = true
-    practiceClipCreationProgress = (0, clips.count)
+    mimicIsPreparing = true
+    let batchID = UUID()
+    practiceClipCreationID = batchID
+    practiceClipCreationProgress = (0, excerpts.count)
+    let engine = transcriptionEngine
+    let locale = draft.transcriptionLocaleIdentifier.map(Locale.init(identifier:))
+      ?? newSessionTranscriptionLocale
 
     let task = Task {
       var stagedIDs: [UUID] = []
@@ -53,36 +66,50 @@ extension AppModel {
         if !committed {
           for id in stagedIDs { try? store.deleteSessionData(sessionID: id) }
         }
-        isAnalyzing = false
-        practiceClipCreationProgress = nil
-        practiceClipCreationTask = nil
+        if practiceClipCreationID == batchID {
+          isAnalyzing = false
+          mimicIsPreparing = false
+          practiceClipCreationProgress = nil
+          practiceClipCreationTask = nil
+          practiceClipCreationID = nil
+        }
       }
       do {
         var prepared: [CoachingSession] = []
-        for clip in clips {
+        for excerpt in excerpts {
           try Task.checkCancellation()
           let sessionID = UUID()
           stagedIDs.append(sessionID)
           let url = try store.referenceURL(sessionID: sessionID)
-          let acoustic = try await preparePracticeClip(take.audioURL, url, clip.start, clip.end)
+          let acoustic = try await preparePracticeClip(
+            draft.url, url, excerpt.start, excerpt.end)
           try Task.checkCancellation()
           try RecordingValidation.validateAudio(acoustic)
+          var transcription = excerpt.transcription
+          if transcription == nil {
+            let outcome = try await transcribeForAnalysis(url: url, engine: engine, locale: locale)
+            transcription = outcome.0
+            transcriptionNotice = outcome.1
+          }
+          try Task.checkCancellation()
           let reference = PracticeSession(
-            audioURL: url, source: take.takeSource, result: acoustic,
-            transcription: clip.transcription,
-            words: WordAcousticAnalyzer().analyze(transcription: clip.transcription, result: acoustic))
-          let name = String(clip.text.prefix(80))
+            audioURL: url, source: draft.source, result: acoustic,
+            transcription: transcription,
+            words: transcription.map {
+              WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
+            } ?? [])
+          let name = excerpt.transcription.map { String($0.text.prefix(80)) } ?? draft.sourceName
           prepared.append(CoachingSession(
             id: sessionID, name: name, mode: .mimic, prompt: "", keepsRecordings: true,
             mimicReference: MimicReference(
               sourceName: name, take: reference,
-              sourceStart: clip.start, sourceEnd: clip.end),
+              sourceStart: excerpt.start, sourceEnd: excerpt.end),
             mimicStyle: .listenAndRepeat, mimicAttemptStyles: [:],
-            transcriptionLocaleIdentifier:
-              clip.transcription.localeIdentifier ?? sourceSession.transcriptionLocaleIdentifier))
-          practiceClipCreationProgress = (prepared.count, clips.count)
+            transcriptionLocaleIdentifier: transcription?.localeIdentifier ?? locale?.identifier))
+          practiceClipCreationProgress = (prepared.count, excerpts.count)
         }
         try Task.checkCancellation()
+        guard mimicPreparationID == draftID else { throw CancellationError() }
         let previousSessions = sessions
         sessions.insert(contentsOf: prepared, at: 0)
         guard persist(analysisTakeIDs: Set(prepared.compactMap { $0.mimicReference?.take.id })) else {
@@ -101,14 +128,15 @@ extension AppModel {
           selectedTakeID = nil
           destination = .mimics
         }
+        cancelMimicPreparation()
         toastMessage = prepared.count == 1
-          ? "Practice session created" : "\(prepared.count) practice sessions created"
+          ? "Practice created" : "\(prepared.count) practices created"
       } catch is CancellationError {
-        // Selection remains available so the user can change it and try again.
+        // A cancelled or dismissed creation never publishes staged references.
       } catch {
         presentError(
-          title: "Practice sessions weren’t created", error: error,
-          fallback: "Couldn’t prepare the selected clips. Try again; your recording is still saved.")
+          title: "Practices weren’t created", error: error,
+          fallback: "Couldn’t prepare the selected phrases. Try again.")
       }
     }
     practiceClipCreationTask = task
@@ -117,5 +145,18 @@ extension AppModel {
 
   func cancelSuggestedPracticeCreation() {
     practiceClipCreationTask?.cancel()
+    practiceClipCreationTask = nil
+    practiceClipCreationID = nil
+    if practiceClipCreationProgress != nil {
+      practiceClipCreationProgress = nil
+      isAnalyzing = false
+      mimicIsPreparing = false
+    }
   }
+}
+
+private struct PracticeExcerpt {
+  let start: Double
+  let end: Double
+  let transcription: TranscriptionResult?
 }

@@ -6,18 +6,26 @@ extension TakeView {
   func transcriptCard(_ take: PracticeSession) -> some View {
     let highlightedWordIndex = highlightedWordIndex(in: take)
     return VStack(alignment: .leading, spacing: 14) {
-      ViewThatFits(in: .horizontal) {
-        HStack(spacing: 12) {
-          SectionEyebrow(text: "Transcript").fixedSize()
-          Spacer()
-          transcriptActions(take)
-        }
-        VStack(alignment: .leading, spacing: 10) {
-          SectionEyebrow(text: "Transcript")
-          HStack {
-            Spacer()
-            transcriptActions(take)
+      HStack(spacing: 12) {
+        SectionEyebrow(text: "Transcript")
+        Spacer()
+        if !snapshot {
+          Button("Re-transcribe", systemImage: "arrow.triangle.2.circlepath") {
+            model.retranscribeSelectedTake()
           }
+          .disabled(!model.canRetranscribe)
+          .help("Uses the speech language and engine selected in Settings → Transcription.")
+        }
+        if let transcription = take.transcription {
+          if let count = TakeScreenCopy.wordCountLabel(
+            wordCount: transcription.words.count,
+            transcriptionRunning: model.isAnalyzing
+          ) {
+            Text(count)
+              .font(.caption)
+              .foregroundStyle(Studio.secondary)
+          }
+          copyTranscriptButton(transcription.text)
         }
       }
 
@@ -45,30 +53,6 @@ extension TakeView {
     .padding(18)
     .frame(maxWidth: .infinity, minHeight: 320, alignment: .topLeading)
     .studioCard()
-  }
-
-  private func transcriptActions(_ take: PracticeSession) -> some View {
-    HStack(spacing: 12) {
-      if !snapshot {
-        Button("Re-transcribe", systemImage: "arrow.triangle.2.circlepath") {
-          model.retranscribeSelectedTake()
-        }
-        .disabled(!model.canRetranscribe)
-        .help("Uses the speech language and engine selected in Settings → Transcription.")
-      }
-      if let transcription = take.transcription {
-        if let count = TakeScreenCopy.wordCountLabel(
-          wordCount: transcription.words.count,
-          transcriptionRunning: model.isAnalyzing
-        ) {
-          Text(count)
-            .font(.caption)
-            .foregroundStyle(Studio.secondary)
-        }
-        copyTranscriptButton(transcription.text)
-      }
-    }
-    .fixedSize()
   }
 
   func copyTranscriptButton(_ text: String) -> some View {

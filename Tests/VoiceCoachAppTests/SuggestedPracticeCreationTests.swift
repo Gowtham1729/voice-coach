@@ -14,11 +14,11 @@ struct SuggestedPracticeCreationTests {
     let (model, root, take) = try fixture()
     defer { try? FileManager.default.removeItem(at: root) }
     let originalBytes = try Data(contentsOf: take.audioURL)
-    let clips = Array(model.suggestedPracticeClips(for: take).prefix(count))
+    let clips = Array(model.suggestedPracticeClips.prefix(count))
     let task = try #require(model.createSuggestedPracticeSessions(
-      takeID: take.id, clipIDs: Set(clips.map(\.id))))
+      draftID: model.mimicDraft!.id, clipIDs: Set(clips.map(\.id))))
     // Repeated clicks cannot start a second batch.
-    #expect(model.createSuggestedPracticeSessions(takeID: take.id, clipIDs: [0]) == nil)
+    #expect(model.createSuggestedPracticeSessions(draftID: model.mimicDraft!.id, clipIDs: [0]) == nil)
     await task.value
 
     let saved = try model.store.load()
@@ -52,7 +52,7 @@ struct SuggestedPracticeCreationTests {
   func preparationFailure() async throws {
     let (model, root, take) = try fixture(failLaterClip: true)
     defer { try? FileManager.default.removeItem(at: root) }
-    let task = try #require(model.createSuggestedPracticeSessions(takeID: take.id, clipIDs: [0, 2]))
+    let task = try #require(model.createSuggestedPracticeSessions(draftID: model.mimicDraft!.id, clipIDs: [0, 2]))
     await task.value
     try expectOriginalOnly(model, take: take)
     #expect(model.errorMessage != nil)
@@ -66,7 +66,7 @@ struct SuggestedPracticeCreationTests {
     let library = root.appendingPathComponent("session-library.json")
     try FileManager.default.removeItem(at: library)
     try FileManager.default.createDirectory(at: library, withIntermediateDirectories: false)
-    let task = try #require(model.createSuggestedPracticeSessions(takeID: take.id, clipIDs: [0, 2]))
+    let task = try #require(model.createSuggestedPracticeSessions(draftID: model.mimicDraft!.id, clipIDs: [0, 2]))
     await task.value
     #expect(model.sessions.count == 1 && model.sessions.first?.latestTake == take)
     #expect(model.errorTitle == "Save failed")
@@ -79,7 +79,7 @@ struct SuggestedPracticeCreationTests {
   func cancellation() async throws {
     let (model, root, take) = try fixture(suspendPreparation: true)
     defer { try? FileManager.default.removeItem(at: root) }
-    let task = try #require(model.createSuggestedPracticeSessions(takeID: take.id, clipIDs: [0, 2]))
+    let task = try #require(model.createSuggestedPracticeSessions(draftID: model.mimicDraft!.id, clipIDs: [0, 2]))
     // The injected preparation writes a staged file before suspending.
     while model.practiceClipCreationProgress != nil {
       let folders = try FileManager.default.contentsOfDirectory(
@@ -93,13 +93,13 @@ struct SuggestedPracticeCreationTests {
     #expect(model.errorMessage == nil)
   }
 
-  @Test("Stale take or clip selection cannot create sessions")
+  @Test("Stale draft or phrase selection cannot create sessions")
   func staleSelection() throws {
-    let (model, root, take) = try fixture()
+    let (model, root, _) = try fixture()
     defer { try? FileManager.default.removeItem(at: root) }
-    #expect(model.createSuggestedPracticeSessions(takeID: UUID(), clipIDs: [0]) == nil)
-    #expect(model.createSuggestedPracticeSessions(takeID: take.id, clipIDs: []) == nil)
-    #expect(model.createSuggestedPracticeSessions(takeID: take.id, clipIDs: [0, 999]) == nil)
+    #expect(model.createSuggestedPracticeSessions(draftID: UUID(), clipIDs: [0]) == nil)
+    #expect(model.createSuggestedPracticeSessions(draftID: model.mimicDraft!.id, clipIDs: []) == nil)
+    #expect(model.createSuggestedPracticeSessions(draftID: model.mimicDraft!.id, clipIDs: [0, 999]) == nil)
     #expect(!model.isAnalyzing)
   }
 
@@ -124,12 +124,16 @@ struct SuggestedPracticeCreationTests {
       try file.write(from: buffer)
     }
     let original = try Data(contentsOf: take.audioURL)
+    try original.write(to: #require(fixtureModel.mimicDraft).url)
     let model = AppModel(storageRoot: root)
     let sourceSession = try #require(fixtureModel.selectedSession)
     model.openTake(sessionID: sourceSession.id, takeID: take.id)
-    let clips = model.suggestedPracticeClips(for: take)
+    model.mimicDraft = fixtureModel.mimicDraft
+    model.mimicPreparationID = fixtureModel.mimicPreparationID
+    model.destination = .mimicStart
+    let clips = model.suggestedPracticeClips
     let task = try #require(model.createSuggestedPracticeSessions(
-      takeID: take.id, clipIDs: Set(clips.map(\.id))))
+      draftID: model.mimicDraft!.id, clipIDs: Set(clips.map(\.id))))
     await task.value
     #expect(model.errorMessage == nil)
     let reloaded = AppModel(storageRoot: root)
@@ -157,8 +161,125 @@ struct SuggestedPracticeCreationTests {
     }
   }
 
+  @Test("Phrases are prepared in a draft before any practice is saved")
+  func prepareDraft() async throws {
+    let transcript = TranscriptionResult(text: "A phrase.", words: [
+      TranscriptWord(word: "A", start: 0.2, end: 0.8),
+      TranscriptWord(word: "phrase.", start: 0.9, end: 1.7),
+    ], localeIdentifier: "en_GB", engine: .system)
+    let (model, root, _) = try fixture(transcriptionOutcome: transcript)
+    defer { try? FileManager.default.removeItem(at: root) }
+    model.cancelMimicPreparation()
+    let input = root.appendingPathComponent("import.wav")
+    try writePlayableAudio(to: input)
+    let id = UUID()
+    model.mimicPreparationID = id
+    await model.presentMimicDraft(
+      id: id, url: input, sourceName: "Imported clip", source: .importedAudio).value
+    #expect(model.mimicDraft?.transcription == transcript)
+    #expect(model.suggestedPracticeClips.count == 1)
+    #expect(try model.store.load().count == 1)
+    #expect(!model.mimicIsPreparing && !model.mimicIsFindingPhrases)
+    #expect(FileManager.default.fileExists(atPath: input.path))
+  }
+
+  @Test("An imported draft creates practices without saving a source recording")
+  func unsavedDraft() async throws {
+    let (model, root, _) = try fixture()
+    defer { try? FileManager.default.removeItem(at: root) }
+    model.sessions = []
+    #expect(model.persist())
+    let id = try #require(model.mimicDraft?.id)
+    let task = try #require(model.createSuggestedPracticeSessions(draftID: id, clipIDs: [0, 2]))
+    await task.value
+    let saved = try model.store.load()
+    #expect(saved.count == 2 && saved.allSatisfy(\.isMimic))
+    #expect(model.mimicDraft == nil)
+    #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent("draft.wav").path))
+  }
+
+  @Test("Dismissing a batch cannot clear a replacement draft's preparation state")
+  func replacedDraftAfterCancellation() async throws {
+    let (model, root, _) = try fixture(suspendPreparation: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let id = try #require(model.mimicDraft?.id)
+    let task = try #require(model.createSuggestedPracticeSessions(draftID: id, clipIDs: [0, 2]))
+    while model.practiceClipCreationProgress != nil {
+      let folders = try FileManager.default.contentsOfDirectory(
+        at: root.appendingPathComponent("Sessions"), includingPropertiesForKeys: nil)
+      if folders.count > 1 { break }
+      await Task.yield()
+    }
+    model.cancelMimicPreparation()
+    let replacementID = UUID()
+    model.mimicPreparationID = replacementID
+    model.mimicIsPreparing = true
+    await task.value
+    #expect(model.mimicPreparationID == replacementID && model.mimicIsPreparing)
+    #expect(try model.store.load().count == 1)
+    try expectOnlySourceFolder(model)
+  }
+
+  @Test("Manual selection uses the excerpt transcript and rejects empty recognition",
+    arguments: [false, true])
+  func manualExcerpt(emptyRecognition: Bool) async throws {
+    let transcript = TranscriptionResult(
+      text: emptyRecognition ? "" : "Manually chosen phrase.", words: [],
+      localeIdentifier: "en_GB", engine: .system)
+    let (model, root, take) = try fixture(transcriptionOutcome: transcript)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let task = try #require(model.createManualPracticeSession(
+      draftID: model.mimicDraft!.id, start: 1, end: 3))
+    await task.value
+    if emptyRecognition {
+      try expectOriginalOnly(model, take: take)
+      #expect(model.errorMessage != nil)
+    } else {
+      let reference = try #require(model.store.load().first(where: \.isMimic)?.mimicReference)
+      #expect(reference.sourceStart == 1 && reference.sourceEnd == 3)
+      #expect(reference.take.transcription == transcript)
+      #expect(model.errorMessage == nil && model.mimicDraft == nil)
+    }
+  }
+
+  @Test("Unavailable recognition keeps the manual draft and valid audio can save")
+  func unavailableRecognition() async throws {
+    let (model, root, _) = try fixture(transcriptionError: .runtimeUnavailable)
+    defer { try? FileManager.default.removeItem(at: root) }
+    model.cancelMimicPreparation()
+    let input = root.appendingPathComponent("import.wav")
+    try writePlayableAudio(to: input)
+    let id = UUID()
+    model.mimicPreparationID = id
+    await model.presentMimicDraft(
+      id: id, url: input, sourceName: "Imported clip", source: .importedAudio).value
+    #expect(model.mimicDraft != nil && model.suggestedPracticeClips.isEmpty)
+    #expect(!model.mimicIsPreparing && !model.mimicIsFindingPhrases)
+    let task = try #require(model.createManualPracticeSession(draftID: id, start: 0, end: 2))
+    await task.value
+    #expect(try model.store.load().filter(\.isMimic).count == 1)
+    #expect(model.transcriptionNotice != nil && model.errorMessage == nil)
+  }
+
+  private func writePlayableAudio(to url: URL) throws {
+    let rate = 8_000.0
+    let format = try #require(AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1))
+    let count: AVAudioFrameCount = 40_000
+    let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: count))
+    buffer.frameLength = count
+    let samples = try #require(buffer.floatChannelData?[0])
+    for index in 0..<Int(count) {
+      let phase = 2 * Double.pi * 160 * Double(index) / rate
+      samples[index] = Float(0.2 * sin(phase))
+    }
+    let file = try AVAudioFile(forWriting: url, settings: format.settings)
+    try file.write(from: buffer)
+  }
+
   private func fixture(
-    failLaterClip: Bool = false, suspendPreparation: Bool = false
+    failLaterClip: Bool = false, suspendPreparation: Bool = false,
+    transcriptionOutcome: TranscriptionResult? = nil,
+    transcriptionError: TranscriptionError? = nil
   ) throws -> (AppModel, URL, PracticeSession) {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent("clip-tests-\(UUID())")
     let store = try SessionStore(rootURL: root)
@@ -177,6 +298,10 @@ struct SuggestedPracticeCreationTests {
       recorder: AudioRecorder(), systemAudioCapture: SystemAudioCapture(), sessionStore: store,
       sessionChatResponder: LocalSessionChatResponder(),
       transcribe: { _, _, _ in
+        if let transcriptionError { throw transcriptionError }
+        if let transcriptionOutcome {
+          return TranscriptionOutcome(result: transcriptionOutcome, engine: .system, notice: nil)
+        }
         Issue.record("Suggested clips should reuse the source transcript")
         throw TranscriptionError.noSpeechRecognized
       },
@@ -191,7 +316,15 @@ struct SuggestedPracticeCreationTests {
       id: sessionID, name: "Source", mode: .general, prompt: "", keepsRecordings: true, takes: [take])]
     model.selectedSessionID = sessionID
     model.selectedTakeID = take.id
-    model.destination = .take(sessionID, take.id)
+    let draftURL = root.appendingPathComponent("draft.wav")
+    try Data(contentsOf: url).write(to: draftURL)
+    let draftID = UUID()
+    model.mimicPreparationID = draftID
+    model.mimicDraft = MimicReferenceDraft(
+      id: draftID, url: draftURL, sourceName: "Source", duration: 5, peaks: [],
+      source: .importedAudio, transcription: take.transcription,
+      transcriptionLocaleIdentifier: "en_GB")
+    model.destination = .mimicStart
     #expect(model.persist(analysisTakeIDs: [take.id]))
     return (model, root, take)
   }

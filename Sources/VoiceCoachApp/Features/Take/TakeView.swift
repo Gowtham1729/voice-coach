@@ -39,10 +39,6 @@ struct TakeView: View {
       StudioScroll {
         VStack(alignment: .leading, spacing: 14) {
           takeBar(session, take: take)
-          if !embedded, !session.isMimic {
-            SuggestedPracticeClipsView(take: take)
-              .id(take.id)
-          }
           transcriptCard(take)
           analysisCard(take)
         }
@@ -70,24 +66,6 @@ struct TakeView: View {
   }
 
   func takeBar(_ session: CoachingSession, take: PracticeSession) -> some View {
-    ViewThatFits(in: .horizontal) {
-      HStack(spacing: 12) {
-        takeMetadata(take)
-        Spacer()
-        takeControls(session, take: take)
-      }
-      VStack(alignment: .leading, spacing: 10) {
-        takeMetadata(take)
-        HStack {
-          Spacer()
-          takeControls(session, take: take)
-        }
-      }
-    }
-    .frame(minHeight: 32)
-  }
-
-  private func takeMetadata(_ take: PracticeSession) -> some View {
     HStack(spacing: 12) {
       Label(take.takeSource.title, systemImage: take.takeSource.icon)
         .font(.callout.weight(.medium))
@@ -97,69 +75,62 @@ struct TakeView: View {
       )
       .font(.caption)
       .foregroundStyle(Studio.secondary)
-    }
-    .fixedSize()
-  }
 
-  private func takeControls(_ session: CoachingSession, take: PracticeSession) -> some View {
-    ViewThatFits(in: .horizontal) {
-      HStack(spacing: 12) {
-        takeControlItems(session, take: take)
-      }
-      .fixedSize()
-      VStack(alignment: .trailing, spacing: 10) {
-        takeControlItems(session, take: take)
-      }
-    }
-  }
+      Spacer()
 
-  @ViewBuilder
-  private func takeControlItems(_ session: CoachingSession, take: PracticeSession) -> some View {
-    if embedded {
-      Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
-        .font(.caption)
-        .foregroundStyle(Studio.secondary)
-    } else if snapshot {
-      Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
-        .font(.caption)
-        .padding(.horizontal, 10)
-        .frame(height: 28)
-        .background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
-    } else {
-      Picker(
-        "Take",
-        selection: Binding(
-          get: { model.selectedTakeID ?? take.id },
-          set: { takeID in model.selectTake(takeID) }
-        )
-      ) {
-        ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, item in
-          Text("Take \(index + 1) of \(session.takeCount)").tag(item.id)
+      if embedded {
+        Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
+          .font(.caption)
+          .foregroundStyle(Studio.secondary)
+      } else if snapshot {
+        Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
+          .font(.caption)
+          .padding(.horizontal, 10)
+          .frame(height: 28)
+          .background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
+      } else {
+        Picker(
+          "Take",
+          selection: Binding(
+            get: { model.selectedTakeID ?? take.id },
+            set: { takeID in model.selectTake(takeID) }
+          )
+        ) {
+          ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, item in
+            Text("Take \(index + 1) of \(session.takeCount)").tag(item.id)
+          }
+        }
+        .labelsHidden()
+        .frame(width: 150)
+      }
+
+      if !embedded, !session.isMimic {
+        if !snapshot, model.isRecording {
+          LiveMeterView(level: model.liveLevel)
+            .frame(width: 120)
+          Text(vcDuration(model.elapsed))
+            .font(.system(.caption, design: .monospaced))
+            .foregroundStyle(Color.red)
+            .frame(width: 56, alignment: .trailing)
+          Button("Stop", action: model.recordButtonPressed)
+            .tint(.red)
+            .studioGlassButton(prominent: true)
+            .disabled(model.isAnalyzing || model.isRequestingPermission)
+            .accessibilityLabel("Stop recording")
+        } else {
+          Button(TakeScreenCopy.record, action: model.recordButtonPressed)
+            .studioGlassButton(
+              prominent: TakeActionChrome.plainTake().isFilled(TakeScreenCopy.record))
+            .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
         }
       }
-      .labelsHidden()
-      .frame(width: 150)
-    }
-
-    if !embedded, !session.isMimic {
-      if !snapshot, model.isRecording {
-        LiveMeterView(level: model.liveLevel)
-          .frame(width: 120)
-        Text(vcDuration(model.elapsed))
-          .font(.system(.caption, design: .monospaced))
-          .foregroundStyle(Color.red)
-          .frame(width: 56, alignment: .trailing)
-        Button("Stop", action: model.recordButtonPressed)
-          .tint(.red)
-          .studioGlassButton(prominent: true)
-          .disabled(model.isAnalyzing || model.isRequestingPermission)
-          .accessibilityLabel("Stop recording")
-      } else {
-        Button(TakeScreenCopy.record, action: model.recordButtonPressed)
-          .studioGlassButton(
-            prominent: TakeActionChrome.plainTake().isFilled(TakeScreenCopy.record))
-          .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+      if !embedded, take.takeSource != .recorded {
+        Button("Practise with this clip") { model.useCurrentRecordingAsMimicReference() }
+          .tint(.primary)
+          .studioGlassButton()
+          .disabled(model.isRecording || model.isAnalyzing)
       }
     }
+    .frame(minHeight: 32)
   }
 }

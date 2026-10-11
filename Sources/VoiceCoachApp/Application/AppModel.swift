@@ -35,6 +35,7 @@ final class AppModel: ObservableObject {
   @Published var isCheckingSpeechLanguages = false
   @Published var mimicDraft: MimicReferenceDraft?
   @Published var mimicIsPreparing = false
+  @Published var mimicIsFindingPhrases = false
   @Published var mimicPhase: MimicPhase = .ready
   @Published var mimicWorkspaceMode: MimicWorkspaceMode = .practice
   @Published var mimicPlaybackSource: MimicPlaybackSource = .reference
@@ -61,6 +62,8 @@ final class AppModel: ObservableObject {
   let preparePracticeClip:
     @Sendable (URL, URL, Double, Double) async throws -> AnalysisResult
   var practiceClipCreationTask: Task<Void, Never>?
+  var practiceClipCreationID: UUID?
+  var mimicPreparationTask: Task<Void, Never>?
   var timer: Timer?
   var playbackTimer: Timer?
   var mimicReferenceCaptureTimer: Timer?
