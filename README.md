@@ -12,8 +12,8 @@ https://github.com/user-attachments/assets/3efb9a61-5bff-4cef-8706-50102a6433b4
 
 Requires **macOS 26 or later**. Apple Silicon recommended. Free while in early access.
 
-1. Download the ZIP, unzip it, and move **Ichido.app** to Applications.
-2. Open Ichido.
+1. Download the ZIP, unzip it, and drag **Ichido** into Applications.
+2. Open Ichido from Applications.
 3. Choose **Record** for your own recording, or **Practice → New reference practice…** to practice with a clip.
 
 Get updates from **Ichido → Check for Updates…**.
