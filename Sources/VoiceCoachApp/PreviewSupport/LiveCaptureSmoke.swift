@@ -1,8 +1,8 @@
 #if DEBUG
   import Foundation
 
-  /// Opt-in hardware check. Requires --test-library and a generated speech WAV;
-  /// it saves only into that isolated library and never uses personal recordings.
+  /// Opt-in device check. Use --test-library with an isolated folder
+  /// and a generated speech WAV.
   @MainActor
   enum LiveCaptureSmoke {
     static func runIfRequested(model: AppModel) {

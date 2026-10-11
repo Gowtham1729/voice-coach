@@ -102,8 +102,8 @@ An opt-in DEBUG device check uses `--test-library <isolated-path>`
 and `--capture-smoke <generated-speech.wav>`; optional flags
 `--capture-smoke-auto-stop` and `--capture-smoke-self-playback` check the 90-second
 limit, discard cleanup, and exclusion of Ichido's own playback. It writes
-`capture-smoke.json` inside the isolated test library and never reads the personal
-library. Release builds do not expose these flags.
+`capture-smoke.json` inside the chosen test library. Use a temporary folder and
+generated speech. Release builds do not expose these flags.
 
 The controlled device run captured and transcribed 7.02 seconds of generated
 speech, saved and reloaded the reference, automatically stopped a repeated capture
