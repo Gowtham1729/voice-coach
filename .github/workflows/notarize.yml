@@ -23,7 +23,13 @@ on:
         type: boolean
         required: false
         default: false
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Leave this off. A manual run does not publish a GitHub Release.
+        type: boolean
+        required: false
+        default: false
 
 # contents: write lets a tag publish the GitHub Release. workflow_dispatch does not publish.
 permissions:

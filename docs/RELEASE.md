@@ -41,7 +41,7 @@ ditto -c -k --sequesterRsrc --keepParent \
   "Ichido-X.Y.Z-macOS.zip"
 ```
 
-To exercise signing, notarization, and the appcast without publishing a GitHub Release, use **Actions → Notarize → Run workflow**. The stapled zip and appcast are workflow artifacts. **Release** runs only on a pushed `v*` tag, and that is what publishes.
+To exercise signing, notarization, and the appcast without publishing a GitHub Release, use **Actions → Notarize → Run workflow** and leave **publish** off. The stapled zip and appcast are workflow artifacts. **Release** runs only on a pushed `v*` tag, and that is what publishes.
 
 `./scripts/build-app.sh` with no arguments is an ad-hoc bundle for CI and local development. It is not a release artifact. Tag releases pass `--developer-id` with the identity read from the imported certificate.
 
