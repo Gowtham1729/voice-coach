@@ -296,8 +296,6 @@ dialog::backdrop { background: #111820b8; }
 .info-dialog h2 { font-size: 34px; }
 .dialog-description { margin-top: 16px; font-size: 14px; }
 .dialog-commercial { margin-top: 8px; color: var(--muted); font-size: 14px; }
-.install-disclosure { margin-top: 24px; padding: 16px; border-radius: 8px; background: #e8e7e0; font-size: 14px; }
-.install-disclosure p { margin-top: 6px; color: var(--muted); }
 .install-details { margin-top: 20px; font-size: 14px; }
 .install-details summary { min-height: 44px; padding-block: 10px; cursor: pointer; color: var(--blue); }
 .install-details summary::after { content: " +"; }

@@ -40,16 +40,28 @@ assert.ok(
   "Website download must follow GitHub's latest release",
 );
 assert.equal(
-  /ad-hoc|unsigned|not notarized|Gatekeeper|may block the first launch/i.test(html),
+  /ad-hoc|unsigned|notariz|developer id|gatekeeper|may block the first launch|mac app store|\bsign(?:ed|ing)\b/i.test(
+    html,
+  ),
   false,
-  "Download copy must not describe an ad-hoc or Gatekeeper-blocked app",
+  "Public download copy stays a normal Mac download, without signing, notarization, Gatekeeper, or Mac App Store talk",
 );
-assert.match(html, /notarized/i, "Download copy says the GitHub download is notarized");
 assert.equal(
-  /available on the Mac App Store|in the Mac App Store/i.test(html),
+  html.includes("Is the Mac download notarized?"),
   false,
-  "Do not claim a Mac App Store listing",
+  "The notarization FAQ is not on the public site",
 );
+assert.match(
+  html,
+  /Ichido 0\.0\.4 · Early access · macOS 26\+/,
+  "Download dialog shows Ichido 0.0.4 for macOS 26+",
+);
+assert.match(
+  html,
+  /Version 0\.0\.4 · Early access · macOS 26\+/,
+  "Download section shows version 0.0.4 for macOS 26+",
+);
+assert.equal(html.includes("0.0.3"), false, "Public site does not advertise 0.0.3");
 assert.ok(
   html.includes("No account. No recording uploads. No analytics."),
   "Privacy line stays local-only",
