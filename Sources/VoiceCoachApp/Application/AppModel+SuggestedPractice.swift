@@ -9,34 +9,49 @@ extension AppModel {
       transcription: draft.transcription, duration: draft.duration)
   }
 
-  func previewSuggestedPracticeClip(draftID: UUID, clipID: Int) {
-    guard mimicDraft?.id == draftID,
-      let clip = suggestedPracticeClips.first(where: { $0.id == clipID }),
-      !mimicIsPreparing
-    else { return }
-    let shouldStop = isPlaying && practiceClipPreviewID == clipID
-    stopPlayback()
-    guard !shouldStop else { return }
-    playMimicDraft(start: clip.start, end: clip.end)
-    if isPlaying { practiceClipPreviewID = clipID }
-  }
-
   @discardableResult
   func createSuggestedPracticeSessions(draftID: UUID, clipIDs: Set<Int>) -> Task<Void, Never>? {
     let clips = suggestedPracticeClips.filter { clipIDs.contains($0.id) }
     guard !clips.isEmpty, clips.count == clipIDs.count else { return nil }
-    return createPracticeReferences(draftID: draftID, excerpts: clips.map {
-      PracticeExcerpt(start: $0.start, end: $0.end, transcription: $0.transcription)
+    return createPracticeSessions(draftID: draftID, selections: clips.map {
+      PracticeClipSelection(phraseID: $0.id, start: $0.start, end: $0.end)
     })
   }
 
   @discardableResult
   func createManualPracticeSession(draftID: UUID, start: Double, end: Double) -> Task<Void, Never>? {
-    guard start.isFinite, end.isFinite, start >= 0,
-      let draft = mimicDraft, end <= draft.duration, end - start >= 1
+    createPracticeSessions(draftID: draftID, selections: [
+      PracticeClipSelection(phraseID: nil, start: start, end: end)
+    ])
+  }
+
+  @discardableResult
+  func createPracticeSessions(
+    draftID: UUID, selections: [PracticeClipSelection]
+  ) -> Task<Void, Never>? {
+    guard let draft = mimicDraft, draft.id == draftID, !selections.isEmpty,
+      Set(selections.map(\.phraseID)).count == selections.count,
+      selections.count == 1 || selections.allSatisfy({ $0.phraseID != nil })
     else { return nil }
-    return createPracticeReferences(
-      draftID: draftID, excerpts: [PracticeExcerpt(start: start, end: end, transcription: nil)])
+    let clips = suggestedPracticeClips
+    var excerpts: [PracticeExcerpt] = []
+    for selection in selections {
+      guard selection.start.isFinite, selection.end.isFinite, selection.start >= 0,
+        selection.end <= draft.duration, selection.end - selection.start >= 1
+      else { return nil }
+      if let id = selection.phraseID {
+        guard let clip = clips.first(where: { $0.id == id }) else { return nil }
+        let unchanged = selection.start == clip.start && selection.end == clip.end
+        excerpts.append(PracticeExcerpt(
+          start: selection.start, end: selection.end,
+          name: String(clip.text.prefix(80)),
+          transcription: unchanged ? clip.transcription : nil))
+      } else {
+        excerpts.append(PracticeExcerpt(
+          start: selection.start, end: selection.end, name: nil, transcription: nil))
+      }
+    }
+    return createPracticeReferences(draftID: draftID, excerpts: excerpts)
   }
 
   private func createPracticeReferences(
@@ -98,7 +113,7 @@ extension AppModel {
             words: transcription.map {
               WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
             } ?? [])
-          let name = excerpt.transcription.map { String($0.text.prefix(80)) } ?? draft.sourceName
+          let name = excerpt.name ?? draft.sourceName
           prepared.append(CoachingSession(
             id: sessionID, name: name, mode: .mimic, prompt: "", keepsRecordings: true,
             mimicReference: MimicReference(
@@ -160,5 +175,6 @@ extension AppModel {
 private struct PracticeExcerpt {
   let start: Double
   let end: Double
+  let name: String?
   let transcription: TranscriptionResult?
 }

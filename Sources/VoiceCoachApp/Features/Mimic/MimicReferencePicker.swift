@@ -38,57 +38,6 @@ struct MimicReferencePicker: View {
   }
 }
 
-struct ManualPracticeExcerptView: View {
-  let draft: MimicReferenceDraft
-  @Binding var start: Double
-  @Binding var end: Double
-  @EnvironmentObject private var model: AppModel
-  @Environment(\.studioSnapshot) private var snapshot
-  @State private var viewportStart = 0.0
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 14) {
-      Text(model.suggestedPracticeClips.isEmpty
-        ? "No phrases found. Choose a clip to practise."
-        : "Drag the handles to choose a clip.")
-        .font(.callout).foregroundStyle(Studio.secondary)
-      MimicTrimWaveform(
-        peaks: draft.peaks, duration: draft.duration,
-        viewportStart: viewportStart, viewportDuration: min(30, draft.duration),
-        start: $start, end: $end
-      )
-      .frame(height: 82)
-      if draft.duration > 30 {
-        if snapshot {
-          Capsule().fill(Studio.accent.opacity(0.3)).frame(height: 5)
-        } else {
-          Slider(value: Binding(
-            get: { viewportStart },
-            set: { position in
-              let length = min(30, max(1, end - start))
-              viewportStart = min(max(0, position), draft.duration - 30)
-              start = viewportStart
-              end = min(draft.duration, start + length)
-            }), in: 0...(draft.duration - 30))
-            .accessibilityLabel("Browse audio")
-        }
-      }
-      HStack {
-        Button(model.isPlaying ? "Stop" : "Play clip") {
-          if model.isPlaying { model.stopPlayback() }
-          else { model.playMimicDraft(start: start, end: end) }
-        }
-        .disabled(end - start < 1)
-        Spacer()
-        Text("\(vcNumber(start, 1))–\(vcNumber(end, 1))s")
-          .font(.caption.monospacedDigit()).foregroundStyle(Studio.secondary)
-      }
-    }
-    .padding(16)
-    .desktopPanel()
-  }
-}
-
 struct MimicTrimWaveform: View {
   let peaks: [Float]
   let duration: Double
@@ -96,6 +45,7 @@ struct MimicTrimWaveform: View {
   let viewportDuration: Double
   @Binding var start: Double
   @Binding var end: Double
+  var playbackTime: Double? = nil
   @State private var startDragOrigin: Double?
   @State private var endDragOrigin: Double?
 
@@ -129,9 +79,20 @@ struct MimicTrimWaveform: View {
           .frame(width: max(0, right - left))
           .offset(x: left)
           .allowsHitTesting(false)
-        handle(at: left, width: width, isStart: true)
-        handle(at: right, width: width, isStart: false)
+        if left >= 0, left <= width {
+          handle(at: min(max(4, left), width - 4), width: width, isStart: true)
+        }
+        if right >= 0, right <= width {
+          handle(at: min(max(4, right), width - 4), width: width, isStart: false)
+        }
+        if let playbackTime, playbackTime >= viewportStart,
+          playbackTime <= viewportStart + visible {
+          Rectangle().fill(.primary.opacity(0.7)).frame(width: 1)
+            .offset(x: CGFloat((playbackTime - viewportStart) / visible) * width)
+            .allowsHitTesting(false).accessibilityHidden(true)
+        }
       }
+      .clipped()
     }
     .background(Studio.surface, in: RoundedRectangle(cornerRadius: 7))
   }
@@ -149,6 +110,15 @@ struct MimicTrimWaveform: View {
       }
       .contentShape(Rectangle())
       .position(x: x, y: 41)
+      .focusable()
+      .onKeyPress(.leftArrow) {
+        adjustHandle(isStart: isStart, delta: -0.1)
+        return .handled
+      }
+      .onKeyPress(.rightArrow) {
+        adjustHandle(isStart: isStart, delta: 0.1)
+        return .handled
+      }
       .gesture(
         DragGesture(minimumDistance: 0, coordinateSpace: .global).onChanged { value in
           let change = Double(value.translation.width / width) * viewportDuration
@@ -170,11 +140,13 @@ struct MimicTrimWaveform: View {
       )
       .accessibilityAdjustableAction { direction in
         let delta = direction == .increment ? 0.1 : -0.1
-        if isStart {
-          start = min(max(0, start + delta), end - 1)
-        } else {
-          end = max(min(duration, end + delta), start + 1)
-        }
+        adjustHandle(isStart: isStart, delta: delta)
       }
+      .help("Drag to trim, or use the left and right arrow keys.")
+  }
+
+  private func adjustHandle(isStart: Bool, delta: Double) {
+    if isStart { start = min(max(0, start + delta), end - 1) }
+    else { end = max(min(duration, end + delta), start + 1) }
   }
 }

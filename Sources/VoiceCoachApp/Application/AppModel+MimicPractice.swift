@@ -265,7 +265,6 @@ extension AppModel {
   }
 
   func finishMimicPlayback() {
-    practiceClipPreviewID = nil
     stopPlaybackTimer()
     isPlaying = false
     playbackTime = 0

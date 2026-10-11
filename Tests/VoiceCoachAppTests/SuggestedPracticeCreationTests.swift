@@ -263,6 +263,45 @@ struct SuggestedPracticeCreationTests {
     #expect(model.transcriptionNotice != nil && model.errorMessage == nil)
   }
 
+  @Test("Adjusted phrases use edited audio bounds and a fresh transcript within the batch")
+  func adjustedBatch() async throws {
+    let fresh = TranscriptionResult(text: "Adjusted phrase.", words: [
+      TranscriptWord(word: "Adjusted", start: 0.1, end: 0.6),
+      TranscriptWord(word: "phrase.", start: 0.7, end: 1.1),
+    ], localeIdentifier: "en_GB", engine: .system)
+    let (model, root, _) = try fixture(transcriptionOutcome: fresh)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let clips = model.suggestedPracticeClips
+    let task = try #require(model.createPracticeSessions(
+      draftID: model.mimicDraft!.id, selections: [
+        PracticeClipSelection(phraseID: clips[0].id, start: 0.3, end: 1.6),
+        PracticeClipSelection(phraseID: clips[1].id, start: clips[1].start, end: clips[1].end),
+      ]))
+    await task.value
+    let practices = try model.store.load().filter(\.isMimic)
+    #expect(practices.count == 2)
+    let edited = try #require(practices.first { $0.mimicReference?.sourceStart == 0.3 }?.mimicReference)
+    #expect(edited.sourceEnd == 1.6 && edited.take.transcription == fresh)
+    #expect(abs(edited.take.result.metrics.duration - 1.3) < 0.001)
+    let unchanged = try #require(practices.first { $0.mimicReference?.sourceStart == clips[1].start })
+    #expect(unchanged.mimicReference?.take.transcription == clips[1].transcription)
+  }
+
+  @Test("Invalid edited ranges and duplicate choices cannot stage a batch")
+  func invalidEditedRanges() throws {
+    let (model, root, _) = try fixture()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let id = model.mimicDraft!.id
+    for range in [(-1.0, 2.0), (0.0, 6.0), (1.0, 1.5), (Double.nan, 2.0)] {
+      #expect(model.createPracticeSessions(draftID: id, selections: [
+        PracticeClipSelection(phraseID: 0, start: range.0, end: range.1)
+      ]) == nil)
+    }
+    let same = PracticeClipSelection(phraseID: 0, start: 0.1, end: 1.8)
+    #expect(model.createPracticeSessions(draftID: id, selections: [same, same]) == nil)
+    #expect(!model.isAnalyzing && model.sessions.count == 1)
+  }
+
   private func writePlayableAudio(to url: URL) throws {
     let rate = 8_000.0
     let format = try #require(AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1))

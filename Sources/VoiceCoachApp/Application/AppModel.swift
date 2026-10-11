@@ -50,7 +50,6 @@ final class AppModel: ObservableObject {
   @Published var pendingMimicTake: PracticeSession?
   @Published var pendingMimicAudio: (url: URL, id: UUID)?
   @Published var pendingMimicSessionID: UUID?
-  @Published var practiceClipPreviewID: Int?
   @Published var practiceClipCreationProgress: (completed: Int, total: Int)?
 
   let recorder: any AudioRecording
