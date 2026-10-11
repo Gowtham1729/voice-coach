@@ -115,6 +115,7 @@ Root: `~/Library/Application Support/VoiceCoach/`
 | `08d-settings-library.png` | Settings → Library |
 | `09-new-mimic.png` | New reference practice |
 | `09b-new-mimic-phrases.png` | New reference practice → Choose phrases |
+| `09c-new-mimic-long-audio.png` | Choose phrases → Full timeline with a late phrase selected |
 | `10-recording.png` | Recording |
 | `11-words.png` | Words |
 

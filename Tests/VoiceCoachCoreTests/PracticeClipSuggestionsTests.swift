@@ -29,10 +29,12 @@ struct PracticeClipSuggestionsTests {
 
   @Test("Pauses split unpunctuated phrases and omit long silence")
   func pauses() {
-    let transcript = TranscriptionResult(text: "one two three four", words: [
-      word("one", 0, 0.6), word("two", 0.7, 1.4),
-      word("three", 8, 8.6), word("four", 8.7, 9.4),
-    ])
+    let transcript = TranscriptionResult(
+      text: "one two three four",
+      words: [
+        word("one", 0, 0.6), word("two", 0.7, 1.4),
+        word("three", 8, 8.6), word("four", 8.7, 9.4),
+      ])
     let clips = PracticeClipSuggestions.clips(transcription: transcript, duration: 10)
     #expect(clips.map(\.text) == ["one two", "three four"])
     #expect(clips.allSatisfy { $0.duration < 2 })
@@ -63,18 +65,22 @@ struct PracticeClipSuggestionsTests {
   @Test("A short word before a long silence does not consume the next phrase")
   func shortWordBeforeSilence() {
     let clips = PracticeClipSuggestions.clips(
-      transcription: TranscriptionResult(text: "Yes. Another phrase.", words: [
-        word("Yes.", 0.1, 0.5), word("Another", 20, 20.8), word("phrase.", 20.9, 21.6),
-      ]), duration: 22)
+      transcription: TranscriptionResult(
+        text: "Yes. Another phrase.",
+        words: [
+          word("Yes.", 0.1, 0.5), word("Another", 20, 20.8), word("phrase.", 20.9, 21.6),
+        ]), duration: 22)
     #expect(clips.map(\.text) == ["Yes.", "Another phrase."])
     #expect(clips.allSatisfy { (1...15).contains($0.duration) })
   }
 
   @Test("Japanese sentence endings are phrase boundaries")
   func multilingual() {
-    let transcript = TranscriptionResult(text: "こんにちは。もう一度！", words: [
-      word("こんにちは。", 0.2, 1.5), word("もう一度！", 1.8, 3.2),
-    ], localeIdentifier: "ja_JP")
+    let transcript = TranscriptionResult(
+      text: "こんにちは。もう一度！",
+      words: [
+        word("こんにちは。", 0.2, 1.5), word("もう一度！", 1.8, 3.2),
+      ], localeIdentifier: "ja_JP")
     let clips = PracticeClipSuggestions.clips(transcription: transcript, duration: 3.5)
     #expect(clips.map(\.text) == ["こんにちは。", "もう一度！"])
   }
@@ -82,8 +88,10 @@ struct PracticeClipSuggestionsTests {
   @Test("Missing and unsafe timestamps leave suggestions empty")
   func invalidTiming() {
     #expect(PracticeClipSuggestions.clips(transcription: nil, duration: 5).isEmpty)
-    #expect(PracticeClipSuggestions.clips(
-      transcription: TranscriptionResult(text: "No word timing", words: []), duration: 5).isEmpty)
+    #expect(
+      PracticeClipSuggestions.clips(
+        transcription: TranscriptionResult(text: "No word timing", words: []), duration: 5
+      ).isEmpty)
     for words in [
       [word("negative", -1, 1)], [word("outside", 0, 6)],
       [word("nan", .nan, 1)], [word("infinite", 0, .infinity)],
@@ -91,12 +99,16 @@ struct PracticeClipSuggestionsTests {
       [word("later", 2, 3), word("earlier", 0, 1)],
       [word("overlap", 0, 2), word("second", 1, 3)],
     ] {
-      #expect(PracticeClipSuggestions.clips(
-        transcription: TranscriptionResult(text: "Invalid", words: words), duration: 5).isEmpty)
+      #expect(
+        PracticeClipSuggestions.clips(
+          transcription: TranscriptionResult(text: "Invalid", words: words), duration: 5
+        ).isEmpty)
     }
-    #expect(PracticeClipSuggestions.clips(
-      transcription: TranscriptionResult(text: "word", words: [word("word", 0, 1)]),
-      duration: .infinity).isEmpty)
+    #expect(
+      PracticeClipSuggestions.clips(
+        transcription: TranscriptionResult(text: "word", words: [word("word", 0, 1)]),
+        duration: .infinity
+      ).isEmpty)
   }
 
   private func word(_ text: String, _ start: Double, _ end: Double) -> TranscriptWord {

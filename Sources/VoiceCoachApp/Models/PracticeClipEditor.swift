@@ -1,4 +1,3 @@
-import Foundation
 import VoiceCoachCore
 
 /// A creation-only choice. Adjusted phrases are transcribed again after trimming.
@@ -6,6 +5,19 @@ struct PracticeClipSelection: Equatable {
   let phraseID: Int?
   var start: Double
   var end: Double
+
+  var duration: Double { end - start }
+
+  func isValid(in audioDuration: Double) -> Bool {
+    audioDuration.isFinite && start.isFinite && end.isFinite
+      && start >= 0 && end <= audioDuration && duration >= 1
+  }
+}
+
+extension PracticeClipSelection {
+  init(_ clip: SuggestedPracticeClip) {
+    self.init(phraseID: clip.id, start: clip.start, end: clip.end)
+  }
 }
 
 struct PracticeClipEditor {
@@ -30,7 +42,7 @@ struct PracticeClipEditor {
   }
 
   func selection(for clip: SuggestedPracticeClip) -> PracticeClipSelection {
-    adjusted[clip.id] ?? PracticeClipSelection(phraseID: clip.id, start: clip.start, end: clip.end)
+    adjusted[clip.id] ?? PracticeClipSelection(clip)
   }
 
   var activeClip: SuggestedPracticeClip? { clips.first { $0.id == activeID } }
@@ -51,8 +63,10 @@ struct PracticeClipEditor {
   }
 
   mutating func setSelected(_ id: Int, selected: Bool) {
-    if selected { select(id) }
-    else {
+    guard clips.contains(where: { $0.id == id }) else { return }
+    if selected {
+      select(id)
+    } else {
       selectedIDs.remove(id)
       if activeID == id { activeID = clips.first { selectedIDs.contains($0.id) }?.id }
       usesCustomClip = false
@@ -70,15 +84,21 @@ struct PracticeClipEditor {
   mutating func setBoundary(_ value: Double, isStart: Bool) {
     guard value.isFinite, duration >= 1 else { return }
     var range = activeSelection
-    if isStart { range.start = min(max(0, value), range.end - 1) }
-    else { range.end = max(min(duration, value), range.start + 1) }
+    if isStart {
+      range.start = min(max(0, value), range.end - 1)
+    } else {
+      range.end = max(min(duration, value), range.start + 1)
+    }
     if let clip = activeClip {
       selectedIDs.insert(clip.id)
       // Returning a keyboard nudge to its original value must not trigger new recognition.
       if abs(range.start - clip.start) < 1e-9 { range.start = clip.start }
       if abs(range.end - clip.end) < 1e-9 { range.end = clip.end }
-      if range.start == clip.start && range.end == clip.end { adjusted[clip.id] = nil }
-      else { adjusted[clip.id] = range }
+      if range.start == clip.start && range.end == clip.end {
+        adjusted[clip.id] = nil
+      } else {
+        adjusted[clip.id] = range
+      }
     } else {
       custom = range
       usesCustomClip = true

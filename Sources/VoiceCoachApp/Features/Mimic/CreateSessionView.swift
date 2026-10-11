@@ -7,7 +7,7 @@ struct CreateSessionView: View {
   private var canCreate: Bool {
     model.mimicDraft != nil && !model.mimicIsPreparing && !model.isCapturingMimicReference
       && !editor.creationSelections.isEmpty
-      && editor.creationSelections.allSatisfy { $0.end - $0.start >= 1 }
+      && editor.creationSelections.allSatisfy { $0.isValid(in: editor.duration) }
   }
 
   private var creationTitle: String {

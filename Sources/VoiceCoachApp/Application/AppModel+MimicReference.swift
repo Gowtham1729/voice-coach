@@ -158,8 +158,6 @@ extension AppModel {
           source: source, transcription: recognized,
           transcriptionLocaleIdentifier: recognized?.localeIdentifier ?? locale?.identifier
         )
-        mimicIsPreparing = false
-        clearMimicReferenceCaptureMeters()
       } catch {
         try? FileManager.default.removeItem(at: url)
         if mimicPreparationID == id {

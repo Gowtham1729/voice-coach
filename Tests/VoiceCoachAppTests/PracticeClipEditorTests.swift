@@ -1,5 +1,6 @@
 import Testing
 import VoiceCoachCore
+
 @testable import VoiceCoachApp
 
 @Suite("Practice clip editor")
@@ -55,12 +56,14 @@ struct PracticeClipEditorTests {
   }
 
   private var clips: [SuggestedPracticeClip] {
-    PracticeClipSuggestions.clips(transcription: TranscriptionResult(
-      text: "First phrase. Second phrase.", words: [
-        TranscriptWord(word: "First", start: 0.2, end: 0.8),
-        TranscriptWord(word: "phrase.", start: 0.9, end: 1.6),
-        TranscriptWord(word: "Second", start: 3, end: 3.6),
-        TranscriptWord(word: "phrase.", start: 3.7, end: 4.4),
-      ]), duration: 10)
+    PracticeClipSuggestions.clips(
+      transcription: TranscriptionResult(
+        text: "First phrase. Second phrase.",
+        words: [
+          TranscriptWord(word: "First", start: 0.2, end: 0.8),
+          TranscriptWord(word: "phrase.", start: 0.9, end: 1.6),
+          TranscriptWord(word: "Second", start: 3, end: 3.6),
+          TranscriptWord(word: "phrase.", start: 3.7, end: 4.4),
+        ]), duration: 10)
   }
 }

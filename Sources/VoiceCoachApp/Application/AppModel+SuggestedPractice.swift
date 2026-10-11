@@ -10,22 +10,6 @@ extension AppModel {
   }
 
   @discardableResult
-  func createSuggestedPracticeSessions(draftID: UUID, clipIDs: Set<Int>) -> Task<Void, Never>? {
-    let clips = suggestedPracticeClips.filter { clipIDs.contains($0.id) }
-    guard !clips.isEmpty, clips.count == clipIDs.count else { return nil }
-    return createPracticeSessions(draftID: draftID, selections: clips.map {
-      PracticeClipSelection(phraseID: $0.id, start: $0.start, end: $0.end)
-    })
-  }
-
-  @discardableResult
-  func createManualPracticeSession(draftID: UUID, start: Double, end: Double) -> Task<Void, Never>? {
-    createPracticeSessions(draftID: draftID, selections: [
-      PracticeClipSelection(phraseID: nil, start: start, end: end)
-    ])
-  }
-
-  @discardableResult
   func createPracticeSessions(
     draftID: UUID, selections: [PracticeClipSelection]
   ) -> Task<Void, Never>? {
@@ -36,19 +20,19 @@ extension AppModel {
     let clips = suggestedPracticeClips
     var excerpts: [PracticeExcerpt] = []
     for selection in selections {
-      guard selection.start.isFinite, selection.end.isFinite, selection.start >= 0,
-        selection.end <= draft.duration, selection.end - selection.start >= 1
-      else { return nil }
+      guard selection.isValid(in: draft.duration) else { return nil }
       if let id = selection.phraseID {
         guard let clip = clips.first(where: { $0.id == id }) else { return nil }
         let unchanged = selection.start == clip.start && selection.end == clip.end
-        excerpts.append(PracticeExcerpt(
-          start: selection.start, end: selection.end,
-          name: String(clip.text.prefix(80)),
-          transcription: unchanged ? clip.transcription : nil))
+        excerpts.append(
+          PracticeExcerpt(
+            start: selection.start, end: selection.end,
+            name: String(clip.text.prefix(80)),
+            transcription: unchanged ? clip.transcription : nil))
       } else {
-        excerpts.append(PracticeExcerpt(
-          start: selection.start, end: selection.end, name: nil, transcription: nil))
+        excerpts.append(
+          PracticeExcerpt(
+            start: selection.start, end: selection.end, name: nil, transcription: nil))
       }
     }
     return createPracticeReferences(draftID: draftID, excerpts: excerpts)
@@ -71,7 +55,8 @@ extension AppModel {
     practiceClipCreationID = batchID
     practiceClipCreationProgress = (0, excerpts.count)
     let engine = transcriptionEngine
-    let locale = draft.transcriptionLocaleIdentifier.map(Locale.init(identifier:))
+    let locale =
+      draft.transcriptionLocaleIdentifier.map(Locale.init(identifier:))
       ?? newSessionTranscriptionLocale
 
     let task = Task {
@@ -103,8 +88,8 @@ extension AppModel {
           var transcription = excerpt.transcription
           if transcription == nil {
             let outcome = try await transcribeForAnalysis(url: url, engine: engine, locale: locale)
-            transcription = outcome.0
-            transcriptionNotice = outcome.1
+            transcription = outcome.transcription
+            transcriptionNotice = outcome.notice
           }
           try Task.checkCancellation()
           let reference = PracticeSession(
@@ -114,20 +99,22 @@ extension AppModel {
               WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
             } ?? [])
           let name = excerpt.name ?? draft.sourceName
-          prepared.append(CoachingSession(
-            id: sessionID, name: name, mode: .mimic, prompt: "", keepsRecordings: true,
-            mimicReference: MimicReference(
-              sourceName: name, take: reference,
-              sourceStart: excerpt.start, sourceEnd: excerpt.end),
-            mimicStyle: .listenAndRepeat, mimicAttemptStyles: [:],
-            transcriptionLocaleIdentifier: transcription?.localeIdentifier ?? locale?.identifier))
+          prepared.append(
+            CoachingSession(
+              id: sessionID, name: name, mode: .mimic, prompt: "", keepsRecordings: true,
+              mimicReference: MimicReference(
+                sourceName: name, take: reference,
+                sourceStart: excerpt.start, sourceEnd: excerpt.end),
+              mimicStyle: .listenAndRepeat, mimicAttemptStyles: [:],
+              transcriptionLocaleIdentifier: transcription?.localeIdentifier ?? locale?.identifier))
           practiceClipCreationProgress = (prepared.count, excerpts.count)
         }
         try Task.checkCancellation()
         guard mimicPreparationID == draftID else { throw CancellationError() }
         let previousSessions = sessions
         sessions.insert(contentsOf: prepared, at: 0)
-        guard persist(analysisTakeIDs: Set(prepared.compactMap { $0.mimicReference?.take.id })) else {
+        guard persist(analysisTakeIDs: Set(prepared.compactMap { $0.mimicReference?.take.id }))
+        else {
           sessions = previousSessions
           return
         }
@@ -144,7 +131,8 @@ extension AppModel {
           destination = .mimics
         }
         cancelMimicPreparation()
-        toastMessage = prepared.count == 1
+        toastMessage =
+          prepared.count == 1
           ? "Practice created" : "\(prepared.count) practices created"
       } catch is CancellationError {
         // A cancelled or dismissed creation never publishes staged references.

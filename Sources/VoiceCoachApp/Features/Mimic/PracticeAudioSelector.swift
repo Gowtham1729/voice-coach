@@ -7,10 +7,7 @@ struct PracticeAudioSelector: View {
   @EnvironmentObject private var model: AppModel
   @Environment(\.studioSnapshot) private var snapshot
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @State private var viewportStart = 0.0
-
   private var range: PracticeClipSelection { editor.activeSelection }
-  private var viewportDuration: Double { min(30, draft.duration) }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
@@ -35,8 +32,6 @@ struct PracticeAudioSelector: View {
         phraseList
       }
     }
-    .onChange(of: draft.id, initial: true) { _, _ in revealSelection() }
-    .onChange(of: editor.activeID) { _, _ in revealSelection() }
   }
 
   private var waveform: some View {
@@ -53,39 +48,34 @@ struct PracticeAudioSelector: View {
             Button("Reset") {
               model.stopPlayback()
               editor.resetActiveClip()
-              revealSelection()
             }
             .buttonStyle(.borderless)
             .help("Restore this phrase’s suggested boundaries.")
           }
         }
       }
-      MimicTrimWaveform(
+      PracticeTrimWaveform(
         peaks: draft.peaks, duration: draft.duration,
-        viewportStart: viewportStart, viewportDuration: viewportDuration,
         start: boundary(isStart: true), end: boundary(isStart: false),
         playbackTime: model.isPlaying ? model.playbackTime : nil
       )
-      .frame(height: 82)
-      if draft.duration > 30 {
-        if snapshot {
-          Capsule().fill(Studio.accent.opacity(0.3)).frame(height: 5)
-        } else {
-          Slider(value: $viewportStart, in: 0...(draft.duration - 30))
-            .accessibilityLabel("Browse audio")
-        }
-      }
+      .frame(height: PracticeTrimWaveform.height)
       HStack(spacing: 12) {
-        Button(model.isPlaying ? "Stop" : "Play selection",
-          systemImage: model.isPlaying ? "stop.fill" : "play.fill") {
-          if model.isPlaying { model.stopPlayback() }
-          else { model.playMimicDraft(start: range.start, end: range.end) }
+        Button(
+          model.isPlaying ? "Stop" : "Play selection",
+          systemImage: model.isPlaying ? "stop.fill" : "play.fill"
+        ) {
+          if model.isPlaying {
+            model.stopPlayback()
+          } else {
+            model.playMimicDraft(start: range.start, end: range.end)
+          }
         }
-        .disabled(range.end - range.start < 1)
+        .disabled(!range.isValid(in: draft.duration))
         .controlSize(.small)
         Spacer()
         Text("\(vcNumber(range.start, 1))–\(vcNumber(range.end, 1))s")
-        Text("\(vcNumber(range.end - range.start, 1))s selected")
+        Text("\(vcNumber(range.duration, 1))s selected")
       }
       .font(.caption.monospacedDigit()).foregroundStyle(Studio.secondary)
     }
@@ -99,7 +89,7 @@ struct PracticeAudioSelector: View {
         VStack(spacing: 0) { rows }
       } else {
         ScrollViewReader { reader in
-          ScrollView { VStack(spacing: 0) { rows } }
+          ScrollView { LazyVStack(spacing: 0) { rows } }
             .onChange(of: editor.activeID) { _, id in
               if let id {
                 withAnimation(StudioMotion.quick(reduceMotion: reduceMotion)) {
@@ -121,23 +111,29 @@ struct PracticeAudioSelector: View {
     ForEach(editor.clips) { clip in
       HStack(spacing: 12) {
         if snapshot {
-          Image(systemName: editor.selectedIDs.contains(clip.id) ? "checkmark.square.fill" : "square")
-            .foregroundStyle(Studio.accent)
+          Image(
+            systemName: editor.selectedIDs.contains(clip.id) ? "checkmark.square.fill" : "square"
+          )
+          .foregroundStyle(Studio.accent)
           phraseLabel(clip)
         } else {
-          Toggle("Include phrase", isOn: Binding(
-            get: { editor.selectedIDs.contains(clip.id) },
-            set: { selected in
-              model.stopPlayback()
-              editor.setSelected(clip.id, selected: selected)
-            }))
-            .toggleStyle(.checkbox).labelsHidden()
-            .accessibilityLabel("Include: \(clip.text)")
+          Toggle(
+            "Include phrase",
+            isOn: Binding(
+              get: { editor.selectedIDs.contains(clip.id) },
+              set: { selected in
+                model.stopPlayback()
+                editor.setSelected(clip.id, selected: selected)
+              })
+          )
+          .toggleStyle(.checkbox).labelsHidden()
+          .accessibilityLabel("Include: \(clip.text)")
           Button {
             model.stopPlayback()
             editor.select(clip.id)
-            revealSelection()
-          } label: { phraseLabel(clip) }
+          } label: {
+            phraseLabel(clip)
+          }
           .buttonStyle(.plain)
           .accessibilityLabel("Adjust: \(clip.text)")
           .help("Select this phrase and adjust it in the waveform.")
@@ -145,8 +141,10 @@ struct PracticeAudioSelector: View {
       }
       .frame(minHeight: 52)
       .padding(.horizontal, 12).padding(.vertical, 6)
-      .background(editor.activeID == clip.id ? Studio.accent.opacity(0.1) : .clear,
-        in: RoundedRectangle(cornerRadius: 8))
+      .background(
+        editor.activeID == clip.id ? Studio.accent.opacity(0.1) : .clear,
+        in: RoundedRectangle(cornerRadius: 8)
+      )
       .id(clip.id)
       if clip.id != editor.clips.last?.id { Divider().padding(.horizontal, 12) }
     }
@@ -157,7 +155,7 @@ struct PracticeAudioSelector: View {
     return VStack(alignment: .leading, spacing: 4) {
       Text(clip.text).font(.callout).lineLimit(2).multilineTextAlignment(.leading)
       HStack(spacing: 8) {
-        Text("\(vcNumber(selection.end - selection.start, 1))s")
+        Text("\(vcNumber(selection.duration, 1))s")
         if selection.start != clip.start || selection.end != clip.end { Text("Adjusted") }
         Spacer()
         if editor.activeID == clip.id { Text("Editing").foregroundStyle(Studio.accent) }
@@ -175,10 +173,5 @@ struct PracticeAudioSelector: View {
         model.stopPlayback()
         editor.setBoundary(value, isStart: isStart)
       })
-  }
-
-  private func revealSelection() {
-    let middle = (range.start + range.end) / 2
-    viewportStart = min(max(0, middle - viewportDuration / 2), max(0, draft.duration - viewportDuration))
   }
 }
