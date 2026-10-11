@@ -1,4 +1,6 @@
 #!/bin/zsh
+# macos-26 zsh does not always inherit the system directories.
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 set -euo pipefail
 
 PROJECT_DIR="${0:A:h:h}"

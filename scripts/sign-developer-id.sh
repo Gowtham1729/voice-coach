@@ -2,6 +2,8 @@
 # Re-sign Ichido.app with a Developer ID Application identity.
 # Sparkle is signed inside-out. Downloader.xpc keeps its existing entitlements.
 # There is no ad-hoc fallback and no `codesign --deep`.
+# macos-26 zsh does not always inherit the system directories.
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 set -euo pipefail
 
 PROJECT_DIR="${0:A:h:h}"
@@ -35,24 +37,24 @@ if [[ ! -f "$ENTITLEMENTS" ]]; then
     exit 1
 fi
 
-key_count="$(grep -c '<key>' "$ENTITLEMENTS" || true)"
+key_count="$(/usr/bin/grep -c '<key>' "$ENTITLEMENTS" || true)"
 if [[ "$key_count" != "1" ]]; then
     echo "Direct-distribution entitlements must contain exactly one key." >&2
     exit 1
 fi
-if ! grep -q '<key>com.apple.security.device.audio-input</key>' "$ENTITLEMENTS"; then
+if ! /usr/bin/grep -q '<key>com.apple.security.device.audio-input</key>' "$ENTITLEMENTS"; then
     echo "Direct-distribution entitlements must set com.apple.security.device.audio-input." >&2
     exit 1
 fi
-if ! grep -q '<true/>' "$ENTITLEMENTS"; then
+if ! /usr/bin/grep -q '<true/>' "$ENTITLEMENTS"; then
     echo "com.apple.security.device.audio-input must be true." >&2
     exit 1
 fi
-if grep -q 'com.apple.security.app-sandbox' "$ENTITLEMENTS"; then
+if /usr/bin/grep -q 'com.apple.security.app-sandbox' "$ENTITLEMENTS"; then
     echo "Direct-distribution entitlements must not enable the App Sandbox." >&2
     exit 1
 fi
-if grep -q 'SUAutomaticallyUpdate' "$PROJECT_DIR/Resources/Info.plist"; then
+if /usr/bin/grep -q 'SUAutomaticallyUpdate' "$PROJECT_DIR/Resources/Info.plist"; then
     echo "SUAutomaticallyUpdate must stay unset." >&2
     exit 1
 fi
@@ -80,7 +82,7 @@ for path in "$INSTALLER" "$DOWNLOADER" "$AUTOUPDATE" "$UPDATER" "$FRAMEWORK"; do
     fi
 done
 
-tmp="$(mktemp -d)"
+tmp="$(/usr/bin/mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 before="$tmp/downloader-before.plist"
 after="$tmp/downloader-after.plist"
@@ -90,7 +92,7 @@ read_entitlements() {
     local dest="$2"
     if ! /usr/bin/codesign -d --entitlements :- "$target" >"$dest" 2>"$tmp/codesign-entitlements.err"; then
         echo "Unable to read entitlements for $target" >&2
-        cat "$tmp/codesign-entitlements.err" >&2
+        /bin/cat "$tmp/codesign-entitlements.err" >&2
         exit 1
     fi
 }
@@ -128,19 +130,19 @@ sign_item --entitlements "$ENTITLEMENTS" "$APP"
 read_entitlements "$DOWNLOADER" "$after"
 normalize_plist "$before" "$tmp/downloader-before-norm.plist"
 normalize_plist "$after" "$tmp/downloader-after-norm.plist"
-if ! cmp -s "$tmp/downloader-before-norm.plist" "$tmp/downloader-after-norm.plist"; then
+if ! /usr/bin/cmp -s "$tmp/downloader-before-norm.plist" "$tmp/downloader-after-norm.plist"; then
     echo "Downloader.xpc entitlements changed during re-sign." >&2
-    diff -u "$tmp/downloader-before-norm.plist" "$tmp/downloader-after-norm.plist" >&2 || true
+    /usr/bin/diff -u "$tmp/downloader-before-norm.plist" "$tmp/downloader-after-norm.plist" >&2 || true
     exit 1
 fi
 
 app_entitlements="$tmp/app.plist"
 read_entitlements "$APP" "$app_entitlements"
-if ! grep -q 'com.apple.security.device.audio-input' "$app_entitlements"; then
+if ! /usr/bin/grep -q 'com.apple.security.device.audio-input' "$app_entitlements"; then
     echo "Signed app is missing com.apple.security.device.audio-input." >&2
     exit 1
 fi
-if grep -q 'com.apple.security.app-sandbox' "$app_entitlements"; then
+if /usr/bin/grep -q 'com.apple.security.app-sandbox' "$app_entitlements"; then
     echo "Signed app must not enable the App Sandbox." >&2
     exit 1
 fi
@@ -153,26 +155,26 @@ require_developer_id() {
         printf '%s\n' "$info" >&2
         exit 1
     fi
-    if printf '%s\n' "$info" | grep -q 'Signature=adhoc'; then
+    if printf '%s\n' "$info" | /usr/bin/grep -q 'Signature=adhoc'; then
         echo "$target is ad-hoc signed." >&2
         exit 1
     fi
-    if ! printf '%s\n' "$info" | grep -q "TeamIdentifier=${TEAM_ID}"; then
+    if ! printf '%s\n' "$info" | /usr/bin/grep -q "TeamIdentifier=${TEAM_ID}"; then
         echo "$target is not signed for team ${TEAM_ID}." >&2
         printf '%s\n' "$info" >&2
         exit 1
     fi
-    if ! printf '%s\n' "$info" | grep -E -q "Authority=Developer ID Application: .* \\(${TEAM_ID}\\)"; then
+    if ! printf '%s\n' "$info" | /usr/bin/grep -E -q "Authority=Developer ID Application: .* \\(${TEAM_ID}\\)"; then
         echo "$target is missing a Developer ID Application authority for team ${TEAM_ID}." >&2
         printf '%s\n' "$info" >&2
         exit 1
     fi
-    if ! printf '%s\n' "$info" | grep -q 'flags=.*runtime'; then
+    if ! printf '%s\n' "$info" | /usr/bin/grep -q 'flags=.*runtime'; then
         echo "$target does not have the hardened runtime enabled." >&2
         printf '%s\n' "$info" >&2
         exit 1
     fi
-    if ! printf '%s\n' "$info" | grep -q '^Timestamp='; then
+    if ! printf '%s\n' "$info" | /usr/bin/grep -q '^Timestamp='; then
         echo "$target does not have a secure timestamp." >&2
         printf '%s\n' "$info" >&2
         exit 1
