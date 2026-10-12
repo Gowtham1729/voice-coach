@@ -175,31 +175,24 @@ public enum CoachingPlanner {
       }
 
       let timingFocus: TargetFocus? = {
-        guard substantial || uneven else { return nil }
-        if let transition,
-          let pair = comparison.pairs.first(where: { $0.word == transition && isConfidenceAcceptable($0) })
-        {
-          return TargetFocus(
-            referenceWordIndex: pair.referenceIndex,
-            word: pair.word,
-            kind: .timing,
-            gap: abs(drift) / 1_000.0,
-            referenceRange: pair.reference.start...pair.reference.end,
-            takeRange: pair.attempt.start...pair.attempt.end,
-            isPhrase: true
-          )
-        } else if let first = comparison.pairs.first, let last = comparison.pairs.last {
-          return TargetFocus(
-            referenceWordIndex: first.referenceIndex,
-            word: first.word,
-            kind: .timing,
-            gap: abs(drift) / 1_000.0,
-            referenceRange: first.reference.start...last.reference.end,
-            takeRange: first.attempt.start...last.attempt.end,
-            isPhrase: true
-          )
-        }
-        return nil
+        guard (substantial || uneven),
+          abs(drift) >= RetryThresholds.targetPhraseTimingSeconds * 1_000
+        else { return nil }
+        let anchor = comparison.pairs.first(where: {
+          $0.word == transition && isConfidenceAcceptable($0) && isPracticeWord($0.word)
+        }) ?? comparison.pairs.first(where: {
+          isConfidenceAcceptable($0) && isPracticeWord($0.word)
+        })
+        guard let anchor, let first = comparison.pairs.first,
+          let last = comparison.pairs.last else { return nil }
+        return TargetFocus(
+          referenceWordIndex: anchor.referenceIndex,
+          word: comparison.pairs.map(\.word).joined(separator: " "),
+          kind: .timing,
+          gap: abs(drift) / 1_000.0,
+          referenceRange: first.reference.start...last.reference.end,
+          takeRange: first.attempt.start...last.attempt.end,
+          isPhrase: true)
       }()
 
       candidates.append((priority,
@@ -348,7 +341,7 @@ public enum CoachingPlanner {
     }
 
     candidates.sort { $0.priority > $1.priority }
-    let topTarget = candidates.first(where: { $0.priority >= 3.0 })?.signal.focus
+    let topTarget = candidates.first(where: { $0.priority >= 3.0 && $0.signal.focus != nil })?.signal.focus
     return CoachingPlan(
       signals: Array(candidates.prefix(2).map(\.signal)),
       targetFocus: topTarget
@@ -374,18 +367,30 @@ public enum CoachingPlanner {
       cueCopy = OneTargetRetryStrings.timingCue(phrase: pinnedTarget.word)
     }
 
-    guard let pair = comparison.pairs.first(where: { $0.referenceIndex == pinnedTarget.referenceWordIndex }) else {
+    let missingWord = reference.transcription.flatMap { transcript in
+      transcript.words.indices.contains(pinnedTarget.referenceWordIndex)
+        ? transcript.words[pinnedTarget.referenceWordIndex].word : nil
+    } ?? pinnedTarget.word
+    guard let pair = comparison.pairs.first(where: {
+      $0.referenceIndex == pinnedTarget.referenceWordIndex && isConfidenceAcceptable($0)
+    }) else {
       return RetryEvaluation(
         target: pinnedTarget,
         verdict: .notFound,
         newGap: nil,
         newTakeRange: nil,
-        verdictCopy: OneTargetRetryStrings.wordNotFound(word: pinnedTarget.word),
+        verdictCopy: OneTargetRetryStrings.wordNotFound(word: missingWord),
         cueCopy: cueCopy
       )
     }
 
-    let newTakeRange = pair.attempt.start...pair.attempt.end
+    let newTakeRange: ClosedRange<Double> = {
+      if pinnedTarget.kind == .timing, pinnedTarget.isPhrase,
+        let first = comparison.pairs.first, let last = comparison.pairs.last {
+        return first.attempt.start...last.attempt.end
+      }
+      return pair.attempt.start...pair.attempt.end
+    }()
 
     let currentGap: Double?
     switch pinnedTarget.kind {
@@ -409,7 +414,7 @@ public enum CoachingPlanner {
         verdict: .notFound,
         newGap: nil,
         newTakeRange: newTakeRange,
-        verdictCopy: OneTargetRetryStrings.wordNotFound(word: pinnedTarget.word),
+        verdictCopy: OneTargetRetryStrings.wordNotFound(word: missingWord),
         cueCopy: cueCopy
       )
     }
@@ -417,34 +422,39 @@ public enum CoachingPlanner {
     guard comparison.correspondenceReliable else {
       return RetryEvaluation(
         target: pinnedTarget,
-        verdict: .withinNoise,
+        verdict: .unreliable,
         newGap: measuredGap,
         newTakeRange: newTakeRange,
-        verdictCopy: OneTargetRetryStrings.withinNoiseVerdict,
+        verdictCopy: nil,
         cueCopy: cueCopy
       )
     }
 
     let targetThreshold: Double
     let retryThreshold: Double
+    let closeMargin: Double
     switch pinnedTarget.kind {
     case .pitch:
       targetThreshold = RetryThresholds.targetPitchSemitones
       retryThreshold = RetryThresholds.clearlyCloserPitchSemitones
+      closeMargin = RetryThresholds.closePitchMarginSemitones
     case .loudness:
       targetThreshold = RetryThresholds.targetLoudnessDB
       retryThreshold = RetryThresholds.clearlyCloserLoudnessDB
+      closeMargin = RetryThresholds.closeLoudnessMarginDB
     case .timing:
       if pinnedTarget.isPhrase {
         targetThreshold = RetryThresholds.targetPhraseTimingSeconds
         retryThreshold = RetryThresholds.clearlyCloserPhraseTimingSeconds
+        closeMargin = 0
       } else {
         targetThreshold = RetryThresholds.targetWordTimingSeconds
         retryThreshold = RetryThresholds.clearlyCloserWordTimingSeconds
+        closeMargin = RetryThresholds.closeWordTimingMarginSeconds
       }
     }
 
-    if measuredGap < targetThreshold {
+    if measuredGap <= targetThreshold - closeMargin {
       return RetryEvaluation(
         target: pinnedTarget,
         verdict: .closeEnough,
@@ -453,6 +463,14 @@ public enum CoachingPlanner {
         verdictCopy: OneTargetRetryStrings.closeEnoughVerdict(target: pinnedTarget.word),
         cueCopy: cueCopy
       )
+    }
+
+    // A target that was previously close can recur. Show its cue without a
+    // regression verdict when the next take crosses the correction threshold.
+    if pinnedTarget.gap <= targetThreshold - closeMargin && measuredGap > targetThreshold {
+      return RetryEvaluation(
+        target: pinnedTarget, verdict: .otherWay, newGap: measuredGap,
+        newTakeRange: newTakeRange, verdictCopy: nil, cueCopy: cueCopy)
     }
 
     let shrink = pinnedTarget.gap - measuredGap

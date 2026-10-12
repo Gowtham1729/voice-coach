@@ -6,7 +6,7 @@ import Foundation
 /// - Phrases > 5 words truncated to first 4 words + … inside quotes
 /// - No numbers anywhere in the card
 /// - No em dashes
-/// - Never "worse" or "improved"
+/// - No negative or promotional progress labels
 public enum OneTargetRetryStrings {
   // MARK: - Chips
   public static let yourTake = "Your take"
@@ -33,7 +33,7 @@ public enum OneTargetRetryStrings {
     let words = trimmed.split(whereSeparator: { $0.isWhitespace }).map(String.init)
     if words.count > 5 {
       let firstFour = words.prefix(4).joined(separator: " ")
-      return "‘\(firstFour)…’"
+      return "‘\(firstFour) …’"
     } else {
       return "‘\(trimmed)’"
     }
@@ -60,7 +60,7 @@ public enum OneTargetRetryStrings {
 
   /// Plain-take longest pause cue.
   public static func plainPauseCue(word: String) -> String {
-    "You paused before \(formatWordOrPhrase(word))."
+    "Your longest pause was before \(formatWordOrPhrase(word))."
   }
 
   // MARK: - Retry Verdicts (Reference Takes)

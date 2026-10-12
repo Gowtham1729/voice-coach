@@ -11,9 +11,45 @@ extension AppModel {
         (session.mimicAttemptStyles?[prior.id] ?? session.mimicStyle) == style
       }
       return CoachingPlanner.mimic(
-        reference: reference, attempt: take, previous: comparablePrevious)
+        reference: reference, attempt: take, previous: comparablePrevious,
+        pinnedTarget: take.savedTarget)
     }
-    return CoachingPlanner.recording(current: take.result.metrics)
+    let base = CoachingPlanner.recording(current: take.result.metrics)
+    return CoachingPlan(
+      notice: base.notice,
+      plainTakeCue: take.transcription.flatMap {
+        CoachingPlanner.plainTakeCue(
+          words: $0.words, takeDuration: take.result.metrics.duration)
+      })
+  }
+
+  func dismissRetryCard(for takeID: UUID) { dismissedRetryCardTakeIDs.insert(takeID) }
+
+  func tryAgain(take: PracticeSession, in session: CoachingSession) {
+    let plan = coachingPlan(for: take, in: session)
+    if session.isMimic, let focus = plan.focus {
+      let style = session.mimicAttemptStyles?[take.id] ?? session.mimicStyle
+      if let style, session.mimicStyle != style { updateMimicStyle(style) }
+      let evaluation = plan.retryEvaluation
+      let nextGap = evaluation?.verdict == .unreliable ? nil : evaluation?.newGap
+      let current = TargetFocus(
+        referenceWordIndex: focus.referenceWordIndex, word: focus.word,
+        kind: focus.kind, gap: nextGap ?? focus.gap,
+        referenceRange: focus.referenceRange,
+        takeRange: evaluation?.newTakeRange ?? focus.takeRange,
+        isPhrase: focus.isPhrase)
+      pendingRetryTarget = (
+        session.id, style, current)
+      if let path = ProcessInfo.processInfo.environment["VOICECOACH_INJECT_TAKE"], !path.isEmpty {
+        injectTakeFromEnvironment()
+      } else {
+        startMimicPractice()
+      }
+    } else if let path = ProcessInfo.processInfo.environment["VOICECOACH_INJECT_TAKE"], !path.isEmpty {
+      injectTakeFromEnvironment()
+    } else {
+      recordAnother()
+    }
   }
 
   func displayedAction(for signal: CoachingSignal, takeID: UUID) -> String {

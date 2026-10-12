@@ -15,9 +15,6 @@ struct SettingsView: View {
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
   @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
   @AppStorage("voiceCoach.autoGenerateTitles") private var autoGenerateTitles = false
-  @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording =
-    InsightWordingPreference.default
-
   @AppStorage(ExperimentalFeaturesPreference.storageKey) private var experimentalFeatures =
     ExperimentalFeaturesPreference.default
 
@@ -43,9 +40,6 @@ struct SettingsView: View {
       model.refreshSystemTranscriptionStatus()
       if autoGenerateTitles {
         SmartTitleGenerator.prewarmIfAvailable()
-      }
-      if rewriteInsightWording {
-        CoachingWordingGenerator.prewarmIfAvailable()
       }
     }
   }
@@ -126,24 +120,6 @@ struct SettingsView: View {
         }
       }
 
-      Section {
-        Toggle("Rephrase practice exercises", isOn: $rewriteInsightWording)
-          .onChange(of: rewriteInsightWording) { _, enabled in
-            if enabled {
-              CoachingWordingGenerator.prewarmIfAvailable()
-              model.rescheduleInsightWordingForSelection()
-            }
-          }
-        if rewriteInsightWording {
-          LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
-        }
-      } header: {
-        Text("Practice next")
-      } footer: {
-        Text(
-          "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
-        )
-      }
     }
     .settingsPaneChrome()
   }
@@ -324,20 +300,9 @@ struct SettingsView: View {
               .foregroundStyle(.secondary)
           }
         }
-        HStack {
-          Text("Rephrase practice exercises")
-          Spacer()
-          Image(systemName: rewriteInsightWording ? "checkmark.circle.fill" : "circle")
-            .foregroundStyle(Studio.accent)
-        }
         Text("Titles use Apple Intelligence on this Mac when enabled.")
           .font(.caption)
           .foregroundStyle(.secondary)
-        Text(
-          "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
       }
 
       snapshotCard("Experiments", symbol: "flask") {

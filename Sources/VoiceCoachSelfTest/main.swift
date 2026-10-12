@@ -133,7 +133,7 @@ private func verifyPlainTakeCue() throws {
   try check(cue?.cueSpanRange == 1.0...2.6, "Plain take cueSpanRange incorrect")
   try check(abs((cue?.playbackRange.lowerBound ?? 0) - 0.85) < 0.01, "Plain take playback start incorrect")
   try check(abs((cue?.playbackRange.upperBound ?? 0) - 2.75) < 0.01, "Plain take playback end incorrect")
-  try check(cue?.cueText == "You paused before ‘about’.", "Plain take cue copy mismatch")
+  try check(cue?.cueText == "Your longest pause was before ‘about’.", "Plain take cue copy mismatch")
 
   // 2. no cue below the floor (0.6 s)
   let shortPauseWords = [
@@ -236,6 +236,27 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     "Retry close-enough verdict copy mismatch: \(closeEnoughEval.verdictCopy ?? "nil")"
   )
 
+  // Hysteresis: a gap inside the target threshold but outside the close band
+  // cannot produce a "close now" line.
+  let thresholdEdge = makeMimicTestTake(
+    starts: attStarts, pitchByWord: [4: 2.0], result: steadyResult)
+  let edgeEval = CoachingPlanner.evaluateRetry(
+    reference: reference, attempt: thresholdEdge, pinnedTarget: pinnedTarget)
+  try check(edgeEval.verdict != .closeEnough, "Pitch close verdict ignored the 0.9 st margin")
+
+  let previouslyClose = TargetFocus(
+    referenceWordIndex: 4, word: "important", kind: .pitch, gap: 1.0,
+    referenceRange: 1.9...2.15, takeRange: 2.05...2.3)
+  let driftedBack = makeMimicTestTake(
+    starts: attStarts, pitchByWord: [4: 3.0], result: steadyResult)
+  let driftEval = CoachingPlanner.evaluateRetry(
+    reference: reference, attempt: driftedBack, pinnedTarget: previouslyClose)
+  try check(driftEval.verdict == .otherWay, "Drift above target threshold did not repeat cue")
+  try check(driftEval.verdictCopy == nil, "Drift above target threshold produced a verdict")
+  try check(
+    driftEval.cueCopy == OneTargetRetryStrings.pitchCue(word: "important"),
+    "Drift above target threshold did not retain the pinned cue")
+
   // Unmatched -> no verdict (word missing from retry transcript)
   let missingAttempt = makeMimicTestTake(
     tokens: ["Every", "speaker", "should", "shape", "words"],
@@ -262,14 +283,14 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     "Retry within noise copy mismatch: \(noiseEval.verdictCopy ?? "nil")"
   )
 
-  // Moved the other way (worse by >= 2.5 st) -> no verdict line
+  // Moved the other way by >= 2.5 st: repeat the cue without a verdict.
   let otherWayAttempt = makeMimicTestTake(
     starts: attStarts,
-    pitchByWord: [4: 9.0], // gap worsened from 6.0 to 9.0 (by 3.0 st >= 2.5 st)
+    pitchByWord: [4: 9.0], // gap moved from 6.0 to 9.0 (by 3.0 st)
     result: steadyResult
   )
   let otherWayEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: otherWayAttempt, pinnedTarget: pinnedTarget)
-  try check(otherWayEval.verdict == .otherWay, "Retry worse by >= threshold should be .otherWay")
+  try check(otherWayEval.verdict == .otherWay, "Retry moved away by >= threshold should be .otherWay")
   try check(otherWayEval.verdictCopy == nil, "Retry otherWay should have nil verdict line")
 
   // Pinned target preserved through CoachingPlanner.mimic
@@ -430,6 +451,11 @@ private func verifyStoredTakePersistence() throws {
 #endif
 
 do {
+  if let index = CommandLine.arguments.firstIndex(of: "--retry-verdicts"),
+    CommandLine.arguments.indices.contains(index + 1) {
+    try printRetryVerdicts(at: URL(fileURLWithPath: CommandLine.arguments[index + 1]))
+    exit(0)
+  }
   // print("Args: \(CommandLine.arguments)")
 
   let sampleRate = 16_000.0

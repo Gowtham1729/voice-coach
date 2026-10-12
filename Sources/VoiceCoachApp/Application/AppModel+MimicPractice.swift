@@ -1,6 +1,7 @@
 import AVFoundation
 import AppKit
 import Foundation
+import OSLog
 import VoiceCoachCore
 import VoiceCoachSession
 
@@ -261,6 +262,33 @@ extension AppModel {
       url: take.audioURL, source: .attempt, start: bounds.lowerBound, end: bounds.upperBound)
   }
 
+  func replayBoth() {
+    guard selectedSession?.mimicReference != nil, selectedTake != nil else { return }
+    replayBothPendingAttempt = true
+    playMimicReference()
+  }
+
+  func playFocusSegment(
+    source: MimicPlaybackSource, range: ClosedRange<Double>,
+    focusWordRange: ClosedRange<Double>
+  ) {
+    let take = source == .reference ? selectedSession?.mimicReference?.take : selectedTake
+    guard let take else { return }
+    let duration = take.result.metrics.duration
+    let start = max(0, range.lowerBound - 0.150)
+    let end = min(duration, range.upperBound + 0.150)
+    guard end > start else { return }
+    if ProcessInfo.processInfo.environment["VOICECOACH_REPLAY_LOG"] == "1" {
+      Logger(subsystem: "com.gowtham.voicecoach", category: "Replay").debug(
+        "VOICECOACH_REPLAY source=\(String(describing: source), privacy: .public) played=\(start, privacy: .public)...\(end, privacy: .public) focus=\(focusWordRange.lowerBound, privacy: .public)...\(focusWordRange.upperBound, privacy: .public)")
+    }
+    if source == .reference {
+      playMimicReference(range: start...end)
+    } else {
+      playMimicAttempt(range: start...end)
+    }
+  }
+
   func seekMimic(source: MimicPlaybackSource, to time: Double) {
     guard !isRecording, !isAnalyzing, mimicPhase == .ready else { return }
     let take = source == .reference ? selectedSession?.mimicReference?.take : selectedTake
@@ -359,6 +387,11 @@ extension AppModel {
     isPlaying = false
     playbackTime = 0
     mimicPlaybackEnd = nil
+    if replayBothPendingAttempt {
+      replayBothPendingAttempt = false
+      playMimicAttempt()
+      return
+    }
     if mimicShouldRecordAfterPlayback {
       mimicShouldRecordAfterPlayback = false
       startMimicCountIn()

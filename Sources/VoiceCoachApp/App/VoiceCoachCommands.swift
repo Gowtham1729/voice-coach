@@ -43,6 +43,10 @@ struct VoiceCoachCommands: Commands {
     }
 
     CommandMenu("Practice") {
+      if let path = ProcessInfo.processInfo.environment["VOICECOACH_INJECT_TAKE"], !path.isEmpty {
+        Button("Inject QA take") { model.injectTakeFromEnvironment() }
+          .disabled(model.selectedSession == nil || model.isRecording || model.isAnalyzing)
+      }
       Button(
         model.mimicPhase == .playingReference
           ? "Stop"

@@ -54,12 +54,14 @@ public enum RetryVerdict: String, Codable, Sendable, Equatable {
   case closeEnough = "close-enough"
   /// Gap change was within natural take-to-take variation noise.
   case withinNoise = "within-noise"
-  /// Gap worsened by at least the measured threshold ("moved the other way").
+  /// Gap moved away by at least the measured threshold.
   case otherWay = "other-way"
+  /// Recording or alignment gates did not support a verdict.
+  case unreliable
   /// Target word could not be aligned in this retry take.
   case notFound = "not-found"
 
-  /// True when the retry held progress (either improved >= threshold or reached close enough).
+  /// True when the retry clearly closed the gap or reached the close band.
   public var isHeld: Bool {
     self == .held || self == .closeEnough
   }

@@ -14,6 +14,7 @@ struct MimicComparisonView: View {
   let reference: PracticeSession
   let attempt: PracticeSession
   let comparison: MimicComparison
+  let focusReferenceWordIndex: Int?
   @State var metric: MimicMetric = .pitch
   @State var followPlayback = true
   @State var chartPosition = ScrollPosition(edge: .leading)
@@ -25,6 +26,9 @@ struct MimicComparisonView: View {
     self.reference = reference
     self.attempt = attempt
     self.comparison = comparison
+    focusReferenceWordIndex = CoachingPlanner.mimic(
+      reference: reference, attempt: attempt,
+      pinnedTarget: attempt.savedTarget).focus?.referenceWordIndex
     _metric = State(initialValue: MimicMetric(rawValue: initialMetric) ?? .pitch)
   }
 
@@ -39,6 +43,10 @@ struct MimicComparisonView: View {
       }
       .padding(18)
       .desktopPanel()
+
+      if let session = model.selectedSession {
+        OneTargetRetryCard(session: session, take: attempt)
+      }
 
       if comparison.correspondenceReliable {
         VStack(alignment: .leading, spacing: 14) {

@@ -339,6 +339,18 @@ extension AppModel {
     }
 
     guard let index = sessions.firstIndex(where: { $0.id == selectedSessionID }) else { return }
+    let target = pendingRetryTarget.flatMap { pending -> TargetFocus? in
+      guard pending.sessionID == selectedSessionID,
+        pending.style == (sessions[index].mimicStyle ?? .listenAndRepeat)
+      else { return nil }
+      return pending.target
+    }
+    let take = target.map {
+      PracticeSession(
+        id: take.id, createdAt: take.createdAt, audioURL: take.audioURL,
+        source: take.source, result: take.result, transcription: take.transcription,
+        words: take.words, savedTarget: $0)
+    } ?? take
     let previousSessions = sessions
     if sessions[index].transcriptionLocaleIdentifier == nil {
       sessions[index].transcriptionLocaleIdentifier = localeIdentifier
@@ -370,6 +382,7 @@ extension AppModel {
       }
       return
     }
+    if target != nil { pendingRetryTarget = nil }
     if pendingMimicSessionID == selectedSessionID {
       pendingMimicTake = nil
       pendingMimicAudio = nil

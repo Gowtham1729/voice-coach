@@ -2,6 +2,11 @@ import Foundation
 
 /// Thresholds governing one-target retry cues, verdicts, and pause detection.
 public enum RetryThresholds {
+  // Hysteresis margins are the median absolute take-to-take changes measured in
+  // /Users/gowtham/one-target-shots/noise.md, session 7C181091 (7 takes).
+  public static let closePitchMarginSemitones: Double = 0.9
+  public static let closeLoudnessMarginDB: Double = 1.4
+  public static let closeWordTimingMarginSeconds: Double = 0.06
   // MARK: - Target Trigger / "Close Enough" Thresholds
 
   /// Minimum pitch delta to trigger a pitch corrective target (in semitones).
@@ -16,7 +21,8 @@ public enum RetryThresholds {
   public static let targetWordTimingSeconds: Double = 0.25
 
   /// Minimum phrase drift to warrant whole-phrase pacing correction (in seconds).
-  public static let targetPhraseTimingSeconds: Double = 0.25
+  /// Aligned with the measured take-to-take noise floor (~1.5 s) to avoid cueing drift within noise.
+  public static let targetPhraseTimingSeconds: Double = 1.5
 
   // MARK: - Retry Delta Thresholds ("Clearly Closer" / Verdicts)
   // Measured 2026-10-13 from session 7C181091 (7 takes) in noise.md.

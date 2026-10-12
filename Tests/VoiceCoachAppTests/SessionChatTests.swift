@@ -413,14 +413,12 @@ struct SessionChatTests {
     #expect(unmatched.notice == "Word matching is too limited for a reference comparison.")
 
     let insights = try repositorySource("Sources/VoiceCoachApp/DesignSystem/TakeInsightsView.swift")
-    #expect(insights.contains("SectionEyebrow(text: \"Practice next\")"))
-    #expect(insights.contains("\"Metrics and practice next\""))
+    #expect(insights.contains("Target gap:"))
+    let retryCard = try repositorySource("Sources/VoiceCoachApp/DesignSystem/OneTargetRetryCard.swift")
+    #expect(retryCard.contains("OneTargetRetryStrings.tryAgain"))
+    #expect(retryCard.contains("OneTargetRetryStrings.replayBoth"))
     let settings = try repositorySource("Sources/VoiceCoachApp/Features/Settings/SettingsView.swift")
-    #expect(settings.contains("Text(\"Practice next\")"))
-    #expect(
-      settings.contains(
-        "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
-      ))
+    #expect(!settings.contains("Rephrase practice exercises"))
     let planner = try repositorySource("Sources/VoiceCoachCore/Coaching/CoachingPlan.swift")
     for phrase in [
       "Reference comparison is limited by recording quality.",

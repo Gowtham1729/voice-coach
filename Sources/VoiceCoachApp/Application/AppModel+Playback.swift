@@ -30,6 +30,7 @@ extension AppModel {
   }
 
   func stopPlayback() {
+    replayBothPendingAttempt = false
     recorder.stopPlayback()
     stopPlaybackTimer()
     isPlaying = false

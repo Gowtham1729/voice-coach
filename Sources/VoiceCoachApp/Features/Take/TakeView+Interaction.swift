@@ -27,6 +27,10 @@ extension TakeView {
       return selectedWordIndex
     }
 
+    if let session = model.selectedSession,
+      let cue = model.coachingPlan(for: take, in: session).plainTakeCue {
+      return cue.followingWordIndex
+    }
     return wordIndexAtPlayhead(words: words, time: model.playbackTime)
   }
 
