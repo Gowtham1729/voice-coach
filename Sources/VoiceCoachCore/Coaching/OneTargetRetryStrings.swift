@@ -15,6 +15,8 @@ public enum OneTargetRetryStrings {
   // MARK: - Buttons & Links
   public static let tryAgain = "Try again"
   public static let skip = "Skip"
+  public static let skipped = "Skipped for this take."
+  public static let show = "Show"
   public static let thatWasOnPurpose = "That was on purpose"
   public static let noTranscript = "No transcript for this take."
   public static let addReference = "Add reference…"
@@ -75,7 +77,7 @@ public enum OneTargetRetryStrings {
 
   /// Target word could not be aligned in this retry take.
   public static func wordNotFound(word: String) -> String {
-    "Couldn’t find \(formatWordOrPhrase(word)) in this take."
+    "Couldn’t find \(formatWordOrPhrase(word)) in this take. Say the whole phrase again."
   }
 
   /// Gap fell below the target threshold ("close enough").

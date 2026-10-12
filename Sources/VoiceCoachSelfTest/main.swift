@@ -138,6 +138,28 @@ private func verifyPlainTakeCue() throws {
   try check(abs((cue?.playbackRange.upperBound ?? 0) - 2.75) < 0.01, "Plain take playback end incorrect")
   try check(cue?.cueText == "Your longest pause was before ‘about’.", "Plain take cue copy mismatch")
 
+  let contentWords = [
+    TranscriptWord(word: "hello", start: 0.5, end: 1.0),
+    TranscriptWord(word: "the", start: 2.1, end: 2.2),
+    TranscriptWord(word: "first", start: 2.3, end: 2.6),
+    TranscriptWord(word: "folding", start: 2.7, end: 3.0),
+  ]
+  let contentCue = CoachingPlanner.plainTakeCue(words: contentWords, takeDuration: 4)
+  try check(contentCue?.cueText == "Your longest pause was before ‘the first’.",
+    "Plain cue should stop at the first content word")
+  try check(contentCue?.cueSpanRange.upperBound == 2.6,
+    "Plain replay should include the quoted words")
+  let functionWords = [
+    TranscriptWord(word: "hello", start: 0.5, end: 1.0),
+    TranscriptWord(word: "the", start: 2.1, end: 2.2),
+    TranscriptWord(word: "and", start: 2.3, end: 2.4),
+    TranscriptWord(word: "was", start: 2.5, end: 2.6),
+    TranscriptWord(word: "folding", start: 2.7, end: 3.0),
+  ]
+  try check(CoachingPlanner.plainTakeCue(words: functionWords, takeDuration: 4)?.cueText
+    == "Your longest pause was before ‘the and was’.",
+    "Three function words should all appear in the cue")
+
   // 2. no cue below the floor (0.6 s)
   let shortPauseWords = [
     TranscriptWord(word: "hello", start: 0.5, end: 1.0),
@@ -154,6 +176,18 @@ private func verifyPlainTakeCue() throws {
     CoachingPlanner.plainTakeCue(words: silenceWords, takeDuration: 8.0) == nil,
     "Leading or trailing silence triggered a pause cue"
   )
+  let punctuatedBoundary = [
+    TranscriptWord(word: "hello.", start: 0.5, end: 1),
+    TranscriptWord(word: "world", start: 2, end: 2.3),
+  ]
+  try check(CoachingPlanner.plainTakeCue(words: punctuatedBoundary, takeDuration: 3) == nil,
+    "Pause after punctuation should be a phrase boundary")
+  let unpunctuatedEdge = [
+    TranscriptWord(word: "hello", start: 0.05, end: 0.2),
+    TranscriptWord(word: "world", start: 1.0, end: 1.3),
+  ]
+  try check(CoachingPlanner.plainTakeCue(words: unpunctuatedEdge, takeDuration: 10) == nil,
+    "Pause near the start without punctuation should be a boundary")
 }
 
 private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
@@ -295,7 +329,7 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   let missingEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: missingAttempt, pinnedTarget: pinnedTarget)
   try check(missingEval.verdict == .notFound, "Retry with missing word should be .notFound")
   try check(
-    missingEval.verdictCopy == "Couldn’t find ‘important’ in this take.",
+    missingEval.verdictCopy == "Couldn’t find ‘important’ in this take. Say the whole phrase again.",
     "Retry missing word copy mismatch: \(missingEval.verdictCopy ?? "nil")"
   )
 

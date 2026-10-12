@@ -480,9 +480,18 @@ public enum CoachingPlanner {
 
     var longestGap: Double = 0
     var bestIndex: Int?
+    let hasPunctuation = words.contains { word in
+      guard let last = word.word.last else { return false }
+      return ".,?!;:".contains(last)
+    }
 
     for i in 0..<(words.count - 1) {
       let gap = words[i + 1].start - words[i].end
+      if let last = words[i].word.last, ".,?!;:".contains(last) { continue }
+      if !hasPunctuation, let takeDuration, takeDuration > 0 {
+        let position = (words[i].end + words[i + 1].start) / (2 * takeDuration)
+        if position <= 0.15 || position >= 0.85 { continue }
+      }
       if gap > longestGap {
         longestGap = gap
         bestIndex = i
@@ -495,19 +504,25 @@ public enum CoachingPlanner {
 
     let prevWord = words[idx]
     let nextWord = words[idx + 1]
+    var quoteEndIndex = idx + 1
+    for index in (idx + 1)..<min(words.count, idx + 4) {
+      quoteEndIndex = index
+      if isPracticeWord(words[index].word) { break }
+    }
+    let followingWords = words[(idx + 1)...quoteEndIndex].map(\.word).joined(separator: " ")
     let pauseRange = prevWord.end...nextWord.start
-    let spanRange = prevWord.end...nextWord.end
+    let spanRange = prevWord.end...words[quoteEndIndex].end
 
     let pad = 0.150
     let playStart = max(0, prevWord.end - pad)
-    let maxEnd = takeDuration ?? (nextWord.end + pad)
-    let playEnd = min(maxEnd, nextWord.end + pad)
+    let maxEnd = takeDuration ?? (words[quoteEndIndex].end + pad)
+    let playEnd = min(maxEnd, words[quoteEndIndex].end + pad)
     let playbackRange = playStart...playEnd
 
-    let text = OneTargetRetryStrings.plainPauseCue(word: nextWord.word)
+    let text = OneTargetRetryStrings.plainPauseCue(word: followingWords)
 
     return PlainTakeCue(
-      followingWord: nextWord.word,
+      followingWord: followingWords,
       followingWordIndex: idx + 1,
       pauseDurationSeconds: longestGap,
       pauseRange: pauseRange,
