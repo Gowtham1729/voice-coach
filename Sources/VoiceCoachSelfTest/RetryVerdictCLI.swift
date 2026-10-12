@@ -94,9 +94,14 @@ private enum RetryVerdictCLIError: Error {
   case identicalTake(UUID, String)
 }
 
-/// Exercises the actual SessionStore migration on disposable copies of a
-/// support root. The generated backup filenames mirror the migration output.
+/// Exercises SessionStore migration in disposable support roots. Accepts either
+/// historical backup files or a current copied library for generated fixtures.
 func verifyCopiedLegacyLibraries(at input: URL) throws {
+  if FileManager.default.fileExists(
+    atPath: input.appendingPathComponent("session-library-v1-backup.json").path) {
+    try verifyHistoricalLegacyCopies(at: input)
+    return
+  }
   struct LegacyDocument: Encodable {
     let schemaVersion: Int
     let sessions: [CoachingSession]
@@ -140,4 +145,43 @@ func verifyCopiedLegacyLibraries(at input: URL) throws {
   }
   print("v3 current copy: loaded \(current.count) sessions, "
     + "\(current.flatMap(\.takes).count) takes, savedTarget=nil")
+}
+
+private func verifyHistoricalLegacyCopies(at input: URL) throws {
+  let manager = FileManager.default
+  for version in [1, 2] {
+    let name = "session-library-v\(version)-backup.json"
+    let root = URL(fileURLWithPath: "/tmp", isDirectory: true)
+      .appendingPathComponent("voicecoach-historical-v\(version)-\(UUID().uuidString)")
+    try manager.createDirectory(at: root, withIntermediateDirectories: true)
+    defer { try? manager.removeItem(at: root) }
+    try manager.copyItem(
+      at: input.appendingPathComponent(name),
+      to: root.appendingPathComponent("session-library.json"))
+    let store = try SessionStore(rootURL: root)
+    let migrated = try store.load()
+    let reloaded = try store.load()
+    guard migrated.count == reloaded.count,
+      migrated.flatMap(\.takes).count == reloaded.flatMap(\.takes).count,
+      reloaded.flatMap(\.takes).allSatisfy({ $0.savedTarget == nil }),
+      reloaded.compactMap(\.mimicReference).allSatisfy({ $0.take.savedTarget == nil })
+    else { throw CocoaError(.coderReadCorrupt) }
+    print("\(name): migrated and reloaded \(reloaded.count) sessions, "
+      + "\(reloaded.flatMap(\.takes).count) takes, "
+      + "\(reloaded.compactMap(\.mimicReference).count) references, savedTarget=nil")
+  }
+
+  // The supplied v3 backup is a thin index. Decode its real StoredTake stubs;
+  // full SessionStore hydration requires the absent per-take analysis files.
+  let name = "session-library.json.bak"
+  let data = try Data(contentsOf: input.appendingPathComponent(name))
+  let document = try JSONDecoder().decode(ThinLibraryDocument.self, from: data)
+  guard document.schemaVersion == SessionStore.currentSchemaVersion,
+    document.sessions.flatMap(\.takes).allSatisfy({ $0.savedTarget == nil }),
+    document.sessions.compactMap(\.mimicReference).allSatisfy({ $0.take.savedTarget == nil })
+  else { throw CocoaError(.coderReadCorrupt) }
+  print("\(name): decoded \(document.sessions.count) sessions, "
+    + "\(document.sessions.flatMap(\.takes).count) take stubs, "
+    + "\(document.sessions.compactMap(\.mimicReference).count) references, savedTarget=nil; "
+    + "analysis sidecars not supplied, so full hydration was not run")
 }

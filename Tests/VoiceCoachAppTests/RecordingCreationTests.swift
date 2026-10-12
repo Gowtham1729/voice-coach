@@ -129,6 +129,37 @@ struct RecordingCreationTests {
     #expect(FileManager.default.fileExists(atPath: url.path))
   }
 
+  @Test("Saving a Mimic attempt keeps Compare when the session moves to the top")
+  func mimicSaveAfterSort() throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root)
+    let plainID = UUID()
+    let mimicID = UUID()
+    model.sessions = [
+      CoachingSession(
+        id: plainID, name: "Newer plain", updatedAt: Date(), mode: .general,
+        prompt: "", keepsRecordings: true),
+      CoachingSession(
+        id: mimicID, name: "Reference", updatedAt: .distantPast, mode: .mimic,
+        prompt: "", keepsRecordings: true),
+    ]
+    model.selectedSessionID = mimicID
+    model.destination = .practice(mimicID)
+    let takeID = UUID()
+    let url = try model.store.recordingURL(sessionID: mimicID, takeID: takeID)
+    try writeAudio(to: url, amplitude: 0.3)
+    let take = PracticeSession(
+      id: takeID, audioURL: url, result: try AudioAnalyzer().analyze(url: url))
+
+    model.append(take)
+
+    #expect(model.sessions.first?.id == mimicID)
+    #expect(model.selectedTakeID == takeID)
+    #expect(model.destination == .practice(mimicID))
+    #expect(try model.store.load().first?.takes.first?.id == takeID)
+  }
+
   @Test(
     "Invalid retries preserve replace-only takes and clear rejected Mimic recovery",
     arguments: [PracticeMode.general, .mimic])

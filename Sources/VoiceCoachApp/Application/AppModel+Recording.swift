@@ -339,6 +339,7 @@ extension AppModel {
     }
 
     guard let index = sessions.firstIndex(where: { $0.id == selectedSessionID }) else { return }
+    let isMimicSession = sessions[index].mode == .mimic
     let target = pendingRetryTarget.flatMap { pending -> TargetFocus? in
       guard pending.sessionID == selectedSessionID,
         pending.style == (sessions[index].mimicStyle ?? .listenAndRepeat)
@@ -392,7 +393,7 @@ extension AppModel {
       try? FileManager.default.removeItem(at: url)
     }
     toastMessage = saveToast(for: take.takeSource)
-    if sessions[index].mode == .mimic {
+    if isMimicSession {
       lastUsedMimicID = selectedSessionID
       mimicWorkspaceMode = .compare
       destination = .practice(selectedSessionID)
