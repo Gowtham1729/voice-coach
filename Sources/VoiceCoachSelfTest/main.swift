@@ -252,6 +252,11 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     pitchByWord: [4: 3.4], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: atSelection).focus?.word == "important",
     "Pitch selection boundary did not select its word")
+  let loudnessAtSelection = makeMimicTestTake(
+    starts: refStarts, energyByWord: [4: 4.9], result: steadyResult)
+  try check(CoachingPlanner.mimic(reference: reference,
+    attempt: loudnessAtSelection).focus?.kind == .loudness,
+    "Loudness selection boundary did not select its word")
   let phraseDrift = makeMimicTestTake(
     starts: [0.3, 0.7, 1.1, 1.5, 1.9, 5.3], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: phraseDrift).focus == nil,
@@ -269,6 +274,15 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   try check(CoachingPlanner.mimic(reference: reference, attempt: attempt,
     localeIdentifier: "ja_JP").focus == nil,
     "Non-English session locale selected an English word target")
+  let japaneseReference = makeMimicTestTake(
+    tokens: ["これは", "新しい", "言葉", "を", "練習", "します"],
+    starts: refStarts, result: steadyResult)
+  let japaneseAttempt = makeMimicTestTake(
+    tokens: ["これは", "新しい", "言葉", "を", "練習", "します"],
+    starts: attStarts, pitchByWord: [1: 8], result: steadyResult)
+  try check(CoachingPlanner.mimic(reference: japaneseReference,
+    attempt: japaneseAttempt).focus == nil,
+    "Japanese transcript selected an English-only practice word")
 
   // 4. Same target kept after retry
   let pinnedTarget = TargetFocus(
