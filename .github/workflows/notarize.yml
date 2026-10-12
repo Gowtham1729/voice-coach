@@ -350,20 +350,64 @@ jobs:
             echo "stapler staple failed for the disk image." >&2
             exit 1
           fi
+          # Missing staple fails here. Do not catch this exit.
           xcrun stapler validate "$DMG"
+
+          # A headless runner assesses a stapled disk image as
+          # source=Insufficient Context unless this context is set.
+          # That source is not an Apple rejection once stapler validate passed.
+          # Unnotarized and "no usable signature" still fail the job.
+          classify_dmg_spctl() {
+            local out="$1"
+            local status="$2"
+            local sources source_line only_insufficient
+            if [[ "$status" -eq 0 ]] && printf '%s\n' "$out" | grep -q "Notarized Developer ID"; then
+              return 0
+            fi
+            if printf '%s\n' "$out" | grep -q "Unnotarized" \
+              || printf '%s\n' "$out" | grep -q "no usable signature"; then
+              return 2
+            fi
+            sources="$(printf '%s\n' "$out" | sed -n 's/^source=//p')"
+            only_insufficient=0
+            if [[ -n "$sources" ]]; then
+              only_insufficient=1
+              while IFS= read -r source_line; do
+                if [[ "$source_line" != "Insufficient Context" ]]; then
+                  only_insufficient=0
+                  break
+                fi
+              done <<< "$sources"
+            fi
+            if [[ "$only_insufficient" -eq 1 ]]; then
+              return 0
+            fi
+            return 1
+          }
+
           accepted=0
           spctl_out=""
           for attempt in 1 2 3 4 5; do
-            if spctl_out="$(/usr/sbin/spctl -a -vvv -t open "$DMG" 2>&1)" \
-              && printf '%s\n' "$spctl_out" | grep -q "Notarized Developer ID"; then
+            spctl_status=0
+            spctl_out="$(/usr/sbin/spctl -a -vvv -t open --context context:primary-signature "$DMG" 2>&1)" || spctl_status=$?
+            printf '%s\n' "$spctl_out"
+            class=0
+            classify_dmg_spctl "$spctl_out" "$spctl_status" || class=$?
+            if [[ "$class" -eq 0 ]]; then
+              if ! printf '%s\n' "$spctl_out" | grep -q "Notarized Developer ID"; then
+                echo "spctl returned only source=Insufficient Context. stapler validate already passed."
+              fi
               accepted=1
               break
+            fi
+            if [[ "$class" -eq 2 ]]; then
+              echo "spctl rejected the disk image." >&2
+              exit 1
             fi
             if [[ "$attempt" -lt 5 ]]; then
               sleep 20
             fi
           done
-          printf '%s\n' "$spctl_out"
           if [[ "$accepted" -ne 1 ]]; then
             echo "spctl did not accept the disk image as Notarized Developer ID." >&2
             exit 1
