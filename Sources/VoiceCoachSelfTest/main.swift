@@ -256,6 +256,12 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     starts: [0.3, 0.7, 1.1, 1.5, 1.9, 5.3], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: phraseDrift).focus == nil,
     "Phrase drift selected a timing target")
+  let retiredTimingTarget = TargetFocus(
+    referenceWordIndex: 4, word: "important", kind: .timing, gap: 2,
+    referenceRange: 1.9...2.15, takeRange: 2.05...2.3, isPhrase: true)
+  try check(CoachingPlanner.mimic(reference: reference, attempt: attempt,
+    pinnedTarget: retiredTimingTarget).focus == nil,
+    "An older saved phrase-timing target still showed a cue")
   let nonEnglish = makeMimicTestTake(
     starts: attStarts, pitchByWord: [4: 8], localeIdentifier: "fr_FR", result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: nonEnglish).focus == nil,

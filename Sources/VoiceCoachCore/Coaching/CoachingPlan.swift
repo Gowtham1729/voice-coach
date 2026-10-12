@@ -106,6 +106,11 @@ public enum CoachingPlanner {
       isEnglishLocale(reference.transcription?.localeIdentifier),
       isEnglishLocale(attempt.transcription?.localeIdentifier)
     else { return CoachingPlan() }
+    // Older saved targets may contain phrase or timing focuses. Keep their
+    // storage decoding compatible without showing a retired target type.
+    if let pinnedTarget, pinnedTarget.kind == .timing || pinnedTarget.isPhrase {
+      return CoachingPlan()
+    }
     let comparison = MimicComparison.compare(reference: reference, attempt: attempt)
     guard comparison.correspondenceReliable, comparison.pairs.count >= 5 else {
       let notice: String

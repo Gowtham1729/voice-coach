@@ -4,6 +4,7 @@ import Foundation
 public enum TargetKind: String, Codable, Sendable, Equatable {
   case pitch
   case loudness
+  /// Retained to decode earlier saved targets; new targets are word pitch/loudness only.
   case timing
 }
 
