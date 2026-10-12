@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import VoiceCoachCore
 import VoiceCoachSession
@@ -41,3 +42,4 @@ extension AppModel {
     }
   }
 }
+#endif

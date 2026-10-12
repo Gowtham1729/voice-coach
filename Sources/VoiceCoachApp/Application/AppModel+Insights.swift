@@ -44,14 +44,20 @@ extension AppModel {
         isPhrase: focus.isPhrase)
       pendingRetryTarget = (
         session.id, style, current)
+      #if DEBUG
       if let path = ProcessInfo.processInfo.environment["VOICECOACH_INJECT_TAKE"], !path.isEmpty {
         injectTakeFromEnvironment()
-      } else {
-        startMimicPractice()
+        return
       }
-    } else if let path = ProcessInfo.processInfo.environment["VOICECOACH_INJECT_TAKE"], !path.isEmpty {
-      injectTakeFromEnvironment()
+      #endif
+      startMimicPractice()
     } else {
+      #if DEBUG
+      if let path = ProcessInfo.processInfo.environment["VOICECOACH_INJECT_TAKE"], !path.isEmpty {
+        injectTakeFromEnvironment()
+        return
+      }
+      #endif
       recordAnother()
     }
   }

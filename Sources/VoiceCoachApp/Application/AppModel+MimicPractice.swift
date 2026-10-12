@@ -278,10 +278,12 @@ extension AppModel {
     let start = max(0, range.lowerBound - 0.150)
     let end = min(duration, range.upperBound + 0.150)
     guard end > start else { return }
+    #if DEBUG
     if ProcessInfo.processInfo.environment["VOICECOACH_REPLAY_LOG"] == "1" {
       Logger(subsystem: "com.gowtham.voicecoach", category: "Replay").debug(
         "VOICECOACH_REPLAY source=\(String(describing: source), privacy: .public) played=\(start, privacy: .public)...\(end, privacy: .public) focus=\(focusWordRange.lowerBound, privacy: .public)...\(focusWordRange.upperBound, privacy: .public)")
     }
+    #endif
     if source == .reference {
       playMimicReference(range: start...end)
     } else {

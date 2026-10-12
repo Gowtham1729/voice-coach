@@ -100,8 +100,12 @@ final class AppModel: ObservableObject {
     dependencies: AppDependencies? = nil
   ) {
     do {
+      #if DEBUG
       let qaRoot = ProcessInfo.processInfo.environment["VOICECOACH_SUPPORT_DIR"]
         .flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
+      #else
+      let qaRoot: URL? = nil
+      #endif
       let dependencies = try dependencies ?? AppDependencies.live(storageRoot: storageRoot ?? qaRoot)
       recorder = dependencies.recorder
       systemAudioCapture = dependencies.systemAudioCapture
