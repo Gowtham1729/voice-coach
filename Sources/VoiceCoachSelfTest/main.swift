@@ -156,6 +156,13 @@ private func verifyPlainTakeCue() throws {
 private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   let refStarts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
   let reference = makeMimicTestTake(starts: refStarts, result: steadyResult)
+  let weakAttempt = makeMimicTestTake(
+    tokens: ["unrelated", "words"],
+    starts: [0.3, 0.7],
+    result: steadyResult
+  )
+  let weakPlan = CoachingPlanner.mimic(reference: reference, attempt: weakAttempt)
+  try check(weakPlan.focus == nil, "Weak word evidence produced a retry cue")
 
   // 1. Focus time range correct
   let attStarts = [0.4, 0.8, 1.2, 1.6, 2.05, 2.5]
@@ -292,6 +299,9 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   let otherWayEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: otherWayAttempt, pinnedTarget: pinnedTarget)
   try check(otherWayEval.verdict == .otherWay, "Retry moved away by >= threshold should be .otherWay")
   try check(otherWayEval.verdictCopy == nil, "Retry otherWay should have nil verdict line")
+  try check(
+    otherWayEval.cueCopy == OneTargetRetryStrings.pitchCue(word: "important"),
+    "Retry otherWay did not repeat the pinned cue")
 
   // Pinned target preserved through CoachingPlanner.mimic
   let pinnedPlan = CoachingPlanner.mimic(reference: reference, attempt: closerAttempt, pinnedTarget: pinnedTarget)
@@ -451,6 +461,11 @@ private func verifyStoredTakePersistence() throws {
 #endif
 
 do {
+  if let index = CommandLine.arguments.firstIndex(of: "--retry-legacy-loads"),
+    CommandLine.arguments.indices.contains(index + 1) {
+    try verifyCopiedLegacyLibraries(at: URL(fileURLWithPath: CommandLine.arguments[index + 1]))
+    exit(0)
+  }
   if let index = CommandLine.arguments.firstIndex(of: "--retry-verdicts"),
     CommandLine.arguments.indices.contains(index + 1) {
     try printRetryVerdicts(at: URL(fileURLWithPath: CommandLine.arguments[index + 1]))

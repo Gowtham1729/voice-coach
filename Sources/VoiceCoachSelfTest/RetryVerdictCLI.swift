@@ -54,6 +54,7 @@ func printRetryVerdicts(at input: URL) throws {
   }
 
   var pairCount = 0
+  var identicalCount = 0
   for session in sessions {
     guard let reference = session.mimicReference?.take else { continue }
     for first in session.takes {
@@ -73,7 +74,70 @@ func printRetryVerdicts(at input: URL) throws {
         print("\(session.id) \(first.id) -> \(second.id): \(target.kind.rawValue) \(target.word) "
           + "old=\(String(format: "%.3f", target.gap)) new=\(newGap) \(result.verdict.rawValue)")
       }
+      if let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus {
+        let identical = CoachingPlanner.evaluateRetry(
+          reference: reference, attempt: first, pinnedTarget: target)
+        guard identical.verdict == .withinNoise,
+          identical.verdictCopy == OneTargetRetryStrings.withinNoiseVerdict
+        else {
+          throw RetryVerdictCLIError.identicalTake(first.id, identical.verdict.rawValue)
+        }
+        identicalCount += 1
+      }
     }
   }
   print("Ordered same-style pairs: \(pairCount)")
+  print("Identical takes: \(identicalCount) about-the-same")
+}
+
+private enum RetryVerdictCLIError: Error {
+  case identicalTake(UUID, String)
+}
+
+/// Exercises the actual SessionStore migration on disposable copies of a
+/// support root. The generated backup filenames mirror the migration output.
+func verifyCopiedLegacyLibraries(at input: URL) throws {
+  struct LegacyDocument: Encodable {
+    let schemaVersion: Int
+    let sessions: [CoachingSession]
+  }
+  let manager = FileManager.default
+  let source = try SessionStore(rootURL: input).load()
+  guard !source.isEmpty else { throw CocoaError(.fileReadNoSuchFile) }
+  for version in [1, 2] {
+    let root = URL(fileURLWithPath: "/tmp", isDirectory: true)
+      .appendingPathComponent("voicecoach-legacy-\(version)-\(UUID().uuidString)")
+    try manager.createDirectory(at: root, withIntermediateDirectories: true)
+    defer { try? manager.removeItem(at: root) }
+    let sourceSessions = input.appendingPathComponent("Sessions", isDirectory: true)
+    if manager.fileExists(atPath: sourceSessions.path) {
+      try manager.copyItem(
+        at: sourceSessions, to: root.appendingPathComponent("Sessions", isDirectory: true))
+    }
+    let backup = root.appendingPathComponent("session-library-v\(version)-backup.json")
+    try JSONEncoder().encode(LegacyDocument(schemaVersion: version, sessions: source))
+      .write(to: backup)
+    let library = root.appendingPathComponent("session-library.json")
+    try manager.copyItem(at: backup, to: library)
+    let store = try SessionStore(rootURL: root)
+    _ = try store.load()
+    let loaded = try store.load()
+    guard loaded.count == source.count,
+      loaded.flatMap(\.takes).count == source.flatMap(\.takes).count,
+      loaded.flatMap(\.takes).allSatisfy({
+        $0.savedTarget == nil && manager.fileExists(atPath: $0.audioURL.path)
+      }),
+      loaded.allSatisfy({
+        $0.mimicReference.map { manager.fileExists(atPath: $0.take.audioURL.path) } ?? true
+      })
+    else { throw CocoaError(.coderReadCorrupt) }
+    print("v\(version) copied backup: loaded \(loaded.count) sessions, "
+      + "\(loaded.flatMap(\.takes).count) takes, savedTarget=nil")
+  }
+  let current = try SessionStore(rootURL: input).load()
+  guard current.flatMap(\.takes).allSatisfy({ $0.savedTarget == nil }) else {
+    throw CocoaError(.coderReadCorrupt)
+  }
+  print("v3 current copy: loaded \(current.count) sessions, "
+    + "\(current.flatMap(\.takes).count) takes, savedTarget=nil")
 }

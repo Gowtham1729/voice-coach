@@ -417,8 +417,14 @@ struct SessionChatTests {
     let retryCard = try repositorySource("Sources/VoiceCoachApp/DesignSystem/OneTargetRetryCard.swift")
     #expect(retryCard.contains("OneTargetRetryStrings.tryAgain"))
     #expect(retryCard.contains("OneTargetRetryStrings.replayBoth"))
+    #expect(!retryCard.contains("displayedAction"))
+    #expect(!retryCard.contains("scheduleInsightWording"))
     let settings = try repositorySource("Sources/VoiceCoachApp/Features/Settings/SettingsView.swift")
-    #expect(!settings.contains("Rephrase practice exercises"))
+    #expect(settings.contains("Text(\"Practice next\")"))
+    #expect(
+      settings.contains(
+        "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
+      ))
     let planner = try repositorySource("Sources/VoiceCoachCore/Coaching/CoachingPlan.swift")
     for phrase in [
       "Reference comparison is limited by recording quality.",
