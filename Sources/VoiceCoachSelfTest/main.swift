@@ -81,6 +81,7 @@ private func makeMimicTestTake(
   pitchByWord: [Int: Double] = [:],
   energyByWord: [Int: Double] = [:],
   confidences: [Int: Double] = [:],
+  localeIdentifier: String? = nil,
   result: AnalysisResult
 ) -> PracticeSession {
   let transcriptWords = zip(tokens, starts).enumerated().map { index, pair in
@@ -113,7 +114,9 @@ private func makeMimicTestTake(
   return PracticeSession(
     audioURL: URL(fileURLWithPath: "/tmp/\(UUID().uuidString).wav"),
     result: cleanResult,
-    transcription: TranscriptionResult(text: tokens.joined(separator: " "), words: transcriptWords),
+    transcription: TranscriptionResult(
+      text: tokens.joined(separator: " "), words: transcriptWords,
+      localeIdentifier: localeIdentifier),
     words: words
   )
 }
@@ -184,7 +187,7 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   // 2. Low-confidence word skipped (< 0.5)
   let lowConfAttempt = makeMimicTestTake(
     starts: attStarts,
-    pitchByWord: [1: 3.0, 4: 5.0], // "important" has bigger gap 5.0, but confidence 0.4
+    pitchByWord: [1: 3.5, 4: 5.0], // "important" has bigger gap 5.0, but confidence 0.4
     confidences: [1: 0.95, 4: 0.4],
     result: steadyResult
   )
@@ -204,6 +207,25 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   let zeroPlan = CoachingPlanner.mimic(reference: reference, attempt: closeAttempt)
   try check(zeroPlan.targetFocus == nil, "Zero-target state expected nil targetFocus")
   try check(zeroPlan.focus == nil, "Zero-target state expected nil focus")
+
+  let belowSelection = makeMimicTestTake(
+    starts: refStarts,
+    pitchByWord: [4: 3.39], energyByWord: [1: 4.89], result: steadyResult)
+  try check(CoachingPlanner.mimic(reference: reference, attempt: belowSelection).focus == nil,
+    "A gap within the noise margin selected a target")
+  let atSelection = makeMimicTestTake(
+    starts: refStarts,
+    pitchByWord: [4: 3.4], result: steadyResult)
+  try check(CoachingPlanner.mimic(reference: reference, attempt: atSelection).focus?.word == "important",
+    "Pitch selection boundary did not select its word")
+  let phraseDrift = makeMimicTestTake(
+    starts: [0.3, 0.7, 1.1, 1.5, 1.9, 5.3], result: steadyResult)
+  try check(CoachingPlanner.mimic(reference: reference, attempt: phraseDrift).focus == nil,
+    "Phrase drift selected a timing target")
+  let nonEnglish = makeMimicTestTake(
+    starts: attStarts, pitchByWord: [4: 8], localeIdentifier: "fr_FR", result: steadyResult)
+  try check(CoachingPlanner.mimic(reference: reference, attempt: nonEnglish).focus == nil,
+    "Non-English transcript selected an English word target")
 
   // 4. Same target kept after retry
   let pinnedTarget = TargetFocus(

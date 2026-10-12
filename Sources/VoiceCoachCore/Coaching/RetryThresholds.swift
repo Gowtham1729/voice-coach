@@ -17,6 +17,12 @@ public enum RetryThresholds {
   /// Gaps below this threshold are considered "close enough" to the reference.
   public static let targetLoudnessDB: Double = 3.5
 
+  // Require a gap beyond the measured median take-to-take change before
+  // selecting a target. See /Users/gowtham/one-target-shots/noise.md,
+  // session 7C181091.
+  public static let selectionPitchSemitones = targetPitchSemitones + closePitchMarginSemitones
+  public static let selectionLoudnessDB = targetLoudnessDB + closeLoudnessMarginDB
+
   /// Minimum timing delta on a target word to warrant timing correction (in seconds).
   public static let targetWordTimingSeconds: Double = 0.25
 

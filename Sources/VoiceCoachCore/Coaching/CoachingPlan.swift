@@ -101,6 +101,9 @@ public enum CoachingPlanner {
     previous: PracticeSession? = nil,
     pinnedTarget: TargetFocus? = nil
   ) -> CoachingPlan {
+    guard isEnglishLocale(reference.transcription?.localeIdentifier),
+      isEnglishLocale(attempt.transcription?.localeIdentifier)
+    else { return CoachingPlan() }
     let comparison = MimicComparison.compare(reference: reference, attempt: attempt)
     guard comparison.correspondenceReliable, comparison.pairs.count >= 5 else {
       let notice: String
@@ -174,27 +177,6 @@ public enum CoachingPlanner {
         progress = driftProgress
       }
 
-      let timingFocus: TargetFocus? = {
-        guard (substantial || uneven),
-          abs(drift) >= RetryThresholds.targetPhraseTimingSeconds * 1_000
-        else { return nil }
-        let anchor = comparison.pairs.first(where: {
-          $0.word == transition && isConfidenceAcceptable($0) && isPracticeWord($0.word)
-        }) ?? comparison.pairs.first(where: {
-          isConfidenceAcceptable($0) && isPracticeWord($0.word)
-        })
-        guard let anchor, let first = comparison.pairs.first,
-          let last = comparison.pairs.last else { return nil }
-        return TargetFocus(
-          referenceWordIndex: anchor.referenceIndex,
-          word: comparison.pairs.map(\.word).joined(separator: " "),
-          kind: .timing,
-          gap: abs(drift) / 1_000.0,
-          referenceRange: first.reference.start...last.reference.end,
-          takeRange: first.attempt.start...last.attempt.end,
-          isPhrase: true)
-      }()
-
       candidates.append((priority,
         CoachingSignal(
           id: "mimic.timing", title: "Phrase timing", observation: observation, action: action,
@@ -202,7 +184,7 @@ public enum CoachingPlanner {
           actionTerms: transition.map {
             [normalized($0), "timing|pace|sooner|later", "phrase|across|throughout"]
           } ?? ["pace|timing", "phrase|across|throughout"],
-          focus: timingFocus
+          focus: nil
         )))
     }
 
@@ -214,15 +196,6 @@ public enum CoachingPlanner {
       let medianGap = median(pattern.map { abs($0.delta) })
       let anchor = examples[0].pair.word
       let exampleText = patternExampleText(examples, unit: "st")
-      let pitchPatternFocus = TargetFocus(
-        referenceWordIndex: examples[0].pair.referenceIndex,
-        word: anchor,
-        kind: .pitch,
-        gap: abs(examples[0].delta),
-        referenceRange: examples[0].pair.reference.start...examples[0].pair.reference.end,
-        takeRange: examples[0].pair.attempt.start...examples[0].pair.attempt.end,
-        isPhrase: true
-      )
       candidates.append((4.5 + medianGap / 3, CoachingSignal(
         id: "mimic.pitchPattern", title: "Pitch across the phrase",
         observation: "Relative pitch differed by at least 2.5 st on \(pattern.count) of \(pitchGaps.count) measured content words; \(exampleText).",
@@ -231,12 +204,13 @@ public enum CoachingPlanner {
           pattern, previous: previous, previousComparison: previousComparison,
           reference: reference, kind: .pitch, unit: "st", tolerance: 0.5),
         actionTerms: [normalized(anchor), "pitch", "phrase|across|throughout"],
-        focus: pitchPatternFocus
+        focus: nil
       )))
-    } else if let pitch = pitchGaps.max(by: { abs($0.delta) < abs($1.delta) }) {
+    }
+    if let pitch = pitchGaps.max(by: { abs($0.delta) < abs($1.delta) }) {
       let delta = pitch.delta
       let word = pitch.pair.word
-      let needsAdjustment = abs(delta) >= 2.5
+      let needsAdjustment = abs(delta) >= RetryThresholds.selectionPitchSemitones
       let priorDelta = previous.flatMap { previous in
         previousComparison?.pairs.first(where: {
           $0.referenceIndex == pitch.pair.referenceIndex
@@ -281,15 +255,6 @@ public enum CoachingPlanner {
       let medianGap = median(pattern.map { abs($0.delta) })
       let anchor = examples[0].pair.word
       let exampleText = patternExampleText(examples, unit: "dB")
-      let energyPatternFocus = TargetFocus(
-        referenceWordIndex: examples[0].pair.referenceIndex,
-        word: anchor,
-        kind: .loudness,
-        gap: abs(examples[0].delta),
-        referenceRange: examples[0].pair.reference.start...examples[0].pair.reference.end,
-        takeRange: examples[0].pair.attempt.start...examples[0].pair.attempt.end,
-        isPhrase: true
-      )
       candidates.append((3.5 + medianGap / 4, CoachingSignal(
         id: "mimic.emphasisPattern", title: "Emphasis across the phrase",
         observation: "Relative word energy differed by at least 3.5 dB on \(pattern.count) of \(energyGaps.count) measured content words; \(exampleText).",
@@ -298,12 +263,13 @@ public enum CoachingPlanner {
           pattern, previous: previous, previousComparison: previousComparison,
           reference: reference, kind: .energy, unit: "dB", tolerance: 1),
         actionTerms: [normalized(anchor), "emphasis|stress", "phrase|across|throughout"],
-        focus: energyPatternFocus
+        focus: nil
       )))
-    } else if let energy = energyGaps.max(by: { abs($0.delta) < abs($1.delta) }) {
+    }
+    if let energy = energyGaps.max(by: { abs($0.delta) < abs($1.delta) }) {
       let delta = energy.delta
       let word = energy.pair.word
-      let needsAdjustment = abs(delta) >= 3.5
+      let needsAdjustment = abs(delta) >= RetryThresholds.selectionLoudnessDB
       let priorDelta = previous.flatMap { previous in
         previousComparison?.pairs.first(where: {
           $0.referenceIndex == energy.pair.referenceIndex
@@ -734,7 +700,13 @@ public enum CoachingPlanner {
 
   private static func isPracticeWord(_ word: String) -> Bool {
     let cleaned = normalized(word)
-    return cleaned.count >= 4 && !functionWords.contains(cleaned)
+    return cleaned.count >= 4 && cleaned.unicodeScalars.allSatisfy { $0.isASCII }
+      && !functionWords.contains(cleaned)
+  }
+
+  private static func isEnglishLocale(_ identifier: String?) -> Bool {
+    guard let identifier else { return true }
+    return Locale(identifier: identifier).language.languageCode?.identifier == "en"
   }
 
   private static func normalized(_ word: String) -> String {
