@@ -12,7 +12,8 @@ extension AppModel {
       }
       return CoachingPlanner.mimic(
         reference: reference, attempt: take, previous: comparablePrevious,
-        pinnedTarget: take.savedTarget)
+        pinnedTarget: take.savedTarget,
+        localeIdentifier: session.transcriptionLocaleIdentifier)
     }
     let base = CoachingPlanner.recording(current: take.result.metrics)
     return CoachingPlan(

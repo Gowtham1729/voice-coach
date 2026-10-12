@@ -99,9 +99,11 @@ public enum CoachingPlanner {
     reference: PracticeSession,
     attempt: PracticeSession,
     previous: PracticeSession? = nil,
-    pinnedTarget: TargetFocus? = nil
+    pinnedTarget: TargetFocus? = nil,
+    localeIdentifier: String? = nil
   ) -> CoachingPlan {
-    guard isEnglishLocale(reference.transcription?.localeIdentifier),
+    guard isEnglishLocale(localeIdentifier),
+      isEnglishLocale(reference.transcription?.localeIdentifier),
       isEnglishLocale(attempt.transcription?.localeIdentifier)
     else { return CoachingPlan() }
     let comparison = MimicComparison.compare(reference: reference, attempt: attempt)

@@ -260,6 +260,9 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     starts: attStarts, pitchByWord: [4: 8], localeIdentifier: "fr_FR", result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: nonEnglish).focus == nil,
     "Non-English transcript selected an English word target")
+  try check(CoachingPlanner.mimic(reference: reference, attempt: attempt,
+    localeIdentifier: "ja_JP").focus == nil,
+    "Non-English session locale selected an English word target")
 
   // 4. Same target kept after retry
   let pinnedTarget = TargetFocus(

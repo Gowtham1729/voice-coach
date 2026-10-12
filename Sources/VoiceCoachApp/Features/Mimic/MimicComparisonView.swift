@@ -21,14 +21,15 @@ struct MimicComparisonView: View {
 
   init(
     reference: PracticeSession, attempt: PracticeSession, comparison: MimicComparison,
-    initialMetric: String = "Pitch"
+    initialMetric: String = "Pitch", localeIdentifier: String? = nil
   ) {
     self.reference = reference
     self.attempt = attempt
     self.comparison = comparison
     focusReferenceWordIndex = CoachingPlanner.mimic(
       reference: reference, attempt: attempt,
-      pinnedTarget: attempt.savedTarget).focus?.referenceWordIndex
+      pinnedTarget: attempt.savedTarget,
+      localeIdentifier: localeIdentifier).focus?.referenceWordIndex
     _metric = State(initialValue: MimicMetric(rawValue: initialMetric) ?? .pitch)
   }
 
