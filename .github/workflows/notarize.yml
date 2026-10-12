@@ -1,6 +1,7 @@
 # Notarized direct download: Developer ID, inside-out Sparkle signing, notarize, staple, appcast.
+# The human download is a disk image with Ichido beside Applications. Sparkle stays on the zip.
 # - workflow_dispatch: same path, artifacts only. Does not create a GitHub Release.
-# - release.yml calls this on a v* tag with publish: true and publishes that stapled zip.
+# - release.yml calls this on a v* tag with publish: true and publishes the stapled zip and disk image.
 # Missing signing or notary secrets fail the job. There is no ad-hoc fallback.
 #
 # GitHub Actions secrets (names only; values stay out of the repo):
@@ -40,7 +41,7 @@ jobs:
   notarize:
     name: notarize
     runs-on: macos-26
-    timeout-minutes: 180
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
 
@@ -172,24 +173,6 @@ jobs:
           ./scripts/build-app.sh --developer-id "$SIGN_IDENTITY"
           test -d "build/Ichido.app"
 
-      - name: Delete temporary keychain
-        if: always()
-        run: |
-          set -euo pipefail
-          KEYCHAIN="${RUNNER_TEMP}/ichido-signing.keychain-db"
-          if [[ -f "${RUNNER_TEMP}/ichido-keychain-list.txt" ]]; then
-            set -f
-            security list-keychains -d user -s $(sed 's/"//g' "${RUNNER_TEMP}/ichido-keychain-list.txt") || true
-            set +f
-          fi
-          if [[ -f "$KEYCHAIN" ]]; then
-            security delete-keychain "$KEYCHAIN" || true
-          fi
-          rm -f \
-            "${RUNNER_TEMP}/developer-id.p12" \
-            "${RUNNER_TEMP}/AuthKey.p8" \
-            "${RUNNER_TEMP}/ichido-keychain-list.txt"
-
       - name: Zip app for notarization
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -211,47 +194,7 @@ jobs:
           NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER }}
         run: |
           set -euo pipefail
-          umask 077
-          ZIP="Ichido-${VERSION}-macOS.zip"
-          P8="${RUNNER_TEMP}/AuthKey.p8"
-          rm -f "$P8"
-          trap 'rm -f "$P8"' EXIT
-
-          if [[ "$NOTARY_KEY" == *"PRIVATE KEY"* ]]; then
-            printf '%s\n' "$NOTARY_KEY" > "$P8"
-          else
-            if ! printf '%s' "$NOTARY_KEY" | tr -d '[:space:]' | base64 -D > "$P8"; then
-              echo "NOTARY_KEY is neither a .p8 PEM nor valid base64." >&2
-              exit 1
-            fi
-          fi
-          if ! grep -q "PRIVATE KEY" "$P8"; then
-            echo "NOTARY_KEY must be the App Store Connect API .p8 PEM, or base64 of that file." >&2
-            exit 1
-          fi
-
-          submit_log="$(mktemp)"
-          set +e
-          xcrun notarytool submit "$ZIP" \
-            --key "$P8" \
-            --key-id "$NOTARY_KEY_ID" \
-            --issuer "$NOTARY_ISSUER" \
-            --wait \
-            --timeout 120m \
-            | tee "$submit_log"
-          status=${PIPESTATUS[0]}
-          set -e
-          if [[ "$status" -ne 0 ]]; then
-            submission_id="$(sed -n 's/^[[:space:]]*id:[[:space:]]*//p' "$submit_log")"
-            submission_id="${submission_id%%$'\n'*}"
-            if [[ "$submission_id" =~ ^[0-9a-fA-F-]{36}$ ]]; then
-              xcrun notarytool log "$submission_id" \
-                --key "$P8" \
-                --key-id "$NOTARY_KEY_ID" \
-                --issuer "$NOTARY_ISSUER" || true
-            fi
-            exit "$status"
-          fi
+          ./scripts/notarize-submit.sh "Ichido-${VERSION}-macOS.zip"
 
       - name: Staple and assess
         run: |
@@ -325,6 +268,14 @@ jobs:
           printf '%s' "${SPARKLE_ED25519_PRIVATE_KEY}" | \
             "${SPARKLE_BIN}/sign_update" --ed-key-file - --verify release-assets/appcast.xml
           xmllint --noout release-assets/appcast.xml
+          if ! grep -q "Ichido-${VERSION}-macOS.zip" release-assets/appcast.xml; then
+            echo "Appcast is missing the versioned zip." >&2
+            exit 1
+          fi
+          if grep -q '\.dmg' release-assets/appcast.xml; then
+            echo "Appcast must stay on the zip so updates replace the app in Applications." >&2
+            exit 1
+          fi
 
       - name: Add stable website download
         env:
@@ -335,6 +286,94 @@ jobs:
             release-assets/Ichido-macOS.zip
           cmp "release-assets/Ichido-${VERSION}-macOS.zip" \
             release-assets/Ichido-macOS.zip
+
+      - name: Build the drag-to-Applications disk image
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SIGN_IDENTITY:-}" || "${SIGN_IDENTITY}" == "-" ]]; then
+            echo "SIGN_IDENTITY is missing. Refusing an unsigned disk image." >&2
+            exit 1
+          fi
+          ./scripts/make-dmg.sh "build/Ichido.app" "release-assets/Ichido-${VERSION}-macOS.dmg"
+          codesign --force --sign "$SIGN_IDENTITY" --timestamp \
+            --keychain "${RUNNER_TEMP}/ichido-signing.keychain-db" \
+            "release-assets/Ichido-${VERSION}-macOS.dmg"
+          codesign --verify --verbose=2 "release-assets/Ichido-${VERSION}-macOS.dmg"
+
+      - name: Delete temporary keychain
+        if: always()
+        run: |
+          set -euo pipefail
+          KEYCHAIN="${RUNNER_TEMP}/ichido-signing.keychain-db"
+          if [[ -f "${RUNNER_TEMP}/ichido-keychain-list.txt" ]]; then
+            set -f
+            security list-keychains -d user -s $(sed 's/"//g' "${RUNNER_TEMP}/ichido-keychain-list.txt") || true
+            set +f
+          fi
+          if [[ -f "$KEYCHAIN" ]]; then
+            security delete-keychain "$KEYCHAIN" || true
+          fi
+          rm -f \
+            "${RUNNER_TEMP}/developer-id.p12" \
+            "${RUNNER_TEMP}/AuthKey.p8" \
+            "${RUNNER_TEMP}/ichido-keychain-list.txt"
+
+      - name: Notarize the disk image
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER }}
+        run: |
+          set -euo pipefail
+          ./scripts/notarize-submit.sh "release-assets/Ichido-${VERSION}-macOS.dmg"
+
+      - name: Staple the disk image
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          DMG="release-assets/Ichido-${VERSION}-macOS.dmg"
+          stapled=0
+          for attempt in 1 2 3 4 5; do
+            if xcrun stapler staple "$DMG"; then
+              stapled=1
+              break
+            fi
+            if [[ "$attempt" -lt 5 ]]; then
+              sleep 20
+            fi
+          done
+          if [[ "$stapled" -ne 1 ]]; then
+            echo "stapler staple failed for the disk image." >&2
+            exit 1
+          fi
+          xcrun stapler validate "$DMG"
+          accepted=0
+          spctl_out=""
+          for attempt in 1 2 3 4 5; do
+            if spctl_out="$(/usr/sbin/spctl -a -vvv -t open "$DMG" 2>&1)" \
+              && printf '%s\n' "$spctl_out" | grep -q "Notarized Developer ID"; then
+              accepted=1
+              break
+            fi
+            if [[ "$attempt" -lt 5 ]]; then
+              sleep 20
+            fi
+          done
+          printf '%s\n' "$spctl_out"
+          if [[ "$accepted" -ne 1 ]]; then
+            echo "spctl did not accept the disk image as Notarized Developer ID." >&2
+            exit 1
+          fi
+          cp "$DMG" release-assets/Ichido-macOS.dmg
+          cmp "$DMG" release-assets/Ichido-macOS.dmg
+          if grep -q '\.dmg' release-assets/appcast.xml; then
+            echo "Appcast must stay on the zip so updates replace the app in Applications." >&2
+            exit 1
+          fi
 
       - name: Upload notarized dry-run artifacts
         if: github.event_name == 'workflow_dispatch'
@@ -357,18 +396,21 @@ jobs:
             exit 1
           fi
           ZIP="release-assets/Ichido-${VERSION}-macOS.zip"
+          DMG="release-assets/Ichido-${VERSION}-macOS.dmg"
           test -s "${ZIP}"
           test -s release-assets/Ichido-macOS.zip
+          test -s "${DMG}"
+          test -s release-assets/Ichido-macOS.dmg
           test -s release-assets/appcast.xml
           NOTES="$(mktemp)"
           TAG_MSG="$(git tag -l --format='%(contents)' "${TAG}" | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d')"
           TAG_MSG="${TAG_MSG%"${TAG_MSG##*[![:space:]]}"}"
           {
-            echo "This download is signed with Developer ID and notarized by Apple. Unzip it and move **Ichido.app** to Applications."
+            echo "This download is signed with Developer ID and notarized by Apple. Open the disk image and drag **Ichido** to Applications."
             echo
             echo "It is a direct download, not a Mac App Store install."
             echo
-            echo "The zip does **not** include the Parakeet / NeMo-Speech model. On-device transcription is an optional later download (**Settings → Transcription**)."
+            echo "The download does **not** include the Parakeet / NeMo-Speech model. On-device transcription is an optional later download (**Settings → Transcription**)."
             echo
             if [[ -n "${TAG_MSG}" ]]; then
               echo "## Tag message"
@@ -377,7 +419,7 @@ jobs:
               echo
             fi
           } > "${NOTES}"
-          gh release create "${TAG}" "${ZIP}" release-assets/Ichido-macOS.zip release-assets/appcast.xml \
+          gh release create "${TAG}" "${ZIP}" release-assets/Ichido-macOS.zip "${DMG}" release-assets/Ichido-macOS.dmg release-assets/appcast.xml \
             --title "Ichido ${VERSION}" \
             --notes-file "${NOTES}" \
             --latest \
