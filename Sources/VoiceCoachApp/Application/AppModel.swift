@@ -10,6 +10,7 @@ final class AppModel: ObservableObject {
   @Published var selectedSessionID: UUID?
   @Published var selectedTakeID: UUID?
   @Published var dismissedRetryCardTakeIDs: Set<UUID> = []
+  @Published var skippedRetryCardTakeIDs: Set<UUID> = []
   @Published var pendingReplaceOnly: ReplaceOnlyPrompt?
   @Published var lastUsedMimicID: UUID?
   @Published var isRecording = false

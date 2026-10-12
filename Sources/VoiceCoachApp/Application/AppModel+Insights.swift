@@ -25,6 +25,10 @@ extension AppModel {
 
   func dismissRetryCard(for takeID: UUID) { dismissedRetryCardTakeIDs.insert(takeID) }
 
+  func skipRetryCard(for takeID: UUID) { skippedRetryCardTakeIDs.insert(takeID) }
+
+  func showRetryCard(for takeID: UUID) { skippedRetryCardTakeIDs.remove(takeID) }
+
   func tryAgain(take: PracticeSession, in session: CoachingSession) {
     let plan = coachingPlan(for: take, in: session)
     if session.isMimic, let focus = plan.focus {

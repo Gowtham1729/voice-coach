@@ -42,7 +42,19 @@ struct OneTargetRetryCard: View {
       }
     }()
     Group {
-      if !model.dismissedRetryCardTakeIDs.contains(take.id) {
+      if model.skippedRetryCardTakeIDs.contains(take.id) {
+        HStack(spacing: 12) {
+          Text(OneTargetRetryStrings.skipped)
+            .foregroundStyle(Studio.secondary)
+          Button(OneTargetRetryStrings.show) { model.showRetryCard(for: take.id) }
+            .buttonStyle(.plain)
+            .foregroundStyle(Studio.accent)
+        }
+        .font(.callout)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+      } else if !model.dismissedRetryCardTakeIDs.contains(take.id) {
         VStack(alignment: .leading, spacing: 14) {
           Text(line(for: plan))
             .font(.body.weight(.medium))
@@ -74,7 +86,7 @@ struct OneTargetRetryCard: View {
           }
 
           HStack(spacing: 16) {
-            if hasCue && evaluation?.verdict != .closeEnough {
+            if isReference && hasCue && evaluation?.verdict != .closeEnough {
               Button(OneTargetRetryStrings.tryAgain) {
                 model.tryAgain(take: take, in: session)
               }
@@ -84,16 +96,16 @@ struct OneTargetRetryCard: View {
               Button(OneTargetRetryStrings.replayBoth) { model.replayBoth() }
                 .studioGlassButton(prominent: true)
                 .disabled(model.isRecording || model.isAnalyzing)
-            } else {
+            } else if !hasCue {
               Button(OneTargetRetryStrings.addReference) {
                 model.useCurrentRecordingAsMimicReference()
               }
-              .studioGlassButton(prominent: true)
+              .studioGlassButton()
               .disabled(model.isRecording || model.isAnalyzing)
             }
 
             if hasCue && evaluation?.verdict != .closeEnough {
-              Button(OneTargetRetryStrings.skip) { model.dismissRetryCard(for: take.id) }
+              Button(OneTargetRetryStrings.skip) { model.skipRetryCard(for: take.id) }
                 .buttonStyle(.plain)
                 .foregroundStyle(Studio.secondary)
               Button(OneTargetRetryStrings.thatWasOnPurpose) {

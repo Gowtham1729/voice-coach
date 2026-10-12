@@ -152,11 +152,19 @@ struct RecordingCreationTests {
     let take = PracticeSession(
       id: takeID, audioURL: url, result: try AudioAnalyzer().analyze(url: url))
 
+    let earlierTakeID = UUID()
+    model.skipRetryCard(for: earlierTakeID)
+    #expect(model.skippedRetryCardTakeIDs.count == 1)
+    model.showRetryCard(for: earlierTakeID)
+    #expect(model.skippedRetryCardTakeIDs.isEmpty)
+    model.skipRetryCard(for: earlierTakeID)
+
     model.append(take)
 
     #expect(model.sessions.first?.id == mimicID)
     #expect(model.selectedTakeID == takeID)
     #expect(model.destination == .practice(mimicID))
+    #expect(model.skippedRetryCardTakeIDs.isEmpty)
     #expect(try model.store.load().first?.takes.first?.id == takeID)
   }
 
