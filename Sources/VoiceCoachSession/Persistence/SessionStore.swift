@@ -16,44 +16,111 @@ package protocol SessionStoring: AnyObject {
 }
 
 /// On-disk library index. Heavy analysis lives in per-take `*.analysis.json` files.
-private struct ThinLibraryDocument: Codable {
-  let schemaVersion: Int
-  let sessions: [StoredSession]
+package struct ThinLibraryDocument: Codable {
+  package let schemaVersion: Int
+  package let sessions: [StoredSession]
+
+  package init(schemaVersion: Int, sessions: [StoredSession]) {
+    self.schemaVersion = schemaVersion
+    self.sessions = sessions
+  }
 }
 
-private struct FatLibraryDocument: Codable {
-  let schemaVersion: Int
-  let sessions: [CoachingSession]
+package struct FatLibraryDocument: Codable {
+  package let schemaVersion: Int
+  package let sessions: [CoachingSession]
+
+  package init(schemaVersion: Int, sessions: [CoachingSession]) {
+    self.schemaVersion = schemaVersion
+    self.sessions = sessions
+  }
 }
 
-private struct StoredSession: Codable {
-  let id: UUID
-  var name: String
-  let createdAt: Date
-  var updatedAt: Date
-  var mode: PracticeMode
-  var prompt: String
-  var keepsRecordings: Bool
-  var takes: [StoredTake]
-  var mimicReference: StoredMimicReference?
-  var mimicStyle: MimicStyle?
-  var mimicAttemptStyles: [UUID: MimicStyle]?
-  var archived: Bool?
-  var transcriptionLocaleIdentifier: String?
+package struct StoredSession: Codable {
+  package let id: UUID
+  package var name: String
+  package let createdAt: Date
+  package var updatedAt: Date
+  package var mode: PracticeMode
+  package var prompt: String
+  package var keepsRecordings: Bool
+  package var takes: [StoredTake]
+  package var mimicReference: StoredMimicReference?
+  package var mimicStyle: MimicStyle?
+  package var mimicAttemptStyles: [UUID: MimicStyle]?
+  package var archived: Bool?
+  package var transcriptionLocaleIdentifier: String?
+
+  package init(
+    id: UUID,
+    name: String,
+    createdAt: Date,
+    updatedAt: Date,
+    mode: PracticeMode,
+    prompt: String,
+    keepsRecordings: Bool,
+    takes: [StoredTake],
+    mimicReference: StoredMimicReference? = nil,
+    mimicStyle: MimicStyle? = nil,
+    mimicAttemptStyles: [UUID: MimicStyle]? = nil,
+    archived: Bool? = nil,
+    transcriptionLocaleIdentifier: String? = nil
+  ) {
+    self.id = id
+    self.name = name
+    self.createdAt = createdAt
+    self.updatedAt = updatedAt
+    self.mode = mode
+    self.prompt = prompt
+    self.keepsRecordings = keepsRecordings
+    self.takes = takes
+    self.mimicReference = mimicReference
+    self.mimicStyle = mimicStyle
+    self.mimicAttemptStyles = mimicAttemptStyles
+    self.archived = archived
+    self.transcriptionLocaleIdentifier = transcriptionLocaleIdentifier
+  }
 }
 
-private struct StoredTake: Codable {
-  let id: UUID
-  let createdAt: Date
-  let audioFileName: String
-  let source: TakeSource?
+package struct StoredTake: Codable, Equatable {
+  package let id: UUID
+  package let createdAt: Date
+  package let audioFileName: String
+  package let source: TakeSource?
+  package var savedTarget: TargetFocus?
+
+  package init(
+    id: UUID,
+    createdAt: Date,
+    audioFileName: String,
+    source: TakeSource? = nil,
+    savedTarget: TargetFocus? = nil
+  ) {
+    self.id = id
+    self.createdAt = createdAt
+    self.audioFileName = audioFileName
+    self.source = source
+    self.savedTarget = savedTarget
+  }
 }
 
-private struct StoredMimicReference: Codable {
-  var sourceName: String
-  var sourceStart: Double
-  var sourceEnd: Double
-  var take: StoredTake
+package struct StoredMimicReference: Codable {
+  package var sourceName: String
+  package var sourceStart: Double
+  package var sourceEnd: Double
+  package var take: StoredTake
+
+  package init(
+    sourceName: String,
+    sourceStart: Double,
+    sourceEnd: Double,
+    take: StoredTake
+  ) {
+    self.sourceName = sourceName
+    self.sourceStart = sourceStart
+    self.sourceEnd = sourceEnd
+    self.take = take
+  }
 }
 
 private struct TakeAnalysisDocument: Codable {
@@ -244,7 +311,8 @@ package final class SessionStore: SessionStoring {
       id: take.id,
       createdAt: take.createdAt,
       audioFileName: take.audioURL.lastPathComponent,
-      source: take.source
+      source: take.source,
+      savedTarget: take.savedTarget
     )
   }
 
@@ -283,7 +351,8 @@ package final class SessionStore: SessionStoring {
       source: stored.source,
       result: analysis.result,
       transcription: analysis.transcription,
-      words: analysis.words
+      words: analysis.words,
+      savedTarget: stored.savedTarget
     )
   }
 

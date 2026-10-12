@@ -5,11 +5,26 @@ import Foundation
 public struct CoachingPlan: Equatable, Sendable {
   public let signals: [CoachingSignal]
   public let notice: String?
+  public let targetFocus: TargetFocus?
+  public let retryEvaluation: RetryEvaluation?
+  public let plainTakeCue: PlainTakeCue?
 
-  public init(signals: [CoachingSignal] = [], notice: String? = nil) {
+  public init(
+    signals: [CoachingSignal] = [],
+    notice: String? = nil,
+    targetFocus: TargetFocus? = nil,
+    retryEvaluation: RetryEvaluation? = nil,
+    plainTakeCue: PlainTakeCue? = nil
+  ) {
     self.signals = signals
     self.notice = notice
+    self.targetFocus = targetFocus
+    self.retryEvaluation = retryEvaluation
+    self.plainTakeCue = plainTakeCue
   }
+
+  /// Convenience accessor for the single target focus.
+  public var focus: TargetFocus? { targetFocus ?? signals.first?.focus }
 }
 
 public struct CoachingSignal: Equatable, Sendable {
@@ -20,10 +35,12 @@ public struct CoachingSignal: Equatable, Sendable {
   public let progress: String?
   /// Terms a model-written action must retain. The observed fact is never model-written.
   public let actionTerms: [String]
+  public let focus: TargetFocus?
 
   public init(
     id: String, title: String, observation: String, action: String,
-    progress: String? = nil, actionTerms: [String]
+    progress: String? = nil, actionTerms: [String],
+    focus: TargetFocus? = nil
   ) {
     self.id = id
     self.title = title
@@ -31,6 +48,7 @@ public struct CoachingSignal: Equatable, Sendable {
     self.action = action
     self.progress = progress
     self.actionTerms = actionTerms
+    self.focus = focus
   }
 }
 
@@ -68,8 +86,20 @@ public enum CoachingPlanner {
     return "\(measured) Pitch and pause estimates may be unreliable."
   }
 
+  public static func isConfidenceAcceptable(_ word: TranscriptWord) -> Bool {
+    guard let c = word.confidence else { return true }
+    return c >= 0.5
+  }
+
+  public static func isConfidenceAcceptable(_ pair: MimicWordPair) -> Bool {
+    isConfidenceAcceptable(pair.reference) && isConfidenceAcceptable(pair.attempt)
+  }
+
   public static func mimic(
-    reference: PracticeSession, attempt: PracticeSession, previous: PracticeSession? = nil
+    reference: PracticeSession,
+    attempt: PracticeSession,
+    previous: PracticeSession? = nil,
+    pinnedTarget: TargetFocus? = nil
   ) -> CoachingPlan {
     let comparison = MimicComparison.compare(reference: reference, attempt: attempt)
     guard comparison.correspondenceReliable, comparison.pairs.count >= 5 else {
@@ -80,7 +110,21 @@ public enum CoachingPlanner {
       default:
         notice = "Word matching is too limited for a reference comparison."
       }
+      if let pinned = pinnedTarget {
+        let eval = evaluateRetry(reference: reference, attempt: attempt, pinnedTarget: pinned)
+        return CoachingPlan(notice: notice, targetFocus: pinned, retryEvaluation: eval)
+      }
       return CoachingPlan(notice: notice)
+    }
+
+    if let pinned = pinnedTarget {
+      let eval = evaluateRetry(reference: reference, attempt: attempt, pinnedTarget: pinned)
+      return CoachingPlan(
+        signals: [],
+        notice: nil,
+        targetFocus: pinned,
+        retryEvaluation: eval
+      )
     }
 
     let prior = previous.map { MimicComparison.compare(reference: reference, attempt: $0) }
@@ -129,13 +173,43 @@ public enum CoachingPlanner {
         priority = 0.8
         progress = driftProgress
       }
+
+      let timingFocus: TargetFocus? = {
+        guard substantial || uneven else { return nil }
+        if let transition,
+          let pair = comparison.pairs.first(where: { $0.word == transition && isConfidenceAcceptable($0) })
+        {
+          return TargetFocus(
+            referenceWordIndex: pair.referenceIndex,
+            word: pair.word,
+            kind: .timing,
+            gap: abs(drift) / 1_000.0,
+            referenceRange: pair.reference.start...pair.reference.end,
+            takeRange: pair.attempt.start...pair.attempt.end,
+            isPhrase: true
+          )
+        } else if let first = comparison.pairs.first, let last = comparison.pairs.last {
+          return TargetFocus(
+            referenceWordIndex: first.referenceIndex,
+            word: first.word,
+            kind: .timing,
+            gap: abs(drift) / 1_000.0,
+            referenceRange: first.reference.start...last.reference.end,
+            takeRange: first.attempt.start...last.attempt.end,
+            isPhrase: true
+          )
+        }
+        return nil
+      }()
+
       candidates.append((priority,
         CoachingSignal(
           id: "mimic.timing", title: "Phrase timing", observation: observation, action: action,
           progress: progress,
           actionTerms: transition.map {
             [normalized($0), "timing|pace|sooner|later", "phrase|across|throughout"]
-          } ?? ["pace|timing", "phrase|across|throughout"]
+          } ?? ["pace|timing", "phrase|across|throughout"],
+          focus: timingFocus
         )))
     }
 
@@ -147,6 +221,15 @@ public enum CoachingPlanner {
       let medianGap = median(pattern.map { abs($0.delta) })
       let anchor = examples[0].pair.word
       let exampleText = patternExampleText(examples, unit: "st")
+      let pitchPatternFocus = TargetFocus(
+        referenceWordIndex: examples[0].pair.referenceIndex,
+        word: anchor,
+        kind: .pitch,
+        gap: abs(examples[0].delta),
+        referenceRange: examples[0].pair.reference.start...examples[0].pair.reference.end,
+        takeRange: examples[0].pair.attempt.start...examples[0].pair.attempt.end,
+        isPhrase: true
+      )
       candidates.append((4.5 + medianGap / 3, CoachingSignal(
         id: "mimic.pitchPattern", title: "Pitch across the phrase",
         observation: "Relative pitch differed by at least 2.5 st on \(pattern.count) of \(pitchGaps.count) measured content words; \(exampleText).",
@@ -154,7 +237,8 @@ public enum CoachingPlanner {
         progress: patternProgress(
           pattern, previous: previous, previousComparison: previousComparison,
           reference: reference, kind: .pitch, unit: "st", tolerance: 0.5),
-        actionTerms: [normalized(anchor), "pitch", "phrase|across|throughout"]
+        actionTerms: [normalized(anchor), "pitch", "phrase|across|throughout"],
+        focus: pitchPatternFocus
       )))
     } else if let pitch = pitchGaps.max(by: { abs($0.delta) < abs($1.delta) }) {
       let delta = pitch.delta
@@ -174,6 +258,15 @@ public enum CoachingPlanner {
       let actionTerms = needsAdjustment
         ? [normalized(word), "pitch", delta < 0 ? "lift|raise|higher" : "lower|drop"]
         : [normalized(word), "pitch"]
+      let pitchFocus = needsAdjustment ? TargetFocus(
+        referenceWordIndex: pitch.pair.referenceIndex,
+        word: word,
+        kind: .pitch,
+        gap: abs(delta),
+        referenceRange: pitch.pair.reference.start...pitch.pair.reference.end,
+        takeRange: pitch.pair.attempt.start...pitch.pair.attempt.end,
+        isPhrase: false
+      ) : nil
       candidates.append((needsAdjustment ? 4 + abs(delta) / 3 : 0.7, CoachingSignal(
         id: "mimic.pitch.\(pitch.pair.referenceIndex)", title: "Pitch on “\(word)”",
         observation: observation,
@@ -182,7 +275,8 @@ public enum CoachingPlanner {
           mimicProgress(previousGap: abs($0), currentGap: abs(delta), unit: "st",
             tolerance: 0.5)
         },
-        actionTerms: actionTerms
+        actionTerms: actionTerms,
+        focus: pitchFocus
       )))
     }
 
@@ -194,6 +288,15 @@ public enum CoachingPlanner {
       let medianGap = median(pattern.map { abs($0.delta) })
       let anchor = examples[0].pair.word
       let exampleText = patternExampleText(examples, unit: "dB")
+      let energyPatternFocus = TargetFocus(
+        referenceWordIndex: examples[0].pair.referenceIndex,
+        word: anchor,
+        kind: .loudness,
+        gap: abs(examples[0].delta),
+        referenceRange: examples[0].pair.reference.start...examples[0].pair.reference.end,
+        takeRange: examples[0].pair.attempt.start...examples[0].pair.attempt.end,
+        isPhrase: true
+      )
       candidates.append((3.5 + medianGap / 4, CoachingSignal(
         id: "mimic.emphasisPattern", title: "Emphasis across the phrase",
         observation: "Relative word energy differed by at least 3.5 dB on \(pattern.count) of \(energyGaps.count) measured content words; \(exampleText).",
@@ -201,7 +304,8 @@ public enum CoachingPlanner {
         progress: patternProgress(
           pattern, previous: previous, previousComparison: previousComparison,
           reference: reference, kind: .energy, unit: "dB", tolerance: 1),
-        actionTerms: [normalized(anchor), "emphasis|stress", "phrase|across|throughout"]
+        actionTerms: [normalized(anchor), "emphasis|stress", "phrase|across|throughout"],
+        focus: energyPatternFocus
       )))
     } else if let energy = energyGaps.max(by: { abs($0.delta) < abs($1.delta) }) {
       let delta = energy.delta
@@ -221,6 +325,15 @@ public enum CoachingPlanner {
       let actionTerms = needsAdjustment
         ? [normalized(word), delta < 0 ? "strengthen|stress|emphas" : "soften|less|reduce"]
         : [normalized(word), "emphasis|stress"]
+      let energyFocus = needsAdjustment ? TargetFocus(
+        referenceWordIndex: energy.pair.referenceIndex,
+        word: word,
+        kind: .loudness,
+        gap: abs(delta),
+        referenceRange: energy.pair.reference.start...energy.pair.reference.end,
+        takeRange: energy.pair.attempt.start...energy.pair.attempt.end,
+        isPhrase: false
+      ) : nil
       candidates.append((needsAdjustment ? 3 + abs(delta) / 4 : 0.6, CoachingSignal(
         id: "mimic.emphasis.\(energy.pair.referenceIndex)", title: "Emphasis on “\(word)”",
         observation: observation,
@@ -229,12 +342,210 @@ public enum CoachingPlanner {
           mimicProgress(previousGap: abs($0), currentGap: abs(delta), unit: "dB",
             tolerance: 1)
         },
-        actionTerms: actionTerms
+        actionTerms: actionTerms,
+        focus: energyFocus
       )))
     }
 
     candidates.sort { $0.priority > $1.priority }
-    return CoachingPlan(signals: Array(candidates.prefix(2).map(\.signal)))
+    let topTarget = candidates.first(where: { $0.priority >= 3.0 })?.signal.focus
+    return CoachingPlan(
+      signals: Array(candidates.prefix(2).map(\.signal)),
+      targetFocus: topTarget
+    )
+  }
+
+  // MARK: - Retry Evaluation
+
+  public static func evaluateRetry(
+    reference: PracticeSession,
+    attempt: PracticeSession,
+    pinnedTarget: TargetFocus
+  ) -> RetryEvaluation {
+    let comparison = MimicComparison.compare(reference: reference, attempt: attempt)
+
+    let cueCopy: String
+    switch pinnedTarget.kind {
+    case .pitch:
+      cueCopy = OneTargetRetryStrings.pitchCue(word: pinnedTarget.word)
+    case .loudness:
+      cueCopy = OneTargetRetryStrings.loudnessCue(phrase: pinnedTarget.word)
+    case .timing:
+      cueCopy = OneTargetRetryStrings.timingCue(phrase: pinnedTarget.word)
+    }
+
+    guard let pair = comparison.pairs.first(where: { $0.referenceIndex == pinnedTarget.referenceWordIndex }) else {
+      return RetryEvaluation(
+        target: pinnedTarget,
+        verdict: .notFound,
+        newGap: nil,
+        newTakeRange: nil,
+        verdictCopy: OneTargetRetryStrings.wordNotFound(word: pinnedTarget.word),
+        cueCopy: cueCopy
+      )
+    }
+
+    let newTakeRange = pair.attempt.start...pair.attempt.end
+
+    let currentGap: Double?
+    switch pinnedTarget.kind {
+    case .pitch:
+      currentGap = validDelta(pair, reference: reference, attempt: attempt, kind: .pitch).map { abs($0) }
+    case .loudness:
+      currentGap = validDelta(pair, reference: reference, attempt: attempt, kind: .energy).map { abs($0) }
+    case .timing:
+      if pinnedTarget.isPhrase, let timing = timingSummary(comparison.pairs) {
+        currentGap = abs(timing.driftMs) / 1_000.0
+      } else {
+        let refDur = pair.reference.end - pair.reference.start
+        let attDur = pair.attempt.end - pair.attempt.start
+        currentGap = abs(attDur - refDur)
+      }
+    }
+
+    guard let measuredGap = currentGap else {
+      return RetryEvaluation(
+        target: pinnedTarget,
+        verdict: .notFound,
+        newGap: nil,
+        newTakeRange: newTakeRange,
+        verdictCopy: OneTargetRetryStrings.wordNotFound(word: pinnedTarget.word),
+        cueCopy: cueCopy
+      )
+    }
+
+    guard comparison.correspondenceReliable else {
+      return RetryEvaluation(
+        target: pinnedTarget,
+        verdict: .withinNoise,
+        newGap: measuredGap,
+        newTakeRange: newTakeRange,
+        verdictCopy: OneTargetRetryStrings.withinNoiseVerdict,
+        cueCopy: cueCopy
+      )
+    }
+
+    let targetThreshold: Double
+    let retryThreshold: Double
+    switch pinnedTarget.kind {
+    case .pitch:
+      targetThreshold = RetryThresholds.targetPitchSemitones
+      retryThreshold = RetryThresholds.clearlyCloserPitchSemitones
+    case .loudness:
+      targetThreshold = RetryThresholds.targetLoudnessDB
+      retryThreshold = RetryThresholds.clearlyCloserLoudnessDB
+    case .timing:
+      if pinnedTarget.isPhrase {
+        targetThreshold = RetryThresholds.targetPhraseTimingSeconds
+        retryThreshold = RetryThresholds.clearlyCloserPhraseTimingSeconds
+      } else {
+        targetThreshold = RetryThresholds.targetWordTimingSeconds
+        retryThreshold = RetryThresholds.clearlyCloserWordTimingSeconds
+      }
+    }
+
+    if measuredGap < targetThreshold {
+      return RetryEvaluation(
+        target: pinnedTarget,
+        verdict: .closeEnough,
+        newGap: measuredGap,
+        newTakeRange: newTakeRange,
+        verdictCopy: OneTargetRetryStrings.closeEnoughVerdict(target: pinnedTarget.word),
+        cueCopy: cueCopy
+      )
+    }
+
+    let shrink = pinnedTarget.gap - measuredGap
+    if shrink >= retryThreshold {
+      return RetryEvaluation(
+        target: pinnedTarget,
+        verdict: .held,
+        newGap: measuredGap,
+        newTakeRange: newTakeRange,
+        verdictCopy: OneTargetRetryStrings.closerVerdict(target: pinnedTarget.word),
+        cueCopy: cueCopy
+      )
+    } else if (measuredGap - pinnedTarget.gap) >= retryThreshold {
+      return RetryEvaluation(
+        target: pinnedTarget,
+        verdict: .otherWay,
+        newGap: measuredGap,
+        newTakeRange: newTakeRange,
+        verdictCopy: nil,
+        cueCopy: cueCopy
+      )
+    } else {
+      return RetryEvaluation(
+        target: pinnedTarget,
+        verdict: .withinNoise,
+        newGap: measuredGap,
+        newTakeRange: newTakeRange,
+        verdictCopy: OneTargetRetryStrings.withinNoiseVerdict,
+        cueCopy: cueCopy
+      )
+    }
+  }
+
+  // MARK: - Plain Take Pause Cue
+
+  public static func plainTakeCue(
+    words: [TranscriptWord],
+    takeDuration: Double? = nil
+  ) -> PlainTakeCue? {
+    guard words.count >= 2 else { return nil }
+
+    var longestGap: Double = 0
+    var bestIndex: Int?
+
+    for i in 0..<(words.count - 1) {
+      let gap = words[i + 1].start - words[i].end
+      if gap > longestGap {
+        longestGap = gap
+        bestIndex = i
+      }
+    }
+
+    guard longestGap >= RetryThresholds.plainPauseFloorSeconds, let idx = bestIndex else {
+      return nil
+    }
+
+    let prevWord = words[idx]
+    let nextWord = words[idx + 1]
+    let pauseRange = prevWord.end...nextWord.start
+    let spanRange = prevWord.end...nextWord.end
+
+    let pad = 0.150
+    let playStart = max(0, prevWord.end - pad)
+    let maxEnd = takeDuration ?? (nextWord.end + pad)
+    let playEnd = min(maxEnd, nextWord.end + pad)
+    let playbackRange = playStart...playEnd
+
+    let text = OneTargetRetryStrings.plainPauseCue(word: nextWord.word)
+
+    return PlainTakeCue(
+      followingWord: nextWord.word,
+      followingWordIndex: idx + 1,
+      pauseDurationSeconds: longestGap,
+      pauseRange: pauseRange,
+      cueSpanRange: spanRange,
+      playbackRange: playbackRange,
+      cueText: text
+    )
+  }
+
+  public static func plainTakeCue(for take: PracticeSession) -> PlainTakeCue? {
+    guard let words = take.transcription?.words else { return nil }
+    return plainTakeCue(words: words, takeDuration: take.result.metrics.duration)
+  }
+
+  public static func recording(take: PracticeSession) -> CoachingPlan {
+    let basePlan = recording(current: take.result.metrics)
+    let cue = plainTakeCue(for: take)
+    return CoachingPlan(
+      signals: basePlan.signals,
+      notice: basePlan.notice,
+      plainTakeCue: cue
+    )
   }
 
   private enum WordGapKind { case pitch, energy }
@@ -249,6 +560,7 @@ public enum CoachingPlanner {
   ) -> [WordGap] {
     pairs.compactMap { pair -> WordGap? in
       guard isPracticeWord(pair.word),
+        isConfidenceAcceptable(pair),
         let delta = validDelta(pair, reference: reference, attempt: attempt, kind: kind)
       else { return nil }
       return WordGap(pair: pair, delta: delta)
@@ -361,7 +673,9 @@ public enum CoachingPlanner {
       let step = offsets[index] - offsets[index - 1]
       return drift >= 0 ? step : -step
     }
-    let largest = offsets.indices.dropFirst().max {
+    let largest = offsets.indices.dropFirst().filter {
+      isConfidenceAcceptable(pairs[$0])
+    }.max {
       directionalSlip(at: $0) < directionalSlip(at: $1)
     }
     let slipWord = largest.flatMap {
@@ -370,7 +684,9 @@ public enum CoachingPlanner {
     let largeTransitions = offsets.indices.dropFirst().filter {
       abs(offsets[$0] - offsets[$0 - 1]) >= 180
     }
-    let largestVariation = offsets.indices.dropFirst().max {
+    let largestVariation = offsets.indices.dropFirst().filter {
+      isConfidenceAcceptable(pairs[$0])
+    }.max {
       abs(offsets[$0] - offsets[$0 - 1]) < abs(offsets[$1] - offsets[$1 - 1])
     }
     let spread = largeTransitions.first.flatMap { first in

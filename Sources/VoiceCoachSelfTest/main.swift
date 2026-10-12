@@ -1,5 +1,6 @@
 import Foundation
 import VoiceCoachCore
+import VoiceCoachSession
 
 #if canImport(AVFoundation)
   import AVFoundation
@@ -70,6 +71,291 @@ private func verifyCoachingPlan() throws {
   try check(
     CoachingActionRules.accepted("Raise pitch exactly 5 semitones.", for: sample) == nil,
     "Model wording accepted an invented numerical target"
+  )
+}
+
+private func makeMimicTestTake(
+  tokens: [String] = ["Every", "speaker", "should", "shape", "important", "words"],
+  starts: [Double] = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3],
+  durations: [Double]? = nil,
+  pitchByWord: [Int: Double] = [:],
+  energyByWord: [Int: Double] = [:],
+  confidences: [Int: Double] = [:],
+  result: AnalysisResult
+) -> PracticeSession {
+  let transcriptWords = zip(tokens, starts).enumerated().map { index, pair in
+    let (token, start) = pair
+    let dur = durations?[index] ?? 0.25
+    let conf = confidences[index] ?? 0.95
+    return TranscriptWord(word: token, start: start, end: start + dur, confidence: conf)
+  }
+  let words = transcriptWords.enumerated().map { index, word in
+    WordAnalysis(
+      word: word.word, start: word.start, end: word.end,
+      pitch: WordPitchMetrics(
+        medianHz: 160,
+        relativeMedianSemitones: pitchByWord[index] ?? 0,
+        rangeSemitones: 2, startToEndSemitones: 0,
+        validPitchFrames: 15, pitchCoverage: 0.9),
+      loudness: WordLoudnessMetrics(
+        relativeMeanDB: energyByWord[index] ?? 0,
+        startToEndDB: 0, activeFrameCoverage: 0.9)
+    )
+  }
+  let cleanResult = AnalysisResult(
+    createdAt: Date(),
+    metrics: coachingMetrics(pitchRangeSemitones: 8.0),
+    loudnessContour: result.loudnessContour,
+    pitchContour: result.pitchContour,
+    waveform: result.waveform,
+    spectrogram: result.spectrogram
+  )
+  return PracticeSession(
+    audioURL: URL(fileURLWithPath: "/tmp/\(UUID().uuidString).wav"),
+    result: cleanResult,
+    transcription: TranscriptionResult(text: tokens.joined(separator: " "), words: transcriptWords),
+    words: words
+  )
+}
+
+private func verifyPlainTakeCue() throws {
+  // 1. cue at the right word/range
+  let words = [
+    TranscriptWord(word: "hello", start: 0.5, end: 1.0),
+    TranscriptWord(word: "about", start: 2.2, end: 2.6),
+  ]
+  let cue = CoachingPlanner.plainTakeCue(words: words, takeDuration: 3.0)
+  try check(cue != nil, "Plain take with 1.2 s pause produced no cue")
+  try check(cue?.followingWord == "about", "Plain take pause cue did not target 'about'")
+  try check(cue?.followingWordIndex == 1, "Plain take pause cue word index incorrect")
+  try check(abs((cue?.pauseDurationSeconds ?? 0) - 1.2) < 0.01, "Plain take pause duration was not 1.2 s")
+  try check(cue?.pauseRange == 1.0...2.2, "Plain take pauseRange incorrect")
+  try check(cue?.cueSpanRange == 1.0...2.6, "Plain take cueSpanRange incorrect")
+  try check(abs((cue?.playbackRange.lowerBound ?? 0) - 0.85) < 0.01, "Plain take playback start incorrect")
+  try check(abs((cue?.playbackRange.upperBound ?? 0) - 2.75) < 0.01, "Plain take playback end incorrect")
+  try check(cue?.cueText == "You paused before ‘about’.", "Plain take cue copy mismatch")
+
+  // 2. no cue below the floor (0.6 s)
+  let shortPauseWords = [
+    TranscriptWord(word: "hello", start: 0.5, end: 1.0),
+    TranscriptWord(word: "world", start: 1.4, end: 1.8), // gap 0.4 s < 0.6 s floor
+  ]
+  try check(CoachingPlanner.plainTakeCue(words: shortPauseWords) == nil, "Pause below 0.6 s floor produced a cue")
+
+  // 3. leading/trailing silence ignored
+  let silenceWords = [
+    TranscriptWord(word: "hello", start: 2.5, end: 3.0), // 2.5 s leading silence ignored
+    TranscriptWord(word: "world", start: 3.3, end: 3.8),  // gap 0.3 s < 0.6 s floor
+  ]
+  try check(
+    CoachingPlanner.plainTakeCue(words: silenceWords, takeDuration: 8.0) == nil,
+    "Leading or trailing silence triggered a pause cue"
+  )
+}
+
+private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
+  let refStarts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+  let reference = makeMimicTestTake(starts: refStarts, result: steadyResult)
+
+  // 1. Focus time range correct
+  let attStarts = [0.4, 0.8, 1.2, 1.6, 2.05, 2.5]
+  let attempt = makeMimicTestTake(
+    starts: attStarts,
+    pitchByWord: [4: 4.0], // "important" pitch delta 4.0 st >= 2.5 st
+    result: steadyResult
+  )
+  let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt)
+  try check(plan.targetFocus != nil, "Mimic plan did not produce a target focus")
+  guard let focus = plan.targetFocus else { return }
+  try check(focus.word == "important", "Target word was not 'important'")
+  try check(focus.referenceWordIndex == 4, "Target reference index was not 4")
+  try check(focus.kind == .pitch, "Target kind was not pitch")
+  try check(abs(focus.gap - 4.0) < 0.01, "Target gap was not 4.0")
+  try check(focus.referenceRange == 1.9...2.15, "Target referenceRange was not 1.9...2.15")
+  try check(focus.takeRange == 2.05...2.3, "Target takeRange was not 2.05...2.3")
+
+  // 2. Low-confidence word skipped (< 0.5)
+  let lowConfAttempt = makeMimicTestTake(
+    starts: attStarts,
+    pitchByWord: [1: 3.0, 4: 5.0], // "important" has bigger gap 5.0, but confidence 0.4
+    confidences: [1: 0.95, 4: 0.4],
+    result: steadyResult
+  )
+  let lowConfPlan = CoachingPlanner.mimic(reference: reference, attempt: lowConfAttempt)
+  try check(
+    lowConfPlan.targetFocus?.word == "speaker",
+    "Candidate word with confidence < 0.5 was not skipped"
+  )
+
+  // 3. Zero-target state (nothing clears the bar)
+  let closeAttempt = makeMimicTestTake(
+    starts: refStarts,
+    pitchByWord: [4: 0.5], // 0.5 st < 2.5 st threshold
+    energyByWord: [1: 0.5], // 0.5 dB < 3.5 dB threshold
+    result: steadyResult
+  )
+  let zeroPlan = CoachingPlanner.mimic(reference: reference, attempt: closeAttempt)
+  try check(zeroPlan.targetFocus == nil, "Zero-target state expected nil targetFocus")
+  try check(zeroPlan.focus == nil, "Zero-target state expected nil focus")
+
+  // 4. Same target kept after retry
+  let pinnedTarget = TargetFocus(
+    referenceWordIndex: 4,
+    word: "important",
+    kind: .pitch,
+    gap: 6.0,
+    referenceRange: 1.9...2.15,
+    takeRange: 2.05...2.3
+  )
+
+  // Matched -> held (clearly closer, gap shrank by >= 2.5 st, gap now 3.0 st >= 2.5 st target threshold)
+  let closerAttempt = makeMimicTestTake(
+    starts: attStarts,
+    pitchByWord: [4: 3.0],
+    result: steadyResult
+  )
+  let closerEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: closerAttempt, pinnedTarget: pinnedTarget)
+  try check(closerEval.verdict == .held, "Retry with 3.0 st shrink should be .held")
+  try check(closerEval.verdict.isHeld, "Retry .held should have isHeld == true")
+  try check(
+    closerEval.verdictCopy == "‘important’ was closer to the reference this time.",
+    "Retry closer verdict copy mismatch: \(closerEval.verdictCopy ?? "nil")"
+  )
+
+  // Matched -> closeEnough (below threshold: gap fell to 1.0 st < 2.5 st target threshold)
+  let closeEnoughAttempt = makeMimicTestTake(
+    starts: attStarts,
+    pitchByWord: [4: 1.0],
+    result: steadyResult
+  )
+  let closeEnoughEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: closeEnoughAttempt, pinnedTarget: pinnedTarget)
+  try check(closeEnoughEval.verdict == .closeEnough, "Retry with gap below threshold should be .closeEnough")
+  try check(closeEnoughEval.verdict.isHeld, "Retry .closeEnough should have isHeld == true")
+  try check(
+    closeEnoughEval.verdictCopy == "‘important’ is close to the reference now.",
+    "Retry close-enough verdict copy mismatch: \(closeEnoughEval.verdictCopy ?? "nil")"
+  )
+
+  // Unmatched -> no verdict (word missing from retry transcript)
+  let missingAttempt = makeMimicTestTake(
+    tokens: ["Every", "speaker", "should", "shape", "words"],
+    starts: [0.3, 0.7, 1.1, 1.5, 1.9],
+    result: steadyResult
+  )
+  let missingEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: missingAttempt, pinnedTarget: pinnedTarget)
+  try check(missingEval.verdict == .notFound, "Retry with missing word should be .notFound")
+  try check(
+    missingEval.verdictCopy == "Couldn’t find ‘important’ in this take.",
+    "Retry missing word copy mismatch: \(missingEval.verdictCopy ?? "nil")"
+  )
+
+  // Within noise (|change| < 2.5 st)
+  let noiseAttempt = makeMimicTestTake(
+    starts: attStarts,
+    pitchByWord: [4: 5.8],
+    result: steadyResult
+  )
+  let noiseEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: noiseAttempt, pinnedTarget: pinnedTarget)
+  try check(noiseEval.verdict == .withinNoise, "Retry within noise should be .withinNoise")
+  try check(
+    noiseEval.verdictCopy == "About the same as your last take.",
+    "Retry within noise copy mismatch: \(noiseEval.verdictCopy ?? "nil")"
+  )
+
+  // Moved the other way (worse by >= 2.5 st) -> no verdict line
+  let otherWayAttempt = makeMimicTestTake(
+    starts: attStarts,
+    pitchByWord: [4: 9.0], // gap worsened from 6.0 to 9.0 (by 3.0 st >= 2.5 st)
+    result: steadyResult
+  )
+  let otherWayEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: otherWayAttempt, pinnedTarget: pinnedTarget)
+  try check(otherWayEval.verdict == .otherWay, "Retry worse by >= threshold should be .otherWay")
+  try check(otherWayEval.verdictCopy == nil, "Retry otherWay should have nil verdict line")
+
+  // Pinned target preserved through CoachingPlanner.mimic
+  let pinnedPlan = CoachingPlanner.mimic(reference: reference, attempt: closerAttempt, pinnedTarget: pinnedTarget)
+  try check(pinnedPlan.targetFocus == pinnedTarget, "CoachingPlanner.mimic did not retain pinnedTarget")
+  try check(pinnedPlan.retryEvaluation?.verdict == .held, "CoachingPlanner.mimic did not evaluate pinned target")
+}
+
+private func verifyStoredTakePersistence() throws {
+  // 1. Old StoredTake JSON without the field decodes
+  let oldTakeJSON = """
+  {
+    "id": "7C181091-FDAE-4DA7-8BBE-F91D0E4A5381",
+    "createdAt": 1000.0,
+    "audioFileName": "take-7C181091-FDAE-4DA7-8BBE-F91D0E4A5381.wav",
+    "source": "recorded"
+  }
+  """.data(using: .utf8)!
+
+  let oldTake = try JSONDecoder().decode(StoredTake.self, from: oldTakeJSON)
+  try check(oldTake.id.uuidString == "7C181091-FDAE-4DA7-8BBE-F91D0E4A5381", "Old StoredTake id mismatch")
+  try check(oldTake.savedTarget == nil, "Old StoredTake should decode missing savedTarget as nil")
+
+  // 2. New JSON decodes at schema 3
+  let target = TargetFocus(
+    referenceWordIndex: 2,
+    word: "shape",
+    kind: .pitch,
+    gap: 3.2,
+    referenceRange: 1.0...1.3,
+    takeRange: 1.1...1.4
+  )
+  let newTake = StoredTake(
+    id: UUID(),
+    createdAt: Date(),
+    audioFileName: "take-new.wav",
+    source: .recorded,
+    savedTarget: target
+  )
+  let storedSession = StoredSession(
+    id: UUID(),
+    name: "Test Session",
+    createdAt: Date(),
+    updatedAt: Date(),
+    mode: .mimic,
+    prompt: "Practice",
+    keepsRecordings: true,
+    takes: [newTake]
+  )
+  let doc = ThinLibraryDocument(schemaVersion: 3, sessions: [storedSession])
+  let encoder = JSONEncoder()
+  let data = try encoder.encode(doc)
+  let decodedDoc = try JSONDecoder().decode(ThinLibraryDocument.self, from: data)
+  try check(decodedDoc.schemaVersion == 3, "ThinLibraryDocument schemaVersion was not 3")
+  try check(decodedDoc.sessions.first?.takes.first?.savedTarget == target, "Decoded savedTarget did not match")
+
+  // Old schema 3 document without savedTarget field decodes at schema 3
+  let oldDocJSON = """
+  {
+    "schemaVersion": 3,
+    "sessions": [
+      {
+        "id": "7C181091-FDAE-4DA7-8BBE-F91D0E4A5381",
+        "name": "Old Session",
+        "createdAt": 1000.0,
+        "updatedAt": 1000.0,
+        "mode": "mimic",
+        "prompt": "Practice",
+        "keepsRecordings": true,
+        "takes": [
+          {
+            "id": "8E25F45D-FDAE-4DA7-8BBE-F91D0E4A5381",
+            "createdAt": 1000.0,
+            "audioFileName": "take.wav",
+            "source": "recorded"
+          }
+        ]
+      }
+    ]
+  }
+  """.data(using: .utf8)!
+  let decodedOldDoc = try JSONDecoder().decode(ThinLibraryDocument.self, from: oldDocJSON)
+  try check(decodedOldDoc.schemaVersion == 3, "Old document schemaVersion was not 3")
+  try check(
+    decodedOldDoc.sessions.first?.takes.first?.savedTarget == nil,
+    "Old document take should have nil savedTarget"
   )
 }
 
@@ -506,6 +792,9 @@ do {
     !compactReport.contains("cpp_db"), "Compact report contains cpp_db when it should be excluded")
 
   try verifyCoachingPlan()
+  try verifyPlainTakeCue()
+  try verifyOneTargetRetry(steadyResult: steadyResult)
+  try verifyStoredTakePersistence()
 
   // Keep word-level JSON responsive for long takes (copy/export path).
   let emptyPitch = WordPitchMetrics(
