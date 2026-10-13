@@ -309,6 +309,25 @@ struct CoachingPlanTests {
     #expect(unreliable.verdictCopy == nil)
   }
 
+  @Test("Current replay never borrows the preceding take's word range")
+  func currentReplayNeedsCurrentAlignment() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let reference = makeTake(starts: starts)
+    let first = makeTake(starts: starts, pitchAtImportant: 6)
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    let absent = makeTake(
+      starts: [0.3, 0.7, 1.1, 1.5, 2.3],
+      tokens: ["Every", "speaker", "should", "shape", "words"])
+    let missing = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: absent, pinnedTarget: target)
+    #expect(missing.currentReplayRange == nil)
+
+    let shifted = makeTake(starts: [0.3, 0.7, 1.1, 1.5, 2.2, 2.6])
+    let matched = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: shifted, pinnedTarget: target)
+    #expect(matched.currentReplayRange == 2.2...2.45)
+  }
+
   private func makeTake(
     starts: [Double], tokens: [String] = ["Every", "speaker", "should", "shape", "important", "words"],
     pitchAtImportant: Double = 0, energyAtSpeaker: Double = 0,

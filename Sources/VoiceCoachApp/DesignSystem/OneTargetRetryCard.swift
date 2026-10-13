@@ -93,11 +93,11 @@ struct OneTargetRetryCard: View {
                   replayChip(OneTargetRetryStrings.referenceChip, source: .reference,
                     span: spans.reference, focusWordRange: spans.reference)
                 } else {
-                  if evaluation?.verdict != .notFound {
+                  if evaluation?.verdict != .notFound,
+                    let currentRange = evaluation == nil
+                      ? focus.takeRange : evaluation?.currentReplayRange {
                     replayChip(OneTargetRetryStrings.yourTake, source: .attempt,
-                      span: evaluation?.newTakeRange ?? focus.takeRange,
-                      focusWordRange: focusPair.map { $0.attempt.start...$0.attempt.end }
-                        ?? focus.takeRange)
+                      span: currentRange, focusWordRange: currentRange)
                   }
                   replayChip(OneTargetRetryStrings.referenceChip, source: .reference,
                     span: focus.referenceRange,

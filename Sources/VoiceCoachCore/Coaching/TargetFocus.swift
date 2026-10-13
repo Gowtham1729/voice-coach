@@ -141,6 +141,9 @@ public struct RetryEvaluation: Codable, Sendable, Equatable {
   /// Close-band streak to carry into the next retry's saved target.
   public let nextConsecutiveCloseTakes: Int
 
+  /// A retry can replay its word only when this take has its own aligned range.
+  public var currentReplayRange: ClosedRange<Double>? { newTakeRange }
+
   public var neutralReplaySpans: NeutralReplaySpans? {
     guard verdict == .neutral, let previousTakeID = target.previousTakeID else { return nil }
     return NeutralReplaySpans(
