@@ -9,6 +9,52 @@ private struct CopiedAnalysis: Decodable {
   let words: [WordAnalysis]
 }
 
+/// Reanalyzes a transformed copy of one WAV against the copied reference.
+/// The original transcript words are time-scaled, not re-transcribed; this
+/// probes acoustic and quality gates, not ASR behavior.
+func printTransformedRetryAudit(
+  at root: URL, takeIDPrefix: String, transformedWAV: URL, timeScale: Double
+) throws {
+  guard timeScale.isFinite, timeScale > 0 else { throw CocoaError(.coderReadCorrupt) }
+  let sessions = try SessionStore(rootURL: root).load().filter(\.isMimic)
+  guard let session = sessions.first(where: {
+    $0.takes.contains { $0.id.uuidString.hasPrefix(takeIDPrefix.uppercased()) }
+  }),
+    let reference = session.mimicReference?.take,
+    let original = session.takes.first(where: {
+      $0.id.uuidString.hasPrefix(takeIDPrefix.uppercased())
+    }),
+    let transcript = original.transcription,
+    let target = CoachingPlanner.mimic(
+      reference: reference, attempt: original,
+      localeIdentifier: session.transcriptionLocaleIdentifier).focus
+  else { throw CocoaError(.fileReadNoSuchFile) }
+
+  let transformedTranscript = TranscriptionResult(
+    text: transcript.text,
+    words: transcript.words.map {
+      TranscriptWord(word: $0.word, start: $0.start * timeScale,
+        end: $0.end * timeScale, confidence: $0.confidence)
+    },
+    localeIdentifier: transcript.localeIdentifier, engine: transcript.engine)
+  let analysis = try AudioAnalyzer().analyze(url: transformedWAV)
+  let transformed = PracticeSession(
+    audioURL: transformedWAV, result: analysis, transcription: transformedTranscript,
+    words: WordAcousticAnalyzer().analyze(
+      transcription: transformedTranscript, result: analysis))
+  let comparison = MimicComparison.compare(reference: reference, attempt: transformed)
+  let evaluation = CoachingPlanner.evaluateRetry(
+    reference: reference, attempt: transformed, pinnedTarget: target)
+  let gap = evaluation.newGap.map { String(format: "%.3f", $0) } ?? "nil"
+  print("Transform \(transformedWAV.lastPathComponent): target=\(target.kind.rawValue) "
+    + "\(target.word) old=\(String(format: "%.3f", target.gap)) "
+    + "new=\(gap) verdict=\(evaluation.verdict.rawValue) "
+    + "alignment=\(comparison.status.rawValue) "
+    + "SNR=\(String(format: "%.2f", analysis.metrics.snrDB))dB "
+    + "clipping=\(String(format: "%.2f", analysis.metrics.clippingPercent))% "
+    + "timeScale=\(timeScale)")
+}
+
 func printRetryVerdicts(at input: URL) throws {
   let manager = FileManager.default
   let sessions: [CoachingSession]

@@ -684,6 +684,16 @@ do {
     try printRetryVerdicts(at: URL(fileURLWithPath: CommandLine.arguments[index + 1]))
     exit(0)
   }
+  if let index = CommandLine.arguments.firstIndex(of: "--retry-transform-audit"),
+    CommandLine.arguments.indices.contains(index + 4),
+    let timeScale = Double(CommandLine.arguments[index + 4]) {
+    try printTransformedRetryAudit(
+      at: URL(fileURLWithPath: CommandLine.arguments[index + 1]),
+      takeIDPrefix: CommandLine.arguments[index + 2],
+      transformedWAV: URL(fileURLWithPath: CommandLine.arguments[index + 3]),
+      timeScale: timeScale)
+    exit(0)
+  }
   // print("Args: \(CommandLine.arguments)")
 
   let sampleRate = 16_000.0
