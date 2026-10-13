@@ -272,6 +272,24 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   try check(CoachingPlanner.mimic(reference: reference,
     attempt: loudnessAtSelection).focus?.kind == .loudness,
     "Loudness selection boundary did not select its word")
+  let pickerTokens = ["Every", "speaker", "should", "shape", "about", "words"]
+  let pickerReference = makeMimicTestTake(
+    tokens: pickerTokens, starts: refStarts, result: steadyResult)
+  let verifiableLoudness = makeMimicTestTake(
+    tokens: pickerTokens, starts: refStarts,
+    pitchByWord: [4: 3.09], energyByWord: [4: 5.21], result: steadyResult)
+  let verifiableLoudnessFocus = CoachingPlanner.mimic(
+    reference: pickerReference, attempt: verifiableLoudness).focus
+  try check(verifiableLoudnessFocus?.word == "about"
+    && verifiableLoudnessFocus?.kind == .loudness
+    && verifiableLoudnessFocus?.isVerifiable == true,
+    "Picker prefers verifiable loudness over non-verifiable pitch (8E25)")
+  let onlyByEar = makeMimicTestTake(
+    tokens: pickerTokens, starts: refStarts,
+    pitchByWord: [4: 3.09], energyByWord: [4: 4.5], result: steadyResult)
+  let onlyByEarFocus = CoachingPlanner.mimic(reference: pickerReference, attempt: onlyByEar).focus
+  try check(onlyByEarFocus?.kind == .loudness && onlyByEarFocus?.isVerifiable == false,
+    "Picker should use the largest normalized gap when no target is verifiable")
   let belowLoudnessGate = makeMimicTestTake(
     starts: refStarts, energyByWord: [4: 3.3], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference,

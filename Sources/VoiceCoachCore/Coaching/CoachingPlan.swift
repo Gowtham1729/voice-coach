@@ -298,7 +298,19 @@ public enum CoachingPlanner {
     }
 
     candidates.sort { $0.priority > $1.priority }
-    let topTarget = candidates.first(where: { $0.priority >= 3.0 && $0.signal.focus != nil })?.signal.focus
+    let targets = candidates.compactMap { $0.signal.focus }
+    let verifiableTargets = targets.filter(\.isVerifiable)
+    let pickerPool = verifiableTargets.isEmpty ? targets : verifiableTargets
+    func gapRelativeToCloserBar(_ target: TargetFocus) -> Double {
+      switch target.kind {
+      case .pitch: target.gap / RetryThresholds.clearlyCloserPitchSemitones
+      case .loudness: target.gap / RetryThresholds.clearlyCloserLoudnessDB
+      case .timing: 0
+      }
+    }
+    let topTarget = pickerPool.max {
+      gapRelativeToCloserBar($0) < gapRelativeToCloserBar($1)
+    }
     return CoachingPlan(
       signals: Array(candidates.prefix(2).map(\.signal)),
       targetFocus: topTarget
