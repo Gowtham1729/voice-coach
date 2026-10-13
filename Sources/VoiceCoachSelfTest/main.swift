@@ -546,6 +546,63 @@ private func verifyStoredTakePersistence() throws {
   )
 }
 
+/// End-to-end synthetic checks of the relative metrics used by retry selection.
+private func verifyRelativeRetryMetrics() throws {
+  let sampleRate = 16_000.0
+  let starts = [0.2, 0.7, 1.2, 1.7, 2.2, 2.7]
+  let tokens = ["Every", "speaker", "should", "shape", "important", "words"]
+  let frequencies = [190.0, 210, 200, 230, 220, 195]
+  let amplitudes = [0.05, 0.07, 0.06, 0.10, 0.08, 0.055]
+  let transcription = TranscriptionResult(
+    text: tokens.joined(separator: " "),
+    words: zip(tokens, starts).map { token, start in
+      TranscriptWord(word: token, start: start, end: start + 0.32, confidence: 0.98)
+    })
+
+  func take(gain: Double = 1, compressed: Bool = false, pitchScale: Double = 1) -> PracticeSession {
+    let samples: [Float] = (0..<Int(3.3 * sampleRate)).map { index in
+      let time = Double(index) / sampleRate
+      guard let word = starts.indices.first(where: {
+        time >= starts[$0] && time < starts[$0] + 0.32
+      }) else { return 0 }
+      let value = gain * amplitudes[word]
+        * sin(2 * .pi * frequencies[word] * pitchScale * time)
+      return Float(compressed ? tanh(1.5 * value) / 1.5 : value)
+    }
+    let result = AudioAnalyzer().analyze(samples: samples, sampleRate: sampleRate)
+    return PracticeSession(
+      audioURL: URL(fileURLWithPath: "/tmp/relative-metric-synthetic.wav"),
+      result: result, transcription: transcription,
+      words: WordAcousticAnalyzer().analyze(transcription: transcription, result: result))
+  }
+
+  let original = take()
+  let gainOnly = take(gain: pow(10, 12.0 / 20.0))
+  let gainAndCompression = take(gain: pow(10, 12.0 / 20.0), compressed: true)
+  let octaveLower = take(pitchScale: 0.5)
+  func maximumGap(_ attempt: PracticeSession, _ keyPath: KeyPath<MimicWordPair, Double?>)
+    -> Double {
+    let pairs = MimicComparison.compare(reference: original, attempt: attempt).pairs
+    return pairs.compactMap { pair -> Double? in
+      guard let reference = pair[keyPath: keyPath] else { return nil }
+      let compared: Double?
+      if keyPath == \MimicWordPair.referenceEnergy { compared = pair.attemptEnergy }
+      else { compared = pair.attemptPitch }
+      return compared.map { abs($0 - reference) }
+    }.max() ?? .infinity
+  }
+  let gainGap = maximumGap(gainOnly, \MimicWordPair.referenceEnergy)
+  let compressedGap = maximumGap(gainAndCompression, \MimicWordPair.referenceEnergy)
+  let octaveGap = maximumGap(octaveLower, \MimicWordPair.referencePitch)
+  try check(gainGap < 0.35, "P1 gain +12 dB changed relative word stress by \(gainGap) dB")
+  try check(compressedGap < 0.75,
+    "P1 gain +12 dB with moderate compression changed relative stress by \(compressedGap) dB")
+  try check(octaveGap < 0.5,
+    "P2 whole-reference pitch shift -12 st changed relative word pitch by \(octaveGap) st")
+  print(String(format: "Synthetic P1/P2: +12 dB max gap %.3f dB; +12 dB compressed %.3f dB; -12 st max gap %.3f st",
+    gainGap, compressedGap, octaveGap))
+}
+
 #if canImport(AVFoundation)
   private func writeTestWAV(samples: [Float], sampleRate: Double, to url: URL) throws {
     guard
@@ -992,6 +1049,7 @@ do {
   try verifyPlainTakeCue()
   try verifyOneTargetRetry(steadyResult: steadyResult)
   try verifyStoredTakePersistence()
+  try verifyRelativeRetryMetrics()
 
   // Keep word-level JSON responsive for long takes (copy/export path).
   let emptyPitch = WordPitchMetrics(
