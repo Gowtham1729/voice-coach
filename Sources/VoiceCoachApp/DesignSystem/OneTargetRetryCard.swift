@@ -128,7 +128,7 @@ struct OneTargetRetryCard: View {
               Button(OneTargetRetryStrings.addReference) {
                 model.useCurrentRecordingAsMimicReference()
               }
-              .studioGlassButton()
+              .buttonStyle(.bordered)
               .disabled(model.isRecording || model.isAnalyzing)
             }
 
