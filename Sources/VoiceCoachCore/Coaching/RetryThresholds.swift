@@ -17,16 +17,11 @@ public enum RetryThresholds {
   /// Gaps below this threshold are considered "close enough" to the reference.
   public static let targetLoudnessDB: Double = 3.5
 
-  // Selection uses a stricter pitch margin than the close-enough hysteresis.
-  // In /Users/gowtham/one-target-shots/noise.md, session 7C181091, a 6.124 st
-  // starting gap earned a false closer verdict across ordinary takes; the
-  // deliberate word edit starts at 6.417 st. Keep that edit eligible at 6.2 st.
-  public static let selectionPitchMarginSemitones: Double = 3.7
-  public static let selectionPitchSemitones = targetPitchSemitones + selectionPitchMarginSemitones
-  // The same session's 5.983 and 6.876 dB starting gaps yielded false close
-  // or closer verdicts across ordinary takes. Require a 6.9 dB selection gap.
-  public static let selectionLoudnessMarginDB: Double = 3.4
-  public static let selectionLoudnessDB = targetLoudnessDB + selectionLoudnessMarginDB
+  // Require a gap beyond the measured median take-to-take change before
+  // selecting a target. See /Users/gowtham/one-target-shots/noise.md,
+  // session 7C181091.
+  public static let selectionPitchSemitones = targetPitchSemitones + closePitchMarginSemitones
+  public static let selectionLoudnessDB = targetLoudnessDB + closeLoudnessMarginDB
 
   /// Minimum timing delta on a target word to warrant timing correction (in seconds).
   public static let targetWordTimingSeconds: Double = 0.25
@@ -36,16 +31,19 @@ public enum RetryThresholds {
   public static let targetPhraseTimingSeconds: Double = 1.5
 
   // MARK: - Retry Delta Thresholds ("Clearly Closer" / Verdicts)
-  // Measured 2026-10-13 from session 7C181091 (7 takes) in noise.md.
-  // Corresponds to 2x SD of take-to-take change, excluding one hesitation outlier.
+  // In /Users/gowtham/one-target-shots/noise.md, session 7C181091, the
+  // median absolute consecutive changes are 0.88 st and 1.36 dB. The 42
+  // ordered same-style pairs with the round-2 cue gates have selected-target
+  // medians of 1.194 st and 1.513 dB. Use those rounded margins on top of the
+  // target thresholds to avoid calling ordinary variation "closer".
+  public static let retryPitchTakeToTakeMarginSemitones: Double = 1.2
+  public static let retryLoudnessTakeToTakeMarginDB: Double = 1.5
 
   /// Pitch gap shrink required to earn the "closer to the reference" verdict (in semitones).
-  /// 2x SD of clean take-to-take pitch change is ~2.42 st.
-  public static let clearlyCloserPitchSemitones: Double = 2.5
+  public static let clearlyCloserPitchSemitones = targetPitchSemitones + retryPitchTakeToTakeMarginSemitones
 
   /// Loudness gap shrink required to earn the "closer to the reference" verdict (in dB).
-  /// 2x SD of clean take-to-take loudness change is ~3.52 dB.
-  public static let clearlyCloserLoudnessDB: Double = 3.5
+  public static let clearlyCloserLoudnessDB = targetLoudnessDB + retryLoudnessTakeToTakeMarginDB
 
   /// Word-duration timing shrink required to earn the "closer to the reference" verdict (in seconds).
   /// 2x SD of clean take-to-take word duration change is ~0.21 s.

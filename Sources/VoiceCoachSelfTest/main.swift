@@ -205,7 +205,7 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   let attStarts = [0.4, 0.8, 1.2, 1.6, 2.05, 2.5]
   let attempt = makeMimicTestTake(
     starts: attStarts,
-    pitchByWord: [4: 6.5], // "important" clears the 6.2 st selection floor
+    pitchByWord: [4: 6.5], // "important" clears the 3.4 st selection floor
     result: steadyResult
   )
   let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt)
@@ -244,16 +244,16 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
 
   let belowSelection = makeMimicTestTake(
     starts: refStarts,
-    pitchByWord: [4: 6.19], energyByWord: [1: 6.89], result: steadyResult)
+    pitchByWord: [4: 3.39], energyByWord: [1: 4.89], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: belowSelection).focus == nil,
     "A gap below the selection floor selected a target")
   let atSelection = makeMimicTestTake(
     starts: refStarts,
-    pitchByWord: [4: 6.2], result: steadyResult)
+    pitchByWord: [4: 3.4], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: atSelection).focus?.word == "important",
     "Pitch selection boundary did not select its word")
   let loudnessAtSelection = makeMimicTestTake(
-    starts: refStarts, energyByWord: [4: 6.9], result: steadyResult)
+    starts: refStarts, energyByWord: [4: 4.9], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference,
     attempt: loudnessAtSelection).focus?.kind == .loudness,
     "Loudness selection boundary did not select its word")
@@ -294,19 +294,25 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     takeRange: 2.05...2.3
   )
 
-  // Matched -> held (clearly closer, gap shrank by >= 2.5 st, gap now 3.0 st >= 2.5 st target threshold)
+  // Matched -> held (4.0 st shrink clears the 3.7 st verdict bar).
   let closerAttempt = makeMimicTestTake(
     starts: attStarts,
-    pitchByWord: [4: 3.0],
+    pitchByWord: [4: 2.0],
     result: steadyResult
   )
   let closerEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: closerAttempt, pinnedTarget: pinnedTarget)
-  try check(closerEval.verdict == .held, "Retry with 3.0 st shrink should be .held")
+  try check(closerEval.verdict == .held, "Retry with 4.0 st shrink should be .held")
   try check(closerEval.verdict.isHeld, "Retry .held should have isHeld == true")
   try check(
     closerEval.verdictCopy == "‘important’ was closer to the reference this time.",
     "Retry closer verdict copy mismatch: \(closerEval.verdictCopy ?? "nil")"
   )
+  let belowCloserBar = makeMimicTestTake(
+    starts: attStarts, pitchByWord: [4: 2.4], result: steadyResult)
+  let belowCloserEval = CoachingPlanner.evaluateRetry(
+    reference: reference, attempt: belowCloserBar, pinnedTarget: pinnedTarget)
+  try check(belowCloserEval.verdict == .withinNoise,
+    "A 3.6 st shrink below the verdict bar earned closer")
 
   // Matched -> closeEnough (below threshold: gap fell to 1.0 st < 2.5 st target threshold)
   let closeEnoughAttempt = makeMimicTestTake(
@@ -356,7 +362,7 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     "Retry missing word copy mismatch: \(missingEval.verdictCopy ?? "nil")"
   )
 
-  // Within noise (|change| < 2.5 st)
+  // Within the 3.7 st verdict margin.
   let noiseAttempt = makeMimicTestTake(
     starts: attStarts,
     pitchByWord: [4: 5.8],
@@ -369,10 +375,10 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     "Retry within noise copy mismatch: \(noiseEval.verdictCopy ?? "nil")"
   )
 
-  // Moved the other way by >= 2.5 st: repeat the cue without a verdict.
+  // Moved the other way by 4.0 st: repeat the cue without a verdict.
   let otherWayAttempt = makeMimicTestTake(
     starts: attStarts,
-    pitchByWord: [4: 9.0], // gap moved from 6.0 to 9.0 (by 3.0 st)
+    pitchByWord: [4: 10.0], // gap moved from 6.0 to 10.0
     result: steadyResult
   )
   let otherWayEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: otherWayAttempt, pinnedTarget: pinnedTarget)
