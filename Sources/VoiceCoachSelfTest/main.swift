@@ -205,7 +205,7 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   let attStarts = [0.4, 0.8, 1.2, 1.6, 2.05, 2.5]
   let attempt = makeMimicTestTake(
     starts: attStarts,
-    pitchByWord: [4: 4.0], // "important" pitch delta 4.0 st >= 2.5 st
+    pitchByWord: [4: 6.5], // "important" clears the 6.2 st selection floor
     result: steadyResult
   )
   let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt)
@@ -214,14 +214,14 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   try check(focus.word == "important", "Target word was not 'important'")
   try check(focus.referenceWordIndex == 4, "Target reference index was not 4")
   try check(focus.kind == .pitch, "Target kind was not pitch")
-  try check(abs(focus.gap - 4.0) < 0.01, "Target gap was not 4.0")
+  try check(abs(focus.gap - 6.5) < 0.01, "Target gap was not 6.5")
   try check(focus.referenceRange == 1.9...2.15, "Target referenceRange was not 1.9...2.15")
   try check(focus.takeRange == 2.05...2.3, "Target takeRange was not 2.05...2.3")
 
   // 2. Low-confidence word skipped (< 0.5)
   let lowConfAttempt = makeMimicTestTake(
     starts: attStarts,
-    pitchByWord: [1: 3.5, 4: 5.0], // "important" has bigger gap 5.0, but confidence 0.4
+    pitchByWord: [1: 6.5, 4: 7.0], // "important" has bigger gap, but confidence 0.4
     confidences: [1: 0.95, 4: 0.4],
     result: steadyResult
   )
@@ -244,16 +244,16 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
 
   let belowSelection = makeMimicTestTake(
     starts: refStarts,
-    pitchByWord: [4: 3.39], energyByWord: [1: 4.89], result: steadyResult)
+    pitchByWord: [4: 6.19], energyByWord: [1: 6.89], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: belowSelection).focus == nil,
-    "A gap within the noise margin selected a target")
+    "A gap below the selection floor selected a target")
   let atSelection = makeMimicTestTake(
     starts: refStarts,
-    pitchByWord: [4: 3.4], result: steadyResult)
+    pitchByWord: [4: 6.2], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: atSelection).focus?.word == "important",
     "Pitch selection boundary did not select its word")
   let loudnessAtSelection = makeMimicTestTake(
-    starts: refStarts, energyByWord: [4: 4.9], result: steadyResult)
+    starts: refStarts, energyByWord: [4: 6.9], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference,
     attempt: loudnessAtSelection).focus?.kind == .loudness,
     "Loudness selection boundary did not select its word")

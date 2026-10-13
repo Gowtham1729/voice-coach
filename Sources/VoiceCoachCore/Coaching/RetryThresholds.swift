@@ -17,11 +17,16 @@ public enum RetryThresholds {
   /// Gaps below this threshold are considered "close enough" to the reference.
   public static let targetLoudnessDB: Double = 3.5
 
-  // Require a gap beyond the measured median take-to-take change before
-  // selecting a target. See /Users/gowtham/one-target-shots/noise.md,
-  // session 7C181091.
-  public static let selectionPitchSemitones = targetPitchSemitones + closePitchMarginSemitones
-  public static let selectionLoudnessDB = targetLoudnessDB + closeLoudnessMarginDB
+  // Selection uses a stricter pitch margin than the close-enough hysteresis.
+  // In /Users/gowtham/one-target-shots/noise.md, session 7C181091, a 6.124 st
+  // starting gap earned a false closer verdict across ordinary takes; the
+  // deliberate word edit starts at 6.417 st. Keep that edit eligible at 6.2 st.
+  public static let selectionPitchMarginSemitones: Double = 3.7
+  public static let selectionPitchSemitones = targetPitchSemitones + selectionPitchMarginSemitones
+  // The same session's 5.983 and 6.876 dB starting gaps yielded false close
+  // or closer verdicts across ordinary takes. Require a 6.9 dB selection gap.
+  public static let selectionLoudnessMarginDB: Double = 3.4
+  public static let selectionLoudnessDB = targetLoudnessDB + selectionLoudnessMarginDB
 
   /// Minimum timing delta on a target word to warrant timing correction (in seconds).
   public static let targetWordTimingSeconds: Double = 0.25

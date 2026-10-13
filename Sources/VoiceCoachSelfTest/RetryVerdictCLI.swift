@@ -55,15 +55,17 @@ func printRetryVerdicts(at input: URL) throws {
 
   var pairCount = 0
   var identicalCount = 0
+  var noTargetTakeCount = 0
   for session in sessions {
     guard let reference = session.mimicReference?.take else { continue }
     for first in session.takes {
       let firstStyle = session.mimicAttemptStyles?[first.id] ?? session.mimicStyle
+      let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus
+      if target == nil { noTargetTakeCount += 1 }
       for second in session.takes where second.id != first.id {
         let secondStyle = session.mimicAttemptStyles?[second.id] ?? session.mimicStyle
         guard firstStyle == secondStyle else { continue }
         pairCount += 1
-        let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus
         guard let target else {
           print("\(session.id) \(first.id) -> \(second.id): no-target")
           continue
@@ -74,7 +76,7 @@ func printRetryVerdicts(at input: URL) throws {
         print("\(session.id) \(first.id) -> \(second.id): \(target.kind.rawValue) \(target.word) "
           + "old=\(String(format: "%.3f", target.gap)) new=\(newGap) \(result.verdict.rawValue)")
       }
-      if let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus {
+      if let target {
         let identical = CoachingPlanner.evaluateRetry(
           reference: reference, attempt: first, pinnedTarget: target)
         guard identical.verdict == .withinNoise,
@@ -88,6 +90,7 @@ func printRetryVerdicts(at input: URL) throws {
   }
   print("Ordered same-style pairs: \(pairCount)")
   print("Identical takes: \(identicalCount) about-the-same")
+  print("Takes without target: \(noTargetTakeCount)")
 }
 
 private enum RetryVerdictCLIError: Error {

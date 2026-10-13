@@ -45,22 +45,22 @@ struct CoachingPlanTests {
       pitchAtImportant: 4, energyAtSpeaker: 4)
     let previous = makeTake(
       starts: [0.9, 1.5, 2.1, 2.7, 3.3, 4.1],
-      pitchAtImportant: -3, energyAtSpeaker: -2)
+      pitchAtImportant: -5, energyAtSpeaker: -2)
     let attempt = makeTake(
       starts: [0.9, 1.4, 1.9, 2.4, 3.0, 3.6],
-      pitchAtImportant: -1, energyAtSpeaker: -2)
+      pitchAtImportant: -3, energyAtSpeaker: -2)
 
     let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt, previous: previous)
 
     #expect(plan.signals.count == 2)
-    #expect(plan.signals[0].id == "mimic.timing")
-    #expect(plan.signals[0].observation.contains("reference"))
-    #expect(plan.signals[0].action.contains("pace across the phrase"))
-    #expect(plan.signals[0].action.contains("transition into"))
-    #expect(plan.signals[0].progress?.contains("previous take") == true)
-    #expect(plan.signals[1].id == "mimic.pitch.4")
-    #expect(plan.signals[1].observation.contains("important"))
-    #expect(plan.signals[1].progress?.contains("previous take") == true)
+    let timing = plan.signals.first { $0.id == "mimic.timing" }
+    let pitch = plan.signals.first { $0.id == "mimic.pitch.4" }
+    #expect(timing?.observation.contains("reference") == true)
+    #expect(timing?.action.contains("pace across the phrase") == true)
+    #expect(timing?.action.contains("transition into") == true)
+    #expect(timing?.progress?.contains("previous take") == true)
+    #expect(pitch?.observation.contains("important") == true)
+    #expect(pitch?.progress?.contains("previous take") == true)
     #expect(CoachingPlanner.mimic(reference: reference, attempt: attempt)
       .signals.allSatisfy { $0.progress == nil })
 
@@ -69,7 +69,7 @@ struct CoachingPlanTests {
       tokens: ["speaker", "should", "shape", "important", "words"])
     let unmatchedSpan = CoachingPlanner.mimic(
       reference: reference, attempt: attempt, previous: truncatedPrevious)
-    #expect(unmatchedSpan.signals[0].progress == nil)
+    #expect(unmatchedSpan.signals.first { $0.id == "mimic.timing" }?.progress == nil)
   }
 
   @Test("Repeated pitch gaps become a phrase target with a word checkpoint")
@@ -100,7 +100,7 @@ struct CoachingPlanTests {
     let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
     let reference = makeTake(starts: starts)
     let attempt = makeTake(
-      starts: starts, pitchByWord: [4: -5], energyByWord: [0: -5, 1: -4, 2: -4, 3: -5])
+      starts: starts, pitchByWord: [4: -7], energyByWord: [0: -5, 1: -4, 2: -4, 3: -5])
 
     let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt)
 
