@@ -232,15 +232,7 @@ public enum CoachingPlanner {
       let actionTerms = needsAdjustment
         ? [normalized(word), "pitch", delta < 0 ? "lift|raise|higher" : "lower|drop"]
         : [normalized(word), "pitch"]
-      let pitchFocus = needsAdjustment ? TargetFocus(
-        referenceWordIndex: pitch.pair.referenceIndex,
-        word: word,
-        kind: .pitch,
-        gap: abs(delta),
-        referenceRange: pitch.pair.reference.start...pitch.pair.reference.end,
-        takeRange: pitch.pair.attempt.start...pitch.pair.attempt.end,
-        isPhrase: false
-      ) : nil
+      let pitchFocus = needsAdjustment ? targetFocus(for: pitch, kind: .pitch) : nil
       candidates.append((needsAdjustment ? 4 + abs(delta) / 3 : 0.7, CoachingSignal(
         id: "mimic.pitch.\(pitch.pair.referenceIndex)", title: "Pitch on “\(word)”",
         observation: observation,
@@ -291,15 +283,7 @@ public enum CoachingPlanner {
       let actionTerms = needsAdjustment
         ? [normalized(word), delta < 0 ? "strengthen|stress|emphas" : "soften|less|reduce"]
         : [normalized(word), "emphasis|stress"]
-      let energyFocus = needsAdjustment ? TargetFocus(
-        referenceWordIndex: energy.pair.referenceIndex,
-        word: word,
-        kind: .loudness,
-        gap: abs(delta),
-        referenceRange: energy.pair.reference.start...energy.pair.reference.end,
-        takeRange: energy.pair.attempt.start...energy.pair.attempt.end,
-        isPhrase: false
-      ) : nil
+      let energyFocus = needsAdjustment ? targetFocus(for: energy, kind: .loudness) : nil
       candidates.append((needsAdjustment ? 3 + abs(delta) / 4 : 0.6, CoachingSignal(
         id: "mimic.emphasis.\(energy.pair.referenceIndex)", title: "Emphasis on “\(word)”",
         observation: observation,
@@ -315,9 +299,26 @@ public enum CoachingPlanner {
 
     candidates.sort { $0.priority > $1.priority }
     let topTarget = candidates.first(where: { $0.priority >= 3.0 && $0.signal.focus != nil })?.signal.focus
+    // Compare unlike units as multiples of their measured take-to-take floors.
+    // With today's floors, only a loudness gap between 3.216 and 3.5 dB can
+    // reach tier 2 when no word clears tier 1.
+    let tier2Options: [(score: Double, focus: TargetFocus)] = [
+      pitchGaps.filter { abs($0.delta) > RetryThresholds.tier2PitchSemitones }
+        .max(by: { abs($0.delta) < abs($1.delta) }).map {
+          (abs($0.delta) / RetryThresholds.tier2PitchSemitones,
+            targetFocus(for: $0, kind: .pitch, tier: .tier2))
+        },
+      energyGaps.filter { abs($0.delta) > RetryThresholds.tier2LoudnessDB }
+        .max(by: { abs($0.delta) < abs($1.delta) }).map {
+          (abs($0.delta) / RetryThresholds.tier2LoudnessDB,
+            targetFocus(for: $0, kind: .loudness, tier: .tier2))
+        },
+    ].compactMap { $0 }
+    let fallbackTarget = topTarget == nil
+      ? tier2Options.max(by: { $0.score < $1.score })?.focus : nil
     return CoachingPlan(
       signals: Array(candidates.prefix(2).map(\.signal)),
-      targetFocus: topTarget
+      targetFocus: topTarget ?? fallbackTarget
     )
   }
 
@@ -427,14 +428,26 @@ public enum CoachingPlanner {
       }
     }
 
-    if measuredGap <= targetThreshold - closeMargin {
+    if pinnedTarget.tier == .tier1, measuredGap <= targetThreshold - closeMargin {
+      if pinnedTarget.consecutiveCloseTakes >= 1 {
+        return RetryEvaluation(
+          target: pinnedTarget,
+          verdict: .closeEnough,
+          newGap: measuredGap,
+          newTakeRange: newTakeRange,
+          verdictCopy: OneTargetRetryStrings.closeEnoughVerdict(target: pinnedTarget.word),
+          cueCopy: cueCopy,
+          nextConsecutiveCloseTakes: 2
+        )
+      }
       return RetryEvaluation(
         target: pinnedTarget,
-        verdict: .closeEnough,
+        verdict: .withinNoise,
         newGap: measuredGap,
         newTakeRange: newTakeRange,
-        verdictCopy: OneTargetRetryStrings.closeEnoughVerdict(target: pinnedTarget.word),
-        cueCopy: cueCopy
+        verdictCopy: OneTargetRetryStrings.withinNoiseVerdict,
+        cueCopy: cueCopy,
+        nextConsecutiveCloseTakes: 1
       )
     }
 
@@ -558,6 +571,19 @@ public enum CoachingPlanner {
   private struct WordGap {
     let pair: MimicWordPair
     let delta: Double
+  }
+
+  private static func targetFocus(
+    for gap: WordGap, kind: TargetKind, tier: TargetTier = .tier1
+  ) -> TargetFocus {
+    TargetFocus(
+      referenceWordIndex: gap.pair.referenceIndex,
+      word: gap.pair.word,
+      kind: kind,
+      gap: abs(gap.delta),
+      referenceRange: gap.pair.reference.start...gap.pair.reference.end,
+      takeRange: gap.pair.attempt.start...gap.pair.attempt.end,
+      tier: tier)
   }
 
   private static func wordGaps(

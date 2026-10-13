@@ -56,12 +56,18 @@ func printRetryVerdicts(at input: URL) throws {
   var pairCount = 0
   var identicalCount = 0
   var noTargetTakeCount = 0
+  var tier1TakeCount = 0
+  var tier2TakeCount = 0
   for session in sessions {
     guard let reference = session.mimicReference?.take else { continue }
     for first in session.takes {
       let firstStyle = session.mimicAttemptStyles?[first.id] ?? session.mimicStyle
       let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus
-      if target == nil { noTargetTakeCount += 1 }
+      switch target?.tier {
+      case .tier1: tier1TakeCount += 1
+      case .tier2: tier2TakeCount += 1
+      case nil: noTargetTakeCount += 1
+      }
       for second in session.takes where second.id != first.id {
         let secondStyle = session.mimicAttemptStyles?[second.id] ?? session.mimicStyle
         guard firstStyle == secondStyle else { continue }
@@ -74,6 +80,7 @@ func printRetryVerdicts(at input: URL) throws {
           reference: reference, attempt: second, pinnedTarget: target)
         let newGap = result.newGap.map { String(format: "%.3f", $0) } ?? "nil"
         print("\(session.id) \(first.id) -> \(second.id): \(target.kind.rawValue) \(target.word) "
+          + "tier=\(target.tier.rawValue) "
           + "old=\(String(format: "%.3f", target.gap)) new=\(newGap) \(result.verdict.rawValue)")
       }
       if let target {
@@ -91,6 +98,7 @@ func printRetryVerdicts(at input: URL) throws {
   print("Ordered same-style pairs: \(pairCount)")
   print("Identical takes: \(identicalCount) about-the-same")
   print("Takes without target: \(noTargetTakeCount)")
+  print("Cue takes: tier1 \(tier1TakeCount), tier2 \(tier2TakeCount), none \(noTargetTakeCount)")
 }
 
 private enum RetryVerdictCLIError: Error {

@@ -8,6 +8,11 @@ public enum TargetKind: String, Codable, Sendable, Equatable {
   case timing
 }
 
+public enum TargetTier: String, Codable, Sendable, Equatable {
+  case tier1
+  case tier2
+}
+
 /// A focused target selected for one-target coaching and retry pinning.
 public struct TargetFocus: Codable, Sendable, Equatable {
   /// Index of the target word in the reference take.
@@ -24,6 +29,10 @@ public struct TargetFocus: Codable, Sendable, Equatable {
   public let takeRange: ClosedRange<Double>
   /// Whether this target represents a phrase-level pattern or a single word.
   public let isPhrase: Bool
+  /// Selection tier; older saved targets decode as tier 1.
+  public let tier: TargetTier
+  /// Number of immediately preceding retry takes in the close band (at most one is needed).
+  public let consecutiveCloseTakes: Int
 
   public init(
     referenceWordIndex: Int,
@@ -32,7 +41,9 @@ public struct TargetFocus: Codable, Sendable, Equatable {
     gap: Double,
     referenceRange: ClosedRange<Double>,
     takeRange: ClosedRange<Double>,
-    isPhrase: Bool = false
+    isPhrase: Bool = false,
+    tier: TargetTier = .tier1,
+    consecutiveCloseTakes: Int = 0
   ) {
     self.referenceWordIndex = referenceWordIndex
     self.word = word
@@ -41,6 +52,40 @@ public struct TargetFocus: Codable, Sendable, Equatable {
     self.referenceRange = referenceRange
     self.takeRange = takeRange
     self.isPhrase = isPhrase
+    self.tier = tier
+    self.consecutiveCloseTakes = consecutiveCloseTakes
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case referenceWordIndex, word, kind, gap, referenceRange, takeRange, isPhrase
+    case tier, consecutiveCloseTakes
+  }
+
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.init(
+      referenceWordIndex: try container.decode(Int.self, forKey: .referenceWordIndex),
+      word: try container.decode(String.self, forKey: .word),
+      kind: try container.decode(TargetKind.self, forKey: .kind),
+      gap: try container.decode(Double.self, forKey: .gap),
+      referenceRange: try container.decode(ClosedRange<Double>.self, forKey: .referenceRange),
+      takeRange: try container.decode(ClosedRange<Double>.self, forKey: .takeRange),
+      isPhrase: try container.decodeIfPresent(Bool.self, forKey: .isPhrase) ?? false,
+      tier: try container.decodeIfPresent(TargetTier.self, forKey: .tier) ?? .tier1,
+      consecutiveCloseTakes: try container.decodeIfPresent(Int.self, forKey: .consecutiveCloseTakes) ?? 0)
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(referenceWordIndex, forKey: .referenceWordIndex)
+    try container.encode(word, forKey: .word)
+    try container.encode(kind, forKey: .kind)
+    try container.encode(gap, forKey: .gap)
+    try container.encode(referenceRange, forKey: .referenceRange)
+    try container.encode(takeRange, forKey: .takeRange)
+    try container.encode(isPhrase, forKey: .isPhrase)
+    try container.encode(tier, forKey: .tier)
+    try container.encode(consecutiveCloseTakes, forKey: .consecutiveCloseTakes)
   }
 }
 
@@ -76,6 +121,8 @@ public struct RetryEvaluation: Codable, Sendable, Equatable {
   public let newTakeRange: ClosedRange<Double>?
   public let verdictCopy: String?
   public let cueCopy: String
+  /// Close-band streak to carry into the next retry's saved target.
+  public let nextConsecutiveCloseTakes: Int
 
   public init(
     target: TargetFocus,
@@ -83,7 +130,8 @@ public struct RetryEvaluation: Codable, Sendable, Equatable {
     newGap: Double? = nil,
     newTakeRange: ClosedRange<Double>? = nil,
     verdictCopy: String? = nil,
-    cueCopy: String
+    cueCopy: String,
+    nextConsecutiveCloseTakes: Int = 0
   ) {
     self.target = target
     self.verdict = verdict
@@ -91,6 +139,7 @@ public struct RetryEvaluation: Codable, Sendable, Equatable {
     self.newTakeRange = newTakeRange
     self.verdictCopy = verdictCopy
     self.cueCopy = cueCopy
+    self.nextConsecutiveCloseTakes = nextConsecutiveCloseTakes
   }
 }
 

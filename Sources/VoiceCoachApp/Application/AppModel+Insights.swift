@@ -42,7 +42,9 @@ extension AppModel {
         kind: focus.kind, gap: nextGap ?? focus.gap,
         referenceRange: focus.referenceRange,
         takeRange: evaluation?.newTakeRange ?? focus.takeRange,
-        isPhrase: focus.isPhrase)
+        isPhrase: focus.isPhrase,
+        tier: focus.tier,
+        consecutiveCloseTakes: evaluation?.nextConsecutiveCloseTakes ?? 0)
       pendingRetryTarget = (
         session.id, style, current)
       #if DEBUG

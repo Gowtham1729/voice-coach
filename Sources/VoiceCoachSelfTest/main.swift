@@ -244,19 +244,40 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
 
   let belowSelection = makeMimicTestTake(
     starts: refStarts,
-    pitchByWord: [4: 3.39], energyByWord: [1: 4.89], result: steadyResult)
+    pitchByWord: [4: 2.49], energyByWord: [1: 3.2], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: belowSelection).focus == nil,
     "A gap below the selection floor selected a target")
   let atSelection = makeMimicTestTake(
     starts: refStarts,
-    pitchByWord: [4: 3.4], result: steadyResult)
+    pitchByWord: [4: 2.5], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: atSelection).focus?.word == "important",
     "Pitch selection boundary did not select its word")
   let loudnessAtSelection = makeMimicTestTake(
-    starts: refStarts, energyByWord: [4: 4.9], result: steadyResult)
+    starts: refStarts, energyByWord: [4: 3.5], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference,
     attempt: loudnessAtSelection).focus?.kind == .loudness,
     "Loudness selection boundary did not select its word")
+  let tier2Attempt = makeMimicTestTake(
+    starts: refStarts, energyByWord: [4: 3.3], result: steadyResult)
+  let tier2Plan = CoachingPlanner.mimic(reference: reference, attempt: tier2Attempt)
+  try check(tier2Plan.focus?.tier == .tier2 && tier2Plan.focus?.kind == .loudness,
+    "Tier 2 did not select a word above its 2xSD floor after tier 1 was empty")
+  try check(CoachingPlanner.mimic(reference: reference,
+    attempt: loudnessAtSelection).focus?.tier == .tier1,
+    "Tier 2 displaced an eligible tier 1 word")
+  if let tier2Focus = tier2Plan.focus {
+    let tier2CloseAttempt = makeMimicTestTake(
+      starts: refStarts, energyByWord: [4: 0.5], result: steadyResult)
+    let tier2Close = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: tier2CloseAttempt,
+      pinnedTarget: TargetFocus(
+        referenceWordIndex: tier2Focus.referenceWordIndex, word: tier2Focus.word,
+        kind: tier2Focus.kind, gap: tier2Focus.gap,
+        referenceRange: tier2Focus.referenceRange, takeRange: tier2Focus.takeRange,
+        tier: .tier2, consecutiveCloseTakes: 1))
+    try check(tier2Close.verdict != .closeEnough,
+      "Tier 2 awarded a close verdict after two close-band takes")
+  }
   let phraseDrift = makeMimicTestTake(
     starts: [0.3, 0.7, 1.1, 1.5, 1.9, 5.3], result: steadyResult)
   try check(CoachingPlanner.mimic(reference: reference, attempt: phraseDrift).focus == nil,
@@ -314,14 +335,28 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   try check(belowCloserEval.verdict == .withinNoise,
     "A 3.6 st shrink below the verdict bar earned closer")
 
-  // Matched -> closeEnough (below threshold: gap fell to 1.0 st < 2.5 st target threshold)
+  // A single close-band retry reads About the same; only a second consecutive
+  // close-band take can earn close.
   let closeEnoughAttempt = makeMimicTestTake(
     starts: attStarts,
     pitchByWord: [4: 1.0],
     result: steadyResult
   )
-  let closeEnoughEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: closeEnoughAttempt, pinnedTarget: pinnedTarget)
-  try check(closeEnoughEval.verdict == .closeEnough, "Retry with gap below threshold should be .closeEnough")
+  let firstCloseEval = CoachingPlanner.evaluateRetry(
+    reference: reference, attempt: closeEnoughAttempt, pinnedTarget: pinnedTarget)
+  try check(firstCloseEval.verdict == .withinNoise,
+    "A single close-band take must read About the same")
+  try check(firstCloseEval.nextConsecutiveCloseTakes == 1,
+    "The first close-band take did not carry a streak into the next saved target")
+  let secondCloseTarget = TargetFocus(
+    referenceWordIndex: pinnedTarget.referenceWordIndex, word: pinnedTarget.word,
+    kind: pinnedTarget.kind, gap: firstCloseEval.newGap ?? pinnedTarget.gap,
+    referenceRange: pinnedTarget.referenceRange, takeRange: pinnedTarget.takeRange,
+    consecutiveCloseTakes: firstCloseEval.nextConsecutiveCloseTakes)
+  let closeEnoughEval = CoachingPlanner.evaluateRetry(
+    reference: reference, attempt: closeEnoughAttempt, pinnedTarget: secondCloseTarget)
+  try check(closeEnoughEval.verdict == .closeEnough,
+    "Two consecutive close-band takes should earn .closeEnough")
   try check(closeEnoughEval.verdict.isHeld, "Retry .closeEnough should have isHeld == true")
   try check(
     closeEnoughEval.verdictCopy == "‘important’ is close to the reference now.",
@@ -345,6 +380,8 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     reference: reference, attempt: driftedBack, pinnedTarget: previouslyClose)
   try check(driftEval.verdict == .otherWay, "Drift above target threshold did not repeat cue")
   try check(driftEval.verdictCopy == nil, "Drift above target threshold produced a verdict")
+  try check(driftEval.nextConsecutiveCloseTakes == 0,
+    "Drift above target threshold did not clear the close-band streak")
   try check(
     driftEval.cueCopy == OneTargetRetryStrings.pitchCue(word: "important"),
     "Drift above target threshold did not retain the pinned cue")
@@ -416,7 +453,9 @@ private func verifyStoredTakePersistence() throws {
     kind: .pitch,
     gap: 3.2,
     referenceRange: 1.0...1.3,
-    takeRange: 1.1...1.4
+    takeRange: 1.1...1.4,
+    tier: .tier2,
+    consecutiveCloseTakes: 1
   )
   let newTake = StoredTake(
     id: UUID(),
@@ -441,6 +480,14 @@ private func verifyStoredTakePersistence() throws {
   let decodedDoc = try JSONDecoder().decode(ThinLibraryDocument.self, from: data)
   try check(decodedDoc.schemaVersion == 3, "ThinLibraryDocument schemaVersion was not 3")
   try check(decodedDoc.sessions.first?.takes.first?.savedTarget == target, "Decoded savedTarget did not match")
+  var oldTargetFields = try JSONSerialization.jsonObject(
+    with: encoder.encode(target)) as? [String: Any] ?? [:]
+  oldTargetFields.removeValue(forKey: "tier")
+  oldTargetFields.removeValue(forKey: "consecutiveCloseTakes")
+  let oldTargetData = try JSONSerialization.data(withJSONObject: oldTargetFields)
+  let oldTarget = try JSONDecoder().decode(TargetFocus.self, from: oldTargetData)
+  try check(oldTarget.tier == .tier1 && oldTarget.consecutiveCloseTakes == 0,
+    "Older saved targets did not default to tier 1 with no close streak")
 
   // Old schema 3 document without savedTarget field decodes at schema 3
   let oldDocJSON = """

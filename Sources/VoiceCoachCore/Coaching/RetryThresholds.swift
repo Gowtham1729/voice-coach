@@ -17,11 +17,17 @@ public enum RetryThresholds {
   /// Gaps below this threshold are considered "close enough" to the reference.
   public static let targetLoudnessDB: Double = 3.5
 
-  // Require a gap beyond the measured median take-to-take change before
-  // selecting a target. See /Users/gowtham/one-target-shots/noise.md,
-  // session 7C181091.
-  public static let selectionPitchSemitones = targetPitchSemitones + closePitchMarginSemitones
-  public static let selectionLoudnessDB = targetLoudnessDB + closeLoudnessMarginDB
+  // Tier 1 uses the plain target thresholds from the retry spec.
+  public static let selectionPitchSemitones = targetPitchSemitones
+  public static let selectionLoudnessDB = targetLoudnessDB
+
+  // Tier 2 uses 2x the SD of signed selected-target gap changes in the 42
+  // ordered pairs from session 7C181091. The source measurements and broader
+  // all-word SDs are in /Users/gowtham/one-target-shots/noise.md; the selected
+  // pair SDs are 1.341 st (36 pitch pairs) and 1.608 dB (6 loudness pairs).
+  // Their doubled values are 2.682234 st and 3.216290 dB from logged gaps.
+  public static let tier2PitchSemitones: Double = 2.68223431146261
+  public static let tier2LoudnessDB: Double = 3.21628972575544
 
   /// Minimum timing delta on a target word to warrant timing correction (in seconds).
   public static let targetWordTimingSeconds: Double = 0.25
