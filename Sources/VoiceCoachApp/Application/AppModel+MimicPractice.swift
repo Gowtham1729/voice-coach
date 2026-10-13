@@ -206,6 +206,7 @@ extension AppModel {
           if granted {
             begin()
           } else {
+            self.pendingRetryTarget = nil
             self.presentError(
               title: "Microphone Access Needed",
               message: RecorderError.microphoneDenied.errorDescription
@@ -214,6 +215,7 @@ extension AppModel {
         }
       }
     default:
+      pendingRetryTarget = nil
       presentError(
         title: "Microphone Access Needed",
         message: RecorderError.microphoneDenied.errorDescription
@@ -225,6 +227,7 @@ extension AppModel {
     guard case .countIn = mimicPhase else { return }
     mimicCountInTask?.cancel()
     mimicPhase = .ready
+    pendingRetryTarget = nil
   }
 
   private func startMimicCountIn() {

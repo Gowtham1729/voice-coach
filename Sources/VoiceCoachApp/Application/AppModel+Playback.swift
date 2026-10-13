@@ -37,6 +37,7 @@ extension AppModel {
     playbackTime = 0
     mimicPlaybackEnd = nil
     if mimicPhase == .playingReference {
+      if mimicShouldRecordAfterPlayback { pendingRetryTarget = nil }
       mimicShouldRecordAfterPlayback = false
       mimicPhase = .ready
     }

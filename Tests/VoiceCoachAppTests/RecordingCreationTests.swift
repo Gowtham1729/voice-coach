@@ -168,6 +168,26 @@ struct RecordingCreationTests {
     #expect(try model.store.load().first?.takes.first?.id == takeID)
   }
 
+  @Test("Cancelling a retry before capture clears its pinned target")
+  func cancelledRetryDoesNotPinLaterCapture() throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root)
+    let target = TargetFocus(
+      referenceWordIndex: 4, word: "important", kind: .pitch, gap: 6,
+      referenceRange: 1.9...2.15, takeRange: 2.0...2.25)
+    model.pendingRetryTarget = (UUID(), .listenAndRepeat, target)
+    model.mimicPhase = .countIn(2)
+    model.cancelMimicCountIn()
+    #expect(model.pendingRetryTarget == nil)
+
+    model.pendingRetryTarget = (UUID(), .listenAndRepeat, target)
+    model.mimicPhase = .playingReference
+    model.mimicShouldRecordAfterPlayback = true
+    model.stopPlayback()
+    #expect(model.pendingRetryTarget == nil)
+  }
+
   @Test(
     "Invalid retries preserve replace-only takes and clear rejected Mimic recovery",
     arguments: [PracticeMode.general, .mimic])

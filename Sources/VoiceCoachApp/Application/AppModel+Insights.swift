@@ -56,6 +56,7 @@ extension AppModel {
       }
       #endif
       startMimicPractice()
+      if mimicPhase == .ready && !isRequestingPermission { pendingRetryTarget = nil }
     } else {
       #if DEBUG
       if let path = ProcessInfo.processInfo.environment["VOICECOACH_INJECT_TAKE"], !path.isEmpty {
