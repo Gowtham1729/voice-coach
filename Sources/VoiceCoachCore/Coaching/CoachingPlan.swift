@@ -340,8 +340,12 @@ public enum CoachingPlanner {
       transcript.words.indices.contains(pinnedTarget.referenceWordIndex)
         ? transcript.words[pinnedTarget.referenceWordIndex].word : nil
     } ?? pinnedTarget.word
+    guard comparison.correspondenceReliable, comparison.pairs.count >= 5 else {
+      return RetryEvaluation(
+        target: pinnedTarget, verdict: .unreliable, cueCopy: cueCopy)
+    }
     guard let pair = comparison.pairs.first(where: {
-      $0.referenceIndex == pinnedTarget.referenceWordIndex && isConfidenceAcceptable($0)
+      $0.referenceIndex == pinnedTarget.referenceWordIndex
     }) else {
       return RetryEvaluation(
         target: pinnedTarget,
@@ -352,6 +356,10 @@ public enum CoachingPlanner {
           ? OneTargetRetryStrings.wordNotFound(word: missingWord) : nil,
         cueCopy: cueCopy
       )
+    }
+    guard isConfidenceAcceptable(pair) else {
+      return RetryEvaluation(
+        target: pinnedTarget, verdict: .unreliable, cueCopy: cueCopy)
     }
 
     let newTakeRange: ClosedRange<Double> = {
@@ -381,11 +389,9 @@ public enum CoachingPlanner {
     guard let measuredGap = currentGap else {
       return RetryEvaluation(
         target: pinnedTarget,
-        verdict: pinnedTarget.isVerifiable ? .notFound : .neutral,
+        verdict: .unreliable,
         newGap: nil,
         newTakeRange: newTakeRange,
-        verdictCopy: pinnedTarget.isVerifiable
-          ? OneTargetRetryStrings.wordNotFound(word: missingWord) : nil,
         cueCopy: cueCopy
       )
     }
@@ -394,17 +400,6 @@ public enum CoachingPlanner {
       return RetryEvaluation(
         target: pinnedTarget, verdict: .neutral, newGap: measuredGap,
         newTakeRange: newTakeRange, verdictCopy: nil, cueCopy: cueCopy)
-    }
-
-    guard comparison.correspondenceReliable else {
-      return RetryEvaluation(
-        target: pinnedTarget,
-        verdict: .unreliable,
-        newGap: measuredGap,
-        newTakeRange: newTakeRange,
-        verdictCopy: nil,
-        cueCopy: cueCopy
-      )
     }
 
     let targetThreshold: Double

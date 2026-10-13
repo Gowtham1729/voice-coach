@@ -288,10 +288,32 @@ struct CoachingPlanTests {
     #expect(missing.neutralReplaySpans?.current == nil)
   }
 
+  @Test("Matched word without acoustic evidence is unreliable, not missing")
+  func retryUnavailableMeasurement() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let reference = makeTake(starts: starts)
+    let first = makeTake(starts: starts, pitchAtImportant: 6)
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    let unvoiced = makeTake(starts: starts, unmeasuredPitchWord: 4)
+    let unavailable = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: unvoiced, pinnedTarget: target)
+    #expect(unavailable.verdict == .unreliable)
+    #expect(unavailable.verdictCopy == nil)
+
+    let noisyMissing = makeTake(
+      starts: [0.3, 0.7, 1.1, 1.5, 2.3],
+      tokens: ["Every", "speaker", "should", "shape", "words"], snrDB: 3)
+    let unreliable = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: noisyMissing, pinnedTarget: target)
+    #expect(unreliable.verdict == .unreliable)
+    #expect(unreliable.verdictCopy == nil)
+  }
+
   private func makeTake(
     starts: [Double], tokens: [String] = ["Every", "speaker", "should", "shape", "important", "words"],
     pitchAtImportant: Double = 0, energyAtSpeaker: Double = 0,
-    pitchByWord: [Int: Double] = [:], energyByWord: [Int: Double] = [:]
+    pitchByWord: [Int: Double] = [:], energyByWord: [Int: Double] = [:],
+    unmeasuredPitchWord: Int? = nil, snrDB: Double = 20
   ) -> PracticeSession {
     let transcriptWords = zip(tokens, starts).map { token, start in
       TranscriptWord(word: token, start: start, end: start + 0.25, confidence: 0.98)
@@ -301,9 +323,11 @@ struct CoachingPlanTests {
         word: word.word, start: word.start, end: word.end,
         pitch: WordPitchMetrics(
           medianHz: 160,
-          relativeMedianSemitones: pitchByWord[index] ?? (index == 4 ? pitchAtImportant : 0),
+          relativeMedianSemitones: index == unmeasuredPitchWord
+            ? nil : pitchByWord[index] ?? (index == 4 ? pitchAtImportant : 0),
           rangeSemitones: 2, startToEndSemitones: 0,
-          validPitchFrames: 15, pitchCoverage: 0.9),
+          validPitchFrames: index == unmeasuredPitchWord ? 0 : 15,
+          pitchCoverage: index == unmeasuredPitchWord ? 0 : 0.9),
         loudness: WordLoudnessMetrics(
           relativeMeanDB: energyByWord[index] ?? (index == 1 ? energyAtSpeaker : 0),
           startToEndDB: 0, activeFrameCoverage: 0.9)
@@ -311,7 +335,7 @@ struct CoachingPlanTests {
     }
     return PracticeSession(
       audioURL: URL(fileURLWithPath: "/tmp/\(UUID().uuidString).wav"),
-      result: CoreTestFixtures.analysis(duration: 5),
+      result: CoreTestFixtures.analysis(duration: 5, snrDB: snrDB),
       transcription: TranscriptionResult(text: tokens.joined(separator: " "), words: transcriptWords),
       words: words
     )
