@@ -15,6 +15,9 @@ struct OneTargetRetryCard: View {
     guard take.transcription != nil else { return OneTargetRetryStrings.noTranscript }
     if isReference {
       if let evaluation = plan.retryEvaluation {
+        if evaluation.verdict == .neutral {
+          return OneTargetRetryStrings.neutralRetryLine(word: evaluation.target.word)
+        }
         if evaluation.verdict == .otherWay || evaluation.verdict == .unreliable {
           return evaluation.cueCopy
         }
@@ -64,14 +67,39 @@ struct OneTargetRetryCard: View {
           if hasCue {
             if isReference, let focus {
               HStack(spacing: 8) {
-                replayChip(OneTargetRetryStrings.yourTake, source: .attempt,
-                  span: evaluation?.newTakeRange ?? focus.takeRange,
-                  focusWordRange: focusPair.map { $0.attempt.start...$0.attempt.end }
-                    ?? focus.takeRange)
-                replayChip(OneTargetRetryStrings.referenceChip, source: .reference,
-                  span: focus.referenceRange,
-                  focusWordRange: focusPair.map { $0.reference.start...$0.reference.end }
-                    ?? focus.referenceRange)
+                if let spans = evaluation?.neutralReplaySpans {
+                  if let previous = spans.previous {
+                    Button(OneTargetRetryStrings.previousTake) {
+                      model.playPreviousFocusSegment(
+                        takeID: spans.previousTakeID, range: previous)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(model.isRecording || model.isAnalyzing)
+                  } else {
+                    Button(OneTargetRetryStrings.previousTake) {}
+                      .buttonStyle(.bordered)
+                      .disabled(true)
+                  }
+                  if let current = spans.current {
+                    replayChip(OneTargetRetryStrings.thisTake, source: .attempt,
+                      span: current, focusWordRange: current)
+                  } else {
+                    Button(OneTargetRetryStrings.thisTake) {}
+                      .buttonStyle(.bordered)
+                      .disabled(true)
+                  }
+                  replayChip(OneTargetRetryStrings.referenceChip, source: .reference,
+                    span: spans.reference, focusWordRange: spans.reference)
+                } else {
+                  replayChip(OneTargetRetryStrings.yourTake, source: .attempt,
+                    span: evaluation?.newTakeRange ?? focus.takeRange,
+                    focusWordRange: focusPair.map { $0.attempt.start...$0.attempt.end }
+                      ?? focus.takeRange)
+                  replayChip(OneTargetRetryStrings.referenceChip, source: .reference,
+                    span: focus.referenceRange,
+                    focusWordRange: focusPair.map { $0.reference.start...$0.reference.end }
+                      ?? focus.referenceRange)
+                }
               }
             } else if let pause = plan.plainTakeCue {
               Button("Play") {

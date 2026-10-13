@@ -8,11 +8,6 @@ public enum TargetKind: String, Codable, Sendable, Equatable {
   case timing
 }
 
-public enum TargetTier: String, Codable, Sendable, Equatable {
-  case tier1
-  case tier2
-}
-
 /// A focused target selected for one-target coaching and retry pinning.
 public struct TargetFocus: Codable, Sendable, Equatable {
   /// Index of the target word in the reference take.
@@ -29,8 +24,12 @@ public struct TargetFocus: Codable, Sendable, Equatable {
   public let takeRange: ClosedRange<Double>
   /// Whether this target represents a phrase-level pattern or a single word.
   public let isPhrase: Bool
-  /// Selection tier; older saved targets decode as tier 1.
-  public let tier: TargetTier
+  /// Gap on the first take that selected this target; older saved targets use `gap`.
+  public let originalGap: Double
+  /// Take immediately before this retry.
+  public let previousTakeID: UUID?
+  /// Target word range in that take; nil when the word could not be aligned.
+  public let previousTakeRange: ClosedRange<Double>?
   /// Number of immediately preceding retry takes in the close band (at most one is needed).
   public let consecutiveCloseTakes: Int
 
@@ -42,7 +41,9 @@ public struct TargetFocus: Codable, Sendable, Equatable {
     referenceRange: ClosedRange<Double>,
     takeRange: ClosedRange<Double>,
     isPhrase: Bool = false,
-    tier: TargetTier = .tier1,
+    originalGap: Double? = nil,
+    previousTakeID: UUID? = nil,
+    previousTakeRange: ClosedRange<Double>? = nil,
     consecutiveCloseTakes: Int = 0
   ) {
     self.referenceWordIndex = referenceWordIndex
@@ -52,13 +53,15 @@ public struct TargetFocus: Codable, Sendable, Equatable {
     self.referenceRange = referenceRange
     self.takeRange = takeRange
     self.isPhrase = isPhrase
-    self.tier = tier
+    self.originalGap = originalGap ?? gap
+    self.previousTakeID = previousTakeID
+    self.previousTakeRange = previousTakeRange
     self.consecutiveCloseTakes = consecutiveCloseTakes
   }
 
   private enum CodingKeys: String, CodingKey {
     case referenceWordIndex, word, kind, gap, referenceRange, takeRange, isPhrase
-    case tier, consecutiveCloseTakes
+    case originalGap, previousTakeID, previousTakeRange, consecutiveCloseTakes
   }
 
   public init(from decoder: Decoder) throws {
@@ -71,7 +74,9 @@ public struct TargetFocus: Codable, Sendable, Equatable {
       referenceRange: try container.decode(ClosedRange<Double>.self, forKey: .referenceRange),
       takeRange: try container.decode(ClosedRange<Double>.self, forKey: .takeRange),
       isPhrase: try container.decodeIfPresent(Bool.self, forKey: .isPhrase) ?? false,
-      tier: try container.decodeIfPresent(TargetTier.self, forKey: .tier) ?? .tier1,
+      originalGap: try container.decodeIfPresent(Double.self, forKey: .originalGap),
+      previousTakeID: try container.decodeIfPresent(UUID.self, forKey: .previousTakeID),
+      previousTakeRange: try container.decodeIfPresent(ClosedRange<Double>.self, forKey: .previousTakeRange),
       consecutiveCloseTakes: try container.decodeIfPresent(Int.self, forKey: .consecutiveCloseTakes) ?? 0)
   }
 
@@ -84,8 +89,18 @@ public struct TargetFocus: Codable, Sendable, Equatable {
     try container.encode(referenceRange, forKey: .referenceRange)
     try container.encode(takeRange, forKey: .takeRange)
     try container.encode(isPhrase, forKey: .isPhrase)
-    try container.encode(tier, forKey: .tier)
+    try container.encode(originalGap, forKey: .originalGap)
+    try container.encodeIfPresent(previousTakeID, forKey: .previousTakeID)
+    try container.encodeIfPresent(previousTakeRange, forKey: .previousTakeRange)
     try container.encode(consecutiveCloseTakes, forKey: .consecutiveCloseTakes)
+  }
+
+  public var isVerifiable: Bool {
+    switch kind {
+    case .pitch: originalGap >= RetryThresholds.clearlyCloserPitchSemitones
+    case .loudness: originalGap >= RetryThresholds.clearlyCloserLoudnessDB
+    case .timing: false
+    }
   }
 }
 
@@ -100,6 +115,8 @@ public enum RetryVerdict: String, Codable, Sendable, Equatable {
   case closeEnough = "close-enough"
   /// Gap change was within natural take-to-take variation noise.
   case withinNoise = "within-noise"
+  /// The original gap is too small for a measured retry verdict.
+  case neutral
   /// Gap moved away by at least the measured threshold.
   case otherWay = "other-way"
   /// Recording or alignment gates did not support a verdict.
@@ -124,6 +141,13 @@ public struct RetryEvaluation: Codable, Sendable, Equatable {
   /// Close-band streak to carry into the next retry's saved target.
   public let nextConsecutiveCloseTakes: Int
 
+  public var neutralReplaySpans: NeutralReplaySpans? {
+    guard verdict == .neutral, let previousTakeID = target.previousTakeID else { return nil }
+    return NeutralReplaySpans(
+      previousTakeID: previousTakeID, previous: target.previousTakeRange,
+      current: newTakeRange, reference: target.referenceRange)
+  }
+
   public init(
     target: TargetFocus,
     verdict: RetryVerdict,
@@ -141,6 +165,16 @@ public struct RetryEvaluation: Codable, Sendable, Equatable {
     self.cueCopy = cueCopy
     self.nextConsecutiveCloseTakes = nextConsecutiveCloseTakes
   }
+}
+
+/// Word ranges used by the three neutral retry chips.
+public struct NeutralReplaySpans: Sendable, Equatable {
+  public let previousTakeID: UUID
+  /// Nil when the preceding take did not align the word.
+  public let previous: ClosedRange<Double>?
+  /// Nil when this take did not align the word; its chip cannot play a word span.
+  public let current: ClosedRange<Double>?
+  public let reference: ClosedRange<Double>
 }
 
 /// Descriptive cue for plain (unreferenced) takes, highlighting the longest hesitation.

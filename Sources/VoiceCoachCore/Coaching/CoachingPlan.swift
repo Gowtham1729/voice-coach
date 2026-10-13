@@ -299,26 +299,9 @@ public enum CoachingPlanner {
 
     candidates.sort { $0.priority > $1.priority }
     let topTarget = candidates.first(where: { $0.priority >= 3.0 && $0.signal.focus != nil })?.signal.focus
-    // Compare unlike units as multiples of their measured take-to-take floors.
-    // With today's floors, only a loudness gap between 3.216 and 3.5 dB can
-    // reach tier 2 when no word clears tier 1.
-    let tier2Options: [(score: Double, focus: TargetFocus)] = [
-      pitchGaps.filter { abs($0.delta) > RetryThresholds.tier2PitchSemitones }
-        .max(by: { abs($0.delta) < abs($1.delta) }).map {
-          (abs($0.delta) / RetryThresholds.tier2PitchSemitones,
-            targetFocus(for: $0, kind: .pitch, tier: .tier2))
-        },
-      energyGaps.filter { abs($0.delta) > RetryThresholds.tier2LoudnessDB }
-        .max(by: { abs($0.delta) < abs($1.delta) }).map {
-          (abs($0.delta) / RetryThresholds.tier2LoudnessDB,
-            targetFocus(for: $0, kind: .loudness, tier: .tier2))
-        },
-    ].compactMap { $0 }
-    let fallbackTarget = topTarget == nil
-      ? tier2Options.max(by: { $0.score < $1.score })?.focus : nil
     return CoachingPlan(
       signals: Array(candidates.prefix(2).map(\.signal)),
-      targetFocus: topTarget ?? fallbackTarget
+      targetFocus: topTarget
     )
   }
 
@@ -350,10 +333,11 @@ public enum CoachingPlanner {
     }) else {
       return RetryEvaluation(
         target: pinnedTarget,
-        verdict: .notFound,
+        verdict: pinnedTarget.isVerifiable ? .notFound : .neutral,
         newGap: nil,
         newTakeRange: nil,
-        verdictCopy: OneTargetRetryStrings.wordNotFound(word: missingWord),
+        verdictCopy: pinnedTarget.isVerifiable
+          ? OneTargetRetryStrings.wordNotFound(word: missingWord) : nil,
         cueCopy: cueCopy
       )
     }
@@ -385,12 +369,19 @@ public enum CoachingPlanner {
     guard let measuredGap = currentGap else {
       return RetryEvaluation(
         target: pinnedTarget,
-        verdict: .notFound,
+        verdict: pinnedTarget.isVerifiable ? .notFound : .neutral,
         newGap: nil,
         newTakeRange: newTakeRange,
-        verdictCopy: OneTargetRetryStrings.wordNotFound(word: missingWord),
+        verdictCopy: pinnedTarget.isVerifiable
+          ? OneTargetRetryStrings.wordNotFound(word: missingWord) : nil,
         cueCopy: cueCopy
       )
+    }
+
+    if !pinnedTarget.isVerifiable {
+      return RetryEvaluation(
+        target: pinnedTarget, verdict: .neutral, newGap: measuredGap,
+        newTakeRange: newTakeRange, verdictCopy: nil, cueCopy: cueCopy)
     }
 
     guard comparison.correspondenceReliable else {
@@ -428,7 +419,7 @@ public enum CoachingPlanner {
       }
     }
 
-    if pinnedTarget.tier == .tier1, measuredGap <= targetThreshold - closeMargin {
+    if measuredGap <= targetThreshold - closeMargin {
       if pinnedTarget.consecutiveCloseTakes >= 1 {
         return RetryEvaluation(
           target: pinnedTarget,
@@ -573,17 +564,14 @@ public enum CoachingPlanner {
     let delta: Double
   }
 
-  private static func targetFocus(
-    for gap: WordGap, kind: TargetKind, tier: TargetTier = .tier1
-  ) -> TargetFocus {
+  private static func targetFocus(for gap: WordGap, kind: TargetKind) -> TargetFocus {
     TargetFocus(
       referenceWordIndex: gap.pair.referenceIndex,
       word: gap.pair.word,
       kind: kind,
       gap: abs(gap.delta),
       referenceRange: gap.pair.reference.start...gap.pair.reference.end,
-      takeRange: gap.pair.attempt.start...gap.pair.attempt.end,
-      tier: tier)
+      takeRange: gap.pair.attempt.start...gap.pair.attempt.end)
   }
 
   private static func wordGaps(

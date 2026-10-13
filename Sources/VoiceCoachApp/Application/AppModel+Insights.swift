@@ -43,7 +43,9 @@ extension AppModel {
         referenceRange: focus.referenceRange,
         takeRange: evaluation?.newTakeRange ?? focus.takeRange,
         isPhrase: focus.isPhrase,
-        tier: focus.tier,
+        originalGap: focus.originalGap,
+        previousTakeID: take.id,
+        previousTakeRange: evaluation == nil ? focus.takeRange : evaluation?.newTakeRange,
         consecutiveCloseTakes: evaluation?.nextConsecutiveCloseTakes ?? 0)
       pendingRetryTarget = (
         session.id, style, current)

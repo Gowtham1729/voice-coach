@@ -193,22 +193,20 @@ struct CoachingPlanTests {
       for: placement) == nil)
   }
 
-  @Test("Retry tier 1 uses plain gates; tier 2 requires an empty tier 1")
-  func retrySelectionTiers() {
+  @Test("Retry selection uses 2.5 st and 3.5 dB gates; empty gate has no cue")
+  func retrySelectionGate() {
     let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
     let reference = makeTake(starts: starts)
     let pitchGate = makeTake(starts: starts, pitchAtImportant: 2.5)
     let loudnessGate = makeTake(starts: starts, energyAtSpeaker: 3.5)
-    let fallback = makeTake(starts: starts, energyAtSpeaker: 3.3)
-    let belowFallback = makeTake(starts: starts, energyAtSpeaker: 3.2)
+    let belowGate = makeTake(starts: starts, energyAtSpeaker: 3.3)
 
-    #expect(CoachingPlanner.mimic(reference: reference, attempt: pitchGate).focus?.tier == .tier1)
-    #expect(CoachingPlanner.mimic(reference: reference, attempt: loudnessGate).focus?.tier == .tier1)
-    #expect(CoachingPlanner.mimic(reference: reference, attempt: fallback).focus?.tier == .tier2)
-    #expect(CoachingPlanner.mimic(reference: reference, attempt: belowFallback).focus == nil)
+    #expect(CoachingPlanner.mimic(reference: reference, attempt: pitchGate).focus?.kind == .pitch)
+    #expect(CoachingPlanner.mimic(reference: reference, attempt: loudnessGate).focus?.kind == .loudness)
+    #expect(CoachingPlanner.mimic(reference: reference, attempt: belowGate).focus == nil)
   }
 
-  @Test("Close needs two consecutive tier 1 takes; tier 2 never closes")
+  @Test("Verifiable close needs two consecutive takes")
   func retryCloseStreak() {
     let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
     let reference = makeTake(starts: starts)
@@ -224,6 +222,7 @@ struct CoachingPlanTests {
       referenceWordIndex: target.referenceWordIndex, word: target.word,
       kind: target.kind, gap: firstClose.newGap!,
       referenceRange: target.referenceRange, takeRange: target.takeRange,
+      originalGap: target.originalGap,
       consecutiveCloseTakes: firstClose.nextConsecutiveCloseTakes)
     let secondClose = CoachingPlanner.evaluateRetry(
       reference: reference, attempt: close, pinnedTarget: carried)
@@ -236,21 +235,56 @@ struct CoachingPlanTests {
       referenceWordIndex: target.referenceWordIndex, word: target.word,
       kind: target.kind, gap: drift.newGap!,
       referenceRange: target.referenceRange, takeRange: target.takeRange,
+      originalGap: target.originalGap,
       consecutiveCloseTakes: drift.nextConsecutiveCloseTakes)
     #expect(CoachingPlanner.evaluateRetry(
       reference: reference, attempt: close, pinnedTarget: afterDrift).verdict == .withinNoise)
 
-    let tier2 = CoachingPlanner.mimic(
-      reference: reference, attempt: makeTake(starts: starts, energyAtSpeaker: 3.3)).focus!
-    let tier2WithStreak = TargetFocus(
-      referenceWordIndex: tier2.referenceWordIndex, word: tier2.word,
-      kind: tier2.kind, gap: tier2.gap,
-      referenceRange: tier2.referenceRange, takeRange: tier2.takeRange,
-      tier: .tier2, consecutiveCloseTakes: 1)
-    let tier2Close = CoachingPlanner.evaluateRetry(
-      reference: reference, attempt: makeTake(starts: starts, energyAtSpeaker: 0.5),
-      pinnedTarget: tier2WithStreak)
-    #expect(tier2Close.verdict != .closeEnough)
+  }
+
+  @Test("Non-verifiable target never renders a measured verdict")
+  func nonVerifiableRetryHasNoVerdict() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let reference = makeTake(starts: starts)
+    let first = makeTake(starts: starts, pitchAtImportant: 3)
+    let current = makeTake(starts: starts, pitchAtImportant: 0.5)
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    #expect(!target.isVerifiable)
+    let result = CoachingPlanner.evaluateRetry(reference: reference, attempt: current, pinnedTarget: target)
+    #expect(result.verdict == .neutral)
+    #expect(result.verdictCopy == nil)
+    #expect(result.verdict != .withinNoise)
+    #expect(OneTargetRetryStrings.neutralRetryLine(word: target.word)
+      == "The change is too small to measure. Compare ‘important’ by ear.")
+  }
+
+  @Test("Neutral chips use previous, current, and reference word ranges")
+  func neutralReplayUsesThreeWordRanges() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let reference = makeTake(starts: starts)
+    let first = makeTake(starts: starts, pitchAtImportant: 3)
+    let current = makeTake(starts: [0.3, 0.7, 1.1, 1.5, 2.1, 2.5], pitchAtImportant: 2.8)
+    let initial = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    let target = TargetFocus(
+      referenceWordIndex: initial.referenceWordIndex, word: initial.word,
+      kind: initial.kind, gap: initial.gap,
+      referenceRange: initial.referenceRange, takeRange: initial.takeRange,
+      previousTakeID: first.id, previousTakeRange: initial.takeRange)
+    let result = CoachingPlanner.evaluateRetry(reference: reference, attempt: current, pinnedTarget: target)
+    let spans = result.neutralReplaySpans
+    #expect(spans?.previousTakeID == first.id)
+    #expect(spans?.previous == initial.takeRange)
+    #expect(spans?.current == 2.1...2.35)
+    #expect(spans?.reference == initial.referenceRange)
+
+    let unaligned = makeTake(
+      starts: [0.3, 0.7, 1.1, 1.5, 2.3],
+      tokens: ["Every", "speaker", "should", "shape", "words"])
+    let missing = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: unaligned, pinnedTarget: target)
+    #expect(missing.verdict == .neutral)
+    #expect(missing.verdictCopy == nil)
+    #expect(missing.neutralReplaySpans?.current == nil)
   }
 
   private func makeTake(

@@ -10,6 +10,8 @@ import Foundation
 public enum OneTargetRetryStrings {
   // MARK: - Chips
   public static let yourTake = "Your take"
+  public static let previousTake = "Previous take"
+  public static let thisTake = "This take"
   public static let referenceChip = "Reference"
 
   // MARK: - Buttons & Links
@@ -25,6 +27,11 @@ public enum OneTargetRetryStrings {
   // MARK: - No Cue Neutral Lines
   public static let noLongPauses = "No long pauses in this take."
   public static let noReferenceAlignment = "This take didn’t line up with the reference enough for a cue."
+  public static let NEUTRAL_RETRY_LINE = "The change is too small to measure. Compare ‘{word}’ by ear."
+
+  public static func neutralRetryLine(word: String) -> String {
+    NEUTRAL_RETRY_LINE.replacingOccurrences(of: "‘{word}’", with: formatWordOrPhrase(word))
+  }
 
   // MARK: - Phrase & Word Quoting Helper
 

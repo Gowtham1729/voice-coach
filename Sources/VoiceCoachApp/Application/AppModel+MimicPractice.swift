@@ -291,6 +291,20 @@ extension AppModel {
     }
   }
 
+  func playPreviousFocusSegment(takeID: UUID, range: ClosedRange<Double>) {
+    guard let take = selectedSession?.takes.first(where: { $0.id == takeID }) else { return }
+    let start = max(0, range.lowerBound - 0.150)
+    let end = min(take.result.metrics.duration, range.upperBound + 0.150)
+    guard end > start else { return }
+    #if DEBUG
+    if ProcessInfo.processInfo.environment["VOICECOACH_REPLAY_LOG"] == "1" {
+      Logger(subsystem: "com.gowtham.voicecoach", category: "Replay").debug(
+        "VOICECOACH_REPLAY source=previous played=\(start, privacy: .public)...\(end, privacy: .public) focus=\(range.lowerBound, privacy: .public)...\(range.upperBound, privacy: .public)")
+    }
+    #endif
+    playMimicSegment(url: take.audioURL, source: .attempt, start: start, end: end)
+  }
+
   func seekMimic(source: MimicPlaybackSource, to time: Double) {
     guard !isRecording, !isAnalyzing, mimicPhase == .ready else { return }
     let take = source == .reference ? selectedSession?.mimicReference?.take : selectedTake
