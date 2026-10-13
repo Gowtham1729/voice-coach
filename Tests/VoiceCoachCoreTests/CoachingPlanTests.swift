@@ -255,7 +255,7 @@ struct CoachingPlanTests {
     #expect(result.verdictCopy == nil)
     #expect(result.verdict != .withinNoise)
     #expect(OneTargetRetryStrings.neutralRetryLine(word: target.word)
-      == "The change is too small to measure. Compare ‘important’ by ear.")
+      == "We can’t measure a difference this small. Compare ‘important’ by ear.")
   }
 
   @Test("Neutral chips use previous, current, and reference word ranges")
