@@ -328,6 +328,23 @@ struct CoachingPlanTests {
     #expect(matched.currentReplayRange == 2.2...2.45)
   }
 
+  @Test("Repeated target with a missing occurrence has no measured verdict")
+  func repeatedTargetMismatchIsUnreliable() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let tokens = ["Every", "about", "should", "shape", "about", "words"]
+    let reference = makeTake(starts: starts, tokens: tokens)
+    let first = makeTake(starts: starts, tokens: tokens, pitchByWord: [4: 6])
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    #expect(target.referenceWordIndex == 4)
+    let oneOccurrence = makeTake(
+      starts: [0.3, 1.1, 1.5, 1.9, 2.3],
+      tokens: ["Every", "should", "shape", "about", "words"])
+    let result = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: oneOccurrence, pinnedTarget: target)
+    #expect(result.verdict == .unreliable)
+    #expect(result.verdictCopy == nil)
+  }
+
   private func makeTake(
     starts: [Double], tokens: [String] = ["Every", "speaker", "should", "shape", "important", "words"],
     pitchAtImportant: Double = 0, energyAtSpeaker: Double = 0,

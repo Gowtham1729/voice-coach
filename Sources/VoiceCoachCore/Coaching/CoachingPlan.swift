@@ -344,6 +344,17 @@ public enum CoachingPlanner {
       return RetryEvaluation(
         target: pinnedTarget, verdict: .unreliable, cueCopy: cueCopy)
     }
+    let targetToken = normalized(pinnedTarget.word)
+    let referenceOccurrences = reference.transcription?.words.filter {
+      normalized($0.word) == targetToken
+    }.count ?? 0
+    let attemptOccurrences = attempt.transcription?.words.filter {
+      normalized($0.word) == targetToken
+    }.count ?? 0
+    guard referenceOccurrences <= 1 || referenceOccurrences == attemptOccurrences else {
+      return RetryEvaluation(
+        target: pinnedTarget, verdict: .unreliable, cueCopy: cueCopy)
+    }
     guard let pair = comparison.pairs.first(where: {
       $0.referenceIndex == pinnedTarget.referenceWordIndex
     }) else {
