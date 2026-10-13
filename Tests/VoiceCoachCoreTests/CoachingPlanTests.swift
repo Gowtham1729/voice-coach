@@ -262,7 +262,8 @@ struct CoachingPlanTests {
   func neutralReplayUsesThreeWordRanges() {
     let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
     let reference = makeTake(starts: starts)
-    let first = makeTake(starts: starts, pitchAtImportant: 3)
+    let first = makeTake(
+      starts: [0.3, 0.7, 1.1, 1.5, 2.0, 2.4], pitchAtImportant: 3)
     let current = makeTake(starts: [0.3, 0.7, 1.1, 1.5, 2.1, 2.5], pitchAtImportant: 2.8)
     let initial = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
     let target = TargetFocus(
@@ -273,9 +274,9 @@ struct CoachingPlanTests {
     let result = CoachingPlanner.evaluateRetry(reference: reference, attempt: current, pinnedTarget: target)
     let spans = result.neutralReplaySpans
     #expect(spans?.previousTakeID == first.id)
-    #expect(spans?.previous == initial.takeRange)
+    #expect(spans?.previous == 2.0...2.25)
     #expect(spans?.current == 2.1...2.35)
-    #expect(spans?.reference == initial.referenceRange)
+    #expect(spans?.reference == 1.9...2.15)
 
     let unaligned = makeTake(
       starts: [0.3, 0.7, 1.1, 1.5, 2.3],
