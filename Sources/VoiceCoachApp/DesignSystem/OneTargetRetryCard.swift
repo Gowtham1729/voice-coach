@@ -46,8 +46,10 @@ struct OneTargetRetryCard: View {
     }()
     Group {
       if model.skippedRetryCardTakeIDs.contains(take.id) {
-        HStack(spacing: 12) {
+        HStack(spacing: 4) {
           Text(OneTargetRetryStrings.skipped)
+            .foregroundStyle(Studio.secondary)
+          Text(OneTargetRetryStrings.skippedSeparator)
             .foregroundStyle(Studio.secondary)
           Button(OneTargetRetryStrings.show) { model.showRetryCard(for: take.id) }
             .buttonStyle(.plain)
@@ -91,10 +93,12 @@ struct OneTargetRetryCard: View {
                   replayChip(OneTargetRetryStrings.referenceChip, source: .reference,
                     span: spans.reference, focusWordRange: spans.reference)
                 } else {
-                  replayChip(OneTargetRetryStrings.yourTake, source: .attempt,
-                    span: evaluation?.newTakeRange ?? focus.takeRange,
-                    focusWordRange: focusPair.map { $0.attempt.start...$0.attempt.end }
-                      ?? focus.takeRange)
+                  if evaluation?.verdict != .notFound {
+                    replayChip(OneTargetRetryStrings.yourTake, source: .attempt,
+                      span: evaluation?.newTakeRange ?? focus.takeRange,
+                      focusWordRange: focusPair.map { $0.attempt.start...$0.attempt.end }
+                        ?? focus.takeRange)
+                  }
                   replayChip(OneTargetRetryStrings.referenceChip, source: .reference,
                     span: focus.referenceRange,
                     focusWordRange: focusPair.map { $0.reference.start...$0.reference.end }

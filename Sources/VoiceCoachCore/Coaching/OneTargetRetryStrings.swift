@@ -4,7 +4,7 @@ import Foundation
 /// Follows strict copy locks:
 /// - Curly single quotes ‘ ’ around words and phrases
 /// - Phrases > 5 words truncated to first 4 words + … inside quotes
-/// - No numbers anywhere in the card
+/// - No measured values in the card (transcript words may contain numerals)
 /// - No em dashes
 /// - No negative or promotional progress labels
 public enum OneTargetRetryStrings {
@@ -18,6 +18,7 @@ public enum OneTargetRetryStrings {
   public static let tryAgain = "Try again"
   public static let skip = "Skip"
   public static let skipped = "Skipped for this take."
+  public static let skippedSeparator = "·"
   public static let show = "Show"
   public static let thatWasOnPurpose = "That was on purpose"
   public static let noTranscript = "No transcript for this take."

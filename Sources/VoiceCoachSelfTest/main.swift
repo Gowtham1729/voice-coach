@@ -149,6 +149,21 @@ private func verifyPlainTakeCue() throws {
     "Plain cue should stop at the first content word")
   try check(contentCue?.cueSpanRange.upperBound == 2.6,
     "Plain replay should include the quoted words")
+  for numeral in ["1st", "2nd", "3rd", "4th", "21st", "3", "2026"] {
+    let numeralWords = [
+      TranscriptWord(word: "hello", start: 0.5, end: 1.0),
+      TranscriptWord(word: "the", start: 2.1, end: 2.2),
+      TranscriptWord(word: numeral, start: 2.3, end: 2.6),
+      TranscriptWord(word: "folding", start: 2.7, end: 3.0),
+    ]
+    try check(CoachingPlanner.plainTakeCue(words: numeralWords, takeDuration: 4)?.cueText
+      == "Your longest pause was before ‘the \(numeral)’.",
+      "Plain cue should stop at numeric content word \(numeral)")
+  }
+  try check(
+    "\(OneTargetRetryStrings.skipped) \(OneTargetRetryStrings.skippedSeparator) \(OneTargetRetryStrings.show)"
+      == "Skipped for this take. · Show",
+    "Skipped row copy lost its middle dot")
   let functionWords = [
     TranscriptWord(word: "hello", start: 0.5, end: 1.0),
     TranscriptWord(word: "the", start: 2.1, end: 2.2),

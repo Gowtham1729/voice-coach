@@ -736,6 +736,11 @@ public enum CoachingPlanner {
 
   private static func isPracticeWord(_ word: String) -> Bool {
     let cleaned = normalized(word)
+    let digits = cleaned.prefix { $0 >= "0" && $0 <= "9" }
+    if !digits.isEmpty {
+      let suffix = String(cleaned.dropFirst(digits.count))
+      if suffix.isEmpty || ["st", "nd", "rd", "th"].contains(suffix) { return true }
+    }
     return cleaned.count >= 4 && cleaned.unicodeScalars.allSatisfy { $0.isASCII }
       && !functionWords.contains(cleaned)
   }
