@@ -203,6 +203,24 @@ private func verifyPlainTakeCue() throws {
   ]
   try check(CoachingPlanner.plainTakeCue(words: unpunctuatedEdge, takeDuration: 10) == nil,
     "Pause near the start without punctuation should be a boundary")
+
+  // James's copy audit: report exactly what the existing space-based pause
+  // formatter shows for a Japanese plain-take transcript. Do not change it here.
+  let japaneseWords = [
+    TranscriptWord(word: "こんにちは", start: 0.10, end: 0.35),
+    TranscriptWord(word: "今日", start: 0.45, end: 0.65),
+    TranscriptWord(word: "は", start: 0.75, end: 0.95),
+    TranscriptWord(word: "新しい", start: 1.70, end: 2.00),
+    TranscriptWord(word: "言葉", start: 2.10, end: 2.35),
+    TranscriptWord(word: "を", start: 2.45, end: 2.60),
+    TranscriptWord(word: "練習", start: 2.70, end: 3.00),
+    TranscriptWord(word: "し", start: 3.10, end: 3.25),
+    TranscriptWord(word: "ます", start: 3.35, end: 3.60),
+  ]
+  let japaneseLine = CoachingPlanner.plainTakeCue(
+    words: japaneseWords, takeDuration: 4.2)?.cueText
+  try check(japaneseLine != nil, "Japanese mid-phrase pause produced no cue")
+  print("Japanese plain-take pause: \(japaneseLine!)")
 }
 
 private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
@@ -342,7 +360,7 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   try check(closerEval.verdict == .held, "Retry with 4.0 st shrink should be .held")
   try check(closerEval.verdict.isHeld, "Retry .held should have isHeld == true")
   try check(
-    closerEval.verdictCopy == "‘important’ was closer to the reference this time.",
+    closerEval.verdictCopy == "‘important’ was closer to the clip this time.",
     "Retry closer verdict copy mismatch: \(closerEval.verdictCopy ?? "nil")"
   )
   let belowCloserBar = makeMimicTestTake(
@@ -377,7 +395,7 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     "Two consecutive close-band takes should earn .closeEnough")
   try check(closeEnoughEval.verdict.isHeld, "Retry .closeEnough should have isHeld == true")
   try check(
-    closeEnoughEval.verdictCopy == "‘important’ is close to the reference now.",
+    closeEnoughEval.verdictCopy == "‘important’ is close to the clip now.",
     "Retry close-enough verdict copy mismatch: \(closeEnoughEval.verdictCopy ?? "nil")"
   )
 

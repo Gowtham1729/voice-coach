@@ -19,23 +19,9 @@ struct TakeInsightsView: View {
           .font(.caption)
           .foregroundStyle(Studio.secondary)
       }
-      if let focus = plan.focus {
-        Divider()
-        Text("Target gap: \(vcNumber(plan.retryEvaluation?.newGap ?? focus.gap, 2)) \(unit(for: focus))")
-          .font(.caption)
-          .foregroundStyle(Studio.secondary)
-      }
     }
     .accessibilityElement(children: .contain)
     .accessibilityLabel("Metrics")
-  }
-
-  private func unit(for focus: TargetFocus) -> String {
-    switch focus.kind {
-    case .pitch: "st"
-    case .loudness: "dB"
-    case .timing: "s"
-    }
   }
 
   private func noticeText(_ notice: String) -> some View {

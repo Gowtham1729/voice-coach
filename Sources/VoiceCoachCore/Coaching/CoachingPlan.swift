@@ -66,24 +66,24 @@ public enum CoachingPlanner {
     let estimatesUnreliable = !snr.isFinite || snr < 6 || !clipping.isFinite || clipping >= 3
     if clipping.isFinite, clipping >= 1 {
       return qualityNotice(
-        "\(number(clipping, 1))% of this take's samples clipped.",
+        "Parts of this take were too loud. Move back from the mic and try again.",
         estimatesUnreliable: estimatesUnreliable)
     }
     if snr.isFinite, snr < 10 {
       return qualityNotice(
-        "Speech was \(number(snr, 1)) dB above the measured noise floor.",
+        "There’s a lot of background noise. Try a quieter spot.",
         estimatesUnreliable: estimatesUnreliable)
     }
     guard estimatesUnreliable else { return nil }
     if !clipping.isFinite, !snr.isFinite {
-      return "This take did not provide a dependable recording-quality measurement."
+      return "We couldn’t check the sound quality of this take."
     }
-    return "Pitch and pause estimates may be unreliable at this recording quality."
+    return "Tips may be off because of the sound quality."
   }
 
   private static func qualityNotice(_ measured: String, estimatesUnreliable: Bool) -> String {
     guard estimatesUnreliable else { return measured }
-    return "\(measured) Pitch and pause estimates may be unreliable."
+    return "\(measured) Tips may be off."
   }
 
   public static func isConfidenceAcceptable(_ word: TranscriptWord) -> Bool {
@@ -102,9 +102,8 @@ public enum CoachingPlanner {
     pinnedTarget: TargetFocus? = nil,
     localeIdentifier: String? = nil
   ) -> CoachingPlan {
-    guard isEnglishLocale(localeIdentifier),
-      isEnglishLocale(reference.transcription?.localeIdentifier),
-      isEnglishLocale(attempt.transcription?.localeIdentifier)
+    guard supportsEnglishWordCues(
+      reference: reference, attempt: attempt, localeIdentifier: localeIdentifier)
     else { return CoachingPlan() }
     // Older saved targets may contain phrase or timing focuses. Keep their
     // storage decoding compatible without showing a retired target type.
@@ -116,9 +115,9 @@ public enum CoachingPlanner {
       let notice: String
       switch comparison.status {
       case .poorSnr, .clipping:
-        notice = "Reference comparison is limited by recording quality."
+        notice = "This recording is noisy, so tips may be off. Try a quieter spot."
       default:
-        notice = "Word matching is too limited for a reference comparison."
+        notice = "Not enough of your words matched the clip to compare."
       }
       if let pinned = pinnedTarget {
         let eval = evaluateRetry(reference: reference, attempt: attempt, pinnedTarget: pinned)
@@ -922,6 +921,15 @@ public enum CoachingPlanner {
   private static func isEnglishLocale(_ identifier: String?) -> Bool {
     guard let identifier else { return true }
     return Locale(identifier: identifier).language.languageCode?.identifier == "en"
+  }
+
+  public static func supportsEnglishWordCues(
+    reference: PracticeSession, attempt: PracticeSession,
+    localeIdentifier: String? = nil
+  ) -> Bool {
+    isEnglishLocale(localeIdentifier)
+      && isEnglishLocale(reference.transcription?.localeIdentifier)
+      && isEnglishLocale(attempt.transcription?.localeIdentifier)
   }
 
   private static func normalized(_ word: String) -> String {

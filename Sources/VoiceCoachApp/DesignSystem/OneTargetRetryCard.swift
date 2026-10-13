@@ -23,7 +23,16 @@ struct OneTargetRetryCard: View {
         }
         return evaluation.verdictCopy ?? evaluation.cueCopy
       }
-      guard let focus = plan.focus else { return OneTargetRetryStrings.noReferenceAlignment }
+      guard let focus = plan.focus else {
+        guard let reference = session.mimicReference?.take else {
+          return OneTargetRetryStrings.noReferenceAlignment
+        }
+        return CoachingPlanner.supportsEnglishWordCues(
+          reference: reference, attempt: take,
+          localeIdentifier: session.transcriptionLocaleIdentifier)
+          ? OneTargetRetryStrings.noReferenceAlignment
+          : OneTargetRetryStrings.noNonEnglishWordCue
+      }
       switch focus.kind {
       case .pitch: return OneTargetRetryStrings.pitchCue(word: focus.word)
       case .loudness: return OneTargetRetryStrings.loudnessCue(phrase: focus.word)
@@ -83,23 +92,23 @@ struct OneTargetRetryCard: View {
                       .disabled(true)
                   }
                   if let current = spans.current {
-                    replayChip(OneTargetRetryStrings.thisTake, source: .attempt,
-                      span: current, focusWordRange: current)
+                    replayChip(OneTargetRetryStrings.thisTake, word: focus.word,
+                      source: .attempt, span: current, focusWordRange: current)
                   } else {
                     Button(OneTargetRetryStrings.thisTake) {}
                       .buttonStyle(.bordered)
                       .disabled(true)
                   }
-                  replayChip(OneTargetRetryStrings.referenceChip, source: .reference,
-                    span: spans.reference, focusWordRange: spans.reference)
+                  replayChip(OneTargetRetryStrings.referenceChip, word: focus.word,
+                    source: .reference, span: spans.reference, focusWordRange: spans.reference)
                 } else {
                   if evaluation?.verdict != .notFound,
                     let currentRange = evaluation == nil
                       ? focus.takeRange : evaluation?.currentReplayRange {
-                    replayChip(OneTargetRetryStrings.yourTake, source: .attempt,
-                      span: currentRange, focusWordRange: currentRange)
+                    replayChip(OneTargetRetryStrings.yourTake, word: focus.word,
+                      source: .attempt, span: currentRange, focusWordRange: currentRange)
                   }
-                  replayChip(OneTargetRetryStrings.referenceChip, source: .reference,
+                  replayChip(OneTargetRetryStrings.referenceChip, word: focus.word, source: .reference,
                     span: focus.referenceRange,
                     focusWordRange: focusPair.map { $0.reference.start...$0.reference.end }
                       ?? focus.referenceRange)
@@ -113,7 +122,7 @@ struct OneTargetRetryCard: View {
               }
               .buttonStyle(.plain)
               .foregroundStyle(Studio.accent)
-              .accessibilityLabel("Play pause before \(pause.followingWord)")
+              .accessibilityLabel(OneTargetRetryStrings.playPauseBefore(word: pause.followingWord))
             }
           }
 
@@ -156,7 +165,7 @@ struct OneTargetRetryCard: View {
   }
 
   private func replayChip(
-    _ title: String, source: MimicPlaybackSource, span: ClosedRange<Double>,
+    _ title: String, word: String, source: MimicPlaybackSource, span: ClosedRange<Double>,
     focusWordRange: ClosedRange<Double>
   ) -> some View {
     Button(title) {
@@ -164,8 +173,9 @@ struct OneTargetRetryCard: View {
         source: source, range: span, focusWordRange: focusWordRange)
     }
     .buttonStyle(.bordered)
-    .accessibilityLabel(
-      source == .attempt ? "Play your take at the target" : "Play reference at the target")
+    .accessibilityLabel(source == .attempt
+      ? OneTargetRetryStrings.playWordInYourTake(word)
+      : OneTargetRetryStrings.playWordInClip(word))
     .disabled(model.isRecording || model.isAnalyzing)
   }
 }

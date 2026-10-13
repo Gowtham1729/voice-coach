@@ -4,6 +4,60 @@ import VoiceCoachCore
 
 @Suite("Coaching plan")
 struct CoachingPlanTests {
+  @Test("James's practice-loop strings and locale split")
+  func jamesPracticeLoopStrings() {
+    #expect(OneTargetRetryStrings.noTranscript == "No transcript for this take.")
+    #expect(OneTargetRetryStrings.pitchCue(word: "about")
+      == "Make ‘about’ stand out, like the clip does.")
+    #expect(OneTargetRetryStrings.loudnessCue(phrase: "about")
+      == "Say ‘about’ as strongly as the clip does.")
+    #expect(OneTargetRetryStrings.timingCue(phrase: "about")
+      == "Say ‘about’ at the clip’s speed.")
+    #expect(OneTargetRetryStrings.noReferenceAlignment
+      == "Not enough of your words matched the clip to suggest a fix. Replay both to compare.")
+    #expect(OneTargetRetryStrings.noNonEnglishWordCue
+      == "Tips for single words work in English for now. Replay both to compare by ear.")
+    #expect(OneTargetRetryStrings.plainPauseCue(word: "about")
+      == "Your longest pause was before ‘about’.")
+    #expect(OneTargetRetryStrings.noLongPauses == "No long pauses in this take.")
+    #expect(OneTargetRetryStrings.closerVerdict(target: "about")
+      == "‘about’ was closer to the clip this time.")
+    #expect(OneTargetRetryStrings.withinNoiseVerdict == "About the same as your last take.")
+    #expect(OneTargetRetryStrings.wordNotFound(word: "about")
+      == "Couldn’t find ‘about’ in this take. Say the whole phrase again.")
+    #expect(OneTargetRetryStrings.closeEnoughVerdict(target: "about")
+      == "‘about’ is close to the clip now.")
+    #expect(OneTargetRetryStrings.NEUTRAL_RETRY_LINE
+      == "The difference is too small for us to tell. Listen to ‘{word}’ in each take.")
+    #expect(OneTargetRetryStrings.neutralRetryLine(word: "about")
+      == "The difference is too small for us to tell. Listen to ‘about’ in each take.")
+    #expect(OneTargetRetryStrings.addReference == "Add a clip…")
+    #expect(OneTargetRetryStrings.yourTake == "Your take")
+    #expect(OneTargetRetryStrings.previousTake == "Previous take")
+    #expect(OneTargetRetryStrings.thisTake == "This take")
+    #expect(OneTargetRetryStrings.referenceChip == "Clip")
+    #expect(OneTargetRetryStrings.playPauseBefore(word: "about")
+      == "Play the pause before ‘about’")
+    #expect(OneTargetRetryStrings.playWordInYourTake("about")
+      == "Play ‘about’ in your take")
+    #expect(OneTargetRetryStrings.playWordInClip("about")
+      == "Play ‘about’ in the clip")
+
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let english = makeTake(starts: starts)
+    let japanese = PracticeSession(
+      audioURL: english.audioURL, result: english.result,
+      transcription: TranscriptionResult(text: english.transcription!.text,
+        words: english.transcription!.words, localeIdentifier: "ja_JP"),
+      words: english.words)
+    #expect(CoachingPlanner.supportsEnglishWordCues(
+      reference: english, attempt: english))
+    #expect(!CoachingPlanner.supportsEnglishWordCues(
+      reference: english, attempt: japanese))
+    #expect(!CoachingPlanner.supportsEnglishWordCues(
+      reference: english, attempt: english, localeIdentifier: "ja_JP"))
+  }
+
   @Test("A usable recording has metrics only, with no practice targets")
   func ordinaryRecording() {
     let metrics = CoreTestFixtures.metrics(
@@ -22,7 +76,7 @@ struct CoachingPlanTests {
       clippingPercent: 2.5, internalPauseCount: 3,
       meanInternalPauseMs: 900, pitchRangeSemitones: 8))
     #expect(clipped.signals.isEmpty)
-    #expect(clipped.notice == "2.5% of this take's samples clipped.")
+    #expect(clipped.notice == "Parts of this take were too loud. Move back from the mic and try again.")
 
     let severeNoise = CoachingPlanner.recording(current: CoreTestFixtures.metrics(
       snrDB: 3.9, internalPauseCount: 3, meanInternalPauseMs: 410,
@@ -30,12 +84,12 @@ struct CoachingPlanTests {
     #expect(severeNoise.signals.isEmpty)
     #expect(
       severeNoise.notice
-        == "Speech was 3.9 dB above the measured noise floor. Pitch and pause estimates may be unreliable."
+        == "There’s a lot of background noise. Try a quieter spot. Tips may be off."
     )
 
     let unmeasured = CoachingPlanner.recording(current: CoreTestFixtures.metrics(
       snrDB: .nan, clippingPercent: .nan))
-    #expect(unmeasured.notice == "This take did not provide a dependable recording-quality measurement.")
+    #expect(unmeasured.notice == "We couldn’t check the sound quality of this take.")
   }
 
   @Test("Reliable Mimic feedback uses reference timing and voiced word pitch")
@@ -146,7 +200,7 @@ struct CoachingPlanTests {
     let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt)
 
     #expect(plan.signals.isEmpty)
-    #expect(plan.notice == "Word matching is too limited for a reference comparison.")
+    #expect(plan.notice == "Not enough of your words matched the clip to compare.")
   }
 
   @Test("Close Mimic matches are maintained, not corrected in the wrong direction")
@@ -255,7 +309,7 @@ struct CoachingPlanTests {
     #expect(result.verdictCopy == nil)
     #expect(result.verdict != .withinNoise)
     #expect(OneTargetRetryStrings.neutralRetryLine(word: target.word)
-      == "We can’t measure a difference this small. Compare ‘important’ by ear.")
+      == "The difference is too small for us to tell. Listen to ‘important’ in each take.")
   }
 
   @Test("Neutral chips use previous, current, and reference word ranges")

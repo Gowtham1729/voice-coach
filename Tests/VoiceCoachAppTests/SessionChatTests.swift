@@ -383,24 +383,24 @@ struct SessionChatTests {
 
     let clipped = CoachingPlanner.recording(current: plannerMetrics(clippingPercent: 2.5))
     #expect(clipped.signals.isEmpty)
-    #expect(clipped.notice == "2.5% of this take's samples clipped.")
+    #expect(clipped.notice == "Parts of this take were too loud. Move back from the mic and try again.")
 
     let severeNoise = CoachingPlanner.recording(current: plannerMetrics(snrDB: 3.9))
     #expect(severeNoise.signals.isEmpty)
     #expect(
       severeNoise.notice
-        == "Speech was 3.9 dB above the measured noise floor. Pitch and pause estimates may be unreliable."
+        == "There’s a lot of background noise. Try a quieter spot. Tips may be off."
     )
 
     let unmeasured = CoachingPlanner.recording(
       current: plannerMetrics(snrDB: .nan, clippingPercent: .nan))
     #expect(unmeasured.signals.isEmpty)
     #expect(
-      unmeasured.notice == "This take did not provide a dependable recording-quality measurement.")
+      unmeasured.notice == "We couldn’t check the sound quality of this take.")
 
     let unreliable = CoachingPlanner.recording(
       current: plannerMetrics(snrDB: 20, clippingPercent: .nan))
-    #expect(unreliable.notice == "Pitch and pause estimates may be unreliable at this recording quality.")
+    #expect(unreliable.notice == "Tips may be off because of the sound quality.")
 
     let silent = AudioAnalyzer().analyze(
       samples: Array(repeating: Float(0), count: 1600), sampleRate: 16_000)
@@ -410,10 +410,11 @@ struct SessionChatTests {
       transcription: TranscriptionResult(text: "", words: []))
     let unmatched = CoachingPlanner.mimic(reference: bare, attempt: bare)
     #expect(unmatched.signals.isEmpty)
-    #expect(unmatched.notice == "Word matching is too limited for a reference comparison.")
+    #expect(unmatched.notice == "Not enough of your words matched the clip to compare.")
 
     let insights = try repositorySource("Sources/VoiceCoachApp/DesignSystem/TakeInsightsView.swift")
-    #expect(insights.contains("Target gap:"))
+    #expect(!insights.contains("Target gap:"))
+    #expect(insights.contains("Longest pause:"))
     let retryCard = try repositorySource("Sources/VoiceCoachApp/DesignSystem/OneTargetRetryCard.swift")
     #expect(retryCard.contains("OneTargetRetryStrings.tryAgain"))
     #expect(retryCard.contains("OneTargetRetryStrings.replayBoth"))
@@ -427,7 +428,7 @@ struct SessionChatTests {
       ))
     let planner = try repositorySource("Sources/VoiceCoachCore/Coaching/CoachingPlan.swift")
     for phrase in [
-      "Reference comparison is limited by recording quality.",
+      "This recording is noisy, so tips may be off. Try a quieter spot.",
       "Phrase timing",
       "Match the reference pace across the phrase, using the transition into",
       "Repeat the phrase at the reference pace, then check where the last word lands.",
