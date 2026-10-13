@@ -9,6 +9,31 @@ private struct CopiedAnalysis: Decodable {
   let words: [WordAnalysis]
 }
 
+/// Recounts persisted retry takes without reading audio or changing a copied library.
+func printLiveRetryRecount(at root: URL) throws {
+  let sessions = try SessionStore(rootURL: root).load().filter(\.isMimic)
+  var counts: [RetryVerdict: Int] = [:]
+  for session in sessions {
+    guard let reference = session.mimicReference?.take else { continue }
+    for take in session.takes {
+      guard let target = take.savedTarget else { continue }
+      let result = CoachingPlanner.evaluateRetry(
+        reference: reference, attempt: take, pinnedTarget: target)
+      counts[result.verdict, default: 0] += 1
+      print("\(session.id.uuidString.prefix(8)) \(take.id.uuidString.prefix(8)) "
+        + "target=\(target.word) index=\(target.referenceWordIndex) "
+        + "verdict=\(result.verdict.rawValue) "
+        + "newGap=\(result.newGap.map { String(format: "%.3f", $0) } ?? "nil")")
+    }
+  }
+  let verdicts = [RetryVerdict.held, .closeEnough, .withinNoise]
+    .reduce(0) { $0 + counts[$1, default: 0] }
+  print("Live retries: verdict \(verdicts), by-ear \(counts[.neutral, default: 0]), "
+    + "could-not-find \(counts[.notFound, default: 0]), "
+    + "other-way \(counts[.otherWay, default: 0]), "
+    + "unreliable \(counts[.unreliable, default: 0])")
+}
+
 /// Reanalyzes a transformed copy of one WAV against the copied reference.
 /// The original transcript words are time-scaled, not re-transcribed; this
 /// probes acoustic and quality gates, not ASR behavior.

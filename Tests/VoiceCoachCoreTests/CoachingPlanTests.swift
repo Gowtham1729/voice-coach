@@ -288,7 +288,7 @@ struct CoachingPlanTests {
     #expect(missing.neutralReplaySpans?.current == nil)
   }
 
-  @Test("Matched word without acoustic evidence is unreliable, not missing")
+  @Test("Unavailable acoustic evidence never produces a measured verdict")
   func retryUnavailableMeasurement() {
     let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
     let reference = makeTake(starts: starts)
@@ -303,10 +303,10 @@ struct CoachingPlanTests {
     let noisyMissing = makeTake(
       starts: [0.3, 0.7, 1.1, 1.5, 2.3],
       tokens: ["Every", "speaker", "should", "shape", "words"], snrDB: 3)
-    let unreliable = CoachingPlanner.evaluateRetry(
+    let byEar = CoachingPlanner.evaluateRetry(
       reference: reference, attempt: noisyMissing, pinnedTarget: target)
-    #expect(unreliable.verdict == .unreliable)
-    #expect(unreliable.verdictCopy == nil)
+    #expect(byEar.verdict == .neutral)
+    #expect(byEar.verdictCopy == nil)
   }
 
   @Test("Current replay never borrows the preceding take's word range")
@@ -345,14 +345,175 @@ struct CoachingPlanTests {
     #expect(result.verdictCopy == nil)
   }
 
+  @Test("Anchored good and got substitutions recover the pinned word verdict")
+  func anchoredASRSubstitutionVerdict() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let tokens = ["Every", "speaker", "should", "shape", "about", "words"]
+    let reference = makeTake(starts: starts, tokens: tokens)
+    let first = makeTake(starts: starts, tokens: tokens, pitchByWord: [4: 6])
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    for misheard in ["good", "got"] {
+      var substituted = tokens
+      substituted[4] = misheard
+      let retry = makeTake(starts: starts, tokens: substituted, pitchByWord: [4: 2])
+      let result = CoachingPlanner.evaluateRetry(
+        reference: reference, attempt: retry, pinnedTarget: target)
+      #expect(result.verdict == .held)
+      #expect(result.newTakeRange == 1.9...2.15)
+    }
+  }
+
+  @Test("Near-spelling target is recovered within a two-word anchor gap")
+  func fuzzyWordWithinAnchorGap() {
+    let starts = (0..<10).map { 0.3 + Double($0) * 0.4 }
+    let tokens = ["Every", "speaker", "should", "shape", "about", "words",
+      "today", "during", "practice", "again"]
+    let reference = makeTake(starts: starts, tokens: tokens)
+    let first = makeTake(starts: starts, tokens: tokens, pitchByWord: [4: 6])
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    var retryTokens = tokens
+    retryTokens[4] = "abou"
+    retryTokens.insert("uh", at: 5)
+    var retryStarts = starts
+    retryStarts.insert(2.15, at: 5)
+    let retry = makeTake(starts: retryStarts, tokens: retryTokens,
+      pitchByWord: [4: 2])
+    let evaluation = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: retry, pinnedTarget: target)
+    #expect(evaluation.verdict == .held)
+    #expect(abs((evaluation.newTakeRange?.lowerBound ?? 0) - 1.9) < 0.001)
+    #expect(abs((evaluation.newTakeRange?.upperBound ?? 0) - 2.15) < 0.001)
+  }
+
+  @Test("A similar word elsewhere cannot impersonate the pinned position")
+  func substitutedWordElsewhereDoesNotMatch() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let tokens = ["Every", "speaker", "should", "shape", "about", "words"]
+    let reference = makeTake(starts: starts, tokens: tokens)
+    let first = makeTake(starts: starts, tokens: tokens, pitchByWord: [4: 6])
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    let retry = makeTake(starts: starts,
+      tokens: ["good", "speaker", "should", "shape", "words"],
+      pitchByWord: [0: 2])
+    let result = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: retry, pinnedTarget: target)
+    #expect(result.verdict != .held)
+    #expect(result.newTakeRange != 0.3...0.55)
+  }
+
+  @Test("Missing neighbouring anchors keep the word-not-found state")
+  func missingRetryAnchors() {
+    let starts = (0..<12).map { 0.3 + Double($0) * 0.4 }
+    let tokens = ["Every", "speaker", "should", "shape", "about", "words",
+      "today", "during", "practice", "with", "this", "clip"]
+    let reference = makeTake(starts: starts, tokens: tokens)
+    let first = makeTake(starts: starts, tokens: tokens, pitchByWord: [4: 6])
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    var substituted = tokens
+    substituted[3] = "unclear"
+    substituted[4] = "got"
+    substituted[5] = "noise"
+    let retry = makeTake(starts: starts, tokens: substituted, pitchByWord: [4: 2])
+    let result = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: retry, pinnedTarget: target)
+    #expect(result.verdict == .notFound)
+  }
+
+  @Test("Unvoiced anchored substitution uses the by-ear card")
+  func unvoicedFallbackIsByEar() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let tokens = ["Every", "speaker", "should", "shape", "about", "words"]
+    let reference = makeTake(starts: starts, tokens: tokens)
+    let first = makeTake(starts: starts, tokens: tokens, pitchByWord: [4: 6])
+    let initial = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    let target = TargetFocus(
+      referenceWordIndex: initial.referenceWordIndex, word: initial.word,
+      kind: initial.kind, gap: initial.gap,
+      referenceRange: initial.referenceRange, takeRange: initial.takeRange,
+      previousTakeID: first.id, previousTakeRange: initial.takeRange)
+    var substituted = tokens
+    substituted[4] = "got"
+    let retry = makeTake(starts: starts, tokens: substituted, unmeasuredPitchWord: 4)
+    let result = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: retry, pinnedTarget: target)
+    #expect(result.verdict == .neutral)
+    #expect(result.verdictCopy == nil)
+    #expect(result.neutralReplaySpans?.current == 1.9...2.15)
+  }
+
+  @Test("Low-SNR anchored substitution uses the by-ear card")
+  func noisyFallbackIsByEar() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let tokens = ["Every", "speaker", "should", "shape", "about", "words"]
+    let reference = makeTake(starts: starts, tokens: tokens)
+    let first = makeTake(starts: starts, tokens: tokens, pitchByWord: [4: 6])
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    var substituted = tokens
+    substituted[4] = "got"
+    let retry = makeTake(starts: starts, tokens: substituted,
+      pitchByWord: [4: 2], snrDB: 5)
+    let evaluation = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: retry, pinnedTarget: target)
+    #expect(evaluation.verdict == .neutral)
+    #expect(evaluation.verdictCopy == nil)
+    #expect(evaluation.newTakeRange == 1.9...2.15)
+  }
+
+  @Test("Low-confidence anchors cannot produce a fallback verdict")
+  func uncertainAnchorsAreByEar() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let tokens = ["Every", "speaker", "should", "shape", "about", "words"]
+    let reference = makeTake(starts: starts, tokens: tokens)
+    let first = makeTake(starts: starts, tokens: tokens, pitchByWord: [4: 6])
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    var substituted = tokens
+    substituted[4] = "got"
+    let retry = makeTake(starts: starts, tokens: substituted,
+      pitchByWord: [4: 2], confidenceByWord: [3: 0.3])
+    let evaluation = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: retry, pinnedTarget: target)
+    #expect(evaluation.verdict == .neutral)
+    #expect(evaluation.verdictCopy == nil)
+  }
+
+  @Test("Omitted ASR word uses timed anchors and voiced frames")
+  func omittedWordAlignmentFallback() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let tokens = ["Every", "speaker", "should", "shape", "about", "words"]
+    let reference = makeTake(starts: starts, tokens: tokens)
+    let first = makeTake(starts: starts, tokens: tokens, pitchByWord: [4: 6])
+    let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
+    let base = makeTake(starts: [0.3, 0.7, 1.1, 1.5, 2.3],
+      tokens: ["Every", "speaker", "should", "shape", "words"])
+    let pitchHz = 160 * pow(2.0, 2.0 / 12.0)
+    let frames = AcousticFrameData(
+      loudness: (0..<25).map { TimePoint(time: 1.9 + Double($0) * 0.01, value: -20) },
+      pitch: (0..<25).map { TimePoint(time: 1.9 + Double($0) * 0.01, value: pitchHz) })
+    let result = AnalysisResult(
+      metrics: base.result.metrics,
+      loudnessContour: base.result.loudnessContour,
+      pitchContour: base.result.pitchContour,
+      waveform: base.result.waveform,
+      spectrogram: base.result.spectrogram,
+      acousticFrames: frames)
+    let retry = PracticeSession(audioURL: base.audioURL, result: result,
+      transcription: base.transcription, words: base.words)
+    let evaluation = CoachingPlanner.evaluateRetry(
+      reference: reference, attempt: retry, pinnedTarget: target)
+    #expect(evaluation.verdict == .held)
+    #expect(evaluation.newTakeRange == 1.9...2.15)
+  }
+
   private func makeTake(
     starts: [Double], tokens: [String] = ["Every", "speaker", "should", "shape", "important", "words"],
     pitchAtImportant: Double = 0, energyAtSpeaker: Double = 0,
     pitchByWord: [Int: Double] = [:], energyByWord: [Int: Double] = [:],
-    unmeasuredPitchWord: Int? = nil, snrDB: Double = 20
+    unmeasuredPitchWord: Int? = nil, snrDB: Double = 20,
+    confidenceByWord: [Int: Double] = [:]
   ) -> PracticeSession {
-    let transcriptWords = zip(tokens, starts).map { token, start in
-      TranscriptWord(word: token, start: start, end: start + 0.25, confidence: 0.98)
+    let transcriptWords = zip(tokens, starts).enumerated().map { index, pair in
+      TranscriptWord(word: pair.0, start: pair.1, end: pair.1 + 0.25,
+        confidence: confidenceByWord[index] ?? 0.98)
     }
     let words = transcriptWords.enumerated().map { index, word in
       WordAnalysis(

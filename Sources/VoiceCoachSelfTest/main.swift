@@ -404,18 +404,17 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     driftEval.cueCopy == OneTargetRetryStrings.pitchCue(word: "important"),
     "Drift above target threshold did not retain the pinned cue")
 
-  // Unmatched -> no verdict (word missing from retry transcript)
+  // An omitted word with matching neighbours is located cautiously by ear.
   let missingAttempt = makeMimicTestTake(
     tokens: ["Every", "speaker", "should", "shape", "words"],
     starts: [0.3, 0.7, 1.1, 1.5, 1.9],
     result: steadyResult
   )
   let missingEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: missingAttempt, pinnedTarget: pinnedTarget)
-  try check(missingEval.verdict == .notFound, "Retry with missing word should be .notFound")
-  try check(
-    missingEval.verdictCopy == "Couldn’t find ‘important’ in this take. Say the whole phrase again.",
-    "Retry missing word copy mismatch: \(missingEval.verdictCopy ?? "nil")"
-  )
+  try check(missingEval.verdict == .neutral,
+    "Retry with aligned neighbours but no acoustic evidence should be by ear")
+  try check(missingEval.verdictCopy == nil,
+    "Retry with an inferred word produced a measured verdict")
 
   // Within the 3.7 st verdict margin.
   let noiseAttempt = makeMimicTestTake(
@@ -674,6 +673,11 @@ private func verifyRelativeRetryMetrics() throws {
 #endif
 
 do {
+  if let index = CommandLine.arguments.firstIndex(of: "--retry-live-recount"),
+    CommandLine.arguments.indices.contains(index + 1) {
+    try printLiveRetryRecount(at: URL(fileURLWithPath: CommandLine.arguments[index + 1]))
+    exit(0)
+  }
   if let index = CommandLine.arguments.firstIndex(of: "--retry-legacy-loads"),
     CommandLine.arguments.indices.contains(index + 1) {
     try verifyCopiedLegacyLibraries(at: URL(fileURLWithPath: CommandLine.arguments[index + 1]))
