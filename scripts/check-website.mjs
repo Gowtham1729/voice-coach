@@ -39,9 +39,15 @@ assert.ok(
   html.includes('href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip"'),
   "Website download must follow GitHub's latest release",
 );
+const verifiedNotarization = "Notarized by Apple.";
+assert.equal(
+  (html.match(/Notarized by Apple\./g) || []).length,
+  1,
+  "Requirements include the verified notarization line once",
+);
 assert.equal(
   /ad-hoc|unsigned|notariz|developer id|gatekeeper|may block the first launch|mac app store|\bsign(?:ed|ing)\b/i.test(
-    html,
+    html.replaceAll(verifiedNotarization, ""),
   ),
   false,
   "Public download copy stays a normal Mac download, without signing, notarization, Gatekeeper, or Mac App Store talk",
@@ -53,14 +59,15 @@ assert.equal(
 );
 assert.match(
   html,
-  /Ichido 0\.0\.4 · Early access · macOS 26\+/,
-  "Download dialog shows Ichido 0.0.4 for macOS 26+",
+  /Ichido 0\.0\.5 · Early access · macOS 26\+/,
+  "Download dialog shows Ichido 0.0.5 for macOS 26+",
 );
 assert.match(
   html,
-  /Version 0\.0\.4 · Early access · macOS 26\+/,
-  "Download section shows version 0.0.4 for macOS 26+",
+  /Version 0\.0\.5 · Early access · macOS 26\+/,
+  "Download section shows version 0.0.5 for macOS 26+",
 );
+assert.equal(html.includes("0.0.4"), false, "Public site does not advertise 0.0.4");
 assert.equal(html.includes("0.0.3"), false, "Public site does not advertise 0.0.3");
 assert.ok(
   html.includes("No account. No recording uploads. No analytics."),
