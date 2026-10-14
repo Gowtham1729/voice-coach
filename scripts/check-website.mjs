@@ -70,8 +70,10 @@ assert.match(
 assert.equal(html.includes("0.0.4"), false, "Public site does not advertise 0.0.4");
 assert.equal(html.includes("0.0.3"), false, "Public site does not advertise 0.0.3");
 assert.ok(
-  html.includes("No account. No recording uploads. No analytics."),
-  "Privacy line stays local-only",
+  html.includes(
+    "Your recordings stay on your Mac. Ichido goes online only to check for updates and to download speech software and models from GitHub, Hugging Face, NVIDIA, and Apple. macOS may also download its own speech and translation models.",
+  ),
+  "Privacy line names the recording boundary and the download hosts",
 );
 assert.ok(
   html.includes("stay on your Mac"),
