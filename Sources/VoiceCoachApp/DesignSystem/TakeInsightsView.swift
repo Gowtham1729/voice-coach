@@ -3,10 +3,6 @@ import VoiceCoachCore
 
 /// Metrics for every take. Practice targets appear only for a Mimic comparison.
 struct TakeInsightsView: View {
-  @EnvironmentObject private var model: AppModel
-  @AppStorage(InsightWordingPreference.storageKey) private var wordingEnabled =
-    InsightWordingPreference.default
-
   let takeID: UUID
   let metrics: VoiceMetrics
   let plan: CoachingPlan
@@ -14,23 +10,18 @@ struct TakeInsightsView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
       InspectorMetricStack(metrics: InspectorMetricItem.voiceMetrics(metrics))
-      if !plan.signals.isEmpty {
-        Divider()
-        SectionEyebrow(text: "Practice next")
-      }
       if let notice = plan.notice {
         noticeText(notice)
       }
-      ForEach(Array(plan.signals.enumerated()), id: \.element.id) { index, signal in
-        if index > 0 { Divider() }
-        signalRow(signal, number: index + 1)
+      if let pause = plan.plainTakeCue {
+        Divider()
+        Text("Longest pause: \(vcNumber(pause.pauseDurationSeconds, 2)) s")
+          .font(.caption)
+          .foregroundStyle(Studio.secondary)
       }
     }
-    .task(id: "\(takeID.uuidString)-\(wordingEnabled)-\(plan.signals.map(\.id).joined())") {
-      model.scheduleInsightWording(for: plan, takeID: takeID)
-    }
     .accessibilityElement(children: .contain)
-    .accessibilityLabel(plan.signals.isEmpty ? "Metrics" : "Metrics and practice next")
+    .accessibilityLabel("Metrics")
   }
 
   private func noticeText(_ notice: String) -> some View {
@@ -40,31 +31,4 @@ struct TakeInsightsView: View {
       .fixedSize(horizontal: false, vertical: true)
   }
 
-  private func signalRow(_ signal: CoachingSignal, number: Int) -> some View {
-    HStack(alignment: .top, spacing: 10) {
-      Text(String(format: "%02d", number))
-        .font(.caption.monospacedDigit().weight(.semibold))
-        .foregroundStyle(Studio.accent)
-        .frame(width: 22, alignment: .leading)
-      VStack(alignment: .leading, spacing: 5) {
-        Text(signal.title)
-          .font(.callout.weight(.semibold))
-          .foregroundStyle(Studio.ink)
-        Text(signal.observation)
-          .font(.caption)
-          .foregroundStyle(Studio.secondary)
-          .fixedSize(horizontal: false, vertical: true)
-        Text(model.displayedAction(for: signal, takeID: takeID))
-          .font(.callout)
-          .foregroundStyle(Studio.ink)
-          .fixedSize(horizontal: false, vertical: true)
-        if let progress = signal.progress {
-          Text(progress)
-            .font(.caption)
-            .foregroundStyle(Studio.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-        }
-      }
-    }
-  }
 }

@@ -30,12 +30,14 @@ extension AppModel {
   }
 
   func stopPlayback() {
+    replayBothPendingAttempt = false
     recorder.stopPlayback()
     stopPlaybackTimer()
     isPlaying = false
     playbackTime = 0
     mimicPlaybackEnd = nil
     if mimicPhase == .playingReference {
+      if mimicShouldRecordAfterPlayback { pendingRetryTarget = nil }
       mimicShouldRecordAfterPlayback = false
       mimicPhase = .ready
     }

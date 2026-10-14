@@ -6,8 +6,8 @@ extension MimicComparisonView {
     let pairs = comparison.pairs
     let selected =
       model.isPlaying
-      ? (followedWordIndex ?? model.mimicSelectedWord ?? 0)
-      : (model.mimicSelectedWord ?? 0)
+      ? (followedWordIndex ?? model.mimicSelectedWord ?? focusPairIndex ?? 0)
+      : (model.mimicSelectedWord ?? focusPairIndex ?? 0)
     return VStack(alignment: .leading, spacing: 10) {
       HStack(alignment: .bottom, spacing: 6) {
         ForEach(pairs.indices, id: \.self) { index in

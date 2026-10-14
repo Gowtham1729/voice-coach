@@ -1,6 +1,7 @@
 import AVFoundation
 import AppKit
 import Foundation
+import OSLog
 import VoiceCoachCore
 import VoiceCoachSession
 
@@ -205,6 +206,7 @@ extension AppModel {
           if granted {
             begin()
           } else {
+            self.pendingRetryTarget = nil
             self.presentError(
               title: "Microphone Access Needed",
               message: RecorderError.microphoneDenied.errorDescription
@@ -213,6 +215,7 @@ extension AppModel {
         }
       }
     default:
+      pendingRetryTarget = nil
       presentError(
         title: "Microphone Access Needed",
         message: RecorderError.microphoneDenied.errorDescription
@@ -224,6 +227,7 @@ extension AppModel {
     guard case .countIn = mimicPhase else { return }
     mimicCountInTask?.cancel()
     mimicPhase = .ready
+    pendingRetryTarget = nil
   }
 
   private func startMimicCountIn() {
@@ -259,6 +263,49 @@ extension AppModel {
     let bounds = range ?? 0...take.result.metrics.duration
     playMimicSegment(
       url: take.audioURL, source: .attempt, start: bounds.lowerBound, end: bounds.upperBound)
+  }
+
+  func replayBoth() {
+    guard selectedSession?.mimicReference != nil, selectedTake != nil else { return }
+    replayBothPendingAttempt = true
+    playMimicReference()
+  }
+
+  func playFocusSegment(
+    source: MimicPlaybackSource, range: ClosedRange<Double>,
+    focusWordRange: ClosedRange<Double>
+  ) {
+    let take = source == .reference ? selectedSession?.mimicReference?.take : selectedTake
+    guard let take else { return }
+    let duration = take.result.metrics.duration
+    let start = max(0, range.lowerBound - 0.150)
+    let end = min(duration, range.upperBound + 0.150)
+    guard end > start else { return }
+    #if DEBUG
+    if ProcessInfo.processInfo.environment["VOICECOACH_REPLAY_LOG"] == "1" {
+      Logger(subsystem: "com.gowtham.voicecoach", category: "Replay").debug(
+        "VOICECOACH_REPLAY source=\(String(describing: source), privacy: .public) played=\(start, privacy: .public)...\(end, privacy: .public) focus=\(focusWordRange.lowerBound, privacy: .public)...\(focusWordRange.upperBound, privacy: .public)")
+    }
+    #endif
+    if source == .reference {
+      playMimicReference(range: start...end)
+    } else {
+      playMimicAttempt(range: start...end)
+    }
+  }
+
+  func playPreviousFocusSegment(takeID: UUID, range: ClosedRange<Double>) {
+    guard let take = selectedSession?.takes.first(where: { $0.id == takeID }) else { return }
+    let start = max(0, range.lowerBound - 0.150)
+    let end = min(take.result.metrics.duration, range.upperBound + 0.150)
+    guard end > start else { return }
+    #if DEBUG
+    if ProcessInfo.processInfo.environment["VOICECOACH_REPLAY_LOG"] == "1" {
+      Logger(subsystem: "com.gowtham.voicecoach", category: "Replay").debug(
+        "VOICECOACH_REPLAY source=previous played=\(start, privacy: .public)...\(end, privacy: .public) focus=\(range.lowerBound, privacy: .public)...\(range.upperBound, privacy: .public)")
+    }
+    #endif
+    playMimicSegment(url: take.audioURL, source: .attempt, start: start, end: end)
   }
 
   func seekMimic(source: MimicPlaybackSource, to time: Double) {
@@ -359,6 +406,11 @@ extension AppModel {
     isPlaying = false
     playbackTime = 0
     mimicPlaybackEnd = nil
+    if replayBothPendingAttempt {
+      replayBothPendingAttempt = false
+      playMimicAttempt()
+      return
+    }
     if mimicShouldRecordAfterPlayback {
       mimicShouldRecordAfterPlayback = false
       startMimicCountIn()

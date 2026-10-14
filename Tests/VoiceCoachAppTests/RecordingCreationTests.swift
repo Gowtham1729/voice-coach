@@ -129,6 +129,65 @@ struct RecordingCreationTests {
     #expect(FileManager.default.fileExists(atPath: url.path))
   }
 
+  @Test("Saving a Mimic attempt keeps Compare when the session moves to the top")
+  func mimicSaveAfterSort() throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root)
+    let plainID = UUID()
+    let mimicID = UUID()
+    model.sessions = [
+      CoachingSession(
+        id: plainID, name: "Newer plain", updatedAt: Date(), mode: .general,
+        prompt: "", keepsRecordings: true),
+      CoachingSession(
+        id: mimicID, name: "Reference", updatedAt: .distantPast, mode: .mimic,
+        prompt: "", keepsRecordings: true),
+    ]
+    model.selectedSessionID = mimicID
+    model.destination = .practice(mimicID)
+    let takeID = UUID()
+    let url = try model.store.recordingURL(sessionID: mimicID, takeID: takeID)
+    try writeAudio(to: url, amplitude: 0.3)
+    let take = PracticeSession(
+      id: takeID, audioURL: url, result: try AudioAnalyzer().analyze(url: url))
+
+    let earlierTakeID = UUID()
+    model.skipRetryCard(for: earlierTakeID)
+    #expect(model.skippedRetryCardTakeIDs.count == 1)
+    model.showRetryCard(for: earlierTakeID)
+    #expect(model.skippedRetryCardTakeIDs.isEmpty)
+    model.skipRetryCard(for: earlierTakeID)
+
+    model.append(take)
+
+    #expect(model.sessions.first?.id == mimicID)
+    #expect(model.selectedTakeID == takeID)
+    #expect(model.destination == .practice(mimicID))
+    #expect(model.skippedRetryCardTakeIDs.isEmpty)
+    #expect(try model.store.load().first?.takes.first?.id == takeID)
+  }
+
+  @Test("Cancelling a retry before capture clears its pinned target")
+  func cancelledRetryDoesNotPinLaterCapture() throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root)
+    let target = TargetFocus(
+      referenceWordIndex: 4, word: "important", kind: .pitch, gap: 6,
+      referenceRange: 1.9...2.15, takeRange: 2.0...2.25)
+    model.pendingRetryTarget = (UUID(), .listenAndRepeat, target)
+    model.mimicPhase = .countIn(2)
+    model.cancelMimicCountIn()
+    #expect(model.pendingRetryTarget == nil)
+
+    model.pendingRetryTarget = (UUID(), .listenAndRepeat, target)
+    model.mimicPhase = .playingReference
+    model.mimicShouldRecordAfterPlayback = true
+    model.stopPlayback()
+    #expect(model.pendingRetryTarget == nil)
+  }
+
   @Test(
     "Invalid retries preserve replace-only takes and clear rejected Mimic recovery",
     arguments: [PracticeMode.general, .mimic])
