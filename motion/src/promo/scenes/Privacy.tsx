@@ -4,6 +4,15 @@ import { Phrase } from "../components/Phrase";
 import { CobaltStage } from "../components/Stage";
 import { EASE, ramp } from "../motion";
 import { COLORS } from "../theme";
+import { SEGMENTS } from "../timeline";
+
+const privacy = SEGMENTS.find((s) => s.id === "privacy");
+const cta = SEGMENTS.find((s) => s.id === "cta");
+if (!privacy || !cta) {
+  throw new Error("Missing privacy or end-card segment");
+}
+// The iris into the end card starts this many frames into the privacy scene.
+const CLOSE = privacy.dur - cta.enter;
 
 const LEFT = 160;
 const WHITE = COLORS.white;
@@ -15,9 +24,9 @@ const BODY = "rgba(255, 255, 255, 0.9)";
 export const Privacy: React.FC = () => {
   const frame = useCurrentFrame();
   // Gentle settle so the hold is not a frozen frame.
-  const drift = 1 + 0.012 * ramp(frame, 40, 824, EASE.linear);
-  // Clear the stage while it closes into the CTA period (from local 764).
-  const clear = 1 - ramp(frame, 764, 790, EASE.inOut);
+  const drift = 1 + 0.012 * ramp(frame, 40, CLOSE, EASE.linear);
+  // Clear the lines while the stage closes into the end-card period.
+  const clear = 1 - ramp(frame, CLOSE + 2, CLOSE + 28, EASE.inOut);
   return (
     <CobaltStage>
       <div

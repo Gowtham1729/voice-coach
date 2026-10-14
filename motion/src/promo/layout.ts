@@ -130,15 +130,15 @@ export const CTA = { size: 120, baseline: 440 };
 export const ctaLockup = () => lockup(CTA.size, 960, CTA.baseline);
 
 export const RECORDING_HEADLINE = {
-  text: "Record yourself, too.",
+  text: "Or start with your own words.",
   left: 96,
   baseline: 330,
-  size: 104,
+  size: 80,
 };
 
 export const recordingPeriod = () =>
   periodAfter(
-    "Record yourself, too",
+    "Or start with your own words",
     RECORDING_HEADLINE.left,
     RECORDING_HEADLINE.baseline,
     RECORDING_HEADLINE.size,
