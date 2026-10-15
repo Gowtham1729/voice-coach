@@ -21,7 +21,7 @@ struct ContentView: View {
       .sheet(isPresented: mimicStartBinding) {
         CreateSessionView()
           .environmentObject(model)
-          .frame(width: 680, height: 640)
+          .frame(width: 680)
       }
       .alert("Keep all takes?", isPresented: replaceOnlyBinding) {
         Button("Keep all takes") { model.confirmKeepAllFromNowOn() }

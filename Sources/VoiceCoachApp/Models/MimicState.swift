@@ -8,6 +8,8 @@ struct MimicReferenceDraft {
   let duration: Double
   let peaks: [Float]
   let source: TakeSource
+  var transcription: TranscriptionResult? = nil
+  var transcriptionLocaleIdentifier: String? = nil
 }
 
 enum MimicPhase: Equatable {

@@ -110,15 +110,41 @@ extension AppModel {
     mimicReferenceCaptureTimer = nil
   }
 
-  /// Shared path for file import and Mac-audio capture → trim-ready draft.
-  func presentMimicDraft(id: UUID, url: URL, sourceName: String, source: TakeSource) {
+  /// Prepare phrases before creating any library entry.
+  @discardableResult
+  func presentMimicDraft(
+    id: UUID, url: URL, sourceName: String, source: TakeSource,
+    transcription: TranscriptionResult? = nil
+  ) -> Task<Void, Never> {
     mimicIsPreparing = true
     clearError()
-    Task {
+    let engine = transcriptionEngine
+    let locale = newSessionTranscriptionLocale
+    let task = Task {
+      defer {
+        if mimicPreparationID == id {
+          mimicIsPreparing = false
+          mimicIsFindingPhrases = false
+          mimicPreparationTask = nil
+          clearMimicReferenceCaptureMeters()
+        }
+      }
       do {
         let overview = try await Task.detached(priority: .userInitiated) {
           try AudioImportService.waveform(from: url)
         }.value
+        guard mimicPreparationID == id else {
+          try? FileManager.default.removeItem(at: url)
+          return
+        }
+        var recognized = transcription
+        if recognized == nil {
+          mimicIsFindingPhrases = true
+          // Valid audio remains available for manual selection if speech recognition fails.
+          let outcome = try? await transcribeForAnalysis(url: url, engine: engine, locale: locale)
+          recognized = outcome?.transcription
+        }
+        try Task.checkCancellation()
         guard mimicPreparationID == id else {
           try? FileManager.default.removeItem(at: url)
           return
@@ -129,22 +155,26 @@ extension AppModel {
           sourceName: sourceName,
           duration: overview.duration,
           peaks: overview.peaks,
-          source: source
+          source: source, transcription: recognized,
+          transcriptionLocaleIdentifier: recognized?.localeIdentifier ?? locale?.identifier
         )
-        mimicIsPreparing = false
-        clearMimicReferenceCaptureMeters()
       } catch {
         try? FileManager.default.removeItem(at: url)
         if mimicPreparationID == id {
           mimicIsPreparing = false
+          mimicIsFindingPhrases = false
+          mimicPreparationTask = nil
           mimicPreparationID = nil
           clearMimicReferenceCaptureMeters()
-          presentError(
-            title: "Reference practice failed",
-            error: error,
-            fallback: "Couldn’t prepare this reference.")
+          if !(error is CancellationError) {
+            presentError(
+              title: "Reference practice failed", error: error,
+              fallback: "Couldn’t prepare this reference.")
+          }
         }
       }
     }
+    mimicPreparationTask = task
+    return task
   }
 }

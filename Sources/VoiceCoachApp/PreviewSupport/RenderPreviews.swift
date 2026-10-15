@@ -132,9 +132,9 @@
       }
 
       func renderCreateSession(
-        _ name: String, mode: PracticeMode = .general, width: CGFloat = 720, height: CGFloat = 760
+        _ name: String, width: CGFloat = 680, height: CGFloat = 340
       ) throws {
-        let view = CreateSessionView(initialMode: mode)
+        let view = CreateSessionView()
           .environmentObject(model)
           .defaultAppStorage(previewDefaults)
           .environment(\.studioSnapshot, true)
@@ -153,7 +153,7 @@
       try render("01-home")
       try render("01b-home-compact", width: 920, height: 640)
       model.destination = .mimicStart
-      try renderCreateSession("02-mimic-start", mode: .mimic)
+      try renderCreateSession("02-mimic-start")
       if let first = model.sessions[0].takes.first {
         model.openTake(sessionID: model.sessions[0].id, takeID: first.id)
       }
@@ -255,16 +255,16 @@
           id: UUID(), url: fixtureRoot.appendingPathComponent("preview-only.wav"),
           sourceName: "Interview excerpt", duration: 8,
           peaks: (0..<180).map { Float(0.1 + 0.6 * abs(sin(Double($0) / 8))) },
-          source: .importedAudio
+          source: .importedAudio, transcription: mimic.mimicReference?.take.transcription
         )
-        try renderCreateSession("13-mimic-setup", mode: .mimic)
+        try renderCreateSession("13-mimic-setup", height: 480)
         model.mimicDraft = MimicReferenceDraft(
           id: UUID(), url: fixtureRoot.appendingPathComponent("preview-only-long.wav"),
           sourceName: "Long interview", duration: 180,
           peaks: (0..<2_880).map { Float(0.1 + 0.6 * abs(sin(Double($0) / 8))) },
           source: .importedAudio
         )
-        try renderCreateSession("14-mimic-long-setup", mode: .mimic)
+        try renderCreateSession("14-mimic-long-setup", height: 400)
       }
 
       // Hang regression: a multi-thousand-word transcript must layout quickly.

@@ -125,10 +125,11 @@ package final class SessionStore: SessionStoring {
     encoder.outputFormatting = [.sortedKeys]
     try encoder.encode(document).write(to: libraryURL, options: .atomic)
 
-    // Prune only after the index commit so a failed write cannot leave
-    // the on-disk index pointing at deleted analysis blobs.
+    // Prune only after the index commit. Cleanup is best effort: reporting a
+    // failed save after the commit would make callers roll back and delete audio
+    // that the on-disk index now references. A later save retries orphan cleanup.
     for session in sessions {
-      try pruneAnalyses(sessionID: session.id, keeping: Set(session.allPracticeTakes.map(\.id)))
+      try? pruneAnalyses(sessionID: session.id, keeping: Set(session.allPracticeTakes.map(\.id)))
     }
   }
 
