@@ -5,6 +5,9 @@ import VoiceCoachSession
 
 extension AppModel {
   func requestPermissionAndRecord() {
+    guard !isRecording, !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference,
+      !mimicIsPreparing, !hasMenuBarReference
+    else { return }
     if selectedSessionID == nil {
       prepareStandaloneCapture()
     }
@@ -69,7 +72,7 @@ extension AppModel {
 
   func beginRecording() {
     guard let sessionID = selectedSessionID else { return }
-    guard !isRecording, !isCapturingMimicReference else { return }
+    guard !isRecording, !isCapturingMimicReference, !hasMenuBarReference else { return }
     if !mimicAlong {
       recorder.stopPlayback()
       isPlaying = false
@@ -448,7 +451,7 @@ extension AppModel {
 
   private func startTimer() {
     timer?.invalidate()
-    timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+    let recordingTimer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
       Task { @MainActor in
         guard let self else { return }
         self.elapsed = Date().timeIntervalSince(self.startedAt ?? Date())
@@ -456,6 +459,8 @@ extension AppModel {
         if self.elapsed >= 90 { self.stopRecording() }
       }
     }
+    timer = recordingTimer
+    RunLoop.main.add(recordingTimer, forMode: .common)
   }
 
   func startPlaybackTimer() {

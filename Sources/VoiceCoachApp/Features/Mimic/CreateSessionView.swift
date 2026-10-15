@@ -60,7 +60,8 @@ struct CreateSessionView: View {
       loadMimicDraft()
     }
     .onAppear { if excerptEnd == 0 { loadMimicDraft() } }
-    .onDisappear { model.cancelMimicPreparation() }
+    // Cancel, sheet dismissal, and successful creation own cleanup. A delayed
+    // disappearance must not cancel the next menu bar capture.
   }
 
   private func loadMimicDraft() {

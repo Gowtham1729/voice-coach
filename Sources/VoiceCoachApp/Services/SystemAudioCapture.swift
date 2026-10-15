@@ -1,13 +1,15 @@
 import AVFoundation
 import CoreAudio
 import Foundation
+import OSLog
 
 protocol SystemAudioCapturing: AnyObject {
   var onCaptureInterrupted: (() -> Void)? { get set }
   var heardAudio: Bool { get }
 
   func peakLevel() -> Float
-  func start(url: URL) throws
+  @MainActor
+  func requestStart(url: URL, completion: @escaping @MainActor @Sendable (Result<Void, Error>) -> Void)
   func stop()
 }
 
@@ -16,6 +18,7 @@ protocol SystemAudioCapturing: AnyObject {
 /// Permission prompts on `AudioDeviceStart` when `NSAudioCaptureUsageDescription` is set.
 /// Denied access often still returns `noErr` with silent buffers — callers should check `heardAudio`.
 final class SystemAudioCapture: SystemAudioCapturing, @unchecked Sendable {
+  private static let logger = Logger(subsystem: "com.gowtham.voicecoach", category: "SystemAudioCapture")
   var onCaptureInterrupted: (() -> Void)?
 
   private let ioQueue = DispatchQueue(
@@ -37,7 +40,17 @@ final class SystemAudioCapture: SystemAudioCapturing, @unchecked Sendable {
     state.read(\.sawNonSilentAudio)
   }
 
-  func start(url: URL) throws {
+  @MainActor
+  func requestStart(url: URL, completion: @escaping @MainActor @Sendable (Result<Void, Error>) -> Void) {
+    // AudioDeviceStart can wait for the system permission dialog. Keep that
+    // wait off the main actor so Ichido can display its status and cancel.
+    Task.detached(priority: .userInitiated) { [self] in
+      let result = Result { try start(url: url) }
+      await completion(result)
+    }
+  }
+
+  private func start(url: URL) throws {
     guard !state.read(\.isCapturing) else { throw SystemAudioCaptureError.alreadyCapturing }
     teardown(removing: nil)
 
@@ -49,6 +62,7 @@ final class SystemAudioCapture: SystemAudioCapturing, @unchecked Sendable {
     }
 
     state.write { $0.isCapturing = true }
+    Self.logger.info("System audio capture started")
   }
 
   func stop() {
@@ -58,6 +72,8 @@ final class SystemAudioCapture: SystemAudioCapturing, @unchecked Sendable {
       return active
     }
     guard wasActive else { return }
+    let heardAudio = state.read(\.sawNonSilentAudio)
+    Self.logger.info("System audio capture stopped; non-silent audio: \(heardAudio, privacy: .public)")
     teardown(removing: nil)
   }
 
@@ -385,7 +401,7 @@ enum SystemAudioCaptureError: LocalizedError {
     case .setupFailed:
       "Allow Ichido in System Settings → Privacy & Security → Screen & System Audio Recording."
     case .permissionOrSilent:
-      "Play audio on this Mac, then capture again. If nothing was playing, allow Ichido under System Settings → Privacy & Security → Screen & System Audio Recording."
+      "No Mac audio was captured. Play a clip while capturing. If audio was playing, check Ichido’s access in System Settings → Privacy & Security → Screen & System Audio Recording."
     }
   }
 }

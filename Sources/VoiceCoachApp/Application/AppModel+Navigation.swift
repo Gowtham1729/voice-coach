@@ -23,7 +23,9 @@ extension AppModel {
       stopRecording()
       return
     }
-    guard !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference else { return }
+    guard !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference,
+      !mimicIsPreparing, !hasMenuBarReference, mimicPhase == .ready
+    else { return }
     discardPendingStandaloneIfEmpty()
     selectedTakeID = nil
     destination = .home

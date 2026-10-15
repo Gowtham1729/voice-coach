@@ -97,13 +97,15 @@ struct MimicReferencePicker: View {
             .font(.caption)
             .foregroundStyle(Studio.secondary)
         }
+      } else if model.isRequestingPermission {
+        ProgressView("Waiting for permission…")
       } else if model.isCapturingMimicReference {
         VStack(alignment: .leading, spacing: 10) {
           HStack(spacing: 12) {
             Label("Capturing Mac audio", systemImage: "speaker.wave.2.fill")
               .font(.body.weight(.medium))
               .foregroundStyle(Color.red)
-            LiveMeterView(level: model.mimicReferenceCaptureLevel)
+            LiveMeterView(level: model.mimicReferenceCaptureLevel, accessibilityName: "Mac audio level")
               .frame(maxWidth: .infinity)
             Text(vcDuration(model.mimicReferenceCaptureElapsed))
               .font(.system(.caption, design: .monospaced))
