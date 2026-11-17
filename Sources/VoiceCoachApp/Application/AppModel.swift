@@ -7,8 +7,12 @@ import VoiceCoachSession
 final class AppModel: ObservableObject {
   @Published var destination: AppDestination = .home
   @Published var sessions: [CoachingSession] = []
-  @Published var selectedSessionID: UUID?
-  @Published var selectedTakeID: UUID?
+  @Published var selectedSessionID: UUID? {
+    didSet { if oldValue != selectedSessionID { pendingRetryTarget = nil } }
+  }
+  @Published var selectedTakeID: UUID? {
+    didSet { if oldValue != selectedTakeID { pendingRetryTarget = nil } }
+  }
   @Published var dismissedRetryCardTakeIDs: Set<UUID> = []
   @Published var skippedRetryCardTakeIDs: Set<UUID> = []
   @Published var pendingReplaceOnly: ReplaceOnlyPrompt?

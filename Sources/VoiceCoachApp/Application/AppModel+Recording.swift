@@ -384,8 +384,6 @@ extension AppModel {
       return
     }
     if target != nil { pendingRetryTarget = nil }
-    skippedRetryCardTakeIDs.removeAll()
-    dismissedRetryCardTakeIDs.removeAll()
     if pendingMimicSessionID == selectedSessionID {
       pendingMimicTake = nil
       pendingMimicAudio = nil

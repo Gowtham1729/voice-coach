@@ -18,6 +18,9 @@ struct OneTargetRetryCard: View {
         if evaluation.verdict == .neutral {
           return OneTargetRetryStrings.neutralRetryLine(word: evaluation.target.word)
         }
+        if evaluation.verdict == .unmeasured {
+          return OneTargetRetryStrings.unmeasuredRetryLine(word: evaluation.target.word)
+        }
         if evaluation.verdict == .otherWay || evaluation.verdict == .unreliable {
           return evaluation.cueCopy
         }
@@ -79,17 +82,19 @@ struct OneTargetRetryCard: View {
             if isReference, let focus {
               HStack(spacing: 8) {
                 if let spans = evaluation?.neutralReplaySpans {
-                  if let previous = spans.previous {
-                    Button(OneTargetRetryStrings.previousTake) {
-                      model.playPreviousFocusSegment(
-                        takeID: spans.previousTakeID, range: previous)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(model.isRecording || model.isAnalyzing)
-                  } else {
-                    Button(OneTargetRetryStrings.previousTake) {}
+                  if session.takes.contains(where: { $0.id == spans.previousTakeID }) {
+                    if let previous = spans.previous {
+                      Button(OneTargetRetryStrings.previousTake) {
+                        model.playPreviousFocusSegment(
+                          takeID: spans.previousTakeID, range: previous)
+                      }
                       .buttonStyle(.bordered)
-                      .disabled(true)
+                      .disabled(model.isRecording || model.isAnalyzing)
+                    } else {
+                      Button(OneTargetRetryStrings.previousTake) {}
+                        .buttonStyle(.bordered)
+                        .disabled(true)
+                    }
                   }
                   if let current = spans.current {
                     replayChip(OneTargetRetryStrings.thisTake, word: focus.word,

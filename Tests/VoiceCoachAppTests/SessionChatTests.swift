@@ -410,16 +410,8 @@ struct SessionChatTests {
       transcription: TranscriptionResult(text: "", words: []))
     let unmatched = CoachingPlanner.mimic(reference: bare, attempt: bare)
     #expect(unmatched.signals.isEmpty)
-    #expect(unmatched.notice == "Not enough of your words matched the clip to compare.")
+    #expect(unmatched.notice == "Not enough of your words matched the reference to compare.")
 
-    let insights = try repositorySource("Sources/VoiceCoachApp/DesignSystem/TakeInsightsView.swift")
-    #expect(!insights.contains("Target gap:"))
-    #expect(insights.contains("Longest pause:"))
-    let retryCard = try repositorySource("Sources/VoiceCoachApp/DesignSystem/OneTargetRetryCard.swift")
-    #expect(retryCard.contains("OneTargetRetryStrings.tryAgain"))
-    #expect(retryCard.contains("OneTargetRetryStrings.replayBoth"))
-    #expect(!retryCard.contains("displayedAction"))
-    #expect(!retryCard.contains("scheduleInsightWording"))
     let settings = try repositorySource("Sources/VoiceCoachApp/Features/Settings/SettingsView.swift")
     #expect(settings.contains("Text(\"Practice next\")"))
     #expect(

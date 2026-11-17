@@ -6,6 +6,15 @@ import VoiceCoachSession
 
 @testable import VoiceCoachApp
 
+private let helloThereOutcome = TranscriptionOutcome(
+  result: TranscriptionResult(
+    text: "Hello there",
+    words: [
+      TranscriptWord(word: "Hello", start: 0, end: 0.4),
+      TranscriptWord(word: "there", start: 0.5, end: 0.9),
+    ]),
+  engine: .system)
+
 @Suite("Recording creation")
 @MainActor
 struct RecordingCreationTests {
@@ -164,7 +173,7 @@ struct RecordingCreationTests {
     #expect(model.sessions.first?.id == mimicID)
     #expect(model.selectedTakeID == takeID)
     #expect(model.destination == .practice(mimicID))
-    #expect(model.skippedRetryCardTakeIDs.isEmpty)
+    #expect(model.skippedRetryCardTakeIDs == [earlierTakeID])
     #expect(try model.store.load().first?.takes.first?.id == takeID)
   }
 
@@ -186,6 +195,146 @@ struct RecordingCreationTests {
     model.mimicShouldRecordAfterPlayback = true
     model.stopPlayback()
     #expect(model.pendingRetryTarget == nil)
+  }
+
+  @Test("Changing the selection clears a pending retry target")
+  func selectionChangeClearsRetryTarget() throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root)
+    let target = retargetFixture(word: "important", index: 4)
+    model.pendingRetryTarget = (UUID(), .listenAndRepeat, target)
+    model.selectedSessionID = UUID()
+    #expect(model.pendingRetryTarget == nil)
+
+    model.pendingRetryTarget = (UUID(), .listenAndRepeat, target)
+    model.selectedTakeID = UUID()
+    #expect(model.pendingRetryTarget == nil)
+  }
+
+  @Test("A retry that cannot start does not leave its target pinned")
+  func retryThatDoesNotStartClearsTarget() throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root)
+    let target = retargetFixture(word: "important", index: 4)
+    model.mimicPhase = .playingReference
+    model.startRetryPractice(pinning: (UUID(), .listenAndRepeat, target))
+    #expect(model.pendingRetryTarget == nil)
+
+    model.mimicPhase = .ready
+    model.isRecording = true
+    model.startRetryPractice(pinning: (UUID(), .listenAndRepeat, target))
+    #expect(model.pendingRetryTarget == nil)
+  }
+
+  @Test("Skip and dismiss survive saves and are forgotten with their take or session")
+  func retryCardStateLifetime() throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root)
+    let (url, firstID) = try prepareAudio(model)
+    let sessionID = try #require(model.selectedSessionID)
+    let secondID = UUID()
+    let analysis = try AudioAnalyzer().analyze(url: url)
+    model.sessions = [
+      CoachingSession(
+        id: sessionID, name: "Takes", mode: .general, prompt: "", keepsRecordings: true,
+        takes: [
+          PracticeSession(id: firstID, audioURL: url, result: analysis),
+          PracticeSession(id: secondID, audioURL: url, result: analysis),
+        ])
+    ]
+    model.pendingCaptureIsNewSession = false
+    model.selectedTakeID = firstID
+    #expect(model.persist(analysisTakeIDs: [firstID, secondID]))
+    model.skipRetryCard(for: firstID)
+    model.dismissRetryCard(for: firstID)
+    model.skipRetryCard(for: secondID)
+    model.dismissRetryCard(for: secondID)
+
+    model.deleteTake(firstID)
+    #expect(model.skippedRetryCardTakeIDs == [secondID])
+    #expect(model.dismissedRetryCardTakeIDs == [secondID])
+
+    model.deleteSession(sessionID)
+    #expect(model.skippedRetryCardTakeIDs.isEmpty)
+    #expect(model.dismissedRetryCardTakeIDs.isEmpty)
+  }
+
+  @Test("Re-transcribing a retry take keeps its pinned target")
+  func retranscriptionKeepsSavedTarget() async throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root) { _, _, _ in helloThereOutcome }
+    let (url, takeID) = try prepareAudio(model)
+    let analysis = try AudioAnalyzer().analyze(url: url)
+    let target = retargetFixture(word: "there", index: 1)
+    let attempt = PracticeSession(
+      id: takeID, audioURL: url, result: analysis,
+      transcription: TranscriptionResult(text: "Old", words: []), savedTarget: target)
+    let sessionID = try #require(model.selectedSessionID)
+    model.sessions = [
+      CoachingSession(
+        id: sessionID, name: "Retry", mode: .general, prompt: "", keepsRecordings: true,
+        takes: [attempt])
+    ]
+    model.pendingCaptureIsNewSession = false
+    model.selectedTakeID = takeID
+    #expect(model.persist(analysisTakeIDs: [takeID]))
+
+    await model.retranscribeSelectedTake()?.value
+
+    #expect(model.errorMessage == nil)
+    #expect(try model.store.load().first?.latestTake?.savedTarget == target)
+  }
+
+  @Test("Re-transcribing the reference drops targets that no longer match its words")
+  func referenceRetranscriptionClearsStaleTargets() async throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = try makeModel(root: root) { _, _, _ in helloThereOutcome }
+    let (url, referenceID) = try prepareAudio(model)
+    let analysis = try AudioAnalyzer().analyze(url: url)
+    let reference = PracticeSession(
+      id: referenceID, audioURL: url, result: analysis,
+      transcription: TranscriptionResult(text: "Old", words: []))
+    let keptID = UUID()
+    let droppedID = UUID()
+    let missingID = UUID()
+    let kept = PracticeSession(
+      id: keptID, audioURL: url, result: analysis,
+      savedTarget: retargetFixture(word: "THERE", index: 1))
+    let dropped = PracticeSession(
+      id: droppedID, audioURL: url, result: analysis,
+      savedTarget: retargetFixture(word: "there", index: 0))
+    let missing = PracticeSession(
+      id: missingID, audioURL: url, result: analysis,
+      savedTarget: retargetFixture(word: "there", index: 7))
+    let sessionID = try #require(model.selectedSessionID)
+    model.sessions = [
+      CoachingSession(
+        id: sessionID, name: "Reference", mode: .mimic, prompt: "", keepsRecordings: true,
+        takes: [kept, dropped, missing],
+        mimicReference: MimicReference(
+          sourceName: "Fixture", take: reference, sourceStart: 0, sourceEnd: 1))
+    ]
+    model.pendingCaptureIsNewSession = false
+    #expect(model.persist(analysisTakeIDs: [referenceID, keptID, droppedID, missingID]))
+
+    await model.retranscribeMimicReference()?.value
+
+    #expect(model.errorMessage == nil)
+    let takes = try #require(model.store.load().first?.takes)
+    #expect(takes.first { $0.id == keptID }?.savedTarget != nil)
+    #expect(takes.first { $0.id == droppedID }?.savedTarget == nil)
+    #expect(takes.first { $0.id == missingID }?.savedTarget == nil)
+  }
+
+  private func retargetFixture(word: String, index: Int) -> TargetFocus {
+    TargetFocus(
+      referenceWordIndex: index, word: word, kind: .pitch, gap: 6,
+      referenceRange: 0.5...0.9, takeRange: 0.5...0.9)
   }
 
   @Test(

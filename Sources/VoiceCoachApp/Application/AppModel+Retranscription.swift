@@ -37,13 +37,22 @@ extension AppModel {
         let updatedTake = PracticeSession(
           id: take.id, createdAt: take.createdAt, audioURL: take.audioURL, source: take.source,
           result: take.result, transcription: outcome.result,
-          words: WordAcousticAnalyzer().analyze(transcription: outcome.result, result: take.result)
+          words: WordAcousticAnalyzer().analyze(transcription: outcome.result, result: take.result),
+          savedTarget: take.savedTarget
         )
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
         let previousSessions = sessions
         if isReference {
           guard sessions[index].mimicReference?.take.id == take.id else { return }
           sessions[index].mimicReference?.take = updatedTake
+          // New reference words can shift indices; drop targets that no longer point at their word.
+          let referenceWords = outcome.result.words
+          sessions[index].takes = sessions[index].takes.map { attempt in
+            guard let target = attempt.savedTarget,
+              !target.matches(referenceWords: referenceWords)
+            else { return attempt }
+            return attempt.replacingSavedTarget(nil)
+          }
         } else {
           guard let takeIndex = sessions[index].takes.firstIndex(where: { $0.id == take.id }) else {
             return

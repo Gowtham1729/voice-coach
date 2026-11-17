@@ -30,6 +30,11 @@ extension AppModel {
 
   func showRetryCard(for takeID: UUID) { skippedRetryCardTakeIDs.remove(takeID) }
 
+  func forgetRetryCardState(for takeIDs: [UUID]) {
+    skippedRetryCardTakeIDs.subtract(takeIDs)
+    dismissedRetryCardTakeIDs.subtract(takeIDs)
+  }
+
   func tryAgain(take: PracticeSession, in session: CoachingSession) {
     let plan = coachingPlan(for: take, in: session)
     if session.isMimic, let focus = plan.focus {
@@ -47,16 +52,15 @@ extension AppModel {
         previousTakeID: take.id,
         previousTakeRange: evaluation == nil ? focus.takeRange : evaluation?.newTakeRange,
         consecutiveCloseTakes: evaluation?.nextConsecutiveCloseTakes ?? 0)
-      pendingRetryTarget = (
-        session.id, style, current)
+      let pin = (sessionID: session.id, style: style, target: current)
       #if DEBUG
       if let path = ProcessInfo.processInfo.environment["VOICECOACH_INJECT_TAKE"], !path.isEmpty {
+        pendingRetryTarget = pin
         injectTakeFromEnvironment()
         return
       }
       #endif
-      startMimicPractice()
-      if mimicPhase == .ready && !isRequestingPermission { pendingRetryTarget = nil }
+      startRetryPractice(pinning: pin)
     } else {
       #if DEBUG
       if let path = ProcessInfo.processInfo.environment["VOICECOACH_INJECT_TAKE"], !path.isEmpty {
@@ -66,6 +70,16 @@ extension AppModel {
       #endif
       recordAnother()
     }
+  }
+
+  /// Starts practice with `pin` waiting for the next save. The pin is dropped
+  /// unless practice began or the microphone prompt is pending.
+  func startRetryPractice(pinning pin: (sessionID: UUID, style: MimicStyle?, target: TargetFocus)) {
+    pendingRetryTarget = pin
+    let couldStart = mimicPhase == .ready && !isRequestingPermission
+    startMimicPractice()
+    let didStart = couldStart && (mimicPhase != .ready || isRequestingPermission)
+    if !didStart { pendingRetryTarget = nil }
   }
 
   func displayedAction(for signal: CoachingSignal, takeID: UUID) -> String {
