@@ -23,7 +23,7 @@ struct TakeView: View {
         StudioPage(maxWidth: 1050, horizontalPadding: 20) {
           EmptyState(
             icon: "waveform",
-            title: "Recording Unavailable",
+            title: "Recording unavailable",
             detail: "Choose another recording from Library.",
             actionTitle: "Library"
           ) {

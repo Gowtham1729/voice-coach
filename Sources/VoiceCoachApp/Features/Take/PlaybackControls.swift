@@ -80,6 +80,7 @@ struct TakePlaybackRow<Trailing: View>: View {
     .tint(.primary)
     .studioGlassButton()
     .help(spaceShortcut ? "Play or pause (Space)" : "Play or pause")
+    .accessibilityLabel(model.isPlaying ? "Pause" : "Play")
     .modifier(ConditionalKeyboardShortcut(enabled: spaceShortcut, key: .space))
   }
 
@@ -100,6 +101,7 @@ struct TakePlaybackRow<Trailing: View>: View {
     .tint(.primary)
     .studioGlassButton()
     .help(help)
+    .accessibilityLabel(help)
     .opacity(active ? 1 : 0.38)
     .keyboardShortcut(shortcut, modifiers: [])
   }

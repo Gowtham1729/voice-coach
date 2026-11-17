@@ -143,6 +143,7 @@ struct StudioQuietIconButton: View {
     }
     .buttonStyle(.plain)
     .help(help)
+    .accessibilityLabel(help)
     .onHover { hovering = $0 }
     .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: hovering)
     .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: confirmed)

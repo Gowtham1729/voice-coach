@@ -12,7 +12,9 @@ struct DesktopMimicsWorkspace: View {
     StudioPage(maxWidth: 1100, horizontalPadding: 20) {
       VStack(alignment: .leading, spacing: 14) {
         HStack {
-          Text("\(model.mimicSessions.count) practice sessions")
+          Text(
+            model.mimicSessions.count == 1
+              ? "1 practice session" : "\(model.mimicSessions.count) practice sessions")
             .font(.caption)
             .foregroundStyle(Studio.secondary)
           Spacer()
@@ -126,6 +128,7 @@ struct DesktopMimicsWorkspace: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .frame(width: 28)
+        .accessibilityLabel("More actions")
       }
     }
     .padding(.horizontal, 12)

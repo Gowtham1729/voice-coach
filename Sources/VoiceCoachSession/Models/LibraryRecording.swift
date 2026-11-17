@@ -66,9 +66,11 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
 
   package var stackLabel: String {
     guard !prompt.isEmpty else { return groupName }
-    let excerpt = prompt.split(separator: " ").prefix(8).joined(separator: " ")
-    guard prompt.count > excerpt.count else { return excerpt }
-    return "\(excerpt)…"
+    // Compare word counts: collapsing repeated spaces shortens the text without
+    // truncating it, and that must not add an ellipsis.
+    let words = prompt.split(whereSeparator: \.isWhitespace)
+    let excerpt = words.prefix(8).joined(separator: " ")
+    return words.count > 8 ? "\(excerpt)…" : excerpt
   }
 
   private static func timeText(_ date: Date) -> String {

@@ -22,7 +22,9 @@ struct DesktopLibraryWorkspace: View {
   }
 
   var body: some View {
-    StudioPage(maxWidth: 1100, horizontalPadding: 20) {
+    // Filter once per render; rebuilding the catalog for every row is quadratic.
+    let filtered = filtered
+    return StudioPage(maxWidth: 1100, horizontalPadding: 20) {
       VStack(alignment: .leading, spacing: 14) {
         HStack(spacing: 12) {
           Text(
@@ -166,6 +168,7 @@ struct DesktopLibraryWorkspace: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .frame(width: 28)
+        .accessibilityLabel("More actions")
       }
     }
     .font(.caption)

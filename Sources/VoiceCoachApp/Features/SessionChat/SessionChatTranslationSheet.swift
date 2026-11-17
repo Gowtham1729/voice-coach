@@ -59,6 +59,7 @@ struct SessionChatTranslationSheet: View {
     }
     .frame(width: 500, height: 520)
     .translationTask(configuration) { session in
+      defer { isTranslating = false }
       do {
         let response = try await session.translate(text)
         try Task.checkCancellation()
@@ -69,7 +70,6 @@ struct SessionChatTranslationSheet: View {
         errorMessage =
           "Couldn’t translate this text. Try another language or check downloaded models in System Settings."
       }
-      isTranslating = false
     }
     .onChange(of: target) { _, _ in
       translatedText = ""
