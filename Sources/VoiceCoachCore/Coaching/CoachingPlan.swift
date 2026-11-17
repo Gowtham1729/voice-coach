@@ -117,7 +117,7 @@ public enum CoachingPlanner {
       case .poorSnr, .clipping:
         notice = "This recording is noisy, so tips may be off. Try a quieter spot."
       default:
-        notice = "Not enough of your words matched the clip to compare."
+        notice = "Not enough of your words matched the reference to compare."
       }
       if let pinned = pinnedTarget {
         let eval = evaluateRetry(reference: reference, attempt: attempt, pinnedTarget: pinned)
@@ -349,11 +349,11 @@ public enum CoachingPlanner {
           comparison: comparison) {
         case .byEar(let range):
           return RetryEvaluation(
-            target: pinnedTarget, verdict: .neutral,
+            target: pinnedTarget, verdict: .unmeasured,
             newTakeRange: range, cueCopy: cueCopy)
         case .measured(let range, _):
           return RetryEvaluation(
-            target: pinnedTarget, verdict: .neutral,
+            target: pinnedTarget, verdict: .unmeasured,
             newTakeRange: range, cueCopy: cueCopy)
         case .missingAnchors:
           break
@@ -387,7 +387,7 @@ public enum CoachingPlanner {
           cueCopy: cueCopy)
       case .byEar(let range):
         return RetryEvaluation(
-          target: pinnedTarget, verdict: .neutral,
+          target: pinnedTarget, verdict: .unmeasured,
           newTakeRange: range, cueCopy: cueCopy)
       case .measured(let range, let gap):
         return measuredRetry(
@@ -604,12 +604,17 @@ public enum CoachingPlanner {
           nextConsecutiveCloseTakes: 2
         )
       }
+      // The first close-band take still starts the close streak, but a gap that
+      // shrank by the "closer" bar is reported as closer rather than "about the same".
+      let shrankClearly = pinnedTarget.gap - measuredGap >= retryThreshold
       return RetryEvaluation(
         target: pinnedTarget,
-        verdict: .withinNoise,
+        verdict: shrankClearly ? .held : .withinNoise,
         newGap: measuredGap,
         newTakeRange: newTakeRange,
-        verdictCopy: OneTargetRetryStrings.withinNoiseVerdict,
+        verdictCopy: shrankClearly
+          ? OneTargetRetryStrings.closerVerdict(target: pinnedTarget.word)
+          : OneTargetRetryStrings.withinNoiseVerdict,
         cueCopy: cueCopy,
         nextConsecutiveCloseTakes: 1
       )
@@ -701,6 +706,7 @@ public enum CoachingPlanner {
     let playStart = max(0, prevWord.end - pad)
     let maxEnd = takeDuration ?? (words[quoteEndIndex].end + pad)
     let playEnd = min(maxEnd, words[quoteEndIndex].end + pad)
+    guard playStart < playEnd else { return nil }
     let playbackRange = playStart...playEnd
 
     let text = OneTargetRetryStrings.plainPauseCue(word: followingWords)

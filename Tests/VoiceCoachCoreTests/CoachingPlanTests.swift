@@ -8,40 +8,44 @@ struct CoachingPlanTests {
   func jamesPracticeLoopStrings() {
     #expect(OneTargetRetryStrings.noTranscript == "No transcript for this take.")
     #expect(OneTargetRetryStrings.pitchCue(word: "about")
-      == "Make ‘about’ stand out, like the clip does.")
+      == "Make ‘about’ stand out, like the reference does.")
     #expect(OneTargetRetryStrings.loudnessCue(phrase: "about")
-      == "Say ‘about’ as strongly as the clip does.")
+      == "Say ‘about’ as strongly as the reference does.")
     #expect(OneTargetRetryStrings.timingCue(phrase: "about")
-      == "Say ‘about’ at the clip’s speed.")
+      == "Say ‘about’ at the reference’s speed.")
     #expect(OneTargetRetryStrings.noReferenceAlignment
-      == "Not enough of your words matched the clip to suggest a fix. Replay both to compare.")
+      == "Not enough of your words matched the reference to suggest a fix. Replay both to compare.")
     #expect(OneTargetRetryStrings.noNonEnglishWordCue
       == "Tips for single words work in English for now. Replay both to compare by ear.")
     #expect(OneTargetRetryStrings.plainPauseCue(word: "about")
       == "Your longest pause was before ‘about’.")
     #expect(OneTargetRetryStrings.noLongPauses == "No long pauses in this take.")
     #expect(OneTargetRetryStrings.closerVerdict(target: "about")
-      == "‘about’ was closer to the clip this time.")
+      == "‘about’ was closer to the reference this time.")
     #expect(OneTargetRetryStrings.withinNoiseVerdict == "About the same as your last take.")
     #expect(OneTargetRetryStrings.wordNotFound(word: "about")
       == "Couldn’t find ‘about’ in this take. Say the whole phrase again.")
     #expect(OneTargetRetryStrings.closeEnoughVerdict(target: "about")
-      == "‘about’ is close to the clip now.")
-    #expect(OneTargetRetryStrings.NEUTRAL_RETRY_LINE
+      == "‘about’ is close to the reference now.")
+    #expect(OneTargetRetryStrings.neutralRetryLineTemplate
       == "The difference is too small for us to tell. Listen to ‘{word}’ in each take.")
     #expect(OneTargetRetryStrings.neutralRetryLine(word: "about")
       == "The difference is too small for us to tell. Listen to ‘about’ in each take.")
-    #expect(OneTargetRetryStrings.addReference == "Add a clip…")
+    #expect(OneTargetRetryStrings.unmeasuredRetryLine(word: "about")
+      == "We couldn’t measure ‘about’ in this take. Listen to it in each take.")
+    #expect(OneTargetRetryStrings.formatWordOrPhrase("one two three four five six")
+      == "‘one two three four…’")
+    #expect(OneTargetRetryStrings.addReference == "Add reference…")
     #expect(OneTargetRetryStrings.yourTake == "Your take")
     #expect(OneTargetRetryStrings.previousTake == "Previous take")
     #expect(OneTargetRetryStrings.thisTake == "This take")
-    #expect(OneTargetRetryStrings.referenceChip == "Clip")
+    #expect(OneTargetRetryStrings.referenceChip == "Reference")
     #expect(OneTargetRetryStrings.playPauseBefore(word: "about")
       == "Play the pause before ‘about’")
     #expect(OneTargetRetryStrings.playWordInYourTake("about")
       == "Play ‘about’ in your take")
     #expect(OneTargetRetryStrings.playWordInClip("about")
-      == "Play ‘about’ in the clip")
+      == "Play ‘about’ in the reference")
 
     let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
     let english = makeTake(starts: starts)
@@ -200,7 +204,7 @@ struct CoachingPlanTests {
     let plan = CoachingPlanner.mimic(reference: reference, attempt: attempt)
 
     #expect(plan.signals.isEmpty)
-    #expect(plan.notice == "Not enough of your words matched the clip to compare.")
+    #expect(plan.notice == "Not enough of your words matched the reference to compare.")
   }
 
   @Test("Close Mimic matches are maintained, not corrected in the wrong direction")
@@ -269,7 +273,8 @@ struct CoachingPlanTests {
     let target = CoachingPlanner.mimic(reference: reference, attempt: first).focus!
     let firstClose = CoachingPlanner.evaluateRetry(
       reference: reference, attempt: close, pinnedTarget: target)
-    #expect(firstClose.verdict == .withinNoise)
+    #expect(firstClose.verdict == .held)
+    #expect(firstClose.verdictCopy == OneTargetRetryStrings.closerVerdict(target: target.word))
     #expect(firstClose.nextConsecutiveCloseTakes == 1)
 
     let carried = TargetFocus(
@@ -337,7 +342,7 @@ struct CoachingPlanTests {
       tokens: ["Every", "speaker", "should", "shape", "words"])
     let missing = CoachingPlanner.evaluateRetry(
       reference: reference, attempt: unaligned, pinnedTarget: target)
-    #expect(missing.verdict == .neutral)
+    #expect(missing.verdict == .unmeasured)
     #expect(missing.verdictCopy == nil)
     #expect(missing.neutralReplaySpans?.current == nil)
   }
@@ -359,7 +364,7 @@ struct CoachingPlanTests {
       tokens: ["Every", "speaker", "should", "shape", "words"], snrDB: 3)
     let byEar = CoachingPlanner.evaluateRetry(
       reference: reference, attempt: noisyMissing, pinnedTarget: target)
-    #expect(byEar.verdict == .neutral)
+    #expect(byEar.verdict == .unmeasured)
     #expect(byEar.verdictCopy == nil)
   }
 
@@ -490,7 +495,7 @@ struct CoachingPlanTests {
     let retry = makeTake(starts: starts, tokens: substituted, unmeasuredPitchWord: 4)
     let result = CoachingPlanner.evaluateRetry(
       reference: reference, attempt: retry, pinnedTarget: target)
-    #expect(result.verdict == .neutral)
+    #expect(result.verdict == .unmeasured)
     #expect(result.verdictCopy == nil)
     #expect(result.neutralReplaySpans?.current == 1.9...2.15)
   }
@@ -508,7 +513,7 @@ struct CoachingPlanTests {
       pitchByWord: [4: 2], snrDB: 5)
     let evaluation = CoachingPlanner.evaluateRetry(
       reference: reference, attempt: retry, pinnedTarget: target)
-    #expect(evaluation.verdict == .neutral)
+    #expect(evaluation.verdict == .unmeasured)
     #expect(evaluation.verdictCopy == nil)
     #expect(evaluation.newTakeRange == 1.9...2.15)
   }
@@ -526,7 +531,7 @@ struct CoachingPlanTests {
       pitchByWord: [4: 2], confidenceByWord: [3: 0.3])
     let evaluation = CoachingPlanner.evaluateRetry(
       reference: reference, attempt: retry, pinnedTarget: target)
-    #expect(evaluation.verdict == .neutral)
+    #expect(evaluation.verdict == .unmeasured)
     #expect(evaluation.verdictCopy == nil)
   }
 
@@ -556,6 +561,86 @@ struct CoachingPlanTests {
       reference: reference, attempt: retry, pinnedTarget: target)
     #expect(evaluation.verdict == .held)
     #expect(evaluation.newTakeRange == 1.9...2.15)
+  }
+
+  @Test("First close-band take reads closer exactly at the closer bar, not just under it")
+  func firstCloseTakeBoundary() {
+    let starts = [0.3, 0.7, 1.1, 1.5, 1.9, 2.3]
+    let reference = makeTake(starts: starts)
+    let pitchRetry = makeTake(starts: starts, pitchAtImportant: 1)
+    let loudnessRetry = makeTake(starts: starts, energyAtSpeaker: 1)
+    let cases: [(TargetKind, Int, String, ClosedRange<Double>, PracticeSession, Double)] = [
+      (.pitch, 4, "important", 1.9...2.15, pitchRetry, RetryThresholds.clearlyCloserPitchSemitones),
+      (.loudness, 1, "speaker", 0.7...0.95, loudnessRetry, RetryThresholds.clearlyCloserLoudnessDB),
+    ]
+    for (kind, index, word, range, retry, bar) in cases {
+      func evaluate(pinnedGap: Double) -> RetryEvaluation {
+        CoachingPlanner.evaluateRetry(
+          reference: reference, attempt: retry,
+          pinnedTarget: TargetFocus(
+            referenceWordIndex: index, word: word, kind: kind, gap: pinnedGap,
+            referenceRange: range, takeRange: range))
+      }
+      guard let measured = evaluate(pinnedGap: 20).newGap else {
+        Issue.record("\(kind) retry was not measured")
+        continue
+      }
+      #expect(measured < 2)
+      // Smallest pinned gap whose shrink reaches the bar in floating point.
+      var atBar = measured + bar
+      while atBar - measured < bar { atBar = atBar.nextUp }
+      while atBar.nextDown - measured >= bar { atBar = atBar.nextDown }
+      let underBar = atBar.nextDown
+      #expect(underBar - measured < bar)
+
+      let atResult = evaluate(pinnedGap: atBar)
+      #expect(atResult.verdict == .held)
+      #expect(atResult.verdictCopy == OneTargetRetryStrings.closerVerdict(target: word))
+      #expect(atResult.nextConsecutiveCloseTakes == 1)
+
+      let underResult = evaluate(pinnedGap: underBar)
+      #expect(underResult.verdict == .withinNoise)
+      #expect(underResult.verdictCopy == OneTargetRetryStrings.withinNoiseVerdict)
+      #expect(underResult.nextConsecutiveCloseTakes == 1)
+    }
+  }
+
+  @Test("Retry verdicts persisted before the unmeasured case still decode")
+  func retryVerdictDecoding() throws {
+    let stored = Data(#"["held","close-enough","within-noise","neutral","other-way","unreliable","not-found","unmeasured"]"#.utf8)
+    let decoded = try JSONDecoder().decode([RetryVerdict].self, from: stored)
+    #expect(decoded == [
+      .held, .closeEnough, .withinNoise, .neutral, .otherWay, .unreliable, .notFound, .unmeasured,
+    ])
+    #expect(OneTargetRetryStrings.unmeasuredRetryLine(word: "about")
+      != OneTargetRetryStrings.neutralRetryLine(word: "about"))
+  }
+
+  @Test("Plain-take cue returns nothing when the playback range cannot be formed")
+  func plainTakeCueGuardsInvalidRange() {
+    let words = [
+      TranscriptWord(word: "Hello", start: 0.2, end: 0.6),
+      TranscriptWord(word: "there", start: 1.6, end: 2.0),
+      TranscriptWord(word: "friend.", start: 2.1, end: 2.5),
+    ]
+    #expect(CoachingPlanner.plainTakeCue(words: words, takeDuration: 5)?.followingWord == "there")
+    #expect(CoachingPlanner.plainTakeCue(words: words, takeDuration: 0) == nil)
+    #expect(CoachingPlanner.plainTakeCue(words: words, takeDuration: 0.3) == nil)
+  }
+
+  @Test("Saved targets match the reference word at their index, ignoring case")
+  func targetMatchesReferenceWords() {
+    let target = TargetFocus(
+      referenceWordIndex: 1, word: "About", kind: .pitch, gap: 4,
+      referenceRange: 1...1.2, takeRange: 1...1.2)
+    func words(_ tokens: [String]) -> [TranscriptWord] {
+      tokens.enumerated().map {
+        TranscriptWord(word: $0.element, start: Double($0.offset), end: Double($0.offset) + 0.5)
+      }
+    }
+    #expect(target.matches(referenceWords: words(["one", "about"])))
+    #expect(!target.matches(referenceWords: words(["about", "one"])))
+    #expect(!target.matches(referenceWords: words(["one"])))
   }
 
   private func makeTake(

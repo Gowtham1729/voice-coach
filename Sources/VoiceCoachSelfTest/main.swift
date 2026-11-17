@@ -360,7 +360,7 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   try check(closerEval.verdict == .held, "Retry with 4.0 st shrink should be .held")
   try check(closerEval.verdict.isHeld, "Retry .held should have isHeld == true")
   try check(
-    closerEval.verdictCopy == "‘important’ was closer to the clip this time.",
+    closerEval.verdictCopy == "‘important’ was closer to the reference this time.",
     "Retry closer verdict copy mismatch: \(closerEval.verdictCopy ?? "nil")"
   )
   let belowCloserBar = makeMimicTestTake(
@@ -370,8 +370,9 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   try check(belowCloserEval.verdict == .withinNoise,
     "A 3.6 st shrink below the verdict bar earned closer")
 
-  // A single close-band retry reads About the same; only a second consecutive
-  // close-band take can earn close.
+  // A first close-band retry that shrank the gap by the closer bar reads closer
+  // and starts the close streak; only a second consecutive close-band take can
+  // earn close.
   let closeEnoughAttempt = makeMimicTestTake(
     starts: attStarts,
     pitchByWord: [4: 1.0],
@@ -379,8 +380,8 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
   )
   let firstCloseEval = CoachingPlanner.evaluateRetry(
     reference: reference, attempt: closeEnoughAttempt, pinnedTarget: pinnedTarget)
-  try check(firstCloseEval.verdict == .withinNoise,
-    "A single close-band take must read About the same")
+  try check(firstCloseEval.verdict == .held,
+    "A first close-band take that shrank past the closer bar must read closer")
   try check(firstCloseEval.nextConsecutiveCloseTakes == 1,
     "The first close-band take did not carry a streak into the next saved target")
   let secondCloseTarget = TargetFocus(
@@ -395,7 +396,7 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     "Two consecutive close-band takes should earn .closeEnough")
   try check(closeEnoughEval.verdict.isHeld, "Retry .closeEnough should have isHeld == true")
   try check(
-    closeEnoughEval.verdictCopy == "‘important’ is close to the clip now.",
+    closeEnoughEval.verdictCopy == "‘important’ is close to the reference now.",
     "Retry close-enough verdict copy mismatch: \(closeEnoughEval.verdictCopy ?? "nil")"
   )
 
@@ -429,7 +430,7 @@ private func verifyOneTargetRetry(steadyResult: AnalysisResult) throws {
     result: steadyResult
   )
   let missingEval = CoachingPlanner.evaluateRetry(reference: reference, attempt: missingAttempt, pinnedTarget: pinnedTarget)
-  try check(missingEval.verdict == .neutral,
+  try check(missingEval.verdict == .unmeasured,
     "Retry with aligned neighbours but no acoustic evidence should be by ear")
   try check(missingEval.verdictCopy == nil,
     "Retry with an inferred word produced a measured verdict")

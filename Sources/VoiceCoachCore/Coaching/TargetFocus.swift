@@ -95,6 +95,15 @@ public struct TargetFocus: Codable, Sendable, Equatable {
     try container.encode(consecutiveCloseTakes, forKey: .consecutiveCloseTakes)
   }
 
+  /// True when `referenceWords` still has this target's word at its saved index
+  /// (compared case-insensitively). A re-transcribed reference can shift indices.
+  public func matches(referenceWords: [TranscriptWord]) -> Bool {
+    guard referenceWords.indices.contains(referenceWordIndex) else { return false }
+    return referenceWords[referenceWordIndex].word.trimmingCharacters(in: .whitespacesAndNewlines)
+      .caseInsensitiveCompare(word.trimmingCharacters(in: .whitespacesAndNewlines))
+      == .orderedSame
+  }
+
   public var isVerifiable: Bool {
     switch kind {
     case .pitch: originalGap >= RetryThresholds.clearlyCloserPitchSemitones
@@ -117,6 +126,8 @@ public enum RetryVerdict: String, Codable, Sendable, Equatable {
   case withinNoise = "within-noise"
   /// The original gap is too small for a measured retry verdict.
   case neutral
+  /// The word could not be measured in this take (anchors, noise, or voicing); replay by ear.
+  case unmeasured
   /// Gap moved away by at least the measured threshold.
   case otherWay = "other-way"
   /// Recording or alignment gates did not support a verdict.
@@ -145,7 +156,7 @@ public struct RetryEvaluation: Codable, Sendable, Equatable {
   public var currentReplayRange: ClosedRange<Double>? { newTakeRange }
 
   public var neutralReplaySpans: NeutralReplaySpans? {
-    guard verdict == .neutral, let previousTakeID = target.previousTakeID else { return nil }
+    guard verdict == .neutral || verdict == .unmeasured, let previousTakeID = target.previousTakeID else { return nil }
     return NeutralReplaySpans(
       previousTakeID: previousTakeID, previous: target.previousTakeRange,
       current: newTakeRange, reference: target.referenceRange)

@@ -28,7 +28,7 @@ func printLiveRetryRecount(at root: URL) throws {
   }
   let verdicts = [RetryVerdict.held, .closeEnough, .withinNoise]
     .reduce(0) { $0 + counts[$1, default: 0] }
-  print("Live retries: verdict \(verdicts), by-ear \(counts[.neutral, default: 0]), "
+  print("Live retries: verdict \(verdicts), by-ear \(counts[.neutral, default: 0] + counts[.unmeasured, default: 0]), "
     + "could-not-find \(counts[.notFound, default: 0]), "
     + "other-way \(counts[.otherWay, default: 0]), "
     + "unreliable \(counts[.unreliable, default: 0])")
