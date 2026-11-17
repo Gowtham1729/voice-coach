@@ -283,8 +283,13 @@
           model.mimicReferenceCaptureElapsed = 24
           model.mimicReferenceCaptureLevel = -18
           model.elapsed = 12
-          model.errorTitle = "Capture failed"
-          model.errorMessage = state == "error" ? SystemAudioCaptureError.permissionOrSilent.errorDescription : nil
+          if state == "error" {
+            model.presentCaptureError(
+              title: "Capture failed",
+              message: SystemAudioCaptureError.permissionOrSilent.errorDescription ?? "")
+          } else {
+            model.clearError()
+          }
           let view = QuickPracticeMenu(model: model)
             .environment(\.studioSnapshot, true)
             .environment(\.colorScheme, scheme)
