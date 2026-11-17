@@ -243,4 +243,106 @@ struct SessionStoreTests {
     #expect(exists(named))
     #expect(try store.load().count == 1)
   }
+
+  // MARK: - Resilient load
+
+  private func practiceTake(_ store: SessionStore, sessionID: UUID, offset: Double)
+    throws -> PracticeSession
+  {
+    let id = UUID()
+    return PracticeSession(
+      id: id, createdAt: Date(timeIntervalSince1970: 1_700_000_000 + offset),
+      audioURL: try store.recordingURL(sessionID: sessionID, takeID: id),
+      result: SessionTestFixtures.analysis())
+  }
+
+  private func libraryText(_ root: URL) throws -> String {
+    String(
+      decoding: try Data(contentsOf: root.appendingPathComponent("session-library.json")),
+      as: UTF8.self)
+  }
+
+  @Test("A missing analysis file skips only that take and survives the next save")
+  func missingAnalysisSkipsOnlyThatTake() throws {
+    let root = try SessionTestFixtures.temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = try SessionStore(rootURL: root)
+    let sessionID = UUID()
+    let first = try practiceTake(store, sessionID: sessionID, offset: 0)
+    let second = try practiceTake(store, sessionID: sessionID, offset: 10)
+    var session = SessionTestFixtures.session(id: sessionID, take: first)
+    session.takes = [first, second]
+    let other = SessionTestFixtures.session(
+      take: try practiceTake(store, sessionID: UUID(), offset: 0))
+    try store.save([session, other])
+
+    let lostURL = store.analysisURL(sessionID: sessionID, takeID: first.id)
+    let lostData = try Data(contentsOf: lostURL)
+    try FileManager.default.removeItem(at: lostURL)
+    let loaded = try store.load()
+    #expect(store.lastLoadSkippedTakeCount == 1)
+    #expect(loaded.count == 2)
+    #expect(loaded.first { $0.id == sessionID }?.takes.map(\.id) == [second.id])
+
+    try store.save(loaded)
+    #expect(try libraryText(root).contains(first.id.uuidString))
+
+    // Restoring the file brings the take back.
+    try lostData.write(to: lostURL)
+    let restored = try store.load()
+    #expect(store.lastLoadSkippedTakeCount == 0)
+    #expect(restored.first { $0.id == sessionID }?.takes.map(\.id) == [first.id, second.id])
+  }
+
+  @Test("An unreadable Mimic reference skips only that session and keeps its files")
+  func corruptReferenceSkipsSession() throws {
+    let root = try SessionTestFixtures.temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = try SessionStore(rootURL: root)
+    let mimicID = UUID()
+    let attempt = try practiceTake(store, sessionID: mimicID, offset: 5)
+    let reference = try practiceTake(store, sessionID: mimicID, offset: 0)
+    let mimic = CoachingSession(
+      id: mimicID, name: "Mimic", mode: .mimic, prompt: "", keepsRecordings: true,
+      takes: [attempt],
+      mimicReference: MimicReference(
+        sourceName: "clip", take: reference, sourceStart: 0, sourceEnd: 2))
+    let plainID = UUID()
+    let plain = SessionTestFixtures.session(
+      id: plainID, take: try practiceTake(store, sessionID: plainID, offset: 0))
+    try store.save([mimic, plain])
+
+    let referenceAnalysis = store.analysisURL(sessionID: mimicID, takeID: reference.id)
+    try Data("not json".utf8).write(to: referenceAnalysis)
+    let loaded = try store.load()
+    #expect(loaded.map(\.id) == [plain.id])
+    #expect(store.lastLoadSkippedTakeCount > 0)
+
+    try store.save(loaded)
+    #expect(try libraryText(root).contains(mimicID.uuidString))
+    #expect(FileManager.default.fileExists(atPath: referenceAnalysis.path))
+    #expect(
+      FileManager.default.fileExists(
+        atPath: store.analysisURL(sessionID: mimicID, takeID: attempt.id).path))
+    let removed = try store.removeOrphanedSessionDirectories(knownSessionIDs: [plain.id])
+    #expect(removed == 0)
+  }
+
+  @Test("Loading creates no directories")
+  func loadCreatesNoDirectories() throws {
+    let root = try SessionTestFixtures.temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = try SessionStore(rootURL: root)
+    let sessionID = UUID()
+    let take = try practiceTake(store, sessionID: sessionID, offset: 0)
+    try store.save([SessionTestFixtures.session(id: sessionID, take: take)])
+    try FileManager.default.removeItem(
+      at: root.appendingPathComponent("Sessions", isDirectory: true)
+        .appendingPathComponent(sessionID.uuidString))
+
+    #expect(try store.load().isEmpty)
+    #expect(
+      !FileManager.default.fileExists(
+        atPath: root.appendingPathComponent("Sessions/\(sessionID.uuidString)").path))
+  }
 }
