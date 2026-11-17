@@ -43,7 +43,7 @@ extension AppModel {
   ) -> Task<Void, Never>? {
     guard !isRecording, !isAnalyzing, !isRequestingPermission, !mimicIsPreparing,
       !isCapturingMimicReference, mimicPreparationID == draftID,
-      let draft = mimicDraft, draft.id == draftID
+      let draft = mimicDraft, draft.id == draftID, requireWritableLibrary()
     else { return nil }
     stopPlayback()
     clearError()

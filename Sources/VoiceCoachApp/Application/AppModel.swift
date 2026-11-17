@@ -93,6 +93,10 @@ final class AppModel: ObservableObject {
   var mimicAlong = false
   var pendingCaptureIsNewSession = false
   var pendingImportSourceURL: URL?
+  /// Set when the library index could not be read. Saving then would overwrite it.
+  var libraryLoadFailed = false
+  /// Shortest take the save gate keeps. Shorter captures are discarded.
+  static let minimumCaptureDuration: TimeInterval = 0.6
 
   @Published var insightActionOverrides: [String: String] = [:]
   var insightAttemptedKeys: Set<String> = []
@@ -155,14 +159,29 @@ final class AppModel: ObservableObject {
     guard loadPersistedData else { return }
     do {
       sessions = try store.load()
+      if store.lastLoadSkippedTakeCount > 0 {
+        toastMessage = "Some recordings couldn’t be read and were left on disk."
+      }
       // Clears staging folders left by a crash mid-batch. Never blocks launch.
       _ = try? store.removeOrphanedSessionDirectories(knownSessionIDs: Set(sessions.map(\.id)))
       lastUsedMimicID = sessions.first(where: { $0.isMimic && !$0.archived })?.id
     } catch {
+      libraryLoadFailed = true
       presentError(
         title: "Library couldn’t be loaded",
         message: "Existing files were left untouched. Try quitting and reopening Ichido.")
     }
+  }
+
+  /// False, with an error, while the library failed to load: nothing may be captured or
+  /// saved until the index is readable again.
+  func requireWritableLibrary() -> Bool {
+    guard libraryLoadFailed else { return true }
+    presentError(
+      title: "Library couldn’t be loaded",
+      message:
+        "Nothing was saved, so your existing library stays as it is. Quit and reopen Ichido.")
+    return false
   }
 
   func presentError(title: String, message: String) {

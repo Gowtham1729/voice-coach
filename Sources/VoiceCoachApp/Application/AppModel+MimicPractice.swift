@@ -8,7 +8,8 @@ import VoiceCoachSession
 extension AppModel {
   func chooseMimicReference() {
     guard !mimicIsPreparing, !isRecording, !isAnalyzing, !isCapturingMimicReference,
-      !isRequestingPermission, !hasMenuBarReference || destination == .mimicStart
+      !isRequestingPermission, !hasMenuBarReference || destination == .mimicStart,
+      requireWritableLibrary()
     else { return }
     let panel = NSOpenPanel()
     panel.title = "Choose a practice reference"
@@ -234,9 +235,9 @@ extension AppModel {
   }
 
   func retryPendingMimicWork() {
-    guard hasPendingMimicWork else { return }
+    guard hasPendingMimicWork, !isAnalyzing, let sessionID = selectedSessionID else { return }
     if let pendingMimicTake {
-      append(pendingMimicTake)
+      append(pendingMimicTake, toSessionID: sessionID)
     } else if let pendingMimicAudio {
       analyze(url: pendingMimicAudio.url, takeID: pendingMimicAudio.id)
     }

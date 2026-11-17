@@ -17,6 +17,7 @@ extension AppModel {
   }
 
   private func beginMimicReferenceCapture(fromMenuBar: Bool) {
+    guard requireWritableLibrary() else { return }
     cancelMimicPreparation()
 
     let id = UUID()
@@ -73,10 +74,10 @@ extension AppModel {
       return
     }
 
-    if elapsedCapture < 0.6 {
+    if elapsedCapture < Self.minimumCaptureDuration {
       failMimicReferenceCapture(
         url: url,
-        message: "Capture at least one second of Mac audio."
+        message: "Capture a little longer and try again."
       )
       return
     }

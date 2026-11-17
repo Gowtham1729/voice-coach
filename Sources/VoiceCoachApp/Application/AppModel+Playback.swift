@@ -12,6 +12,7 @@ extension AppModel {
     mimicPlaybackEnd = nil
     let duration = take.result.metrics.duration
     let startTime = playbackTime >= max(duration - 0.05, 0) ? 0 : playbackTime
+    recorder.playbackVolume = 1
     do {
       try recorder.play(url: take.audioURL, from: startTime)
       playbackTime = startTime
@@ -52,6 +53,7 @@ extension AppModel {
     if isPlaying {
       recorder.seek(to: clamped)
     } else if autoplay {
+      recorder.playbackVolume = 1
       do {
         try recorder.play(url: take.audioURL, from: clamped)
         isPlaying = true

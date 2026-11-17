@@ -40,7 +40,7 @@ struct TakeInspector: View {
         }
         .modifier(
           DeleteTakeDialog(takeID: $takePendingDelete) { takeID in
-            model.deleteTake(takeID)
+            deleteTake(takeID, in: session)
           })
       }
     }
@@ -81,7 +81,7 @@ struct TakeInspector: View {
         }
         .tint(.red)
         .studioGlassButton(destructive: true)
-        .disabled(model.isPlaying || model.isAnalyzing)
+        .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
         .help("Delete")
       }
     }
@@ -102,6 +102,14 @@ struct TakeInspector: View {
   }
 
   private func requestDelete(_ takeID: UUID) {
-    if confirmBeforeDelete { takePendingDelete = takeID } else { model.deleteTake(takeID) }
+    if confirmBeforeDelete {
+      takePendingDelete = takeID
+    } else if let session = model.selectedSession {
+      deleteTake(takeID, in: session)
+    }
+  }
+
+  private func deleteTake(_ takeID: UUID, in session: CoachingSession) {
+    model.deleteTake(sessionID: session.id, takeID: takeID)
   }
 }

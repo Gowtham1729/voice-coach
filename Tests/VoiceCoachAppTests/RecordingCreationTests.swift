@@ -168,7 +168,7 @@ struct RecordingCreationTests {
     #expect(model.skippedRetryCardTakeIDs.isEmpty)
     model.skipRetryCard(for: earlierTakeID)
 
-    model.append(take)
+    model.append(take, toSessionID: mimicID)
 
     #expect(model.sessions.first?.id == mimicID)
     #expect(model.selectedTakeID == takeID)
@@ -253,7 +253,7 @@ struct RecordingCreationTests {
     model.skipRetryCard(for: secondID)
     model.dismissRetryCard(for: secondID)
 
-    model.deleteTake(firstID)
+    model.deleteTake(sessionID: sessionID, takeID: firstID)
     #expect(model.skippedRetryCardTakeIDs == [secondID])
     #expect(model.dismissedRetryCardTakeIDs == [secondID])
 

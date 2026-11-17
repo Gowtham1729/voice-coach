@@ -95,6 +95,7 @@ struct DesktopMimicsWorkspace: View {
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
+      .disabled(!model.canNavigate)
 
       Text(session.updatedAt.formatted(.relative(presentation: .named)))
         .font(.caption)
@@ -106,12 +107,15 @@ struct DesktopMimicsWorkspace: View {
       } else {
         Menu {
           Button("Open", systemImage: "arrow.right") { model.resumeSession(session.id) }
+            .disabled(!model.canNavigate)
           if archived {
             Button("Restore", systemImage: "tray.and.arrow.up") {
               model.archiveMimic(session.id, archived: false)
             }
+            .disabled(!model.canNavigate)
           } else {
             Button("Archive", systemImage: "archivebox") { model.archiveMimic(session.id) }
+              .disabled(!model.canNavigate)
           }
           Divider()
           Button("Delete…", systemImage: "trash", role: .destructive) {
@@ -121,6 +125,7 @@ struct DesktopMimicsWorkspace: View {
               model.deleteSession(session.id)
             }
           }
+          .disabled(!model.canNavigate)
         } label: {
           Image(systemName: "ellipsis")
             .frame(width: 28, height: 24)

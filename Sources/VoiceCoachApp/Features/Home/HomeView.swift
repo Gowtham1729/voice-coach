@@ -177,6 +177,7 @@ struct HomeView: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+    .disabled(!model.canNavigate)
     .desktopPanel()
     .accessibilityLabel("Continue practice, \(session.mimicReference?.sourceName ?? session.name)")
   }
@@ -214,6 +215,7 @@ struct HomeView: View {
             recordingRow(recording)
           }
           .buttonStyle(.plain)
+          .disabled(!model.canNavigate)
           .studioHoverLift()
           .accessibilityLabel(recording.accessibilityLabel)
 
