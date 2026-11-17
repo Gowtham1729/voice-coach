@@ -128,7 +128,7 @@ export const FrenchPractice: React.FC = () => {
 
   return (
     <AbsoluteFill>
-      <Kicker text="Example · French clip" at={22} y={110} />
+      <Kicker text="A phrase you’re learning" at={22} y={110} />
       <Phrase text="Listen." at={30} stagger={8} size={104} x={96} baseline={262} out={TO_WORDS - 6} />
       <Phrase text="Understand." at={TO_WORDS + 10} stagger={8} size={104} x={96} baseline={262} out={TO_REPEAT - 4} />
       <Phrase
@@ -153,7 +153,7 @@ export const FrenchPractice: React.FC = () => {
         baseline={868}
         out={CLEAR}
       />
-      <Phrase text="Repeat." at={TO_REPEAT + 16} stagger={8} size={104} x={96} baseline={262} />
+      <Phrase text="Say it in your voice." at={TO_REPEAT + 16} stagger={5} size={88} x={96} baseline={262} />
 
       <div
         style={{
