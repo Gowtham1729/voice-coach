@@ -33,6 +33,24 @@ struct ContentView: View {
         )
       }
       .overlay(alignment: .bottom) { toast }
+      .overlay(alignment: .top) { menuBarClipBanner }
+  }
+
+  @ViewBuilder
+  private var menuBarClipBanner: some View {
+    if model.hasMenuBarClipAwaitingReview {
+      HStack(spacing: 12) {
+        Label("Clip ready", systemImage: "checkmark.circle")
+          .font(.callout.weight(.medium))
+        Button("Review") { model.reviewMenuBarReference() }
+          .studioGlassButton(prominent: true)
+        Button("Discard") { model.discardMenuBarReference() }
+          .studioGlassButton()
+      }
+      .padding(.horizontal, 14).padding(.vertical, 8)
+      .studioCard(cornerRadius: 10)
+      .padding(.top, 10)
+    }
   }
 
   private var shell: some View {

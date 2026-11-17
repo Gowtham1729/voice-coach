@@ -8,14 +8,18 @@ struct MimicReferencePicker: View {
       if model.mimicIsPreparing {
         ProgressView(model.mimicIsFindingPhrases ? "Finding phrases…" : "Preparing audio…")
           .frame(maxWidth: .infinity, minHeight: 100)
+      } else if model.isRequestingPermission {
+        ProgressView("Waiting for permission…")
+          .frame(maxWidth: .infinity, minHeight: 100)
       } else if model.isCapturingMimicReference {
         HStack(spacing: 12) {
           Label("Capturing Mac audio", systemImage: "speaker.wave.2")
-          LiveMeterView(level: model.mimicReferenceCaptureLevel)
+          LiveMeterView(
+            level: model.mimicReferenceCaptureLevel, accessibilityName: "Mac audio level")
             .frame(maxWidth: .infinity)
           Text(vcDuration(model.mimicReferenceCaptureElapsed))
             .font(.caption.monospacedDigit())
-          Button("Stop", action: model.captureMimicReferencePressed)
+          Button("Stop") { model.captureMimicReferencePressed() }
             .studioGlassButton(prominent: true)
         }
         .frame(minHeight: 100)
@@ -27,9 +31,8 @@ struct MimicReferencePicker: View {
           )
           .studioGlassButton()
           Button(
-            "Capture Mac audio", systemImage: "speaker.wave.2",
-            action: model.captureMimicReferencePressed
-          )
+            "Capture Mac audio", systemImage: "speaker.wave.2"
+          ) { model.captureMimicReferencePressed() }
           .studioGlassButton()
         }
         .frame(maxWidth: .infinity, minHeight: 100)

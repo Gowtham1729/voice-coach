@@ -19,6 +19,8 @@ final class AppModel: ObservableObject {
   @Published var lastUsedMimicID: UUID?
   @Published var isRecording = false
   @Published var isCapturingMimicReference = false
+  /// Tracks a pending reference started from the menu bar.
+  @Published var hasMenuBarReference = false
   @Published var isAnalyzing = false
   @Published var isSuggestingTitle = false
   @Published var isRequestingPermission = false
@@ -30,6 +32,8 @@ final class AppModel: ObservableObject {
   @Published var mimicReferenceCaptureLevel: Double = -80
   @Published var errorTitle = "Ichido"
   @Published var errorMessage: String?
+  /// True when the current error came from the reference capture flow, so the menu bar can show it.
+  @Published private(set) var errorIsFromCapture = false
   @Published var toastMessage: String?
   @Published var transcriptionNotice: String?
   @Published var transcriptionSetupStatus: TranscriptionSetupStatus = .missing
@@ -164,6 +168,16 @@ final class AppModel: ObservableObject {
   func presentError(title: String, message: String) {
     errorTitle = title
     errorMessage = message
+    errorIsFromCapture = false
+  }
+
+  func presentCaptureError(title: String, message: String) {
+    presentError(title: title, message: message)
+    errorIsFromCapture = true
+  }
+
+  func presentCaptureError(title: String, error: Error, fallback: String) {
+    presentCaptureError(title: title, message: Self.userFacingMessage(error, fallback: fallback))
   }
 
   func presentError(title: String, error: Error, fallback: String) {
@@ -173,6 +187,7 @@ final class AppModel: ObservableObject {
   func clearError() {
     errorTitle = "Ichido"
     errorMessage = nil
+    errorIsFromCapture = false
   }
 
   static func userFacingMessage(_ error: Error, fallback: String) -> String {

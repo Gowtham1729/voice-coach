@@ -43,6 +43,13 @@ Use this guide for the app, website, README, and release notes. Marketing may ex
 | Words | Optional language help beside the transcript. Chat requires Apple Intelligence. |
 | Practice next | One measured practice target, a single word, when enough words match reliably. |
 | Capture Mac audio | Capture what the Mac is playing as a reference. |
+| Menu bar | The Ichido icon in the menu bar. Settings → General has **Show Ichido in the menu bar**. |
+| Quick practice | The menu bar panel for capturing Mac audio or recording without opening the main window first. |
+| Record my voice | Menu bar action that starts a recording. |
+| Capture Mac audio | Also the menu bar action. **Stop and review** ends it and opens the trim sheet. **Cancel capture** and **Discard capture** drop it. |
+| Clip ready | A captured menu bar clip is waiting. **Review** opens the trim sheet. **Discard** removes it. The menu offers **Review capture…**. |
+| Return to practice | Menu bar action that brings back a practice already in progress. |
+| Quit confirmation | **Keep working** is the default. **Quit anyway** discards audio that is not saved yet. |
 | Settings → Transcription | Choose the speech engine and spoken language. |
 | Settings → Experiments | Enable Words. |
 

@@ -76,6 +76,8 @@ struct CreateSessionView: View {
       editor = PracticeClipEditor(
         clips: model.suggestedPracticeClips, duration: model.mimicDraft?.duration ?? 0)
     }
-    .onDisappear { model.cancelMimicPreparation() }
+    // Dismissal cancels phrase search and batch creation started here, but not a
+    // menu bar clip this sheet was never showing.
+    .onDisappear { model.mimicSheetDidDisappear() }
   }
 }

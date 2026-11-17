@@ -7,7 +7,9 @@ import VoiceCoachSession
 
 extension AppModel {
   func chooseMimicReference() {
-    guard !mimicIsPreparing, !isRecording, !isAnalyzing, !isCapturingMimicReference else { return }
+    guard !mimicIsPreparing, !isRecording, !isAnalyzing, !isCapturingMimicReference,
+      !isRequestingPermission, !hasMenuBarReference || destination == .mimicStart
+    else { return }
     let panel = NSOpenPanel()
     panel.title = "Choose a practice reference"
     panel.message = "Import audio and choose phrases to practise."
@@ -51,16 +53,18 @@ extension AppModel {
   }
 
   func cancelMimicPreparation() {
+    hasMenuBarReference = false
     mimicPreparationTask?.cancel()
     mimicPreparationTask = nil
     mimicIsFindingPhrases = false
     cancelSuggestedPracticeCreation()
-    if isCapturingMimicReference {
-      systemAudioCapture.stop()
+    if let url = mimicReferenceCaptureURL {
+      if isCapturingMimicReference { systemAudioCapture.stop() }
+      // A capture still waiting on the system permission dialog returns to idle now.
+      // Its late completion no longer matches `mimicPreparationID` and tears itself down.
+      if !isCapturingMimicReference { isRequestingPermission = false }
       stopMimicReferenceCaptureTimer()
-      if let url = mimicReferenceCaptureURL {
-        try? FileManager.default.removeItem(at: url)
-      }
+      try? FileManager.default.removeItem(at: url)
       isCapturingMimicReference = false
       mimicReferenceCaptureURL = nil
       mimicReferenceCaptureStartedAt = nil
@@ -85,6 +89,7 @@ extension AppModel {
 
   func startMimicPractice(skipReference: Bool = false) {
     guard !isRecording, !isPlaying, !isAnalyzing, !isRequestingPermission,
+      !isCapturingMimicReference, !mimicIsPreparing, !hasMenuBarReference,
       mimicPhase == .ready, !hasPendingMimicWork,
       let reference = selectedSession?.mimicReference
     else { return }
