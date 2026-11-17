@@ -6,11 +6,13 @@ struct PracticeClipSelection: Equatable {
   var start: Double
   var end: Double
 
+  static let minimumDuration = 1.0
+
   var duration: Double { end - start }
 
   func isValid(in audioDuration: Double) -> Bool {
     audioDuration.isFinite && start.isFinite && end.isFinite
-      && start >= 0 && end <= audioDuration && duration >= 1
+      && start >= 0 && end <= audioDuration && duration >= Self.minimumDuration
   }
 }
 

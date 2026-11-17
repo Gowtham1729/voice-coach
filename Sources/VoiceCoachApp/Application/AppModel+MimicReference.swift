@@ -137,18 +137,30 @@ extension AppModel {
           try? FileManager.default.removeItem(at: url)
           return
         }
+        guard overview.duration >= PracticeClipSelection.minimumDuration else {
+          try? FileManager.default.removeItem(at: url)
+          mimicIsPreparing = false
+          mimicPreparationTask = nil
+          mimicPreparationID = nil
+          clearMimicReferenceCaptureMeters()
+          presentError(title: "Clip too short", message: "Use a clip of at least one second.")
+          return
+        }
         var recognized = transcription
+        var notice: String?
         if recognized == nil {
           mimicIsFindingPhrases = true
           // Valid audio remains available for manual selection if speech recognition fails.
           let outcome = try? await transcribeForAnalysis(url: url, engine: engine, locale: locale)
           recognized = outcome?.transcription
+          notice = outcome?.notice
         }
         try Task.checkCancellation()
         guard mimicPreparationID == id else {
           try? FileManager.default.removeItem(at: url)
           return
         }
+        if let notice { transcriptionNotice = notice }
         mimicDraft = MimicReferenceDraft(
           id: id,
           url: url,

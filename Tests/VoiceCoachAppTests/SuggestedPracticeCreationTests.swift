@@ -352,6 +352,43 @@ struct SuggestedPracticeCreationTests {
     #expect(model.transcriptionNotice != nil && model.errorMessage == nil)
   }
 
+  @Test("A draft shorter than one second is rejected and its file removed")
+  func tooShortDraft() async throws {
+    let (model, root, take) = try fixture()
+    defer { try? FileManager.default.removeItem(at: root) }
+    model.cancelMimicPreparation()
+    let input = root.appendingPathComponent("short.wav")
+    try writePlayableAudio(to: input, frames: 6_400)
+    let id = UUID()
+    model.mimicPreparationID = id
+    await model.presentMimicDraft(
+      id: id, url: input, sourceName: "Short", source: .importedAudio, transcription: nil
+    ).value
+    #expect(model.mimicDraft == nil)
+    #expect(model.errorTitle == "Clip too short")
+    #expect(model.errorMessage == "Use a clip of at least one second.")
+    #expect(!FileManager.default.fileExists(atPath: input.path))
+    #expect(!model.mimicIsPreparing && model.mimicPreparationID == nil)
+    try expectOriginalOnly(model, take: take)
+  }
+
+  @Test("A missing speech tool surfaces its notice while keeping the draft")
+  func recognitionNoticeOnDraft() async throws {
+    let (model, root, _) = try fixture(transcriptionError: .runtimeUnavailable)
+    defer { try? FileManager.default.removeItem(at: root) }
+    model.cancelMimicPreparation()
+    model.transcriptionNotice = nil
+    let input = root.appendingPathComponent("import.wav")
+    try writePlayableAudio(to: input)
+    let id = UUID()
+    model.mimicPreparationID = id
+    await model.presentMimicDraft(
+      id: id, url: input, sourceName: "Imported clip", source: .importedAudio
+    ).value
+    #expect(model.mimicDraft != nil)
+    #expect(model.transcriptionNotice != nil)
+  }
+
   @Test("Adjusted phrases use edited audio bounds and a fresh transcript within the batch")
   func adjustedBatch() async throws {
     let fresh = TranscriptionResult(
@@ -401,10 +438,10 @@ struct SuggestedPracticeCreationTests {
     #expect(!model.isAnalyzing && model.sessions.count == 1)
   }
 
-  private func writePlayableAudio(to url: URL) throws {
+  private func writePlayableAudio(to url: URL, frames: AVAudioFrameCount = 40_000) throws {
     let rate = 8_000.0
     let format = try #require(AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1))
-    let count: AVAudioFrameCount = 40_000
+    let count = frames
     let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: count))
     buffer.frameLength = count
     let samples = try #require(buffer.floatChannelData?[0])
