@@ -137,6 +137,8 @@ final class AppModel: ObservableObject {
     guard loadPersistedData else { return }
     do {
       sessions = try store.load()
+      // Clears staging folders left by a crash mid-batch. Never blocks launch.
+      _ = try? store.removeOrphanedSessionDirectories(knownSessionIDs: Set(sessions.map(\.id)))
       lastUsedMimicID = sessions.first(where: { $0.isMimic && !$0.archived })?.id
     } catch {
       presentError(

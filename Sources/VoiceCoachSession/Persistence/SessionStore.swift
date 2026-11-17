@@ -13,6 +13,7 @@ package protocol SessionStoring: AnyObject {
   func takeDirectory(sessionID: UUID) throws -> URL
   func deleteSessionData(sessionID: UUID) throws
   func deleteTakeAnalysis(sessionID: UUID, takeID: UUID) throws
+  func removeOrphanedSessionDirectories(knownSessionIDs: Set<UUID>) throws -> Int
 }
 
 /// On-disk library index. Heavy analysis lives in per-take `*.analysis.json` files.
@@ -172,6 +173,28 @@ package final class SessionStore: SessionStoring {
       .appendingPathComponent(sessionID.uuidString, isDirectory: true)
     guard FileManager.default.fileExists(atPath: directory.path) else { return }
     try FileManager.default.removeItem(at: directory)
+  }
+
+  /// Removes never-indexed staging leftovers, such as folders from a crash mid-batch.
+  /// Only UUID-named folders outside `knownSessionIDs` that hold no analysis file qualify.
+  @discardableResult
+  package func removeOrphanedSessionDirectories(knownSessionIDs: Set<UUID>) throws -> Int {
+    let sessionsURL = rootURL.appendingPathComponent("Sessions", isDirectory: true)
+    guard FileManager.default.fileExists(atPath: sessionsURL.path) else { return 0 }
+    var removed = 0
+    for directory in try FileManager.default.contentsOfDirectory(
+      at: sessionsURL, includingPropertiesForKeys: [.isDirectoryKey])
+    {
+      guard let id = UUID(uuidString: directory.lastPathComponent),
+        !knownSessionIDs.contains(id),
+        (try? directory.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true,
+        let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path),
+        !files.contains(where: { $0.hasSuffix(".analysis.json") })
+      else { continue }
+      try FileManager.default.removeItem(at: directory)
+      removed += 1
+    }
+    return removed
   }
 
   package func deleteTakeAnalysis(sessionID: UUID, takeID: UUID) throws {
