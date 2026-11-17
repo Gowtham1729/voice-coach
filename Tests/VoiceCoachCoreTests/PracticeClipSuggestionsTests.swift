@@ -96,14 +96,18 @@ struct PracticeClipSuggestionsTests {
       [word("outside", 6, 7)],
       [word("nan", .nan, 1)], [word("infinite", 0, .infinity)],
       [word("reversed", 2, 1)], [word("", 0, 1)],
-      [word("long", 0, 14.8)],
-      [word("later", 2, 3), word("earlier", 0, 1)],
+      [word("fully later", 6, 7), word("late too", 7, 8)],
     ] {
       #expect(
         PracticeClipSuggestions.clips(
           transcription: TranscriptionResult(text: "Invalid", words: words), duration: 5
         ).isEmpty)
     }
+    #expect(
+      PracticeClipSuggestions.clips(
+        transcription: TranscriptionResult(
+          text: "too long", words: [word("long", 0, 14.8)]), duration: 20
+      ).isEmpty)
     #expect(
       PracticeClipSuggestions.clips(
         transcription: TranscriptionResult(text: "word", words: [word("word", 0, 1)]),
