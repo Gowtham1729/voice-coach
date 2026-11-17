@@ -69,6 +69,42 @@ struct SuggestedPracticeCreationTests {
     #expect(model.errorMessage != nil)
   }
 
+  @Test("A silent clip mid-batch fails the whole batch and names the phrase")
+  func silentClipNamesPhrase() async throws {
+    let (model, root, take) = try fixture(phrases: 3, silentClipRange: 2..<5)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let draftID = try #require(model.mimicDraft?.id)
+    let task = try #require(
+      model.createPracticeSessions(
+        draftID: draftID,
+        selections: model.suggestedPracticeClips.map(PracticeClipSelection.init)))
+    await task.value
+    try expectOriginalOnly(model, take: take)
+    #expect(model.errorTitle == "Practices weren’t created")
+    let message = try #require(model.errorMessage)
+    #expect(message.contains("‘Second phrase.’"))
+    #expect(message.hasPrefix("No audio detected in"))
+  }
+
+  @Test("Batch order is first phrase first, in memory and after reload")
+  func batchOrderSurvivesReload() async throws {
+    let (model, root, _) = try fixture(phrases: 3)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let clips = model.suggestedPracticeClips
+    #expect(clips.count == 3)
+    let draftID = try #require(model.mimicDraft?.id)
+    let task = try #require(
+      model.createPracticeSessions(
+        draftID: draftID, selections: clips.map(PracticeClipSelection.init)))
+    await task.value
+    let expected = clips.map(\.start)
+    func starts(_ sessions: [CoachingSession]) -> [Double] {
+      sessions.filter(\.isMimic).compactMap { $0.mimicReference?.sourceStart }
+    }
+    #expect(starts(model.sessions) == expected)
+    #expect(starts(try model.store.load()) == expected)
+  }
+
   @Test("Save failure leaves the source and no new reference folders")
   func saveFailure() async throws {
     let (model, root, take) = try fixture()
@@ -382,7 +418,8 @@ struct SuggestedPracticeCreationTests {
 
   private func fixture(
     failLaterClip: Bool = false, suspendPreparation: Bool = false,
-    failAfterCancellation: Bool = false,
+    failAfterCancellation: Bool = false, phrases: Int = 2,
+    silentClipRange: Range<Double>? = nil,
     transcriptionOutcome: TranscriptionResult? = nil,
     transcriptionError: TranscriptionError? = nil
   ) throws -> (AppModel, URL, PracticeSession) {
@@ -400,7 +437,13 @@ struct SuggestedPracticeCreationTests {
           TranscriptWord(word: "phrase.", start: 0.9, end: 1.6),
           TranscriptWord(word: "Second", start: 3, end: 3.6),
           TranscriptWord(word: "phrase.", start: 3.7, end: 4.4),
-        ], localeIdentifier: "en_GB", engine: .system))
+        ]
+          + (phrases < 3
+            ? []
+            : [
+              TranscriptWord(word: "Third", start: 6, end: 6.5),
+              TranscriptWord(word: "phrase.", start: 6.6, end: 7.2),
+            ]), localeIdentifier: "en_GB", engine: .system))
     let dependencies = AppDependencies(
       recorder: AudioRecorder(), systemAudioCapture: SystemAudioCapture(), sessionStore: store,
       sessionChatResponder: LocalSessionChatResponder(),
@@ -421,6 +464,9 @@ struct SuggestedPracticeCreationTests {
           }
         }
         if failLaterClip && start > 2 { throw AudioImportError.invalidExcerpt }
+        if silentClipRange?.contains(start) == true {
+          return AudioAnalyzer().analyze(samples: [Float](repeating: 0, count: 8_000), sampleRate: 8_000)
+        }
         return analysis(duration: end - start)
       })
     let model = AppModel(loadPersistedData: false, dependencies: dependencies)
@@ -436,7 +482,8 @@ struct SuggestedPracticeCreationTests {
     let draftID = UUID()
     model.mimicPreparationID = draftID
     model.mimicDraft = MimicReferenceDraft(
-      id: draftID, url: draftURL, sourceName: "Source", duration: 5, peaks: [],
+      id: draftID, url: draftURL, sourceName: "Source",
+      duration: phrases < 3 ? 5 : 8, peaks: [],
       source: .importedAudio, transcription: take.transcription,
       transcriptionLocaleIdentifier: "en_GB")
     model.destination = .mimicStart

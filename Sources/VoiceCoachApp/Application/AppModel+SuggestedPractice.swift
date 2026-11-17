@@ -62,6 +62,8 @@ extension AppModel {
     let task = Task {
       var stagedIDs: [UUID] = []
       var committed = false
+      var currentPhrase: String?
+      var firstNotice: String?
       defer {
         if !committed {
           for id in stagedIDs { try? store.deleteSessionData(sessionID: id) }
@@ -78,6 +80,7 @@ extension AppModel {
         var prepared: [CoachingSession] = []
         for excerpt in excerpts {
           try Task.checkCancellation()
+          currentPhrase = excerpt.name
           let sessionID = UUID()
           stagedIDs.append(sessionID)
           let url = try store.referenceURL(sessionID: sessionID)
@@ -89,7 +92,8 @@ extension AppModel {
           if transcription == nil {
             let outcome = try await transcribeForAnalysis(url: url, engine: engine, locale: locale)
             transcription = outcome.transcription
-            transcriptionNotice = outcome.notice
+            try Task.checkCancellation()
+            if firstNotice == nil { firstNotice = outcome.notice }
           }
           try Task.checkCancellation()
           let reference = PracticeSession(
@@ -111,6 +115,12 @@ extension AppModel {
         }
         try Task.checkCancellation()
         guard mimicPreparationID == draftID else { throw CancellationError() }
+        // One base time with strictly decreasing offsets keeps the first phrase first,
+        // both now and after a reload sorted by `updatedAt`.
+        let base = Date()
+        for index in prepared.indices {
+          prepared[index].updatedAt = base.addingTimeInterval(-Double(index) / 1000)
+        }
         let previousSessions = sessions
         sessions.insert(contentsOf: prepared, at: 0)
         guard persist(analysisTakeIDs: Set(prepared.compactMap { $0.mimicReference?.take.id }))
@@ -119,6 +129,7 @@ extension AppModel {
           return
         }
         committed = true
+        transcriptionNotice = firstNotice
         lastUsedMimicID = prepared.first?.id
         if let only = prepared.first, prepared.count == 1 {
           selectedSessionID = only.id
@@ -139,13 +150,29 @@ extension AppModel {
       } catch {
         if !Task.isCancelled, mimicPreparationID == draftID {
           presentError(
-            title: "Practices weren’t created", error: error,
-            fallback: "Couldn’t prepare the selected phrases. Try again.")
+            title: "Practices weren’t created",
+            message: Self.practiceCreationFailureMessage(error, phrase: currentPhrase))
         }
       }
     }
     practiceClipCreationTask = task
     return task
+  }
+
+  /// Names the phrase when one clip has no audio or no recognised speech.
+  static func practiceCreationFailureMessage(_ error: Error, phrase: String?) -> String {
+    let fallback = "Couldn’t prepare the selected phrases. Try again."
+    guard let phrase else { return userFacingMessage(error, fallback: fallback) }
+    let trimmed = phrase.trimmingCharacters(in: .whitespacesAndNewlines)
+    let label = trimmed.count > 40 ? "\(trimmed.prefix(40))…" : trimmed
+    switch error {
+    case AnalysisError.silentRecording, AnalysisError.emptyRecording:
+      return "No audio detected in ‘\(label)’. Deselect it or adjust its edges, then try again."
+    case TranscriptionError.noSpeechRecognized:
+      return "No speech recognised in ‘\(label)’. Deselect it or adjust its edges, then try again."
+    default:
+      return userFacingMessage(error, fallback: fallback)
+    }
   }
 
   func cancelSuggestedPracticeCreation() {
