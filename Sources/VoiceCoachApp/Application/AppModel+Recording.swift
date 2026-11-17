@@ -288,8 +288,7 @@ extension AppModel {
     scheduleDeferredSmartTitle(
       sessionID: sessionID,
       fallbackName: fallbackName,
-      transcript: text,
-      syncMimicSourceName: false
+      transcript: text
     )
   }
 
@@ -297,8 +296,7 @@ extension AppModel {
   func scheduleDeferredSmartTitle(
     sessionID: UUID,
     fallbackName: String,
-    transcript: String,
-    syncMimicSourceName: Bool
+    transcript: String
   ) {
     guard AutoTitlePreference.isEnabled else { return }
     guard SmartTitleRules.transcriptPassesGates(transcript) else { return }
@@ -310,8 +308,7 @@ extension AppModel {
       await self?.finishDeferredSmartTitle(
         sessionID: sessionID,
         fallbackName: fallbackName,
-        suggested: suggested,
-        syncMimicSourceName: syncMimicSourceName
+        suggested: suggested
       )
     }
   }
@@ -319,17 +316,13 @@ extension AppModel {
   private func finishDeferredSmartTitle(
     sessionID: UUID,
     fallbackName: String,
-    suggested: String?,
-    syncMimicSourceName: Bool
+    suggested: String?
   ) {
     defer { isSuggestingTitle = false }
     guard let suggested,
       let index = sessions.firstIndex(where: { $0.id == sessionID }),
       sessions[index].name == fallbackName
     else { return }
-    if syncMimicSourceName {
-      guard sessions[index].mimicReference?.sourceName == fallbackName else { return }
-    }
     renameSession(sessionID, to: suggested)
   }
 

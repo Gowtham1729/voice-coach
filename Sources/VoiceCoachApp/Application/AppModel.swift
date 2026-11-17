@@ -26,6 +26,8 @@ final class AppModel: ObservableObject {
   @Published var mimicReferenceCaptureLevel: Double = -80
   @Published var errorTitle = "Ichido"
   @Published var errorMessage: String?
+  /// True when the current error came from the reference capture flow, so the menu bar can show it.
+  @Published private(set) var errorIsFromCapture = false
   @Published var toastMessage: String?
   @Published var transcriptionNotice: String?
   @Published var transcriptionSetupStatus: TranscriptionSetupStatus = .missing
@@ -37,6 +39,7 @@ final class AppModel: ObservableObject {
   @Published var isCheckingSpeechLanguages = false
   @Published var mimicDraft: MimicReferenceDraft?
   @Published var mimicIsPreparing = false
+  @Published var mimicIsFindingPhrases = false
   @Published var mimicPhase: MimicPhase = .ready
   @Published var mimicWorkspaceMode: MimicWorkspaceMode = .practice
   @Published var mimicPlaybackSource: MimicPlaybackSource = .reference
@@ -51,6 +54,7 @@ final class AppModel: ObservableObject {
   @Published var pendingMimicTake: PracticeSession?
   @Published var pendingMimicAudio: (url: URL, id: UUID)?
   @Published var pendingMimicSessionID: UUID?
+  @Published var practiceClipCreationProgress: (completed: Int, total: Int)?
 
   let recorder: any AudioRecording
   let systemAudioCapture: any SystemAudioCapturing
@@ -58,6 +62,11 @@ final class AppModel: ObservableObject {
   let transcribe:
     @Sendable (URL, TranscriptionEnginePreference, Locale?) async throws -> TranscriptionOutcome
   let sessionChatResponder: any SessionChatResponding
+  let preparePracticeClip:
+    @Sendable (URL, URL, Double, Double) async throws -> AnalysisResult
+  var practiceClipCreationTask: Task<Void, Never>?
+  var practiceClipCreationID: UUID?
+  var mimicPreparationTask: Task<Void, Never>?
   var timer: Timer?
   var playbackTimer: Timer?
   var mimicReferenceCaptureTimer: Timer?
@@ -104,6 +113,7 @@ final class AppModel: ObservableObject {
       store = dependencies.sessionStore
       transcribe = dependencies.transcribe
       sessionChatResponder = dependencies.sessionChatResponder
+      preparePracticeClip = dependencies.preparePracticeClip
     } catch {
       fatalError("Ichido could not open local storage: \(error.localizedDescription)")
     }
@@ -131,6 +141,8 @@ final class AppModel: ObservableObject {
     guard loadPersistedData else { return }
     do {
       sessions = try store.load()
+      // Clears staging folders left by a crash mid-batch. Never blocks launch.
+      _ = try? store.removeOrphanedSessionDirectories(knownSessionIDs: Set(sessions.map(\.id)))
       lastUsedMimicID = sessions.first(where: { $0.isMimic && !$0.archived })?.id
     } catch {
       presentError(
@@ -142,6 +154,16 @@ final class AppModel: ObservableObject {
   func presentError(title: String, message: String) {
     errorTitle = title
     errorMessage = message
+    errorIsFromCapture = false
+  }
+
+  func presentCaptureError(title: String, message: String) {
+    presentError(title: title, message: message)
+    errorIsFromCapture = true
+  }
+
+  func presentCaptureError(title: String, error: Error, fallback: String) {
+    presentCaptureError(title: title, message: Self.userFacingMessage(error, fallback: fallback))
   }
 
   func presentError(title: String, error: Error, fallback: String) {
@@ -151,6 +173,7 @@ final class AppModel: ObservableObject {
   func clearError() {
     errorTitle = "Ichido"
     errorMessage = nil
+    errorIsFromCapture = false
   }
 
   static func userFacingMessage(_ error: Error, fallback: String) -> String {

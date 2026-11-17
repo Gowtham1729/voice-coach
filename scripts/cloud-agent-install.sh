@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Idempotent Cloud Agent bootstrap for the Voice Coach Swift package.
+# Idempotent Cloud Agent bootstrap for the Ichido Swift package.
 #
-# Voice Coach ships a macOS studio app (VoiceCoachApp) built on SwiftUI, AppKit,
+# Ichido ships a macOS studio app (VoiceCoachApp) built on SwiftUI, AppKit,
 # AVFoundation, and Metal that only builds and runs on macOS. On the Linux Cloud
 # Agent this script provisions the Swift toolchain and builds the cross-platform
 # targets: the VoiceCoachCore analysis library and the VoiceCoachSelfTest

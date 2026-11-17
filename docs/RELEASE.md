@@ -52,8 +52,11 @@ and README. Their stable download URL is
 `https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip`;
 release notes use `/releases/latest`. Keep this alias in every release so future
 downloads follow GitHub's latest release without a website deployment. The
-Sparkle appcast continues to reference the versioned archive. The app remains `com.gowtham.voicecoach` and uses the existing `Application Support/VoiceCoach`
+Sparkle appcast continues to reference the versioned zip, not the disk image.
+The app remains `com.gowtham.voicecoach` and uses the existing `Application Support/VoiceCoach`
 library and preference keys; the visible bundle is now `Ichido.app`.
+
+After the appcast is signed, Actions builds `Ichido-X.Y.Z-macOS.dmg` from the stapled app and publishes the same bytes as `Ichido-macOS.dmg`. Opening that image shows Ichido beside an Applications folder. Drag Ichido onto Applications, then open it from there. The image is signed, notarized, and stapled. Sparkle still installs the versioned zip over the copy in Applications. Do not put the disk image in `release-assets/` before `generate_appcast`, and do not point the website at `Ichido-macOS.dmg` until that asset is on the latest release.
 
 The published zip is signed with the Developer ID Application certificate for team `88HMB5SB4X`. The common name is read from the imported `.p12`. Sparkle is signed inside-out, with the hardened runtime and a timestamp. The job does not use `codesign --deep`.
 
@@ -66,9 +69,9 @@ The published zip is signed with the Developer ID Application certificate for te
 
 1. Bump both plist keys in a PR, wait for green `test`, merge.
 2. Tag the merge commit: `git tag -a vX.Y.Z -m "Ichido X.Y.Z"` and push the tag.
-3. Wait for the **Release** workflow on that tag. It creates the GitHub Release and attaches `Ichido-X.Y.Z-macOS.zip`, `Ichido-macOS.zip`, and `appcast.xml`.
+3. Wait for the **Release** workflow on that tag. It creates the GitHub Release and attaches `Ichido-X.Y.Z-macOS.zip`, `Ichido-macOS.zip`, `Ichido-X.Y.Z-macOS.dmg`, `Ichido-macOS.dmg`, and `appcast.xml`.
 4. Edit the release body with the changelog, matching the tone of the latest release notes. The workflow already includes the notarized-download note and the no-Parakeet note. Editing those notes does not change the signed appcast.
-5. If the workflow fails, fix it before publishing. Missing `CSC_P12_BASE64`, `CSC_P12_PASSWORD`, `NOTARY_KEY`, `NOTARY_KEY_ID`, `NOTARY_ISSUER`, or `SPARKLE_ED25519_PRIVATE_KEY` fails the job. The versioned ZIP, `Ichido-macOS.zip`, and the signed appcast must all be present. There is no ad-hoc fallback.
+5. If the workflow fails, fix it before publishing. Missing `CSC_P12_BASE64`, `CSC_P12_PASSWORD`, `NOTARY_KEY`, `NOTARY_KEY_ID`, `NOTARY_ISSUER`, or `SPARKLE_ED25519_PRIVATE_KEY` fails the job. The versioned ZIP, `Ichido-macOS.zip`, both disk images, and the signed appcast must all be present. There is no ad-hoc fallback.
 
 ## Sparkle signing key and update checks
 
@@ -80,7 +83,7 @@ The published zip is signed with the Developer ID Application certificate for te
 
 ## Distribution
 
-Tag releases Developer ID-sign, notarize, and staple. The public download is that stapled zip. It is a direct download, not a Mac App Store install.
+Tag releases Developer ID-sign, notarize, and staple. The public download stays the stapled zip until `Ichido-macOS.dmg` is on the latest release. It is a direct download, not a Mac App Store install. The disk image is the drag-to-Applications window. The zip remains the Sparkle archive.
 
 **Notarize** signs with the Developer ID Application certificate for team `88HMB5SB4X` (the common name comes from the imported certificate). **Release** calls that workflow with publishing turned on. If a required secret is missing, or the certificate is not a Developer ID Application identity for that team, the job fails and does not fall back to an ad-hoc zip.
 

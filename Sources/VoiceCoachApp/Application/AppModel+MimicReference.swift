@@ -29,12 +29,14 @@ extension AppModel {
     clearError()
     toastMessage = nil
     systemAudioCapture.requestStart(url: staged) { [weak self, capture = systemAudioCapture] result in
-      self?.isRequestingPermission = false
+      // A cancelled request no longer owns `mimicPreparationID`. Tear its tap down
+      // unless a newer capture has since taken over the shared service.
       guard let self, self.mimicPreparationID == id else {
-        capture.stop()
+        if self?.mimicReferenceCaptureURL == nil { capture.stop() }
         try? FileManager.default.removeItem(at: staged)
         return
       }
+      self.isRequestingPermission = false
       switch result {
       case .success:
         self.mimicReferenceCaptureStartedAt = Date()
@@ -47,7 +49,7 @@ extension AppModel {
         self.mimicReferenceCaptureURL = nil
         self.hasMenuBarReference = false
         self.mimicPreparationID = nil
-        self.presentError(
+        self.presentCaptureError(
           title: "Capture failed", error: error, fallback: "Couldn’t capture Mac audio.")
       }
     }
@@ -93,7 +95,7 @@ extension AppModel {
   private func failMimicReferenceCapture(url: URL, message: String) {
     hasMenuBarReference = false
     try? FileManager.default.removeItem(at: url)
-    presentError(title: "Capture failed", message: message)
+    presentCaptureError(title: "Capture failed", message: message)
     clearMimicReferenceCaptureMeters()
     mimicPreparationID = nil
   }
@@ -107,18 +109,18 @@ extension AppModel {
     stopMimicReferenceCaptureTimer()
     let timer = Timer(timeInterval: 0.05, repeats: true) {
       [weak self] _ in
-      Task { @MainActor in
-        guard let self, self.isCapturingMimicReference else { return }
-        self.mimicReferenceCaptureElapsed = Date().timeIntervalSince(
-          self.mimicReferenceCaptureStartedAt ?? Date())
-        self.mimicReferenceCaptureLevel = Double(self.systemAudioCapture.peakLevel())
-        if self.mimicReferenceCaptureElapsed >= 90 {
-          self.finishMimicReferenceCapture()
-        }
-      }
+      Task { @MainActor in self?.tickMimicReferenceCapture() }
     }
     mimicReferenceCaptureTimer = timer
     RunLoop.main.add(timer, forMode: .common)
+  }
+
+  /// One timer tick: refresh the meters and stop automatically at 90 seconds.
+  func tickMimicReferenceCapture() {
+    guard isCapturingMimicReference else { return }
+    mimicReferenceCaptureElapsed = Date().timeIntervalSince(mimicReferenceCaptureStartedAt ?? Date())
+    mimicReferenceCaptureLevel = Double(systemAudioCapture.peakLevel())
+    if mimicReferenceCaptureElapsed >= 90 { finishMimicReferenceCapture() }
   }
 
   func stopMimicReferenceCaptureTimer() {
@@ -126,11 +128,25 @@ extension AppModel {
     mimicReferenceCaptureTimer = nil
   }
 
-  /// Shared path for file import and Mac-audio capture → trim-ready draft.
-  func presentMimicDraft(id: UUID, url: URL, sourceName: String, source: TakeSource) {
+  /// Prepare phrases before creating any library entry.
+  @discardableResult
+  func presentMimicDraft(
+    id: UUID, url: URL, sourceName: String, source: TakeSource,
+    transcription: TranscriptionResult? = nil
+  ) -> Task<Void, Never> {
     mimicIsPreparing = true
     clearError()
-    Task {
+    let engine = transcriptionEngine
+    let locale = newSessionTranscriptionLocale
+    let task = Task {
+      defer {
+        if mimicPreparationID == id {
+          mimicIsPreparing = false
+          mimicIsFindingPhrases = false
+          mimicPreparationTask = nil
+          clearMimicReferenceCaptureMeters()
+        }
+      }
       do {
         let overview = try await Task.detached(priority: .userInitiated) {
           try AudioImportService.waveform(from: url)
@@ -139,29 +155,70 @@ extension AppModel {
           try? FileManager.default.removeItem(at: url)
           return
         }
+        guard overview.duration >= PracticeClipSelection.minimumDuration else {
+          try? FileManager.default.removeItem(at: url)
+          let fromMenuBar = hasMenuBarReference
+          hasMenuBarReference = false
+          mimicIsPreparing = false
+          mimicIsFindingPhrases = false
+          mimicPreparationTask = nil
+          mimicPreparationID = nil
+          clearMimicReferenceCaptureMeters()
+          let message = "Use a clip of at least one second."
+          if fromMenuBar {
+            presentCaptureError(title: "Clip too short", message: message)
+          } else {
+            presentError(title: "Clip too short", message: message)
+          }
+          return
+        }
+        var recognized = transcription
+        var notice: String?
+        if recognized == nil {
+          mimicIsFindingPhrases = true
+          // Valid audio remains available for manual selection if speech recognition fails.
+          let outcome = try? await transcribeForAnalysis(url: url, engine: engine, locale: locale)
+          recognized = outcome?.transcription
+          notice = outcome?.notice
+        }
+        try Task.checkCancellation()
+        guard mimicPreparationID == id else {
+          try? FileManager.default.removeItem(at: url)
+          return
+        }
+        if let notice { transcriptionNotice = notice }
         mimicDraft = MimicReferenceDraft(
           id: id,
           url: url,
           sourceName: sourceName,
           duration: overview.duration,
           peaks: overview.peaks,
-          source: source
+          source: source, transcription: recognized,
+          transcriptionLocaleIdentifier: recognized?.localeIdentifier ?? locale?.identifier
         )
-        mimicIsPreparing = false
-        clearMimicReferenceCaptureMeters()
       } catch {
         try? FileManager.default.removeItem(at: url)
         if mimicPreparationID == id {
+          let fromMenuBar = hasMenuBarReference
           hasMenuBarReference = false
           mimicIsPreparing = false
+          mimicIsFindingPhrases = false
+          mimicPreparationTask = nil
           mimicPreparationID = nil
           clearMimicReferenceCaptureMeters()
-          presentError(
-            title: "Reference practice failed",
-            error: error,
-            fallback: "Couldn’t prepare this reference.")
+          if !(error is CancellationError) {
+            let title = "Reference practice failed"
+            let fallback = "Couldn’t prepare this reference."
+            if fromMenuBar {
+              presentCaptureError(title: title, error: error, fallback: fallback)
+            } else {
+              presentError(title: title, error: error, fallback: fallback)
+            }
+          }
         }
       }
     }
+    mimicPreparationTask = task
+    return task
   }
 }

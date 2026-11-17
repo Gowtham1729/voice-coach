@@ -23,16 +23,14 @@ struct QuickPracticeMenu: View {
       }
       .frame(maxWidth: .infinity, alignment: .leading)
 
-      if let message = model.errorMessage {
+      if model.errorIsFromCapture, let message = model.errorMessage {
         VStack(alignment: .leading, spacing: 5) {
           Label(model.errorTitle, systemImage: "exclamationmark.triangle")
             .font(.callout.weight(.medium))
-          Text(model.errorTitle == "Capture failed"
-            ? "Play a clip while capturing. Check recording permissions if audio stays silent."
-            : message)
+          Text(message)
             .font(.caption).foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-          Button("Show details…") { showIchido() }
+          Button("Dismiss") { model.clearError() }
             .buttonStyle(.plain).font(.caption).foregroundStyle(Studio.accent)
         }
         .padding(.horizontal, 4)

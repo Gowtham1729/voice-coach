@@ -35,9 +35,13 @@
           evidence["capturedDuration"] = draft.duration
           model.transcriptionEngine = .system
           model.transcriptionLocaleIdentifier = "en_US"
-          model.createMimicSession(name: "Mac audio capture check", start: 0, end: min(8, draft.duration))
+          let selection = PracticeClipSelection(
+            phraseID: nil, start: 0, end: min(8, draft.duration))
+          guard let creation = model.createPracticeSessions(
+            draftID: draft.id, selections: [selection])
+          else { throw SmokeError.referenceNotSaved }
           try report("saving-reference")
-          try await waitUntil { !model.mimicIsPreparing }
+          await creation.value
           guard let saved = model.sessions.first, saved.isMimic, !priorSessionIDs.contains(saved.id),
             try model.store.load().contains(where: { $0.id == saved.id })
           else { throw SmokeError.referenceNotSaved }

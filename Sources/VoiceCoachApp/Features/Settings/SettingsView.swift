@@ -15,7 +15,7 @@ struct SettingsView: View {
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
   @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
   @AppStorage("voiceCoach.autoGenerateTitles") private var autoGenerateTitles = false
-  @AppStorage("voiceCoach.showMenuBarExtra") private var showsMenuBarExtra = true
+  @AppStorage(MenuBarExtraPreference.storageKey) private var showsMenuBarExtra = true
   @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording =
     InsightWordingPreference.default
 

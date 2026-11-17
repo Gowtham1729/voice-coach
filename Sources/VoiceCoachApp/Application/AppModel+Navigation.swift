@@ -34,6 +34,7 @@ extension AppModel {
   }
 
   func resumeSession(_ id: UUID) {
+    guard practiceClipCreationProgress == nil else { return }
     guard let session = sessions.first(where: { $0.id == id }) else { return }
     if session.isMimic {
       selectedSessionID = id
@@ -51,6 +52,7 @@ extension AppModel {
   }
 
   func openTake(sessionID: UUID, takeID: UUID? = nil) {
+    guard practiceClipCreationProgress == nil else { return }
     guard let session = sessions.first(where: { $0.id == sessionID }),
       let take = takeID.flatMap({ id in session.takes.first(where: { $0.id == id }) })
         ?? session.latestTake
@@ -67,6 +69,7 @@ extension AppModel {
   }
 
   func selectTake(_ takeID: UUID) {
+    guard practiceClipCreationProgress == nil else { return }
     guard let selectedSession, selectedSession.takes.contains(where: { $0.id == takeID }) else {
       return
     }
@@ -125,6 +128,7 @@ extension AppModel {
   }
 
   func deleteSession(_ id: UUID) {
+    guard practiceClipCreationProgress == nil else { return }
     if pendingMimicSessionID == id {
       presentError(
         title: "Can’t Delete",
@@ -204,6 +208,7 @@ extension AppModel {
   }
 
   func deleteTake(_ takeID: UUID) {
+    guard practiceClipCreationProgress == nil else { return }
     stopPlayback()
     guard let sessionID = selectedSessionID,
       let sessionIndex = sessions.firstIndex(where: { $0.id == sessionID }),

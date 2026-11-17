@@ -39,9 +39,15 @@ assert.ok(
   html.includes('href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip"'),
   "Website download must follow GitHub's latest release",
 );
+const verifiedNotarization = "Notarized by Apple.";
+assert.equal(
+  (html.match(/Notarized by Apple\./g) || []).length,
+  1,
+  "Requirements include the verified notarization line once",
+);
 assert.equal(
   /ad-hoc|unsigned|notariz|developer id|gatekeeper|may block the first launch|mac app store|\bsign(?:ed|ing)\b/i.test(
-    html,
+    html.replaceAll(verifiedNotarization, ""),
   ),
   false,
   "Public download copy stays a normal Mac download, without signing, notarization, Gatekeeper, or Mac App Store talk",
@@ -53,18 +59,21 @@ assert.equal(
 );
 assert.match(
   html,
-  /Ichido 0\.0\.4 · Early access · macOS 26\+/,
-  "Download dialog shows Ichido 0.0.4 for macOS 26+",
+  /Ichido 0\.0\.5 · Early access · macOS 26\+/,
+  "Download dialog shows Ichido 0.0.5 for macOS 26+",
 );
 assert.match(
   html,
-  /Version 0\.0\.4 · Early access · macOS 26\+/,
-  "Download section shows version 0.0.4 for macOS 26+",
+  /Version 0\.0\.5 · Early access · macOS 26\+/,
+  "Download section shows version 0.0.5 for macOS 26+",
 );
+assert.equal(html.includes("0.0.4"), false, "Public site does not advertise 0.0.4");
 assert.equal(html.includes("0.0.3"), false, "Public site does not advertise 0.0.3");
 assert.ok(
-  html.includes("No account. No recording uploads. No analytics."),
-  "Privacy line stays local-only",
+  html.includes(
+    "Your recordings stay on your Mac. Ichido goes online only to check for updates and to download speech software and models from GitHub, Hugging Face, NVIDIA, and Apple. macOS may also download its own speech and translation models.",
+  ),
+  "Privacy line names the recording boundary and the download hosts",
 );
 assert.ok(
   html.includes("stay on your Mac"),
@@ -176,6 +185,12 @@ assert.ok(
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
 const modules = readdirSync(root).filter((file) => file.endsWith(".js"));
 const js = modules.map((file) => readFileSync(resolve(root, file), "utf8")).join("\n");
+const publicCopy = [html, css, js, robots, llms, sitemap].join("\n");
+assert.equal(
+  /\bvoice coach\b/i.test(publicCopy),
+  false,
+  'Public website copy must not contain "Voice Coach" or "voice coach"',
+);
 const appModule = readFileSync(resolve(root, "app.js"), "utf8");
 for (const [asset, source] of [["styles.css", html], ["app.js", html], ["./sound-ribbon.js", appModule]]) {
   const version = createHash("sha256")

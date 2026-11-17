@@ -3,11 +3,12 @@ import SwiftUI
 @main
 struct VoiceCoachApplication: App {
   @NSApplicationDelegateAdaptor(VoiceCoachApplicationDelegate.self) private var appDelegate
-  @StateObject private var model = Self.makeModel()
+  @StateObject private var model: AppModel
   @StateObject private var updater = AppUpdater()
-  @AppStorage("voiceCoach.showMenuBarExtra") private var showsMenuBarExtra = true
+  @AppStorage(MenuBarExtraPreference.storageKey) private var showsMenuBarExtra = true
 
   init() {
+    _model = StateObject(wrappedValue: Self.makeModel())
     #if DEBUG
       renderStudioPreviewsIfRequested()
     #endif
@@ -20,6 +21,7 @@ struct VoiceCoachApplication: App {
 
   private static func makeModel() -> AppModel {
     #if DEBUG
+      if let fixture = interactiveFixtureModelIfRequested() { return fixture }
       if let index = CommandLine.arguments.firstIndex(of: "--test-library"),
         CommandLine.arguments.indices.contains(index + 1)
       {

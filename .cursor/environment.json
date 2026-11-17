@@ -1,4 +1,4 @@
 {
-  "name": "Voice Coach",
+  "name": "Ichido",
   "install": "./scripts/cloud-agent-install.sh"
 }
