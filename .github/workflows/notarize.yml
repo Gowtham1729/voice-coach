@@ -173,6 +173,9 @@ jobs:
           ./scripts/build-app.sh --developer-id "$SIGN_IDENTITY"
           test -d "build/Ichido.app"
 
+      - name: Check release binary excludes QA hooks
+        run: ./scripts/check-release-hooks.sh
+
       - name: Zip app for notarization
         env:
           VERSION: ${{ steps.version.outputs.version }}
