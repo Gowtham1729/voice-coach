@@ -22,15 +22,22 @@ public enum PracticeClipSuggestions {
     guard let transcription, duration.isFinite, duration >= 1,
       !transcription.words.isEmpty
     else { return [] }
-    let words = transcription.words
-    for (index, word) in words.enumerated() {
+    // Repair small timestamp errors (a few ms past the end, or overlapping the
+    // previous word) rather than discarding the whole recording.
+    var words: [TranscriptWord] = []
+    var previousEnd = 0.0
+    for word in transcription.words {
       guard word.start.isFinite, word.end.isFinite,
-        word.start >= 0, word.end > word.start, word.end <= duration,
-        word.end - word.start <= 14.7,
-        !word.word.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-        index == 0 || word.start >= words[index - 1].end
-      else { return [] }
+        !word.word.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      else { continue }
+      let start = max(0, word.start, previousEnd)
+      let end = min(duration, word.end)
+      guard end > start, end - start <= 14.7 else { continue }
+      words.append(
+        TranscriptWord(word: word.word, start: start, end: end, confidence: word.confidence))
+      previousEnd = end
     }
+    guard !words.isEmpty else { return [] }
 
     var groups: [Range<Int>] = []
     var first = 0

@@ -93,11 +93,11 @@ struct PracticeClipSuggestionsTests {
         transcription: TranscriptionResult(text: "No word timing", words: []), duration: 5
       ).isEmpty)
     for words in [
-      [word("negative", -1, 1)], [word("outside", 0, 6)],
+      [word("outside", 6, 7)],
       [word("nan", .nan, 1)], [word("infinite", 0, .infinity)],
       [word("reversed", 2, 1)], [word("", 0, 1)],
+      [word("long", 0, 14.8)],
       [word("later", 2, 3), word("earlier", 0, 1)],
-      [word("overlap", 0, 2), word("second", 1, 3)],
     ] {
       #expect(
         PracticeClipSuggestions.clips(
@@ -109,6 +109,33 @@ struct PracticeClipSuggestionsTests {
         transcription: TranscriptionResult(text: "word", words: [word("word", 0, 1)]),
         duration: .infinity
       ).isEmpty)
+  }
+
+  @Test("Small timing errors are repaired instead of discarding every suggestion")
+  func repairsSmallTimingErrors() throws {
+    let overrun = PracticeClipSuggestions.clips(
+      transcription: TranscriptionResult(
+        text: "Hello there. Last words.",
+        words: [
+          word("Hello", 0.5, 1.0), word("there.", 1.1, 1.6),
+          word("Last", 3.0, 3.5), word("words.", 3.6, 4.02),
+        ]), duration: 4)
+    #expect(overrun.map(\.text) == ["Hello there.", "Last words."])
+    #expect(overrun.allSatisfy { $0.start >= 0 && $0.end <= 4 })
+
+    let overlap = PracticeClipSuggestions.clips(
+      transcription: TranscriptionResult(
+        text: "one two",
+        words: [word("one", 0.5, 1.5), word("two", 1.45, 2.4)]), duration: 4)
+    let clip = try #require(overlap.first)
+    #expect(clip.text == "one two")
+    #expect(clip.transcription.words[1].start >= clip.transcription.words[0].end)
+
+    let dropped = PracticeClipSuggestions.clips(
+      transcription: TranscriptionResult(
+        text: "good bad",
+        words: [word("good", 0.5, 1.5), word("bad", .nan, 2)]), duration: 4)
+    #expect(dropped.map(\.text) == ["good"])
   }
 
   private func word(_ text: String, _ start: Double, _ end: Double) -> TranscriptWord {
