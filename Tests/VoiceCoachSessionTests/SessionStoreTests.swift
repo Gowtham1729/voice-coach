@@ -54,6 +54,62 @@ struct SessionStoreTests {
     #expect(try store.load().first?.transcriptionLocaleIdentifier == nil)
   }
 
+  @Test("A saved retry target round-trips through the store")
+  func savedTargetRoundTrip() throws {
+    let root = try SessionTestFixtures.temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = try SessionStore(rootURL: root)
+    let session = try mimicSessionWithTarget(store: store)
+    let takeID = try #require(session.takes.first?.id)
+
+    try store.save([session], analysisTakeIDs: [takeID])
+    let loaded = try #require(store.load().first)
+
+    #expect(loaded.takes.first?.savedTarget == session.takes.first?.savedTarget)
+    #expect(loaded.takes.first?.savedTarget?.previousTakeID != nil)
+    #expect(loaded.takes.first?.savedTarget?.consecutiveCloseTakes == 1)
+  }
+
+  @Test("A schema 3 library written without savedTarget loads with no target")
+  func libraryWithoutSavedTarget() throws {
+    let root = try SessionTestFixtures.temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = try SessionStore(rootURL: root)
+    let session = try mimicSessionWithTarget(store: store)
+    let takeID = try #require(session.takes.first?.id)
+    try store.save([session], analysisTakeIDs: [takeID])
+
+    let libraryURL = root.appendingPathComponent("session-library.json")
+    var document = try #require(
+      JSONSerialization.jsonObject(with: Data(contentsOf: libraryURL)) as? [String: Any])
+    #expect(document["schemaVersion"] as? Int == 3)
+    var stored = try #require(document["sessions"] as? [[String: Any]])
+    var takes = try #require(stored[0]["takes"] as? [[String: Any]])
+    #expect(takes[0]["savedTarget"] != nil)
+    takes[0].removeValue(forKey: "savedTarget")
+    stored[0]["takes"] = takes
+    document["sessions"] = stored
+    try JSONSerialization.data(withJSONObject: document).write(to: libraryURL)
+
+    let loaded = try #require(store.load().first)
+    #expect(loaded.takes.count == 1)
+    #expect(loaded.takes.first?.savedTarget == nil)
+  }
+
+  private func mimicSessionWithTarget(store: SessionStore) throws -> CoachingSession {
+    let sessionID = UUID()
+    let takeID = UUID()
+    let target = TargetFocus(
+      referenceWordIndex: 4, word: "important", kind: .pitch, gap: 3.2,
+      referenceRange: 1.9...2.15, takeRange: 2.0...2.25, originalGap: 6,
+      previousTakeID: UUID(), previousTakeRange: 2.0...2.25, consecutiveCloseTakes: 1)
+    let audioURL = try store.recordingURL(sessionID: sessionID, takeID: takeID)
+    let take = PracticeSession(
+      id: takeID, createdAt: Date(timeIntervalSince1970: 1_700_000_000), audioURL: audioURL,
+      result: SessionTestFixtures.analysis(), savedTarget: target)
+    return SessionTestFixtures.session(id: sessionID, take: take, mode: .mimic)
+  }
+
   @Test("Metadata-only save leaves an existing analysis document untouched")
   func metadataOnlySave() throws {
     let root = try SessionTestFixtures.temporaryDirectory()

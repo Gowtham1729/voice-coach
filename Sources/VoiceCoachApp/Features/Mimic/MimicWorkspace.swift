@@ -46,7 +46,8 @@ struct MimicWorkspace: View {
             if model.mimicWorkspaceMode == .compare, let attempt = model.selectedTake {
               MimicComparisonView(
                 reference: reference.take, attempt: attempt,
-                comparison: MimicComparison.compare(reference: reference.take, attempt: attempt)
+                comparison: MimicComparison.compare(reference: reference.take, attempt: attempt),
+                localeIdentifier: session.transcriptionLocaleIdentifier
               )
             } else {
               practicePanel(session, reference: reference)

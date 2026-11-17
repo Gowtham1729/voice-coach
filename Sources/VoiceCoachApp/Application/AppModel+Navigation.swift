@@ -155,6 +155,7 @@ extension AppModel {
       destination = previousDestination
       return
     }
+    forgetRetryCardState(for: session.takes.map(\.id))
     do {
       removeSessionChats(sessionID: id)
       try store.deleteSessionData(sessionID: id)
@@ -243,6 +244,7 @@ extension AppModel {
       return
     }
 
+    forgetRetryCardState(for: [takeID])
     removeSessionChats(sessionID: sessionID, takeID: takeID)
     try? store.deleteTakeAnalysis(sessionID: sessionID, takeID: takeID)
     try? FileManager.default.removeItem(at: removed.audioURL)

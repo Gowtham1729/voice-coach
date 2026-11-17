@@ -41,7 +41,7 @@ Use this guide for the app, website, README, and release notes. Marketing may ex
 | Speak Along | The reference plays while the microphone records. Recommend headphones. |
 | Transcript | Recognized text from a recording or reference. |
 | Words | Optional language help beside the transcript. Chat requires Apple Intelligence. |
-| Practice next | Two measured practice targets when enough words match reliably. |
+| Practice next | One measured practice target, a single word, when enough words match reliably. |
 | Capture Mac audio | Capture what the Mac is playing as a reference. |
 | Settings → Transcription | Choose the speech engine and spoken language. |
 | Settings → Experiments | Enable Words. |
@@ -69,7 +69,7 @@ Show the real app when a section is about a product surface. The current overvie
 
 Show the actual app and describe what people can do. Mark synthetic recordings and illustrative chat responses as examples. The launch film is the current walkthrough. Do not present older footage as the current Ichido interface. Do not invent testimonials, social proof, or outcome claims. A later demo or campaign needs its own brief and evidence.
 
-Reference practice offers two measured targets when enough words reliably match. Ordinary recordings show measurements. Neither pathway grades an accent, certifies fluency, nor supplies phoneme-level pronunciation correction.
+Reference practice offers one measured target, a single word, when enough words reliably match. Ordinary recordings show measurements. Neither pathway grades an accent, certifies fluency, nor supplies phoneme-level pronunciation correction.
 
 Words is off by default and requires available Apple Intelligence. It uses text, cannot hear audio, and may answer incorrectly. Chats clear when the app quits, when the user clears the chat, when the recording is deleted, or when experiments are turned off. Translation and transcription language support vary; optional models may need downloads.
 

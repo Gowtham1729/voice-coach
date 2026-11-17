@@ -45,3 +45,6 @@ jobs:
         run: |
           ./scripts/build-app.sh
           test -d "build/Ichido.app"
+
+      - name: Check release binary excludes QA hooks
+        run: ./scripts/check-release-hooks.sh

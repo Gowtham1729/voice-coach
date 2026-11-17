@@ -40,6 +40,7 @@ struct TakeView: View {
         VStack(alignment: .leading, spacing: 14) {
           takeBar(session, take: take)
           transcriptCard(take)
+          OneTargetRetryCard(session: session, take: take)
           analysisCard(take)
         }
         .id(take.id)
