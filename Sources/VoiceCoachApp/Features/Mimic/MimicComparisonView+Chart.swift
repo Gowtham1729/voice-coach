@@ -14,6 +14,11 @@ extension MimicComparisonView {
     .frame(minWidth: 590, alignment: .leading)
   }
 
+  var focusPairIndex: Int? {
+    guard let focusReferenceWordIndex else { return nil }
+    return comparison.pairs.firstIndex { $0.referenceIndex == focusReferenceWordIndex }
+  }
+
   func followableChart(viewportWidth: CGFloat) -> some View {
     ScrollView(.horizontal) {
       chartContents
@@ -194,10 +199,14 @@ extension MimicComparisonView {
   func activeTranscriptIndex(in transcription: TranscriptionResult, source: MimicPlaybackSource)
     -> Int?
   {
-    guard model.isPlaying, model.mimicPlaybackSource == source else { return nil }
-    return transcription.words.firstIndex(where: {
-      model.playbackTime >= $0.start && model.playbackTime < $0.end
-    })
+    if model.isPlaying, model.mimicPlaybackSource == source {
+      return transcription.words.firstIndex(where: {
+        model.playbackTime >= $0.start && model.playbackTime < $0.end
+      })
+    }
+    guard let focusPairIndex else { return nil }
+    let pair = comparison.pairs[focusPairIndex]
+    return source == .reference ? pair.referenceIndex : pair.attemptIndex
   }
 
   var wordPicker: some View {
@@ -211,7 +220,8 @@ extension MimicComparisonView {
             .frame(width: 70)
             .padding(.vertical, 6)
             .background(
-              model.mimicSelectedWord == index ? Studio.accent.opacity(0.22) : .clear,
+              (model.mimicSelectedWord ?? focusPairIndex) == index
+                ? Studio.accent.opacity(0.22) : .clear,
               in: RoundedRectangle(cornerRadius: 5))
         }
         .buttonStyle(.plain)
@@ -232,6 +242,12 @@ extension MimicComparisonView {
     return Canvas { context, size in
       let cell: CGFloat = 74
       let middle = size.height / 2
+      if let focusPairIndex {
+        context.fill(
+          Path(roundedRect: CGRect(x: CGFloat(focusPairIndex) * cell, y: 0,
+            width: cell, height: size.height), cornerRadius: 5),
+          with: .color(Studio.accent.opacity(0.10)))
+      }
       var axis = Path()
       axis.move(to: CGPoint(x: 0, y: middle))
       axis.addLine(to: CGPoint(x: size.width, y: middle))

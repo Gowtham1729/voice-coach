@@ -7,8 +7,14 @@ import VoiceCoachSession
 final class AppModel: ObservableObject {
   @Published var destination: AppDestination = .home
   @Published var sessions: [CoachingSession] = []
-  @Published var selectedSessionID: UUID?
-  @Published var selectedTakeID: UUID?
+  @Published var selectedSessionID: UUID? {
+    didSet { if oldValue != selectedSessionID { pendingRetryTarget = nil } }
+  }
+  @Published var selectedTakeID: UUID? {
+    didSet { if oldValue != selectedTakeID { pendingRetryTarget = nil } }
+  }
+  @Published var dismissedRetryCardTakeIDs: Set<UUID> = []
+  @Published var skippedRetryCardTakeIDs: Set<UUID> = []
   @Published var pendingReplaceOnly: ReplaceOnlyPrompt?
   @Published var lastUsedMimicID: UUID?
   @Published var isRecording = false
@@ -81,6 +87,8 @@ final class AppModel: ObservableObject {
   var mimicPreparationID: UUID?
   var mimicCountInTask: Task<Void, Never>?
   var mimicPlaybackEnd: Double?
+  var replayBothPendingAttempt = false
+  var pendingRetryTarget: (sessionID: UUID, style: MimicStyle?, target: TargetFocus)?
   var mimicShouldRecordAfterPlayback = false
   var mimicAlong = false
   var pendingCaptureIsNewSession = false
@@ -107,7 +115,13 @@ final class AppModel: ObservableObject {
     dependencies: AppDependencies? = nil
   ) {
     do {
-      let dependencies = try dependencies ?? AppDependencies.live(storageRoot: storageRoot)
+      #if DEBUG
+      let qaRoot = ProcessInfo.processInfo.environment["VOICECOACH_SUPPORT_DIR"]
+        .flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
+      #else
+      let qaRoot: URL? = nil
+      #endif
+      let dependencies = try dependencies ?? AppDependencies.live(storageRoot: storageRoot ?? qaRoot)
       recorder = dependencies.recorder
       systemAudioCapture = dependencies.systemAudioCapture
       store = dependencies.sessionStore

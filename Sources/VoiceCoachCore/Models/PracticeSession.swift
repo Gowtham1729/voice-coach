@@ -9,6 +9,7 @@ public struct PracticeSession: Codable, Sendable, Identifiable, Equatable {
   public let result: AnalysisResult
   public let transcription: TranscriptionResult?
   public let words: [WordAnalysis]
+  public let savedTarget: TargetFocus?
 
   public init(
     id: UUID = UUID(),
@@ -17,7 +18,8 @@ public struct PracticeSession: Codable, Sendable, Identifiable, Equatable {
     source: TakeSource? = nil,
     result: AnalysisResult,
     transcription: TranscriptionResult? = nil,
-    words: [WordAnalysis] = []
+    words: [WordAnalysis] = [],
+    savedTarget: TargetFocus? = nil
   ) {
     self.id = id
     self.createdAt = createdAt
@@ -26,9 +28,17 @@ public struct PracticeSession: Codable, Sendable, Identifiable, Equatable {
     self.result = result
     self.transcription = transcription
     self.words = words
+    self.savedTarget = savedTarget
   }
 
   public var takeSource: TakeSource { source ?? .recorded }
+
+  /// A copy of this take with a different pinned retry target.
+  public func replacingSavedTarget(_ target: TargetFocus?) -> PracticeSession {
+    PracticeSession(
+      id: id, createdAt: createdAt, audioURL: audioURL, source: source, result: result,
+      transcription: transcription, words: words, savedTarget: target)
+  }
 }
 
 public enum TakeSource: String, Codable, Sendable, Equatable {
