@@ -8,7 +8,7 @@
 # public preview on a separate `xcode-27` runner image — not used here.
 #
 # Intentionally not in this workflow: render-previews, Peekaboo, extra
-# macOS jobs. Tag-triggered zip upload lives in release.yml.
+# macOS jobs. Tag-triggered zip upload lives in release.yml, which calls notarize.yml.
 name: CI
 
 on:

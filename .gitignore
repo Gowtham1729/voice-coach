@@ -10,3 +10,6 @@ build/
 firebase-debug.log
 firebase-debug.*.log
 gha-creds-*.json
+*.p12
+*.p8
+*.mobileprovision
