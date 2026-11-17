@@ -1,71 +1,81 @@
 import SwiftUI
-import VoiceCoachSession
 
 struct CreateSessionView: View {
   @EnvironmentObject private var model: AppModel
-  @State private var excerptStart = 0.0
-  @State private var excerptEnd = 0.0
+  @State private var editor = PracticeClipEditor()
 
-  init(initialMode: PracticeMode = .mimic) {}
+  private var canCreate: Bool {
+    model.mimicDraft != nil && !model.mimicIsPreparing && !model.isCapturingMimicReference
+      && !editor.creationSelections.isEmpty
+      && editor.creationSelections.allSatisfy { $0.isValid(in: editor.duration) }
+  }
 
-  private var canStart: Bool {
-    model.mimicDraft != nil
-      && !model.mimicIsPreparing
-      && !model.isCapturingMimicReference
-      && (excerptEnd - excerptStart >= 1)
+  private var creationTitle: String {
+    let count = editor.creationSelections.count
+    return count > 1 ? "Create \(count) practices" : "Create practice"
+  }
+
+  private var title: String {
+    if model.mimicDraft == nil { return "New reference practice" }
+    return editor.clips.isEmpty ? "Choose a clip" : "Choose phrases"
+  }
+
+  private var instruction: String {
+    if model.mimicDraft == nil { return "Import a clip or capture audio playing on your Mac." }
+    if editor.clips.isEmpty { return "Drag the handles to choose the clip you want to practise." }
+    return "Choose a phrase, then adjust its edges if needed."
   }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
-      VStack(alignment: .leading, spacing: 4) {
-        HStack {
-          Text("New reference practice")
-            .font(.title2.weight(.semibold))
-          Spacer()
-        }
-
-        Text("Add a clip, then choose the phrase you want to practise.")
+      VStack(alignment: .leading, spacing: 6) {
+        Text(title)
+          .font(.title2.weight(.semibold))
+        Text(instruction)
           .font(.callout)
           .foregroundStyle(Studio.secondary)
       }
 
-      MimicReferencePicker(start: $excerptStart, end: $excerptEnd)
-
-      if model.mimicDraft != nil || model.isCapturingMimicReference {
-        Spacer(minLength: 0)
+      if let draft = model.mimicDraft {
+        HStack {
+          Text(draft.sourceName).font(.callout).foregroundStyle(Studio.secondary).lineLimit(1)
+          Spacer()
+          Button("Change audio", action: model.cancelMimicPreparation)
+            .disabled(model.mimicIsPreparing)
+        }
+        PracticeAudioSelector(draft: draft, editor: $editor)
+          .disabled(model.mimicIsPreparing)
+      } else {
+        MimicReferencePicker()
       }
 
-      HStack {
+      HStack(spacing: 12) {
+        if let progress = model.practiceClipCreationProgress {
+          ProgressView().controlSize(.small)
+          Text("Creating \(progress.completed) of \(progress.total)…")
+            .font(.callout).foregroundStyle(Studio.secondary)
+        }
         Spacer()
         Button("Cancel") {
           model.cancelMimicPreparation()
           model.navigate(to: .home)
         }
-        .tint(.primary)
         .keyboardShortcut(.cancelAction)
         .studioGlassButton()
-
-        Button("Start practice") {
-          let name = model.mimicDraft?.sourceName ?? "Reference practice"
-          model.createMimicSession(name: name, start: excerptStart, end: excerptEnd)
+        Button(creationTitle) {
+          guard let draft = model.mimicDraft else { return }
+          model.createPracticeSessions(draftID: draft.id, selections: editor.creationSelections)
         }
         .keyboardShortcut(.defaultAction)
-        .disabled(!canStart)
-        .studioGlassButton(prominent: canStart)
+        .disabled(!canCreate)
+        .studioGlassButton(prominent: canCreate)
       }
     }
     .padding(24)
-    .frame(maxWidth: 760, maxHeight: .infinity, alignment: .topLeading)
-    .onChange(of: model.mimicDraft?.id) { _, _ in
-      loadMimicDraft()
+    .onChange(of: model.mimicDraft?.id, initial: true) { _, _ in
+      editor = PracticeClipEditor(
+        clips: model.suggestedPracticeClips, duration: model.mimicDraft?.duration ?? 0)
     }
-    .onAppear { if excerptEnd == 0 { loadMimicDraft() } }
     .onDisappear { model.cancelMimicPreparation() }
-  }
-
-  private func loadMimicDraft() {
-    guard let draft = model.mimicDraft else { return }
-    excerptStart = 0
-    excerptEnd = min(draft.duration, 20)
   }
 }
