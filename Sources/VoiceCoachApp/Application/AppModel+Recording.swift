@@ -6,7 +6,7 @@ import VoiceCoachSession
 extension AppModel {
   func requestPermissionAndRecord() {
     guard !isRecording, !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference,
-      !mimicIsPreparing, !hasMenuBarReference
+      !mimicIsPreparing, !hasMenuBarReference, requireWritableLibrary()
     else { return }
     if selectedSessionID == nil {
       prepareStandaloneCapture()
@@ -99,6 +99,7 @@ extension AppModel {
         do {
           recorder.playbackVolume = Float(mimicReferenceVolume)
           try recorder.play(url: reference.take.audioURL)
+          mimicPlaybackEnd = nil
           mimicPlaybackSource = .reference
           isPlaying = true
           startPlaybackTimer()
@@ -117,6 +118,7 @@ extension AppModel {
         }
       }
     } catch {
+      discardPendingStandaloneIfEmpty()
       presentError(
         title: "Recording failed",
         error: error,
@@ -125,6 +127,7 @@ extension AppModel {
   }
 
   func stopRecording() {
+    guard isRecording else { return }
     mimicCountInTask?.cancel()
     let wasMimic = selectedSession?.mode == .mimic
     if wasMimic {
@@ -138,10 +141,12 @@ extension AppModel {
     timer = nil
     isRecording = false
     if wasMimic { mimicPhase = .analyzing }
-    guard elapsed >= 0.6, let url = recordingURL, let takeID = recordingTakeID else {
+    guard elapsed >= Self.minimumCaptureDuration, let url = recordingURL,
+      let takeID = recordingTakeID
+    else {
       presentError(
-        title: "Recording Too Short",
-        message: "Record at least one second.")
+        title: "Recording too short",
+        message: "Record a little longer and try again.")
       if let recordingURL { try? FileManager.default.removeItem(at: recordingURL) }
       recordingURL = nil
       recordingTakeID = nil
@@ -158,12 +163,13 @@ extension AppModel {
   func analyze(url: URL, takeID: UUID, source: TakeSource = .recorded) -> Task<Void, Never> {
     isAnalyzing = true
     let preferredEngine = transcriptionEngine
+    let captureSessionID = selectedSessionID
     let locale =
-      selectedSession?.transcriptionLocaleIdentifier.map(Locale.init(identifier:))
+      sessions.first(where: { $0.id == captureSessionID })?.transcriptionLocaleIdentifier
+      .map(Locale.init(identifier:))
       ?? newSessionTranscriptionLocale
     let captureIsNewSession = pendingCaptureIsNewSession
     let captureImportURL = pendingImportSourceURL
-    let captureSessionID = selectedSessionID
     return Task {
       do {
         let acoustic = try await Task.detached(priority: .userInitiated) {
@@ -188,7 +194,9 @@ extension AppModel {
         )
 
         finishAnalyzeCleanup()
-        append(take, localeIdentifier: locale?.identifier)
+        if let captureSessionID {
+          append(take, toSessionID: captureSessionID, localeIdentifier: locale?.identifier)
+        }
         transcriptionNotice = notice
         if transcription == nil, let notice,
           sessions.contains(where: { session in session.takes.contains { $0.id == takeID } })
@@ -220,11 +228,13 @@ extension AppModel {
           title: "Analysis failed",
           error: error,
           fallback: "Couldn’t analyze this recording. Try again.")
-        if selectedSession?.mode == .mimic {
+        if sessions.first(where: { $0.id == captureSessionID })?.mode == .mimic {
           pendingMimicAudio = (url, takeID)
-          pendingMimicSessionID = selectedSessionID
-        } else if pendingCaptureIsNewSession {
-          pendingImportSourceURL = nil
+          pendingMimicSessionID = captureSessionID
+        } else {
+          // Rejected captures leave no library entry and no temporary audio.
+          try? FileManager.default.removeItem(at: url)
+          if selectedSessionID == captureSessionID { discardPendingStandaloneIfEmpty() }
         }
         finishAnalyzeCleanup()
       }
@@ -326,18 +336,18 @@ extension AppModel {
     renameSession(sessionID, to: suggested)
   }
 
-  func append(_ take: PracticeSession, localeIdentifier: String? = nil) {
-    guard let selectedSessionID else { return }
-
-    if pendingCaptureIsNewSession, !sessions.contains(where: { $0.id == selectedSessionID }) {
-      appendStandalone(take, sessionID: selectedSessionID, localeIdentifier: localeIdentifier)
+  func append(
+    _ take: PracticeSession, toSessionID sessionID: UUID, localeIdentifier: String? = nil
+  ) {
+    if pendingCaptureIsNewSession, !sessions.contains(where: { $0.id == sessionID }) {
+      appendStandalone(take, sessionID: sessionID, localeIdentifier: localeIdentifier)
       return
     }
 
-    guard let index = sessions.firstIndex(where: { $0.id == selectedSessionID }) else { return }
+    guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
     let isMimicSession = sessions[index].mode == .mimic
     let target = pendingRetryTarget.flatMap { pending -> TargetFocus? in
-      guard pending.sessionID == selectedSessionID,
+      guard pending.sessionID == sessionID,
         pending.style == (sessions[index].mimicStyle ?? .listenAndRepeat)
       else { return nil }
       return pending.target
@@ -365,14 +375,18 @@ extension AppModel {
       sessions[index].takes = [take]
     }
     sessions[index].updatedAt = Date()
+    let previousSelectedSessionID = selectedSessionID
+    let previousSelectedTakeID = selectedTakeID
+    selectedSessionID = sessionID
     selectedTakeID = take.id
     sortSessions()
     guard persist(analysisTakeIDs: [take.id]) else {
       sessions = previousSessions
-      selectedTakeID = previousSessions.first(where: { $0.id == selectedSessionID })?.latestTake?.id
-      if sessions.first(where: { $0.id == selectedSessionID })?.mode == .mimic {
+      selectedSessionID = previousSelectedSessionID
+      selectedTakeID = previousSelectedTakeID
+      if sessions.first(where: { $0.id == sessionID })?.mode == .mimic {
         pendingMimicTake = take
-        pendingMimicSessionID = selectedSessionID
+        pendingMimicSessionID = sessionID
         presentError(
           title: "Save failed",
           message: "The recording is still on this Mac. Try again, or show the file.")
@@ -380,7 +394,7 @@ extension AppModel {
       return
     }
     if target != nil { pendingRetryTarget = nil }
-    if pendingMimicSessionID == selectedSessionID {
+    if pendingMimicSessionID == sessionID {
       pendingMimicTake = nil
       pendingMimicAudio = nil
       pendingMimicSessionID = nil
@@ -390,11 +404,11 @@ extension AppModel {
     }
     toastMessage = saveToast(for: take.takeSource)
     if isMimicSession {
-      lastUsedMimicID = selectedSessionID
+      lastUsedMimicID = sessionID
       mimicWorkspaceMode = .compare
-      destination = .practice(selectedSessionID)
+      destination = .practice(sessionID)
     } else {
-      destination = .take(selectedSessionID, take.id)
+      destination = .take(sessionID, take.id)
     }
   }
 
@@ -447,6 +461,7 @@ extension AppModel {
   /// omit (default empty) for metadata-only updates such as rename or Mimic style.
   @discardableResult
   func persist(analysisTakeIDs: Set<UUID> = []) -> Bool {
+    guard requireWritableLibrary() else { return false }
     do {
       try store.save(sessions, analysisTakeIDs: analysisTakeIDs)
       return true
@@ -460,10 +475,10 @@ extension AppModel {
     timer?.invalidate()
     let recordingTimer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
       Task { @MainActor in
-        guard let self else { return }
+        guard let self, self.isRecording else { return }
         self.elapsed = Date().timeIntervalSince(self.startedAt ?? Date())
         self.liveLevel = Double(self.recorder.peakLevel())
-        if self.elapsed >= 90 { self.stopRecording() }
+        if self.isRecording, self.elapsed >= 90 { self.stopRecording() }
       }
     }
     timer = recordingTimer

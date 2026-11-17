@@ -71,7 +71,7 @@ struct MimicInspector: View {
           }
           .tint(.red)
           .studioGlassButton(destructive: true)
-          .disabled(model.isPlaying || model.isAnalyzing)
+          .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
           .help("Delete")
         }
       }
@@ -82,7 +82,7 @@ struct MimicInspector: View {
         title: "Delete this take?",
         message: "This take and its analysis will be deleted. The reference and other takes stay."
       ) { takeID in
-        model.deleteTake(takeID)
+        deleteTake(takeID, in: session)
       })
   }
 
@@ -112,7 +112,8 @@ struct MimicInspector: View {
         VStack(alignment: .leading, spacing: 8) {
           Text("Reference volume")
             .font(.callout)
-          Slider(value: $model.mimicReferenceVolume, in: 0.1...1)
+          Slider(value: $model.mimicReferenceVolume, in: 0.1...1) { Text("Reference volume") }
+            .labelsHidden()
           if session.mimicStyle == .speakAlong {
             Label(
               "Use headphones so the reference isn’t recorded.", systemImage: "headphones"
@@ -127,6 +128,14 @@ struct MimicInspector: View {
   }
 
   private func requestDelete(_ takeID: UUID) {
-    if confirmBeforeDelete { takePendingDelete = takeID } else { model.deleteTake(takeID) }
+    if confirmBeforeDelete {
+      takePendingDelete = takeID
+    } else if let session = model.selectedSession {
+      deleteTake(takeID, in: session)
+    }
+  }
+
+  private func deleteTake(_ takeID: UUID, in session: CoachingSession) {
+    model.deleteTake(sessionID: session.id, takeID: takeID)
   }
 }

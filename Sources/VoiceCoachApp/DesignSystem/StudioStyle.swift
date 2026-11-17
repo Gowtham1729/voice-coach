@@ -143,10 +143,39 @@ struct StudioQuietIconButton: View {
     }
     .buttonStyle(.plain)
     .help(help)
+    .accessibilityLabel(help)
     .onHover { hovering = $0 }
     .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: hovering)
     .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: confirmed)
   }
+}
+
+/// Divider plus blurred bar background for the bottom transport bars. Falls back to the
+/// opaque surface for Reduce Transparency and offscreen snapshots.
+struct TransportBarBackground: ViewModifier {
+  @Environment(\.studioSnapshot) private var snapshot
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+  func body(content: Content) -> some View {
+    content
+      .background {
+        if snapshot || reduceTransparency {
+          Studio.surface
+        } else {
+          Rectangle()
+            .fill(.ultraThinMaterial)
+            .overlay(Studio.surface.opacity(0.72))
+            .ignoresSafeArea(edges: .bottom)
+        }
+      }
+      .overlay(alignment: .top) {
+        Rectangle().fill(Studio.line).frame(height: 1)
+      }
+  }
+}
+
+extension View {
+  func transportBarBackground() -> some View { modifier(TransportBarBackground()) }
 }
 
 /// Liquid Glass chrome for controls (nav layer). Not for content cards.

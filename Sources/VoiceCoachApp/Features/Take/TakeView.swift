@@ -13,7 +13,6 @@ struct TakeView: View {
   @State var selectedWordIndex: Int?
   @State var isGraphCopied = false
   @State var isTranscriptCopied = false
-  @State var isHandlingWordStep = false
 
   var body: some View {
     Group {
@@ -23,7 +22,7 @@ struct TakeView: View {
         StudioPage(maxWidth: 1050, horizontalPadding: 20) {
           EmptyState(
             icon: "waveform",
-            title: "Recording Unavailable",
+            title: "Recording unavailable",
             detail: "Choose another recording from Library.",
             actionTitle: "Library"
           ) {
@@ -63,7 +62,6 @@ struct TakeView: View {
 
       stickyTransport(take)
     }
-    .background(wordStepShortcuts(for: take))
   }
 
   func takeBar(_ session: CoachingSession, take: PracticeSession) -> some View {

@@ -122,10 +122,14 @@ struct HomeView: View {
 
   private var activityRow: some View {
     HStack(spacing: 8) {
-      activityChip("\(model.userRecordedTakeCount)", "recordings")
+      activityChip(
+        "\(model.userRecordedTakeCount)",
+        model.userRecordedTakeCount == 1 ? "recording" : "recordings")
       activityChip(vcNumber(model.userRecordedDuration / 60, 1), "min recorded")
       activityChip("\(model.importedTakeCount)", "imported")
-      activityChip("\(model.mimicSessions.count)", "practice sessions")
+      activityChip(
+        "\(model.mimicSessions.count)",
+        model.mimicSessions.count == 1 ? "practice session" : "practice sessions")
       Spacer()
     }
     .padding(.horizontal, 4)
@@ -173,6 +177,7 @@ struct HomeView: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+    .disabled(!model.canNavigate)
     .desktopPanel()
     .accessibilityLabel("Continue practice, \(session.mimicReference?.sourceName ?? session.name)")
   }
@@ -210,6 +215,7 @@ struct HomeView: View {
             recordingRow(recording)
           }
           .buttonStyle(.plain)
+          .disabled(!model.canNavigate)
           .studioHoverLift()
           .accessibilityLabel(recording.accessibilityLabel)
 

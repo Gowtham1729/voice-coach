@@ -93,7 +93,7 @@ struct MimicComparisonView: View {
               MimicSeriesLegendItem(title: "You", color: Studio.accent, dashed: false)
             }
             .font(.caption)
-            .accessibilityLabel("Dashed cyan: reference. Solid blue: you.")
+            .accessibilityLabel("Dashed: reference. Solid: you.")
           }
         }
         .padding(18)

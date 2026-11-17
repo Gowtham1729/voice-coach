@@ -329,10 +329,6 @@ struct MimicWorkspace: View {
   private func compareTransport(reference: PracticeSession, attempt: PracticeSession) -> some View {
     let comparison = MimicComparison.compare(reference: reference, attempt: attempt)
     return VStack(spacing: 0) {
-      Rectangle()
-        .fill(Studio.line)
-        .frame(height: 1)
-
       MimicComparePlaybackRow(
         reference: reference,
         attempt: attempt,
@@ -343,16 +339,7 @@ struct MimicWorkspace: View {
       .frame(maxWidth: 1050)
       .frame(maxWidth: .infinity)
     }
-    .background {
-      if snapshot {
-        Studio.surface
-      } else {
-        Rectangle()
-          .fill(.ultraThinMaterial)
-          .overlay(Studio.surface.opacity(0.72))
-          .ignoresSafeArea(edges: .bottom)
-      }
-    }
+    .transportBarBackground()
   }
 
   private var practiceTransport: some View {
@@ -390,6 +377,6 @@ struct MimicWorkspace: View {
     .padding(.horizontal, 20)
     .padding(.vertical, 12)
     .frame(maxWidth: .infinity)
-    .background(.regularMaterial)
+    .transportBarBackground()
   }
 }

@@ -31,13 +31,10 @@ final class AudioRecorder: NSObject, AudioRecording, AVAudioRecorderDelegate, AV
   var onPlaybackFinished: (() -> Void)?
   var onRecordingInterrupted: (() -> Void)?
 
-  var isRecording: Bool { recorder?.isRecording == true }
-  var isPlaying: Bool { player?.isPlaying == true }
   var currentTime: TimeInterval {
     get { player?.currentTime ?? 0 }
     set { player?.currentTime = newValue }
   }
-  var duration: TimeInterval { player?.duration ?? 0 }
   var playbackVolume: Float = 1 {
     didSet { player?.volume = playbackVolume }
   }
@@ -80,9 +77,9 @@ final class AudioRecorder: NSObject, AudioRecording, AVAudioRecorderDelegate, AV
     }
     guard let player else { throw RecorderError.couldNotPlay }
     player.volume = playbackVolume
-    if time > 0 {
-      player.currentTime = min(time, player.duration > 0 ? player.duration : time)
-    }
+    // Always position the player: a paused player for the same file is reused, and
+    // would otherwise resume mid-clip when asked to play from the start.
+    player.currentTime = max(0, min(time, player.duration > 0 ? player.duration : time))
     guard player.play() else { throw RecorderError.couldNotPlay }
   }
 
@@ -102,11 +99,22 @@ final class AudioRecorder: NSObject, AudioRecording, AVAudioRecorderDelegate, AV
   }
 
   nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-    Task { @MainActor [weak self] in self?.onPlaybackFinished?() }
+    playbackEnded(for: ObjectIdentifier(player))
   }
 
   nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
-    Task { @MainActor [weak self] in self?.onPlaybackFinished?() }
+    playbackEnded(for: ObjectIdentifier(player))
+  }
+
+  /// Ignores a finish callback from a player that has since been replaced, so a clip
+  /// ending late cannot stop the one that started after it.
+  private nonisolated func playbackEnded(for finished: ObjectIdentifier) {
+    Task { @MainActor [weak self] in
+      guard let self, let player = self.player, ObjectIdentifier(player) == finished else {
+        return
+      }
+      self.onPlaybackFinished?()
+    }
   }
 
   nonisolated func audioRecorderDidFinishRecording(

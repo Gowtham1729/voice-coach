@@ -3,8 +3,23 @@ import VoiceCoachCore
 import VoiceCoachSession
 
 extension AppModel {
+  /// False while capture, analysis, a permission prompt, a Mimic phase, or a batch of
+  /// practice clips owns the selection. Sidebar, Home, and Library actions check this
+  /// before they change anything.
+  var canNavigate: Bool {
+    !isRecording && !isAnalyzing && !isRequestingPermission && !isCapturingMimicReference
+      && mimicPhase == .ready && practiceClipCreationProgress == nil
+  }
+
+  /// Delete and archive are refused while a take is being captured or analysed, or while
+  /// a Mimic phase is running for that same session.
+  func canModifySession(_ id: UUID) -> Bool {
+    if isRecording || isAnalyzing || practiceClipCreationProgress != nil { return false }
+    return mimicPhase == .ready || selectedSessionID != id
+  }
+
   func navigate(to destination: AppDestination) {
-    if isRecording || isAnalyzing || mimicPhase != .ready { return }
+    guard canNavigate else { return }
     stopPlayback()
     self.destination = destination
   }
@@ -24,8 +39,11 @@ extension AppModel {
       return
     }
     guard !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference,
-      !mimicIsPreparing, !hasMenuBarReference, mimicPhase == .ready
+      !mimicIsPreparing, !hasMenuBarReference, mimicPhase == .ready, requireWritableLibrary()
     else { return }
+    mimicCountInTask?.cancel()
+    mimicAlong = false
+    stopPlayback()
     discardPendingStandaloneIfEmpty()
     selectedTakeID = nil
     destination = .home
@@ -34,7 +52,7 @@ extension AppModel {
   }
 
   func resumeSession(_ id: UUID) {
-    guard practiceClipCreationProgress == nil else { return }
+    guard canNavigate else { return }
     guard let session = sessions.first(where: { $0.id == id }) else { return }
     if session.isMimic {
       selectedSessionID = id
@@ -52,7 +70,7 @@ extension AppModel {
   }
 
   func openTake(sessionID: UUID, takeID: UUID? = nil) {
-    guard practiceClipCreationProgress == nil else { return }
+    guard canNavigate else { return }
     guard let session = sessions.first(where: { $0.id == sessionID }),
       let take = takeID.flatMap({ id in session.takes.first(where: { $0.id == id }) })
         ?? session.latestTake
@@ -69,7 +87,7 @@ extension AppModel {
   }
 
   func selectTake(_ takeID: UUID) {
-    guard practiceClipCreationProgress == nil else { return }
+    guard canNavigate else { return }
     guard let selectedSession, selectedSession.takes.contains(where: { $0.id == takeID }) else {
       return
     }
@@ -128,7 +146,7 @@ extension AppModel {
   }
 
   func deleteSession(_ id: UUID) {
-    guard practiceClipCreationProgress == nil else { return }
+    guard canModifySession(id) else { return }
     if pendingMimicSessionID == id {
       presentError(
         title: "Can’t Delete",
@@ -141,6 +159,7 @@ extension AppModel {
     let previousSessionID = selectedSessionID
     let previousTakeID = selectedTakeID
     let previousDestination = destination
+    let previousLastUsedMimicID = lastUsedMimicID
     let wasMimic = session.isMimic
     let attemptCount = session.takeCount
     sessions.removeAll { $0.id == id }
@@ -155,6 +174,7 @@ extension AppModel {
       selectedSessionID = previousSessionID
       selectedTakeID = previousTakeID
       destination = previousDestination
+      lastUsedMimicID = previousLastUsedMimicID
       return
     }
     forgetRetryCardState(for: session.takes.map(\.id))
@@ -177,11 +197,19 @@ extension AppModel {
   }
 
   func archiveMimic(_ id: UUID, archived: Bool = true) {
-    guard let index = sessions.firstIndex(where: { $0.id == id && $0.isMimic }) else { return }
+    guard canModifySession(id),
+      let index = sessions.firstIndex(where: { $0.id == id && $0.isMimic })
+    else { return }
+    let previousSessions = sessions
+    let previousLastUsedMimicID = lastUsedMimicID
     sessions[index].archived = archived
     sessions[index].updatedAt = Date()
     if archived, lastUsedMimicID == id { lastUsedMimicID = nil }
-    persist()
+    guard persist() else {
+      sessions = previousSessions
+      lastUsedMimicID = previousLastUsedMimicID
+      return
+    }
     if archived, selectedSessionID == id {
       selectedSessionID = nil
       selectedTakeID = nil
@@ -196,8 +224,12 @@ extension AppModel {
       toastMessage = "No unused folders"
       return
     }
+    let previousSessions = sessions
     sessions.removeAll { emptyIDs.contains($0.id) }
-    guard persist() else { return }
+    guard persist() else {
+      sessions = previousSessions
+      return
+    }
     for id in emptyIDs {
       try? store.deleteSessionData(sessionID: id)
     }
@@ -208,23 +240,26 @@ extension AppModel {
     }
   }
 
-  func deleteTake(_ takeID: UUID) {
-    guard practiceClipCreationProgress == nil else { return }
+  /// Removes one take. Selection only changes when the removed take was the selected one.
+  /// The last take of a plain recording removes the whole session, since it would be empty.
+  func deleteTake(sessionID: UUID, takeID: UUID) {
+    guard canModifySession(sessionID) else { return }
     stopPlayback()
-    guard let sessionID = selectedSessionID,
-      let sessionIndex = sessions.firstIndex(where: { $0.id == sessionID }),
+    guard let sessionIndex = sessions.firstIndex(where: { $0.id == sessionID }),
       let takeIndex = sessions[sessionIndex].takes.firstIndex(where: { $0.id == takeID })
     else { return }
 
     let previousSessions = sessions
+    let previousSessionID = selectedSessionID
     let previousTakeID = selectedTakeID
     let previousDestination = destination
     let removed = sessions[sessionIndex].takes.remove(at: takeIndex)
     sessions[sessionIndex].mimicAttemptStyles?.removeValue(forKey: takeID)
     let remainingCount = sessions[sessionIndex].takes.count
+    let removesSession = !sessions[sessionIndex].isMimic && remainingCount == 0
     sessions[sessionIndex].updatedAt = Date()
 
-    if selectedTakeID == takeID {
+    if selectedSessionID == sessionID, selectedTakeID == takeID {
       let remaining = sessions[sessionIndex].takes
       selectedTakeID =
         remaining.indices.contains(takeIndex) ? remaining[takeIndex].id : remaining.last?.id
@@ -237,10 +272,19 @@ extension AppModel {
         }
       }
     }
+    if removesSession {
+      sessions.remove(at: sessionIndex)
+      if selectedSessionID == sessionID {
+        selectedSessionID = nil
+        selectedTakeID = nil
+        if case .take = destination { destination = .library }
+      }
+    }
 
     sortSessions()
     guard persist() else {
       sessions = previousSessions
+      selectedSessionID = previousSessionID
       selectedTakeID = previousTakeID
       destination = previousDestination
       return
@@ -248,7 +292,12 @@ extension AppModel {
 
     forgetRetryCardState(for: [takeID])
     removeSessionChats(sessionID: sessionID, takeID: takeID)
-    try? store.deleteTakeAnalysis(sessionID: sessionID, takeID: takeID)
+    if removesSession {
+      removeSessionChats(sessionID: sessionID)
+      try? store.deleteSessionData(sessionID: sessionID)
+    } else {
+      try? store.deleteTakeAnalysis(sessionID: sessionID, takeID: takeID)
+    }
     try? FileManager.default.removeItem(at: removed.audioURL)
     if reportCache?.takeID == takeID { reportCache = nil }
     if remainingCount == 0 { mimicWorkspaceMode = .practice }

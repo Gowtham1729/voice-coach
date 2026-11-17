@@ -74,6 +74,7 @@ struct InspectorMetricStack: View {
 }
 
 struct InspectorMetricRow: View {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   let metric: InspectorMetricItem
 
   var body: some View {
@@ -105,7 +106,7 @@ struct InspectorMetricRow: View {
     .padding(.vertical, 8)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(accessibilityLabel)
-    .animation(.smooth(duration: 0.22), value: metric.value)
+    .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: metric.value)
   }
 
   private var accessibilityLabel: String {

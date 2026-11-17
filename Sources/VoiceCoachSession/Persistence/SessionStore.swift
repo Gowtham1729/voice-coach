@@ -3,6 +3,8 @@ import VoiceCoachCore
 
 package protocol SessionStoring: AnyObject {
   var rootURL: URL { get }
+  /// Takes (or whole sessions) the last `load()` could not read and left on disk untouched.
+  var lastLoadSkippedTakeCount: Int { get }
 
   func load() throws -> [CoachingSession]
   func save(_ sessions: [CoachingSession], analysisTakeIDs: Set<UUID>?) throws
@@ -137,6 +139,12 @@ package final class SessionStore: SessionStoring {
 
   package let rootURL: URL
   private let libraryURL: URL
+  package private(set) var lastLoadSkippedTakeCount = 0
+  /// Index stubs for takes whose analysis could not be read. Written back on save so a
+  /// restored file reappears, and excluded from pruning.
+  private var skippedTakeStubs: [UUID: [StoredTake]] = [:]
+  /// Index stubs for sessions skipped whole (unreadable Mimic reference, or no readable takes).
+  private var skippedSessionStubs: [UUID: StoredSession] = [:]
 
   package init(rootURL: URL? = nil) throws {
     if let rootURL {
@@ -155,6 +163,9 @@ package final class SessionStore: SessionStoring {
   }
 
   package func load() throws -> [CoachingSession] {
+    lastLoadSkippedTakeCount = 0
+    skippedTakeStubs = [:]
+    skippedSessionStubs = [:]
     guard FileManager.default.fileExists(atPath: libraryURL.path) else { return [] }
     let data = try Data(contentsOf: libraryURL)
     let version = try Self.peekSchemaVersion(in: data)
@@ -167,8 +178,8 @@ package final class SessionStore: SessionStoring {
       return sessions
     case 3:
       let document = try JSONDecoder().decode(ThinLibraryDocument.self, from: data)
-      return try document.sessions
-        .map(hydrate(session:))
+      return document.sessions
+        .compactMap(hydrateSkippingUnreadable(session:))
         .sorted { $0.updatedAt > $1.updatedAt }
     default:
       throw CocoaError(.coderReadCorrupt)
@@ -185,9 +196,11 @@ package final class SessionStore: SessionStoring {
       }
     }
 
+    let liveIDs = Set(sessions.map(\.id))
     let document = ThinLibraryDocument(
       schemaVersion: Self.currentSchemaVersion,
-      sessions: sessions.map(makeStoredSession(_:))
+      sessions: sessions.map(makeStoredSessionKeepingSkipped(_:))
+        + skippedSessionStubs.values.filter { !liveIDs.contains($0.id) }
     )
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys]
@@ -197,7 +210,9 @@ package final class SessionStore: SessionStoring {
     // failed save after the commit would make callers roll back and delete audio
     // that the on-disk index now references. A later save retries orphan cleanup.
     for session in sessions {
-      try? pruneAnalyses(sessionID: session.id, keeping: Set(session.allPracticeTakes.map(\.id)))
+      let skipped = Set((skippedTakeStubs[session.id] ?? []).map(\.id))
+      try? pruneAnalyses(
+        sessionID: session.id, keeping: Set(session.allPracticeTakes.map(\.id)).union(skipped))
     }
   }
 
@@ -225,19 +240,13 @@ package final class SessionStore: SessionStoring {
   }
 
   package func takeDirectory(sessionID: UUID) throws -> URL {
-    let directory =
-      rootURL
-      .appendingPathComponent("Sessions", isDirectory: true)
-      .appendingPathComponent(sessionID.uuidString, isDirectory: true)
+    let directory = sessionDirectoryURL(sessionID: sessionID)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     return directory
   }
 
   package func deleteSessionData(sessionID: UUID) throws {
-    let directory =
-      rootURL
-      .appendingPathComponent("Sessions", isDirectory: true)
-      .appendingPathComponent(sessionID.uuidString, isDirectory: true)
+    let directory = sessionDirectoryURL(sessionID: sessionID)
     guard FileManager.default.fileExists(atPath: directory.path) else { return }
     try FileManager.default.removeItem(at: directory)
   }
@@ -256,6 +265,7 @@ package final class SessionStore: SessionStoring {
     {
       guard let id = UUID(uuidString: directory.lastPathComponent),
         !knownSessionIDs.contains(id),
+        skippedSessionStubs[id] == nil,
         (try? directory.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true,
         let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path),
         files.allSatisfy({ $0 == "reference.wav" || $0 == ".DS_Store" })
@@ -273,6 +283,12 @@ package final class SessionStore: SessionStoring {
   }
 
   // MARK: - Private
+
+  private func sessionDirectoryURL(sessionID: UUID) -> URL {
+    rootURL
+      .appendingPathComponent("Sessions", isDirectory: true)
+      .appendingPathComponent(sessionID.uuidString, isDirectory: true)
+  }
 
   private static func peekSchemaVersion(in data: Data) throws -> Int {
     let json = try JSONSerialization.jsonObject(with: data)
@@ -342,8 +358,36 @@ package final class SessionStore: SessionStoring {
     )
   }
 
-  private func hydrate(session stored: StoredSession) throws -> CoachingSession {
-    CoachingSession(
+  /// Skips what cannot be read instead of failing the whole library. Nothing is deleted.
+  private func hydrateSkippingUnreadable(session stored: StoredSession) -> CoachingSession? {
+    var takes: [PracticeSession] = []
+    var skipped: [StoredTake] = []
+    for take in stored.takes {
+      if let hydrated = try? hydrate(take: take, sessionID: stored.id) {
+        takes.append(hydrated)
+      } else {
+        skipped.append(take)
+      }
+    }
+    var reference: MimicReference?
+    if let storedReference = stored.mimicReference {
+      guard let take = try? hydrate(take: storedReference.take, sessionID: stored.id) else {
+        return skipWhole(stored, count: 1 + stored.takes.count)
+      }
+      reference = MimicReference(
+        sourceName: storedReference.sourceName,
+        take: take,
+        sourceStart: storedReference.sourceStart,
+        sourceEnd: storedReference.sourceEnd
+      )
+    } else if takes.isEmpty && !skipped.isEmpty {
+      return skipWhole(stored, count: skipped.count)
+    }
+    if !skipped.isEmpty {
+      skippedTakeStubs[stored.id] = skipped
+      lastLoadSkippedTakeCount += skipped.count
+    }
+    return CoachingSession(
       id: stored.id,
       name: stored.name,
       createdAt: stored.createdAt,
@@ -351,15 +395,8 @@ package final class SessionStore: SessionStoring {
       mode: stored.mode,
       prompt: stored.prompt,
       keepsRecordings: stored.keepsRecordings,
-      takes: try stored.takes.map { try hydrate(take: $0, sessionID: stored.id) },
-      mimicReference: try stored.mimicReference.map { reference in
-        MimicReference(
-          sourceName: reference.sourceName,
-          take: try hydrate(take: reference.take, sessionID: stored.id),
-          sourceStart: reference.sourceStart,
-          sourceEnd: reference.sourceEnd
-        )
-      },
+      takes: takes,
+      mimicReference: reference,
       mimicStyle: stored.mimicStyle,
       mimicAttemptStyles: stored.mimicAttemptStyles,
       transcriptionLocaleIdentifier: stored.transcriptionLocaleIdentifier,
@@ -367,12 +404,26 @@ package final class SessionStore: SessionStoring {
     )
   }
 
+  private func skipWhole(_ stored: StoredSession, count: Int) -> CoachingSession? {
+    skippedSessionStubs[stored.id] = stored
+    lastLoadSkippedTakeCount += count
+    return nil
+  }
+
+  private func makeStoredSessionKeepingSkipped(_ session: CoachingSession) -> StoredSession {
+    var stored = makeStoredSession(session)
+    if let skipped = skippedTakeStubs[session.id], !skipped.isEmpty {
+      stored.takes = (stored.takes + skipped).sorted { $0.createdAt < $1.createdAt }
+    }
+    return stored
+  }
+
   private func hydrate(take stored: StoredTake, sessionID: UUID) throws -> PracticeSession {
     let analysis = try loadAnalysis(sessionID: sessionID, takeID: stored.id)
     return PracticeSession(
       id: stored.id,
       createdAt: stored.createdAt,
-      audioURL: try takeDirectory(sessionID: sessionID).appendingPathComponent(
+      audioURL: sessionDirectoryURL(sessionID: sessionID).appendingPathComponent(
         stored.audioFileName),
       source: stored.source,
       result: analysis.result,
@@ -407,8 +458,10 @@ package final class SessionStore: SessionStoring {
   }
 
   private func pruneAnalyses(sessionID: UUID, keeping: Set<UUID>) throws {
+    let directory = sessionDirectoryURL(sessionID: sessionID)
+    guard FileManager.default.fileExists(atPath: directory.path) else { return }
     let files = try FileManager.default.contentsOfDirectory(
-      at: try takeDirectory(sessionID: sessionID),
+      at: directory,
       includingPropertiesForKeys: nil,
       options: [.skipsHiddenFiles]
     )

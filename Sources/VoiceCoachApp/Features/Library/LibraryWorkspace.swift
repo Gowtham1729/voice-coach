@@ -22,7 +22,9 @@ struct DesktopLibraryWorkspace: View {
   }
 
   var body: some View {
-    StudioPage(maxWidth: 1100, horizontalPadding: 20) {
+    // Filter once per render; rebuilding the catalog for every row is quadratic.
+    let filtered = filtered
+    return StudioPage(maxWidth: 1100, horizontalPadding: 20) {
       VStack(alignment: .leading, spacing: 14) {
         HStack(spacing: 12) {
           Text(
@@ -80,8 +82,7 @@ struct DesktopLibraryWorkspace: View {
     .alert("Delete recording?", isPresented: deleteAlertBinding, presenting: deleteRecording) {
       recording in
       Button("Delete", role: .destructive) {
-        model.selectedSessionID = recording.sessionID
-        model.deleteTake(recording.take.id)
+        model.deleteTake(sessionID: recording.sessionID, takeID: recording.take.id)
       }
       Button("Cancel", role: .cancel) {}
     } message: { recording in
@@ -123,6 +124,7 @@ struct DesktopLibraryWorkspace: View {
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
+      .disabled(!model.canNavigate)
       .accessibilityLabel(recording.accessibilityLabel)
 
       Text(vcDuration(recording.take.result.metrics.duration))
@@ -138,6 +140,7 @@ struct DesktopLibraryWorkspace: View {
           Button("Open", systemImage: "arrow.right") {
             model.openTake(sessionID: recording.sessionID, takeID: recording.take.id)
           }
+          .disabled(!model.canNavigate)
           if let session = model.sessions.first(where: { $0.id == recording.sessionID }) {
             Button("Rename…", systemImage: "pencil") {
               renameText = session.name
@@ -149,16 +152,17 @@ struct DesktopLibraryWorkspace: View {
               model.openTake(sessionID: recording.sessionID, takeID: recording.take.id)
               model.useCurrentRecordingAsMimicReference()
             }
+            .disabled(!model.canNavigate)
           }
           Divider()
           Button("Delete", systemImage: "trash", role: .destructive) {
             if confirmBeforeDelete {
               deleteRecording = recording
             } else {
-              model.selectedSessionID = recording.sessionID
-              model.deleteTake(recording.take.id)
+              model.deleteTake(sessionID: recording.sessionID, takeID: recording.take.id)
             }
           }
+          .disabled(!model.canNavigate)
         } label: {
           Image(systemName: "ellipsis")
             .frame(width: 28, height: 24)
@@ -166,6 +170,7 @@ struct DesktopLibraryWorkspace: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .frame(width: 28)
+        .accessibilityLabel("More actions")
       }
     }
     .font(.caption)

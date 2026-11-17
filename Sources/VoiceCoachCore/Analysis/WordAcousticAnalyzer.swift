@@ -32,29 +32,17 @@ public struct WordAcousticAnalyzer: Sendable {
     self.minimumEdgeFramesStartToEnd = max(2, minimumEdgeFramesStartToEnd)
   }
 
-  public init(minimumPitchFrames: Int, minimumPitchCoverage: Double = 0.25) {
-    self.init(
-      minimumPitchFramesMedian: minimumPitchFrames,
-      minimumPitchCoverageMedian: minimumPitchCoverage,
-      minimumPitchFramesRange: max(minimumPitchFrames, 8),
-      minimumPitchCoverageRange: max(minimumPitchCoverage, 0.45),
-      minimumPitchFramesStartToEnd: max(minimumPitchFrames, 10),
-      minimumPitchCoverageStartToEnd: max(minimumPitchCoverage, 0.50),
-      minimumEdgeFramesStartToEnd: 3
-    )
-  }
-
   public func analyze(
     transcription: TranscriptionResult,
     result: AnalysisResult
   ) -> [WordAnalysis] {
-    let activeThreshold = min(-32, max(-50, result.metrics.noiseFloorDBFS + 8))
+    let activeThreshold = activeSpeechThreshold(noiseFloorDBFS: result.metrics.noiseFloorDBFS)
     return transcription.words.map { word in
-      let wordRange = word.start...word.end
-      let loudnessPoints = frames(in: wordRange, from: result.acousticFrames.loudness)
+      let loudnessPoints = frames(
+        from: word.start, to: word.end, in: result.acousticFrames.loudness)
       let totalAcousticFrames = loudnessPoints.count
 
-      let pitchPoints = frames(in: wordRange, from: result.acousticFrames.pitch)
+      let pitchPoints = frames(from: word.start, to: word.end, in: result.acousticFrames.pitch)
         .filter { $0.value.isFinite && $0.value > 0 }
 
       let activeLoudnessPoints = loudnessPoints.filter {
@@ -218,41 +206,15 @@ public struct WordAcousticAnalyzer: Sendable {
     return endMedian - startMedian
   }
 
-  private func frames(in range: ClosedRange<Double>, from points: [TimePoint]) -> [TimePoint] {
-    guard range.lowerBound.isFinite,
-      range.upperBound.isFinite,
-      range.upperBound >= range.lowerBound
-    else { return [] }
-    return points.filter { range.contains($0.time) }
+  /// Takes plain bounds rather than a `ClosedRange`, which would trap on a word whose
+  /// end precedes its start before this guard could reject it.
+  private func frames(from start: Double, to end: Double, in points: [TimePoint]) -> [TimePoint] {
+    guard start.isFinite, end.isFinite, end >= start else { return [] }
+    return points.filter { $0.time >= start && $0.time <= end }
   }
 
   private func semitoneDifference(from low: Double?, to high: Double?) -> Double? {
     guard let low, let high, low.isFinite, high.isFinite, low > 0, high > 0 else { return nil }
     return 12 * log2(high / low)
-  }
-
-  private func percentile(_ values: [Double], _ p: Double) -> Double {
-    guard !values.isEmpty else { return 0 }
-    let sorted = values.sorted()
-    let position = max(0, min(1, p)) * Double(sorted.count - 1)
-    let lower = Int(floor(position))
-    let upper = Int(ceil(position))
-    guard lower != upper else { return sorted[lower] }
-    let fraction = position - Double(lower)
-    return sorted[lower] * (1 - fraction) + sorted[upper] * fraction
-  }
-
-  private func median(_ values: [Double]) -> Double {
-    guard !values.isEmpty else { return 0 }
-    let sorted = values.sorted()
-    let middle = sorted.count / 2
-    return sorted.count.isMultiple(of: 2)
-      ? (sorted[middle - 1] + sorted[middle]) / 2
-      : sorted[middle]
-  }
-
-  private func mean(_ values: [Double]) -> Double {
-    guard !values.isEmpty else { return 0 }
-    return values.reduce(0, +) / Double(values.count)
   }
 }

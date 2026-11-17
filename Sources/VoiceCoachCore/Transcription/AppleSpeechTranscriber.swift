@@ -275,7 +275,7 @@ public enum SystemTranscriptionStatus: Sendable, Equatable {
       guard result.isFinal else { return }
 
       let attributed = result.text
-      let plain = String(attributed.characters)
+      let plain = String(attributed.characters).trimmingCharacters(in: .whitespacesAndNewlines)
       if !plain.isEmpty { textParts.append(plain) }
 
       words.append(
@@ -287,7 +287,8 @@ public enum SystemTranscriptionStatus: Sendable, Equatable {
       let sorted = words.sorted {
         $0.start == $1.start ? $0.end < $1.end : $0.start < $1.start
       }
-      let joined = textParts.joined().trimmingCharacters(in: .whitespacesAndNewlines)
+      // Final results do not reliably end in whitespace, so join them explicitly.
+      let joined = textParts.joined(separator: " ")
       let fallback = sorted.map(\.word).joined(separator: " ")
       return TranscriptionResult(text: joined.isEmpty ? fallback : joined, words: sorted)
     }
