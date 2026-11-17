@@ -10,7 +10,10 @@ struct VoiceCoachApplication: App {
   init() {
     _model = StateObject(wrappedValue: Self.makeModel())
     #if DEBUG
+      _model = StateObject(wrappedValue: interactiveFixtureModelIfRequested() ?? AppModel())
       renderStudioPreviewsIfRequested()
+    #else
+      _model = StateObject(wrappedValue: AppModel())
     #endif
     // Clear this before AppKit latches appearance. A saved YES value forces
     // Aqua for the life of the process and ignores System Settings.

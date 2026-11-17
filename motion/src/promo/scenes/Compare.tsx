@@ -61,11 +61,11 @@ const RETRY_BUTTON = toScreen(retry, RETRY, retry.at.button);
 
 const POINTER: CursorScript = {
   from: { x: 1720, y: 1010 },
-  show: 852,
-  hide: 954,
+  show: 600,
+  hide: 720,
   moves: [
     {
-      at: 884,
+      at: 630,
       to: { x: RETRY_BUTTON.x + RETRY_BUTTON.w - 26, y: RETRY_BUTTON.y + RETRY_BUTTON.h - 10 },
       dur: 28,
       arc: 0.08,
@@ -130,28 +130,28 @@ const Measures: React.FC<{ at: number; out: number }> = ({ at, out }) => {
 export const Compare: React.FC = () => {
   const frame = useCurrentFrame();
 
-  const dive = ramp(frame, 300, 376, EASE.inOut);
-  const pan = ramp(frame, 500, 572, EASE.inOut);
+  const dive = ramp(frame, 200, 260, EASE.inOut);
+  const pan = ramp(frame, 270, 340, EASE.inOut);
   const chartPlace =
-    frame < 500
+    frame < 270
       ? mixPlacement(CHART, CHART_ZOOM, dive)
       : mixPlacement(CHART_ZOOM, CHART_GONE, pan);
   const column = toScreen(chart, chartPlace, chart.at.aboutColumn);
 
-  const toRetry = ramp(frame, 810, 856, EASE.inOut);
+  const toRetry = ramp(frame, 520, 570, EASE.inOut);
   const nextPlace =
-    frame < 810 ? mixPlacement(NEXT_IN, NEXT, pan) : mixPlacement(NEXT, NEXT_UP, toRetry);
+    frame < 520 ? mixPlacement(NEXT_IN, NEXT, pan) : mixPlacement(NEXT, NEXT_UP, toRetry);
   const retryPlace = mixPlacement(RETRY_IN, RETRY, toRetry);
   // The take count settles in once Try again has landed, so the two never cross.
-  const takeIn = ramp(frame, 856, 880, EASE.out);
+  const takeIn = ramp(frame, 570, 600, EASE.out);
   const takePlace = { ...TAKE, y: TAKE.y + 16 * (1 - takeIn) };
 
   const tabRing = stretch(follow(frame, TAB.pitch, TAB_KEYS, mixRect), inFlight(frame, TAB_KEYS));
-  const targetRing = follow(frame, TARGET_ONE, [{ at: 712, to: TARGET_TWO, dur: 20 }], mixRect);
+  const targetRing = follow(frame, TARGET_ONE, [{ at: 460, to: TARGET_TWO, dur: 20 }], mixRect);
 
   return (
     <AbsoluteFill>
-      <Kicker text="New example · English clip" at={22} out={296} y={110} />
+      <Kicker text="Same loop. An English line." at={22} out={200} y={110} />
       <Phrase
         text="Compare your delivery."
         at={32}
@@ -159,41 +159,67 @@ export const Compare: React.FC = () => {
         size={88}
         x={96}
         baseline={236}
-        out={296}
+        out={200}
       />
-      <Measures at={56} out={298} />
+      <Measures at={56} out={200} />
 
-      <UiPanel crop={chart} {...chartPlace} opacity={1 - ramp(frame, 504, 560, EASE.inOut)} />
-      <FocusRing rect={tabRing} radius={9} opacity={pulse(frame, 116, 296, 8, 10)} />
-      <FocusRing rect={column} radius={14} fill={1} opacity={pulse(frame, 372, 508, 12, 14)} />
+      <UiPanel crop={chart} {...chartPlace} opacity={1 - ramp(frame, 300, 350, EASE.inOut)} />
+      <FocusRing rect={tabRing} radius={9} opacity={pulse(frame, 116, 250, 8, 10)} />
+      <FocusRing rect={column} radius={14} fill={1} opacity={pulse(frame, 210, 330, 12, 14)} />
 
       <Phrase
-        text={"Two measured\ntargets,"}
-        at={548}
+        text={"This take ran\n1.4 seconds long."}
+        at={280}
         stagger={5}
-        size={96}
+        size={76}
         x={96}
-        baseline={460}
-        out={806}
+        baseline={430}
+        out={575}
       />
       <Phrase
-        text="when enough words match reliably."
+        text="Match the pace through “about.”"
         role="body"
-        at={590}
+        at={450}
         stagger={2}
         size={40}
         color={COLORS.inkSoft}
         x={96}
         baseline={640}
-        out={808}
+        out={575}
       />
-      <UiPanel crop={next} {...nextPlace} opacity={1 - ramp(frame, 818, 852, EASE.inOut)} />
-      <FocusRing rect={targetRing} radius={14} gap={2} opacity={pulse(frame, 604, 800, 10, 12)} />
+      <UiPanel crop={next} {...nextPlace} opacity={1 - ramp(frame, 520, 560, EASE.inOut)}>
+        {/* The capture names “over”, which is not on the chart. “about” is. */}
+        <div
+          style={{
+            position: "absolute",
+            left: 70,
+            top: 246,
+            width: 545,
+            height: 42,
+            background: "#1e1e1e",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: 78,
+            top: 254,
+            fontFamily: STACK.body,
+            fontSize: 18,
+            lineHeight: 1.2,
+            color: "#f2f2f4",
+            whiteSpace: "nowrap",
+          }}
+        >
+          using the transition into ‘about’ as a checkpoint.
+        </div>
+      </UiPanel>
+      <FocusRing rect={targetRing} radius={14} gap={2} opacity={pulse(frame, 360, 520, 10, 12)} />
 
-      <Phrase text="One more take." at={836} stagger={6} size={104} x={96} baseline={679} />
+      <Phrase text="One more take." at={590} stagger={6} size={104} x={96} baseline={679} />
       <UiPanel crop={take} {...takePlace} pad={14} radius={18} opacity={takeIn} />
       <UiPanel crop={retry} {...retryPlace} pad={20} radius={22} />
-      <FocusRing rect={RETRY_BUTTON} radius={12} opacity={pulse(frame, 884, 960, 8, 10)} />
+      <FocusRing rect={RETRY_BUTTON} radius={12} opacity={pulse(frame, 630, 710, 8, 10)} />
       <Cursor script={POINTER} />
     </AbsoluteFill>
   );

@@ -3,36 +3,37 @@ import { AbsoluteFill, Img, interpolate, useCurrentFrame } from "remotion";
 import { BRAND } from "../assets";
 import { Dot } from "../components/Dot";
 import { Phrase } from "../components/Phrase";
-import { openingLockup, openingRow, OPENING } from "../layout";
-import { EASE, lerp, mixPoint, mixRect, ramp } from "../motion";
-import { COLORS, METRICS, TRACKING } from "../theme";
+import { lockup } from "../layout";
+import { EASE, ramp } from "../motion";
+import { TRACKING } from "../theme";
+import { SEGMENTS } from "../timeline";
 
-// S01 → start of S02. "One more try." lands with the ribbon; the words leave,
-// and its cobalt period travels to become the period of the ichido wordmark.
+// 60 fps. One shot. The wordmark stays; the line under it changes.
+// Fully readable (every letter in, none leaving):
+//   ichido.                         frames 26–176   (2.50s, alone)
+//   Learn a phrase. Rehearse a talk. frames 205–415 (3.50s)
+//   Record yourself. / Hear how…    frames 476–656  (3.00s)
+// The picker push begins at frame 656.
+const MARK_AT = 8;
+const JOB_AT = 176;
+const JOB_OUT = 415;
+const ACTION_AT = 436;
+const OPENING_DUR = SEGMENTS.find((s) => s.id === "opening")!.dur;
+
 export const Opening: React.FC = () => {
   const frame = useCurrentFrame();
-  const row = openingRow();
-  const lock = openingLockup();
-  const m = METRICS.display;
-
-  const ribbonIn = ramp(frame, 6, 44, EASE.out);
-  const toLockup = ramp(frame, 130, 190, EASE.inOut);
-  const ribbon = mixRect(row.ribbon, lock.ribbon, toLockup);
-
-  const dotPop = interpolate(frame, [44, 53, 66], [0, 1.22, 1], {
+  const baseline = interpolate(frame, [JOB_AT - 12, JOB_AT + 40], [560, 440], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
-    easing: [EASE.out, EASE.inOut],
+    easing: EASE.out,
   });
-  const dot = mixPoint(row.dot, lock.dot, toLockup);
-  const dotRadius = lerp(row.dotRadius, lock.dotRadius, toLockup);
-
-  // The wordmark rides on the travelling period at its final size.
-  const baseline = lerp(row.baseline, lock.baseline, toLockup);
-  const wordLeft = dot.x - (m.dotLead + m.dot / 2) * lock.size - lock.wordWidth;
-
-  // A slow push through the whole hold keeps the opening alive.
-  const drift = interpolate(frame, [0, 322], [1, 1.035]);
+  const lock = lockup(120, 960, baseline);
+  const ribbonIn = ramp(frame, MARK_AT - 4, MARK_AT + 14, EASE.out);
+  const dotIn = ramp(frame, MARK_AT + 4, MARK_AT + 18, EASE.out);
+  const drift = interpolate(frame, [0, OPENING_DUR], [1, 1.018], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
 
   return (
     <AbsoluteFill style={{ scale: String(drift) }}>
@@ -40,53 +41,48 @@ export const Opening: React.FC = () => {
         src={BRAND.ribbon.src}
         style={{
           position: "absolute",
-          left: ribbon.x,
-          top: ribbon.y,
-          width: ribbon.w,
-          height: ribbon.h,
-          clipPath: `inset(-10% ${(1 - ribbonIn) * 100}% -10% 0)`,
-          translate: `${(1 - ribbonIn) * -24}px 0px`,
+          left: lock.ribbon.x,
+          top: lock.ribbon.y,
+          width: lock.ribbon.w,
+          height: lock.ribbon.h,
+          clipPath: `inset(-12% ${(1 - ribbonIn) * 100}% -12% 0)`,
+          translate: `${(1 - ribbonIn) * -16}px 0px`,
         }}
       />
       <Phrase
-        text="One more try"
-        at={12}
-        stagger={5}
-        dur={34}
-        out={128}
-        outStagger={3}
-        outDur={22}
-        size={OPENING.phraseSize}
-        tracking={TRACKING.opening}
-        x={row.phraseLeft}
-        baseline={row.baseline}
-      />
-      <Phrase
         text="ichido"
-        at={150}
-        dur={34}
+        at={MARK_AT}
+        dur={14}
         size={lock.size}
         tracking={TRACKING.chapter}
-        x={wordLeft}
-        baseline={baseline}
+        dot={null}
+        x={lock.wordLeft}
+        baseline={lock.baseline}
       />
-      <Dot
-        x={dot.x}
-        y={dot.y}
-        radius={dotRadius * dotPop}
-        color={COLORS.cobalt}
-      />
+      <Dot x={lock.dot.x} y={lock.dot.y} radius={lock.dotRadius * dotIn} />
       <Phrase
-        text="Your private speaking room for Mac."
-        role="body"
-        at={188}
+        text="Learn a phrase. Rehearse a talk."
+        at={JOB_AT}
         stagger={3}
-        dur={30}
-        size={46}
-        color={COLORS.inkSoft}
+        dur={14}
+        out={JOB_OUT}
+        outStagger={1}
+        outDur={10}
+        size={80}
         align="center"
         x={960}
-        baseline={lock.baseline + 96}
+        baseline={660}
+      />
+      <Phrase
+        text={"Record yourself.\nHear how you said it."}
+        at={ACTION_AT}
+        stagger={4}
+        dur={16}
+        size={80}
+        lineHeight={1.22}
+        align="center"
+        x={960}
+        baseline={660}
       />
     </AbsoluteFill>
   );
