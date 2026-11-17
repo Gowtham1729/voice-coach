@@ -40,11 +40,6 @@ extension TakeView {
   }
 
   func stepWord(in take: PracticeSession, by delta: Int) {
-    // SwiftUI arrow keyboardShortcuts can deliver the same keypress twice in one turn.
-    guard !isHandlingWordStep else { return }
-    isHandlingWordStep = true
-    defer { Task { @MainActor in isHandlingWordStep = false } }
-
     guard let words = take.transcription?.words, !words.isEmpty,
       let target = steppedWordIndex(words: words, by: delta)
     else { return }
@@ -90,22 +85,6 @@ extension TakeView {
       return last
     }
     return words.lastIndex(where: { $0.start <= time })
-  }
-
-  @ViewBuilder
-  func wordStepShortcuts(for take: PracticeSession) -> some View {
-    let hasWords = !(take.transcription?.words.isEmpty ?? true)
-    if hasWords {
-      ZStack {
-        Button("Previous word") { stepWord(in: take, by: -1) }
-          .keyboardShortcut(.leftArrow, modifiers: [])
-        Button("Next word") { stepWord(in: take, by: 1) }
-          .keyboardShortcut(.rightArrow, modifiers: [])
-      }
-      .opacity(0)
-      .frame(width: 0, height: 0)
-      .accessibilityHidden(true)
-    }
   }
 
   var quickMotion: Animation? {

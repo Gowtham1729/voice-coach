@@ -13,7 +13,6 @@ struct TakeView: View {
   @State var selectedWordIndex: Int?
   @State var isGraphCopied = false
   @State var isTranscriptCopied = false
-  @State var isHandlingWordStep = false
 
   var body: some View {
     Group {
@@ -63,7 +62,6 @@ struct TakeView: View {
 
       stickyTransport(take)
     }
-    .background(wordStepShortcuts(for: take))
   }
 
   func takeBar(_ session: CoachingSession, take: PracticeSession) -> some View {
