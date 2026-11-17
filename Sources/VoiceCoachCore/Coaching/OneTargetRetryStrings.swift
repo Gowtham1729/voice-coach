@@ -45,7 +45,9 @@ public enum OneTargetRetryStrings {
   /// Wraps a word or phrase in curly single quotes ‘ ’.
   /// If the text has more than 5 words, truncates to the first 4 words followed by ‘…’.
   public static func formatWordOrPhrase(_ text: String) -> String {
+    // Transcript words carry sentence punctuation ("idea."), which reads wrongly inside quotes.
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+      .trimmingCharacters(in: CharacterSet(charactersIn: ".,;:!?…"))
     let words = trimmed.split(whereSeparator: { $0.isWhitespace }).map(String.init)
     if words.count > 5 {
       let firstFour = words.prefix(4).joined(separator: " ")
