@@ -3,7 +3,7 @@ import Foundation
 /// Thresholds governing one-target retry cues, verdicts, and pause detection.
 public enum RetryThresholds {
   // Hysteresis margins are the median absolute take-to-take changes measured in
-  // /Users/gowtham/one-target-shots/noise.md, session 7C181091 (7 takes).
+  // the project's noise study of real recordings (one session of 7 takes).
   public static let closePitchMarginSemitones: Double = 0.9
   public static let closeLoudnessMarginDB: Double = 1.4
   public static let closeWordTimingMarginSeconds: Double = 0.06
@@ -29,7 +29,7 @@ public enum RetryThresholds {
   public static let targetPhraseTimingSeconds: Double = 1.5
 
   // MARK: - Retry Delta Thresholds ("Clearly Closer" / Verdicts)
-  // In /Users/gowtham/one-target-shots/noise.md, session 7C181091, the
+  // In the same noise study session, the
   // median absolute consecutive changes are 0.88 st and 1.36 dB. The 42
   // ordered same-style pairs with the round-2 cue gates have selected-target
   // medians of 1.194 st and 1.513 dB. Use those rounded margins on top of the
