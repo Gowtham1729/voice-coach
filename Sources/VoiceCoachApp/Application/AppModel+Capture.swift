@@ -107,7 +107,9 @@ extension AppModel {
           try? FileManager.default.removeItem(at: staged)
           return
         }
-        presentMimicDraft(id: id, url: staged, sourceName: sourceName, source: take.takeSource)
+        presentMimicDraft(
+          id: id, url: staged, sourceName: sourceName, source: take.takeSource,
+          transcription: take.transcription)
         destination = .mimicStart
       } catch {
         try? FileManager.default.removeItem(at: staged)

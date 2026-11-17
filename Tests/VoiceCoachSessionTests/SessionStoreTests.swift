@@ -98,6 +98,32 @@ struct SessionStoreTests {
     #expect(FileManager.default.fileExists(atPath: orphanURL.path) == false)
   }
 
+  @Test("Orphan cleanup failure cannot invalidate an already committed library")
+  func cleanupFailureAfterCommit() throws {
+    let root = try SessionTestFixtures.temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = try SessionStore(rootURL: root)
+    let sessionID = UUID()
+    let takeID = UUID()
+    let take = SessionTestFixtures.take(
+      id: takeID, audioURL: try store.recordingURL(sessionID: sessionID, takeID: takeID))
+    var session = SessionTestFixtures.session(id: sessionID, take: take)
+    try store.save([session], analysisTakeIDs: [takeID])
+    let orphan = store.analysisURL(sessionID: sessionID, takeID: UUID())
+    try FileManager.default.createDirectory(at: orphan, withIntermediateDirectories: false)
+    try Data("locked orphan".utf8).write(to: orphan.appendingPathComponent("child"))
+    try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: orphan.path)
+    defer {
+      try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: orphan.path)
+    }
+    session.name = "Committed"
+
+    try store.save([session], analysisTakeIDs: [])
+
+    #expect(try store.load() == [session])
+    #expect(FileManager.default.fileExists(atPath: store.analysisURL(sessionID: sessionID, takeID: takeID).path))
+  }
+
   @Test("Version two libraries migrate once and keep a backup")
   func legacyMigration() throws {
     struct LegacyDocument: Codable {
@@ -127,5 +153,38 @@ struct SessionStoreTests {
     #expect(
       FileManager.default.fileExists(
         atPath: store.analysisURL(sessionID: sessionID, takeID: takeID).path))
+  }
+
+  @Test("Orphan sweep removes only unindexed staging folders and never take audio")
+  func orphanSweep() throws {
+    let root = try SessionTestFixtures.temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = try SessionStore(rootURL: root)
+    let sessionID = UUID()
+    let takeID = UUID()
+    let take = SessionTestFixtures.take(
+      id: takeID, audioURL: try store.recordingURL(sessionID: sessionID, takeID: takeID))
+    try store.save([SessionTestFixtures.session(id: sessionID, take: take)], analysisTakeIDs: [takeID])
+
+    let orphan = UUID()
+    try Data("wav".utf8).write(to: store.referenceURL(sessionID: orphan))
+    let analysed = UUID()
+    _ = try store.takeDirectory(sessionID: analysed)
+    try Data("{}".utf8).write(to: store.analysisURL(sessionID: analysed, takeID: UUID()))
+    let audioOnly = UUID()
+    try Data("wav".utf8).write(to: store.recordingURL(sessionID: audioOnly, takeID: UUID()))
+    let sessions = root.appendingPathComponent("Sessions", isDirectory: true)
+    let named = sessions.appendingPathComponent("not-a-uuid", isDirectory: true)
+    try FileManager.default.createDirectory(at: named, withIntermediateDirectories: true)
+
+    let removed = try store.removeOrphanedSessionDirectories(knownSessionIDs: [sessionID])
+    let exists = { (url: URL) in FileManager.default.fileExists(atPath: url.path) }
+    #expect(removed == 1)
+    #expect(!exists(sessions.appendingPathComponent(orphan.uuidString)))
+    #expect(exists(sessions.appendingPathComponent(sessionID.uuidString)))
+    #expect(exists(sessions.appendingPathComponent(analysed.uuidString)))
+    #expect(exists(sessions.appendingPathComponent(audioOnly.uuidString)))
+    #expect(exists(named))
+    #expect(try store.load().count == 1)
   }
 }

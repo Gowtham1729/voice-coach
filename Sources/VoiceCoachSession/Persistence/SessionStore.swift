@@ -13,6 +13,7 @@ package protocol SessionStoring: AnyObject {
   func takeDirectory(sessionID: UUID) throws -> URL
   func deleteSessionData(sessionID: UUID) throws
   func deleteTakeAnalysis(sessionID: UUID, takeID: UUID) throws
+  func removeOrphanedSessionDirectories(knownSessionIDs: Set<UUID>) throws -> Int
 }
 
 /// On-disk library index. Heavy analysis lives in per-take `*.analysis.json` files.
@@ -125,10 +126,11 @@ package final class SessionStore: SessionStoring {
     encoder.outputFormatting = [.sortedKeys]
     try encoder.encode(document).write(to: libraryURL, options: .atomic)
 
-    // Prune only after the index commit so a failed write cannot leave
-    // the on-disk index pointing at deleted analysis blobs.
+    // Prune only after the index commit. Cleanup is best effort: reporting a
+    // failed save after the commit would make callers roll back and delete audio
+    // that the on-disk index now references. A later save retries orphan cleanup.
     for session in sessions {
-      try pruneAnalyses(sessionID: session.id, keeping: Set(session.allPracticeTakes.map(\.id)))
+      try? pruneAnalyses(sessionID: session.id, keeping: Set(session.allPracticeTakes.map(\.id)))
     }
   }
 
@@ -171,6 +173,30 @@ package final class SessionStore: SessionStoring {
       .appendingPathComponent(sessionID.uuidString, isDirectory: true)
     guard FileManager.default.fileExists(atPath: directory.path) else { return }
     try FileManager.default.removeItem(at: directory)
+  }
+
+  /// Removes never-indexed staging leftovers, such as folders from a crash mid-batch.
+  /// Only UUID-named folders outside `knownSessionIDs` that are empty or hold nothing
+  /// but a staged `reference.wav` qualify. A folder with any take audio or analysis is
+  /// left alone: it may be a recording the index lost, and that must stay recoverable.
+  @discardableResult
+  package func removeOrphanedSessionDirectories(knownSessionIDs: Set<UUID>) throws -> Int {
+    let sessionsURL = rootURL.appendingPathComponent("Sessions", isDirectory: true)
+    guard FileManager.default.fileExists(atPath: sessionsURL.path) else { return 0 }
+    var removed = 0
+    for directory in try FileManager.default.contentsOfDirectory(
+      at: sessionsURL, includingPropertiesForKeys: [.isDirectoryKey])
+    {
+      guard let id = UUID(uuidString: directory.lastPathComponent),
+        !knownSessionIDs.contains(id),
+        (try? directory.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true,
+        let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path),
+        files.allSatisfy({ $0 == "reference.wav" || $0 == ".DS_Store" })
+      else { continue }
+      try FileManager.default.removeItem(at: directory)
+      removed += 1
+    }
+    return removed
   }
 
   package func deleteTakeAnalysis(sessionID: UUID, takeID: UUID) throws {

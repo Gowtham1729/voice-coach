@@ -172,6 +172,7 @@ struct MimicWorkspace: View {
 
       VStack(alignment: .leading, spacing: 2) {
         SectionEyebrow(text: "Reference")
+          .fixedSize()
         Text(reference.sourceName)
           .font(.callout.weight(.medium))
           .lineLimit(1)
@@ -266,6 +267,7 @@ struct MimicWorkspace: View {
           }
         }
         .pickerStyle(.segmented)
+        .labelsHidden()
         .frame(maxWidth: 360)
         .disabled(model.mimicPhase != .ready)
       }

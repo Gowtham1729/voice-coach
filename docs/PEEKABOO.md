@@ -41,6 +41,8 @@ pgrep -l VoiceCoachApp
 > Always specify `--app "Ichido"` in Peekaboo commands.
 > Do **not** use `VoiceCoachApp` — Peekaboo flags executable names as fuzzy matches and rejects mutation operations (`click`, `set-value`, `type`).
 
+For isolated interactive checks, a **DEBUG** app bundle accepts `--fixture-library /absolute/path/to/library` as launch arguments. It opens the supplied library with the live audio services and selects its first ordinary recording. Use a disposable copy: recording, importing, and creating practices write to that library. Release bundles always use the normal private library and ignore this flag. Keep a separate bundle identifier when running a test bundle alongside the installed app.
+
 ---
 
 ## 3. Inspecting the UI & Screenshots

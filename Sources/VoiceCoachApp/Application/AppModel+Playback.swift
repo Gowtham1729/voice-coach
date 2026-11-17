@@ -9,6 +9,7 @@ extension AppModel {
       return
     }
     guard let take = selectedTake else { return }
+    mimicPlaybackEnd = nil
     let duration = take.result.metrics.duration
     let startTime = playbackTime >= max(duration - 0.05, 0) ? 0 : playbackTime
     do {
@@ -43,6 +44,7 @@ extension AppModel {
 
   func seek(to time: TimeInterval, autoplay: Bool = false) {
     guard let take = selectedTake, !isRecording, !isAnalyzing else { return }
+    mimicPlaybackEnd = nil
     let clamped = max(0, min(time, take.result.metrics.duration))
     playbackTime = clamped
     if isPlaying {
