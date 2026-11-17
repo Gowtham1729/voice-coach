@@ -155,7 +155,7 @@ struct SessionStoreTests {
         atPath: store.analysisURL(sessionID: sessionID, takeID: takeID).path))
   }
 
-  @Test("Orphan sweep removes only unindexed UUID folders without analysis files")
+  @Test("Orphan sweep removes only unindexed staging folders and never take audio")
   func orphanSweep() throws {
     let root = try SessionTestFixtures.temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: root) }
@@ -171,6 +171,8 @@ struct SessionStoreTests {
     let analysed = UUID()
     _ = try store.takeDirectory(sessionID: analysed)
     try Data("{}".utf8).write(to: store.analysisURL(sessionID: analysed, takeID: UUID()))
+    let audioOnly = UUID()
+    try Data("wav".utf8).write(to: store.recordingURL(sessionID: audioOnly, takeID: UUID()))
     let sessions = root.appendingPathComponent("Sessions", isDirectory: true)
     let named = sessions.appendingPathComponent("not-a-uuid", isDirectory: true)
     try FileManager.default.createDirectory(at: named, withIntermediateDirectories: true)
@@ -181,6 +183,7 @@ struct SessionStoreTests {
     #expect(!exists(sessions.appendingPathComponent(orphan.uuidString)))
     #expect(exists(sessions.appendingPathComponent(sessionID.uuidString)))
     #expect(exists(sessions.appendingPathComponent(analysed.uuidString)))
+    #expect(exists(sessions.appendingPathComponent(audioOnly.uuidString)))
     #expect(exists(named))
     #expect(try store.load().count == 1)
   }

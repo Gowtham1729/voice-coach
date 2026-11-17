@@ -159,7 +159,7 @@ extension AppModel {
     return task
   }
 
-  /// Names the phrase when one clip has no audio or no recognised speech.
+  /// Names the phrase when one clip has no audio or no recognized speech.
   static func practiceCreationFailureMessage(_ error: Error, phrase: String?) -> String {
     let fallback = "Couldn’t prepare the selected phrases. Try again."
     guard let phrase else { return userFacingMessage(error, fallback: fallback) }
@@ -169,7 +169,7 @@ extension AppModel {
     case AnalysisError.silentRecording, AnalysisError.emptyRecording:
       return "No audio detected in ‘\(label)’. Deselect it or adjust its edges, then try again."
     case TranscriptionError.noSpeechRecognized:
-      return "No speech recognised in ‘\(label)’. Deselect it or adjust its edges, then try again."
+      return "No speech recognized in ‘\(label)’. Deselect it or adjust its edges, then try again."
     default:
       return userFacingMessage(error, fallback: fallback)
     }

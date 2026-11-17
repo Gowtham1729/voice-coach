@@ -176,7 +176,9 @@ package final class SessionStore: SessionStoring {
   }
 
   /// Removes never-indexed staging leftovers, such as folders from a crash mid-batch.
-  /// Only UUID-named folders outside `knownSessionIDs` that hold no analysis file qualify.
+  /// Only UUID-named folders outside `knownSessionIDs` that are empty or hold nothing
+  /// but a staged `reference.wav` qualify. A folder with any take audio or analysis is
+  /// left alone: it may be a recording the index lost, and that must stay recoverable.
   @discardableResult
   package func removeOrphanedSessionDirectories(knownSessionIDs: Set<UUID>) throws -> Int {
     let sessionsURL = rootURL.appendingPathComponent("Sessions", isDirectory: true)
@@ -189,7 +191,7 @@ package final class SessionStore: SessionStoring {
         !knownSessionIDs.contains(id),
         (try? directory.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true,
         let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path),
-        !files.contains(where: { $0.hasSuffix(".analysis.json") })
+        files.allSatisfy({ $0 == "reference.wav" || $0 == ".DS_Store" })
       else { continue }
       try FileManager.default.removeItem(at: directory)
       removed += 1
