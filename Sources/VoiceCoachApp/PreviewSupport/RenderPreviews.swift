@@ -76,7 +76,8 @@
       let afterAnalysis = try Data(contentsOf: analysisURL)
       precondition(afterAnalysis == beforeAnalysis, "Metadata save rewrote analysis blob")
 
-      func render(_ name: String, width: CGFloat = 1440, height: CGFloat = 920) throws {
+      // Wide enough for sidebar, practice list, detail and inspector side by side.
+      func render(_ name: String, width: CGFloat = 1780, height: CGFloat = 920) throws {
         let view = ContentView()
           .environmentObject(model)
           .defaultAppStorage(previewDefaults)

@@ -78,6 +78,7 @@ struct ContentView: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
           }
+          .navigationSplitViewColumnWidth(min: 640, ideal: 820)
           .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: showInspector)
           .navigationTitle(windowTitle)
           .toolbar { workspaceToolbar }
