@@ -29,7 +29,7 @@ struct ContentView: View {
         Button("Cancel", role: .cancel) { model.pendingReplaceOnly = nil }
       } message: {
         Text(
-          "This session keeps only the latest take. Keep all takes from now on, or delete older takes when a new one is saved?"
+          "This practice keeps only the latest take. Keep all takes from now on, or delete older takes when a new one is saved?"
         )
       }
       .overlay(alignment: .bottom) { toast }
