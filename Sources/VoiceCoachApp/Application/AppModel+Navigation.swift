@@ -24,11 +24,31 @@ extension AppModel {
     self.destination = destination
   }
 
-  func navigate(toSection section: NavigationSection) {
-    switch section {
-    case .home: navigate(to: .home)
-    case .library: navigate(to: .library)
-    case .mimics: navigate(to: .mimics)
+  /// Show a list filter with nothing open. The start panel fills the detail column.
+  func showList(_ filter: PracticeListFilter) {
+    guard canNavigate else { return }
+    stopPlayback()
+    listFilter = filter
+    selectedSessionID = nil
+    selectedTakeID = nil
+    destination = filter == .withReference ? .mimics : .library
+  }
+
+  /// Leave the New practice sheet without creating anything: back to where it opened.
+  func returnFromCreateSheet() {
+    guard destination == .mimicStart else { return }
+    let previous = destinationBeforeCreate
+    switch previous {
+    case .practice(let id) where sessions.contains(where: { $0.id == id }):
+      destination = previous
+    case .take(let sessionID, let takeID)
+    where sessions.first(where: { $0.id == sessionID })?.takes.contains(where: { $0.id == takeID })
+      == true:
+      destination = previous
+    case .library, .mimics:
+      destination = previous
+    default:
+      destination = .home
     }
   }
 
@@ -196,9 +216,15 @@ extension AppModel {
   }
 
   func archiveMimic(_ id: UUID, archived: Bool = true) {
+    archiveSession(id, archived: archived)
+  }
+
+  /// Archive hides a practice from All practices and With reference; Restore brings it back.
+  func archiveSession(_ id: UUID, archived: Bool = true) {
     guard canModifySession(id),
-      let index = sessions.firstIndex(where: { $0.id == id && $0.isMimic })
+      let index = sessions.firstIndex(where: { $0.id == id })
     else { return }
+    let wasMimic = sessions[index].isMimic
     let previousSessions = sessions
     let previousLastUsedMimicID = lastUsedMimicID
     sessions[index].archived = archived
@@ -212,7 +238,7 @@ extension AppModel {
     if archived, selectedSessionID == id {
       selectedSessionID = nil
       selectedTakeID = nil
-      destination = .mimics
+      destination = wasMimic ? .mimics : .library
     }
     toastMessage = archived ? "Practice archived" : "Practice restored"
   }

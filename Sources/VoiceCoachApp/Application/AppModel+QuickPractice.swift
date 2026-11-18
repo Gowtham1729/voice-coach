@@ -42,7 +42,7 @@ extension AppModel {
   func discardMenuBarReference() {
     guard hasMenuBarReference else { return }
     cancelMimicPreparation()
-    if destination == .mimicStart { destination = .home }
+    returnFromCreateSheet()
   }
 
   /// Dismissing the sheet cancels a phrase search or batch it started. A capture in

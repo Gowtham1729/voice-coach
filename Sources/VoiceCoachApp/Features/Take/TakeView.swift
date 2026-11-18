@@ -22,11 +22,11 @@ struct TakeView: View {
         StudioPage(maxWidth: 1050, horizontalPadding: 20) {
           EmptyState(
             icon: "waveform",
-            title: "Recording unavailable",
-            detail: "Choose another recording from Library.",
-            actionTitle: "Library"
+            title: "Take unavailable",
+            detail: "Choose another practice from the list.",
+            actionTitle: "All practices"
           ) {
-            model.navigate(to: .library)
+            model.showList(.all)
           }
         }
       }

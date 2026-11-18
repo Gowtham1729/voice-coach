@@ -11,7 +11,7 @@ import VoiceCoachSession
 struct QuickPracticeTests {
   @Test("Capture stays in the background; repeated clicks cannot stop it")
   func startsInBackground() throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.model.destination = .library
     let selection = UUID()
@@ -39,7 +39,7 @@ struct QuickPracticeTests {
     "Quick capture does not interrupt existing work",
     arguments: ["recording", "analysis", "permission", "preparing", "count-in", "reference", "draft", "unsaved"])
   func busyWork(state: String) throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     switch state {
     case "recording": fixture.model.isRecording = true
@@ -69,7 +69,7 @@ struct QuickPracticeTests {
 
   @Test("Stop opens the normal reference draft and saves through the existing practice flow")
   func reviewAndSave() async throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.model.startMenuBarReferenceCapture()
     let url = try #require(fixture.model.mimicReferenceCaptureURL)
@@ -99,7 +99,7 @@ struct QuickPracticeTests {
 
   @Test("Automatic stop leaves a reviewable clip without bringing up a sheet")
   func backgroundFinish() async throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.model.destination = .library
     fixture.model.startMenuBarReferenceCapture()
@@ -119,7 +119,7 @@ struct QuickPracticeTests {
 
   @Test("Reference actions preserve a background capture", arguments: [false, true])
   func referenceActionsPreserveCapture(afterStop: Bool) async throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.model.startMenuBarReferenceCapture()
     let url = try #require(fixture.model.mimicReferenceCaptureURL)
@@ -150,7 +150,7 @@ struct QuickPracticeTests {
 
   @Test("Quit protection covers real audio, not playback or count-in")
   func unsavedAudioProtection() throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     #expect(!fixture.model.hasUnsavedAudio)
     fixture.model.mimicDraft = MimicReferenceDraft(
@@ -175,7 +175,7 @@ struct QuickPracticeTests {
 
   @Test("Delayed capture startup blocks conflicts and cleans up after cancellation", arguments: ["granted", "denied", "cancelled"])
   func delayedStartup(outcome: String) throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.capture.delaysStart = true
     fixture.model.destination = .library
@@ -218,7 +218,7 @@ struct QuickPracticeTests {
 
   @Test("Discard removes staged audio and invalidates pending preparation", arguments: [false, true])
   func discard(afterStop: Bool) async throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.model.startMenuBarReferenceCapture()
     let url = try #require(fixture.model.mimicReferenceCaptureURL)
@@ -240,7 +240,7 @@ struct QuickPracticeTests {
 
   @Test("Silent, short, and failed captures reset quick practice", arguments: ["silent", "short", "failed"])
   func rejectedCapture(kind: String) throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.capture.heardAudio = kind != "silent"
     fixture.capture.shouldFail = kind == "failed"
@@ -263,7 +263,7 @@ struct QuickPracticeTests {
 
   @Test("Cancelling during the permission dialog returns to idle and the late start tears down")
   func cancelDuringPermission() throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.capture.delaysStart = true
     fixture.model.startMenuBarReferenceCapture()
@@ -285,7 +285,7 @@ struct QuickPracticeTests {
 
   @Test("A stale permission completion cannot disturb a newer capture")
   func staleCompletionIgnored() throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.capture.delaysStart = true
     fixture.model.startMenuBarReferenceCapture()
@@ -310,7 +310,7 @@ struct QuickPracticeTests {
 
   @Test("Capture errors keep their specific message and can be dismissed")
   func captureErrorFlag() throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.capture.shouldFail = true
     fixture.model.startMenuBarReferenceCapture()
@@ -324,7 +324,7 @@ struct QuickPracticeTests {
 
   @Test("Quit cleanup never needs a prompt for a permission wait and removes staged audio")
   func quitCleanup() throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.capture.delaysStart = true
     fixture.model.startMenuBarReferenceCapture()
@@ -338,7 +338,7 @@ struct QuickPracticeTests {
 
   @Test("A late sheet disappearance keeps a menu bar clip but cancels sheet work")
   func sheetDisappearance() async throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.model.destination = .library
     fixture.model.startMenuBarReferenceCapture()
@@ -363,7 +363,7 @@ struct QuickPracticeTests {
 
   @Test("Stopping review stops playback first")
   func reviewStopsPlayback() async throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.model.startMenuBarReferenceCapture()
     fixture.model.isPlaying = true
@@ -375,7 +375,7 @@ struct QuickPracticeTests {
 
   @Test("Phrase search and batch creation block quick practice", arguments: ["finding", "creating"])
   func newBusyStates(state: String) throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     if state == "finding" {
       fixture.model.mimicIsFindingPhrases = true
@@ -389,7 +389,7 @@ struct QuickPracticeTests {
 
   @Test("A too-short menu bar clip resets every flag")
   func tooShortClip() async throws {
-    let fixture = try Fixture()
+    let fixture = try QuickPracticeFixture()
     defer { fixture.cleanUp() }
     fixture.capture.sampleCount = 24_000
     fixture.model.startMenuBarReferenceCapture()
@@ -416,7 +416,7 @@ struct QuickPracticeTests {
 private enum TestTimeout: Error { case expired }
 
 @MainActor
-private struct Fixture {
+struct QuickPracticeFixture {
   let root: URL
   let capture: TestSystemAudioCapture
   let model: AppModel
@@ -442,7 +442,7 @@ private struct Fixture {
   }
 }
 
-private final class TestSystemAudioCapture: SystemAudioCapturing {
+final class TestSystemAudioCapture: SystemAudioCapturing {
   var onCaptureInterrupted: (() -> Void)?
   var heardAudio = true
   var shouldFail = false

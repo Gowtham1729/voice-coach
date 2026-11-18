@@ -5,7 +5,22 @@ import VoiceCoachSession
 
 @MainActor
 final class AppModel: ObservableObject {
-  @Published var destination: AppDestination = .home
+  @Published var destination: AppDestination = .home {
+    didSet {
+      if destination == .mimicStart, oldValue != .mimicStart {
+        destinationBeforeCreate = oldValue
+      }
+      switch destination {
+      case .mimics: listFilter = .withReference
+      case .library: if listFilter == .withReference { listFilter = .all }
+      default: break
+      }
+    }
+  }
+  /// Which practices the list column shows. The list stays beside whatever is open.
+  @Published var listFilter: PracticeListFilter = .all
+  /// Where the New practice sheet was opened from, so Cancel can go back there.
+  var destinationBeforeCreate: AppDestination = .home
   @Published var sessions: [CoachingSession] = []
   @Published var selectedSessionID: UUID? {
     didSet { if oldValue != selectedSessionID { pendingRetryTarget = nil } }
@@ -283,6 +298,9 @@ final class AppModel: ObservableObject {
   }
   var libraryRecordings: [LibraryRecording] {
     RecordingCatalog.recordings(from: sessions)
+  }
+  var listedPractices: [CoachingSession] {
+    PracticeCatalog.practices(from: sessions, filter: listFilter)
   }
   var mimicSessions: [CoachingSession] {
     sessions.filter { $0.isMimic && !$0.archived }

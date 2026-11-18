@@ -39,9 +39,9 @@ struct VoiceCoachCommands: Commands {
     }
 
     CommandMenu("Navigate") {
-      navigationButton("Home", section: .home, shortcut: "1")
-      navigationButton("Library", section: .library, shortcut: "2")
-      navigationButton("Practice", section: .mimics, shortcut: "3")
+      listButton(.all, shortcut: "1")
+      listButton(.withReference, shortcut: "2")
+      listButton(.archived, shortcut: "3")
     }
 
     CommandMenu("Practice") {
@@ -106,11 +106,9 @@ struct VoiceCoachCommands: Commands {
     }
   }
 
-  private func navigationButton(
-    _ title: String, section: NavigationSection, shortcut: KeyEquivalent
-  ) -> some View {
-    Button(title) { model.navigate(toSection: section) }
+  private func listButton(_ filter: PracticeListFilter, shortcut: KeyEquivalent) -> some View {
+    Button(filter.title) { model.showList(filter) }
       .keyboardShortcut(shortcut, modifiers: .command)
-      .disabled(model.isRecording)
+      .disabled(!model.canNavigate)
   }
 }
