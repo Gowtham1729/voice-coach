@@ -40,7 +40,7 @@ struct MimicComparisonView: View {
         transcriptRow(
           "Reference", transcription: reference.transcription, color: Studio.referenceSeries, source: .reference)
         transcriptRow(
-          "You", transcription: attempt.transcription, color: Studio.accent, source: .attempt)
+          "Your take", transcription: attempt.transcription, color: Studio.accent, source: .attempt)
       }
       .padding(18)
       .desktopPanel()
