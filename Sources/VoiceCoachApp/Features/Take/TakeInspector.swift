@@ -78,12 +78,13 @@ struct TakeInspector: View {
           }
           .studioGlassButton(prominent: chrome.isFilled(TakeScreenCopy.export))
           .controlSize(.regular)
+          .layoutPriority(1)
           .help("Export the audio and report")
         }
 
         Button(role: .destructive, action: { requestDelete(take.id) }) {
-          Label("Delete…", systemImage: "trash")
-            .inspectorActionLabel()
+          Image(systemName: "trash")
+            .accessibilityLabel("Delete take")
         }
         .studioGlassButton()
         .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
