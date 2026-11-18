@@ -183,7 +183,7 @@ final class AppModel: ObservableObject {
     } catch {
       libraryLoadFailed = true
       presentError(
-        title: "Library couldn’t be loaded",
+        title: "Practices couldn’t be loaded",
         message: "Existing files were left untouched. Try quitting and reopening Ichido.")
     }
   }
@@ -193,7 +193,7 @@ final class AppModel: ObservableObject {
   func requireWritableLibrary() -> Bool {
     guard libraryLoadFailed else { return true }
     presentError(
-      title: "Library couldn’t be loaded",
+      title: "Practices couldn’t be loaded",
       message:
         "Nothing was saved, so your existing library stays as it is. Quit and reopen Ichido.")
     return false
