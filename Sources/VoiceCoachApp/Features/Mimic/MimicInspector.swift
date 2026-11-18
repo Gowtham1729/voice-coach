@@ -67,8 +67,8 @@ struct MimicInspector: View {
         .accessibilityLabel("More actions")
 
           Button(role: .destructive, action: { requestDelete(take.id) }) {
-            Label("Delete…", systemImage: "trash")
-              .inspectorActionLabel()
+            Image(systemName: "trash")
+              .accessibilityLabel("Delete take")
           }
           .studioGlassButton()
           .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
