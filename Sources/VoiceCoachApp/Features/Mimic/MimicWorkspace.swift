@@ -59,7 +59,7 @@ struct MimicWorkspace: View {
         } else {
           ContentUnavailableView(
             "Reference unavailable", systemImage: "waveform.badge.exclamationmark",
-            description: Text("This practice session needs its reference audio.")
+            description: Text("This practice needs its reference audio.")
           )
           .frame(maxWidth: .infinity, minHeight: 350)
         }
@@ -285,7 +285,7 @@ struct MimicWorkspace: View {
       }
       if model.hasPendingMimicWork {
         Divider()
-        Text("This take isn’t in the library yet.")
+        Text("This take isn’t saved yet.")
           .font(.callout)
         HStack {
           Button("Retry saving") { model.retryPendingMimicWork() }
