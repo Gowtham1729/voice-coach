@@ -38,8 +38,14 @@ struct TakeView: View {
       StudioScroll {
         VStack(alignment: .leading, spacing: 14) {
           takeBar(session, take: take)
+          if !embedded, session.takeCount > 1 {
+            TakeStrip(session: session)
+          }
           transcriptCard(take)
-          OneTargetRetryCard(session: session, take: take)
+          // Review already shows the coaching card for a practice with a reference.
+          if !embedded {
+            OneTargetRetryCard(session: session, take: take)
+          }
           analysisCard(take)
         }
         .id(take.id)
@@ -77,31 +83,9 @@ struct TakeView: View {
 
       Spacer()
 
-      if embedded {
-        Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
-          .font(.caption)
-          .foregroundStyle(Studio.secondary)
-      } else if snapshot {
-        Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
-          .font(.caption)
-          .padding(.horizontal, 10)
-          .frame(height: 28)
-          .background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
-      } else {
-        Picker(
-          "Take",
-          selection: Binding(
-            get: { model.selectedTakeID ?? take.id },
-            set: { takeID in model.selectTake(takeID) }
-          )
-        ) {
-          ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, item in
-            Text("Take \(index + 1) of \(session.takeCount)").tag(item.id)
-          }
-        }
-        .labelsHidden()
-        .frame(width: 150)
-      }
+      Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
+        .font(.caption)
+        .foregroundStyle(Studio.secondary)
 
       if !embedded, !session.isMimic {
         if !snapshot, model.isRecording {

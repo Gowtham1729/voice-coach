@@ -12,13 +12,13 @@ struct TakeScreenChromeTests {
   @Test("A plain take fills Record and leaves Export unfilled beside Delete")
   func plainTakePrimary() {
     let chrome = TakeActionChrome.plainTake()
-    #expect(chrome.filledTitles == ["Record"])
+    #expect(chrome.filledTitles == ["Record take"])
     #expect(chrome.isFilled(TakeScreenCopy.record))
     #expect(!chrome.isFilled(TakeScreenCopy.export))
     #expect(!chrome.filledTitles.contains("Export"))
     #expect(!chrome.filledTitles.contains("Record again"))
     #expect(chrome.exportSitsWithDelete)
-    #expect(TakeScreenCopy.record == "Record")
+    #expect(TakeScreenCopy.record == "Record take")
   }
 
   @Test("Compare fills Try again only when both targets are showing")
