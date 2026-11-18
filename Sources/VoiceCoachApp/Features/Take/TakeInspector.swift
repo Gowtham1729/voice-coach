@@ -70,6 +70,7 @@ struct TakeInspector: View {
         .menuIndicator(.hidden)
         .studioGlassButton()
         .help("More")
+        .accessibilityLabel("More actions")
 
         if chrome.exportSitsWithDelete {
           Button(action: model.exportCurrent) {

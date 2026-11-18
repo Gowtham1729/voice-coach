@@ -4,7 +4,6 @@ import VoiceCoachCore
 private enum SettingsPane: String {
   case general
   case transcription
-  case library
   case experiments
 }
 
@@ -59,9 +58,6 @@ struct SettingsView: View {
       Tab("Transcription", systemImage: "waveform", value: SettingsPane.transcription) {
         transcriptionPane
       }
-      Tab("Library", systemImage: "internaldrive", value: SettingsPane.library) {
-        libraryPane
-      }
       Tab("Experiments", systemImage: "flask", value: SettingsPane.experiments) {
         experimentsPane
       }
@@ -85,7 +81,6 @@ struct SettingsView: View {
       if experimentalFeatures {
         Section {
           LabeledContent("Words", value: "Enabled")
-          LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
         } footer: {
           VStack(alignment: .leading, spacing: 4) {
             Text("Choose Words beside a recording or reference to explore its transcript.")
@@ -113,30 +108,31 @@ struct SettingsView: View {
       Section {
         Toggle("Confirm before deleting", isOn: $confirmDelete)
         Toggle("Hide transcript snippets in the practice list", isOn: $hideTranscriptSnippets)
+        Button("Show in Finder…", systemImage: "folder", action: model.revealStorage)
+        if !model.emptyLegacySessions.isEmpty {
+          Button("Remove \(model.emptyLegacySessions.count) unused folders") {
+            model.cleanupEmptyLegacySessions()
+          }
+        }
       } header: {
-        Text("Library")
+        Text("Practices")
+      } footer: {
+        VStack(alignment: .leading, spacing: 6) {
+          Text("Audio and transcripts stay in this folder on your Mac.")
+          Text(model.storageLocation.path)
+            .font(.caption.monospaced())
+            .textSelection(.enabled)
+            .lineLimit(2)
+            .truncationMode(.middle)
+        }
       }
 
       Section {
-        Toggle("Name recordings from transcripts", isOn: $autoGenerateTitles)
+        LabeledContent("Status", value: intelligenceStatus.settingsLabel)
+        Toggle("Name practices from transcripts", isOn: $autoGenerateTitles)
           .onChange(of: autoGenerateTitles) { _, enabled in
             if enabled { SmartTitleGenerator.prewarmIfAvailable() }
           }
-        if autoGenerateTitles {
-          LabeledContent("Apple Intelligence", value: intelligenceStatus.settingsLabel)
-        }
-      } header: {
-        Text("Naming")
-      } footer: {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Uses Apple Intelligence on this Mac.")
-          if autoGenerateTitles && intelligenceStatus != .available {
-            Text(intelligenceStatus.settingsFooter)
-          }
-        }
-      }
-
-      Section {
         Toggle("Rephrase practice exercises", isOn: $rewriteInsightWording)
           .onChange(of: rewriteInsightWording) { _, enabled in
             if enabled {
@@ -144,15 +140,15 @@ struct SettingsView: View {
               model.rescheduleInsightWordingForSelection()
             }
           }
-        if rewriteInsightWording {
-          LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
-        }
       } header: {
-        Text("Practice next")
+        Text("Apple Intelligence")
       } footer: {
-        Text(
-          "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
-        )
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Runs on this Mac. Rephrasing changes wording only; measured targets stay the same.")
+          if intelligenceStatus != .available {
+            Text(intelligenceStatus.settingsFooter)
+          }
+        }
       }
     }
     .settingsPaneChrome()
@@ -168,12 +164,16 @@ struct SettingsView: View {
       Section {
         Picker("Engine", selection: engineSelection) {
           Text("Apple (recommended)").tag(TranscriptionEnginePreference.system)
-          Text("Parakeet").tag(TranscriptionEnginePreference.parakeet)
+          Text("Parakeet (optional download)").tag(TranscriptionEnginePreference.parakeet)
         }
         .pickerStyle(.radioGroup)
         .disabled(busy)
       } footer: {
-        Text(model.transcriptionEngine.settingsFooter)
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Apple: built in, many languages including Japanese. Language packs download as needed.")
+          Text("Parakeet: a one-time 714 MB download. 25 European languages, detected automatically.")
+          Text("Both run on this Mac.")
+        }
       }
 
       Section {
@@ -228,35 +228,7 @@ struct SettingsView: View {
     .settingsPaneChrome()
   }
 
-  private var libraryPane: some View {
-    Form {
-      Section {
-        LabeledContent("Recordings", value: "\(model.userRecordedTakeCount)")
-        LabeledContent("Minutes recorded", value: vcNumber(model.userRecordedDuration / 60, 1))
-        LabeledContent("Imported", value: "\(model.importedTakeCount)")
-        LabeledContent("Practice", value: "\(model.mimicSessions.count)")
-        Button("Show in Finder…", systemImage: "folder", action: model.revealStorage)
-      } footer: {
-        VStack(alignment: .leading, spacing: 6) {
-          Text("Audio and transcripts stay in this folder.")
-          Text(model.storageLocation.path)
-            .font(.caption.monospaced())
-            .textSelection(.enabled)
-            .lineLimit(2)
-            .truncationMode(.middle)
-        }
-      }
 
-      if !model.emptyLegacySessions.isEmpty {
-        Section {
-          Button("Remove \(model.emptyLegacySessions.count) unused folders") {
-            model.cleanupEmptyLegacySessions()
-          }
-        }
-      }
-    }
-    .settingsPaneChrome()
-  }
 
   private var engineSelection: Binding<TranscriptionEnginePreference> {
     Binding(
@@ -327,7 +299,7 @@ struct SettingsView: View {
             .foregroundStyle(Studio.accent)
         }
         HStack {
-          Text("Name recordings from transcripts")
+          Text("Name practices from transcripts")
           Spacer()
           Image(systemName: autoGenerateTitles ? "checkmark.circle.fill" : "circle")
             .foregroundStyle(Studio.accent)

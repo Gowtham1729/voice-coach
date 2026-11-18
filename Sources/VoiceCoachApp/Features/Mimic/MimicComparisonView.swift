@@ -38,7 +38,7 @@ struct MimicComparisonView: View {
       VStack(alignment: .leading, spacing: 16) {
         SectionEyebrow(text: "Transcripts")
         transcriptRow(
-          "Reference", transcription: reference.transcription, color: .cyan, source: .reference)
+          "Reference", transcription: reference.transcription, color: Studio.referenceSeries, source: .reference)
         transcriptRow(
           "You", transcription: attempt.transcription, color: Studio.accent, source: .attempt)
       }
@@ -87,14 +87,17 @@ struct MimicComparisonView: View {
             }
             .frame(height: chartHeight)
           }
-          if metric != .timing {
-            HStack(spacing: 14) {
-              MimicSeriesLegendItem(title: "Reference", color: .cyan, dashed: true)
-              MimicSeriesLegendItem(title: "You", color: Studio.accent, dashed: false)
-            }
-            .font(.caption)
-            .accessibilityLabel("Dashed: reference. Solid: you.")
+          HStack(spacing: 14) {
+            MimicSeriesLegendItem(
+              title: "Reference", color: Studio.referenceSeries, dashed: metric != .timing)
+            MimicSeriesLegendItem(title: "Your take", color: Studio.accent, dashed: false)
           }
+          .font(.caption)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(
+            metric == .timing
+              ? "Grey bars: reference. Blue bars: your take."
+              : "Dashed grey: reference. Solid: your take.")
         }
         .padding(18)
         .studioCard()
