@@ -150,7 +150,7 @@ extension AppModel {
     if pendingMimicSessionID == id {
       presentError(
         title: "Can’t Delete",
-        message: "This practice session has an unsaved recording. Try again, or show the file.")
+        message: "This practice has an unsaved take. Try again, or show the file.")
       return
     }
     stopPlayback()
@@ -190,10 +190,9 @@ extension AppModel {
   }
 
   private func deleteMessage(wasMimic: Bool, attemptCount: Int) -> String {
-    guard wasMimic else { return "Recording deleted" }
-    guard attemptCount > 0 else { return "Reference practice deleted" }
+    guard wasMimic, attemptCount > 0 else { return "Practice deleted" }
     let noun = attemptCount == 1 ? "take" : "takes"
-    return "Reference and \(attemptCount) \(noun) deleted"
+    return "Practice and \(attemptCount) \(noun) deleted"
   }
 
   func archiveMimic(_ id: UUID, archived: Bool = true) {
@@ -301,6 +300,6 @@ extension AppModel {
     try? FileManager.default.removeItem(at: removed.audioURL)
     if reportCache?.takeID == takeID { reportCache = nil }
     if remainingCount == 0 { mimicWorkspaceMode = .practice }
-    toastMessage = "Recording removed"
+    toastMessage = "Take deleted"
   }
 }

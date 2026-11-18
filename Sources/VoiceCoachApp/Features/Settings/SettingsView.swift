@@ -105,7 +105,7 @@ struct SettingsView: View {
         Toggle("Show Ichido in the menu bar", isOn: $showsMenuBarExtra)
           .disabled(model.isCapturingMimicReference || model.hasMenuBarReference)
       } header: {
-        Text("Quick practice")
+        Text("Menu bar")
       } footer: {
         Text("Capture Mac audio and return to practice without opening the main window first.")
       }

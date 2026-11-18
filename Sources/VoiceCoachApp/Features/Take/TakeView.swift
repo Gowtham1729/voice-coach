@@ -124,7 +124,7 @@ struct TakeView: View {
         }
       }
       if !embedded, take.takeSource != .recorded {
-        Button("Practise with this clip") { model.useCurrentRecordingAsMimicReference() }
+        Button("Use as reference…") { model.useCurrentRecordingAsMimicReference() }
           .tint(.primary)
           .studioGlassButton()
           .disabled(model.isRecording || model.isAnalyzing)

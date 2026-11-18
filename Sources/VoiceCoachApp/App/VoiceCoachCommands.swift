@@ -11,12 +11,13 @@ struct VoiceCoachCommands: Commands {
     }
 
     CommandGroup(replacing: .newItem) {
-      Button("Record") { model.startHomeRecording() }
+      Button("New practice") { model.startHomeRecording() }
         .keyboardShortcut("n", modifiers: .command)
+        .help("Start recording a new practice")
         .disabled(!model.canStartQuickPractice)
 
-      Button("Reference practice…") { model.startMimic() }
-        .keyboardShortcut("m", modifiers: [.command, .shift])
+      Button("New practice with reference…") { model.startMimic() }
+        .keyboardShortcut("n", modifiers: [.command, .shift])
         .disabled(!model.canStartQuickPractice)
     }
 
@@ -28,7 +29,7 @@ struct VoiceCoachCommands: Commands {
             || model.isCapturingMimicReference || model.mimicIsPreparing || model.hasMenuBarReference
             || (model.selectedSession?.mode == .mimic && model.destination.isWorkspace))
 
-      Button("Export…") { model.exportCurrent() }
+      Button("Export take…") { model.exportCurrent() }
         .keyboardShortcut("e", modifiers: [.command, .shift])
         .disabled(model.selectedTake == nil || model.isRecording || model.isAnalyzing)
 
@@ -62,13 +63,40 @@ struct VoiceCoachCommands: Commands {
         !model.isMimicWorkspace || model.isRecording || model.isAnalyzing
           || (model.mimicPhase != .ready && model.mimicPhase != .playingReference))
 
-      Button(model.isRecording ? "Stop recording" : "Start practice") {
+      Button(model.isRecording ? "Stop recording" : "Record take") {
         model.recordButtonPressed()
       }
       .keyboardShortcut("r", modifiers: .command)
       .disabled(
         !model.isMimicWorkspace || model.isAnalyzing || model.isRequestingPermission
           || (!model.isRecording && (model.isPlaying || model.mimicPhase != .ready)))
+
+      Divider()
+
+      Button("Previous take") { model.stepTake(by: -1) }
+        .keyboardShortcut(.leftArrow, modifiers: .option)
+        .disabled(!model.destination.isWorkspace || !model.canStepTake(by: -1))
+
+      Button("Next take") { model.stepTake(by: 1) }
+        .keyboardShortcut(.rightArrow, modifiers: .option)
+        .disabled(!model.destination.isWorkspace || !model.canStepTake(by: 1))
+
+      if model.isMimicWorkspace, let style = model.selectedSession?.mimicStyle {
+        Divider()
+        Picker(
+          "Mode",
+          selection: Binding(
+            get: { style },
+            set: { model.updateMimicStyle($0) }
+          )
+        ) {
+          ForEach(MimicStyle.allCases) { option in
+            Text(option.title).tag(option)
+          }
+        }
+        .pickerStyle(.inline)
+        .disabled(model.isRecording || model.isAnalyzing || model.mimicPhase != .ready)
+      }
 
       if model.showsExperimentalAsk {
         Button("Words") { model.revealSessionChat() }

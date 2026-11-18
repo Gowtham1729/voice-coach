@@ -148,7 +148,7 @@ struct DesktopLibraryWorkspace: View {
             }
           }
           if recording.isImported {
-            Button("Practise with this clip", systemImage: "waveform.path") {
+            Button("Use as reference…", systemImage: "waveform.path") {
               model.openTake(sessionID: recording.sessionID, takeID: recording.take.id)
               model.useCurrentRecordingAsMimicReference()
             }

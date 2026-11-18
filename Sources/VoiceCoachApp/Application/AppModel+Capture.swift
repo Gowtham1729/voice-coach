@@ -100,7 +100,8 @@ extension AppModel {
     if let sessionName = selectedSession?.name, !sessionName.isEmpty {
       sourceName = sessionName
     } else {
-      sourceName = take.audioURL.deletingPathExtension().lastPathComponent
+      sourceName = PracticeTitle.cleaned(
+        fileName: take.audioURL.deletingPathExtension().lastPathComponent)
     }
     let staged = FileManager.default.temporaryDirectory.appendingPathComponent(
       "voice-coach-mimic-\(id).wav")
@@ -124,7 +125,7 @@ extension AppModel {
           mimicIsPreparing = false
           mimicPreparationID = nil
           presentError(
-            title: "Reference practice failed",
+            title: "Couldn’t set up the reference",
             error: error,
             fallback: "Couldn’t use this recording as a practice reference.")
         }

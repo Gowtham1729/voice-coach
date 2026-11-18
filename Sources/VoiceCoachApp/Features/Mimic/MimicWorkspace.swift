@@ -14,7 +14,6 @@ struct MimicWorkspace: View {
         practiceCompareLayout
       }
     }
-    .background { takeStepShortcuts }
   }
 
   private var analysisLayout: some View {
@@ -69,21 +68,6 @@ struct MimicWorkspace: View {
     }
   }
 
-  @ViewBuilder
-  private var takeStepShortcuts: some View {
-    if !snapshot {
-      HStack {
-        Button("Previous practice take") { model.stepMimicTake(by: -1) }
-          .keyboardShortcut(.leftArrow, modifiers: .option)
-        Button("Next practice take") { model.stepMimicTake(by: 1) }
-          .keyboardShortcut(.rightArrow, modifiers: .option)
-      }
-      .opacity(0)
-      .frame(width: 0, height: 0)
-      .accessibilityHidden(true)
-    }
-  }
-
   private func heading(_ session: CoachingSession) -> some View {
     let currentTakeIndex =
       session.takes.firstIndex(where: {
@@ -91,7 +75,7 @@ struct MimicWorkspace: View {
       }) ?? 0
 
     return HStack(spacing: 12) {
-      Label("Reference practice", systemImage: "waveform.path")
+      Label("With reference", systemImage: "waveform.path")
         .font(.callout.weight(.medium))
       if let locale = session.transcriptionLocaleIdentifier {
         Text(TranscriptionLanguagePreference.displayName(for: locale))
@@ -357,13 +341,17 @@ struct MimicWorkspace: View {
         Button("Listen") { model.toggleMimicPlayback() }
           .keyboardShortcut(.space, modifiers: [])
           .disabled(model.isAnalyzing || model.mimicPhase != .ready || model.hasPendingMimicWork)
-        Button("Start practice") { model.startMimicPractice() }
+        Button("Record take") { model.startMimicPractice() }
           .studioGlassButton(prominent: true)
+          .help(
+            model.selectedSession?.mimicStyle == .speakAlong
+              ? "Play the reference while you record"
+              : "Play the reference, then record")
           .disabled(
             model.isAnalyzing || model.isRequestingPermission || model.isPlaying
               || model.mimicPhase != .ready || model.hasPendingMimicWork)
         if model.selectedSession?.mimicStyle == .listenAndRepeat {
-          Button("Record") { model.startMimicPractice(skipReference: true) }
+          Button("Record only") { model.startMimicPractice(skipReference: true) }
             .help("Record without listening first")
             .disabled(model.isAnalyzing || model.isPlaying || model.hasPendingMimicWork)
         }

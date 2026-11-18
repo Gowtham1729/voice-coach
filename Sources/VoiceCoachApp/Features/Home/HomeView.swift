@@ -42,7 +42,7 @@ struct HomeView: View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 12) {
         Label(
-          model.isRecording ? "Recording" : "New recording",
+          model.isRecording ? "Recording" : "New practice",
           systemImage: model.isRecording ? "record.circle.fill" : "waveform"
         )
         .font(.headline)
@@ -67,7 +67,7 @@ struct HomeView: View {
         .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
 
         Button(action: model.startMimic) {
-          Label("Reference practice…", systemImage: "waveform.path")
+          Label("Practice with reference…", systemImage: "waveform.path")
         }
         .tint(.primary)
         .studioGlassButton()

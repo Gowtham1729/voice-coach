@@ -17,14 +17,14 @@ Ichido is a native Mac app for private speaking practice. Record yourself, pract
 
 - **One line:** Private speaking and language practice for Mac.
 - **Short bio:** A phrase. A clip. Your own voice. Listen, explore the words, repeat, and compare with Ichido, your private speaking room for Mac.
-- **Reference practice:** Bring a reference, listen closely, and record your version. Compare timing, pitch shape, and loudness, then try another take.
+- **Practice with a reference:** Bring a reference, listen closely, and record your version. Compare timing, pitch shape, and loudness, then try another take.
 - **Words:** Optional, experimental language help beside your transcript. Explore meanings, grammar, synonyms, and translations on your Mac.
 
 ## Language and naming
 
 Use **Ichido** in prose and **ichido.** in the website wordmark. Keep the period as visual punctuation, outside product names, file names, and sentences where it would confuse readers. Ichido means one time; the story is inspired by mō ichido, once more. Do not claim that Ichido alone translates to “again” or “once more.” It is a multilingual practice product, rather than a Japanese-only course.
 
-Use **Practice** for the app sidebar, **Reference practice** for the feature, and **Words** for the language inspector. Reference-practice modes are **Listen & Repeat** and **Speak Along**. The website sequence is Listen → Understand → Repeat → Compare; Understand is the optional Words step. The app sequence is Listen → Repeat → Compare. A take is one recorded attempt. A reference is the audio someone chooses to practice with. Historical release files and internal Swift names stay as they are for compatibility, including Mimic.
+The app has three nouns: a **practice** is the thing you come back to, a **take** is one recording of your voice inside it, and a **reference** is optional audio you practice against. A practice with a reference shows a **With reference** badge. Do not call library items “recordings”, and do not name features “Reference practice” or “Quick practice”. **Words** is the language inspector. Modes for a practice with a reference are **Listen & Repeat** and **Speak Along**. The website sequence is Listen → Understand → Repeat → Compare; Understand is the optional Words step. The app sequence is Listen → Repeat → Compare. Historical release files and internal Swift names stay as they are for compatibility, including Mimic.
 
 ### Shared product terms
 
@@ -32,11 +32,13 @@ Use this guide for the app, website, README, and release notes. Marketing may ex
 
 | Term | Meaning and use |
 | --- | --- |
-| Recording | Audio recorded or imported into the library. |
-| Take | One recorded version in a session. Do not label it an attempt. |
-| Reference | The clip chosen for reference practice. |
-| Practice | The sidebar destination for reference practice sessions. |
-| Reference practice | The feature for listening, repeating, and comparing with a reference. |
+| Practice | The thing you come back to: a title, its takes, and optionally a reference. A one-off recording is a practice with one take. |
+| Take | One recording of your voice inside a practice. Numbered and dated. Do not label it an attempt or a recording. |
+| Reference | Optional audio a practice is compared against: an imported clip, captured Mac audio, or one of your own takes. |
+| With reference | The badge and filter for practices that have a reference. |
+| New practice / New practice with reference… | File menu actions (⌘N, ⇧⌘N). **Record take** (⌘R) adds a take to the open practice. |
+| Use as reference… | Makes a take the reference of a new practice. |
+| Recording | A state (“Recording…”), not a noun for library items. |
 | Listen & Repeat | The reference plays first, then recording starts. |
 | Speak Along | The reference plays while the microphone records. Recommend headphones. |
 | Transcript | Recognized text from a recording or reference. |
@@ -44,7 +46,7 @@ Use this guide for the app, website, README, and release notes. Marketing may ex
 | Practice next | One measured practice target, a single word, when enough words match reliably. |
 | Capture Mac audio | Capture what the Mac is playing as a reference. |
 | Menu bar | The Ichido icon in the menu bar. Settings → General has **Show Ichido in the menu bar**. |
-| Quick practice | The menu bar panel for capturing Mac audio or recording without opening the main window first. |
+| Menu bar panel | The Ichido panel in the menu bar, for capturing Mac audio or recording without opening the main window first. It is titled **Ichido**, not “Quick practice”. |
 | Record my voice | Menu bar action that starts a recording. |
 | Capture Mac audio | Also the menu bar action. **Stop and review** ends it and opens the trim sheet. **Cancel capture** and **Discard capture** drop it. |
 | Clip ready | A captured menu bar clip is waiting. **Review** opens the trim sheet. **Discard** removes it. The menu offers **Review capture…**. |
@@ -76,7 +78,7 @@ Show the real app when a section is about a product surface. The current overvie
 
 Show the actual app and describe what people can do. Mark synthetic recordings and illustrative chat responses as examples. The launch film is the current walkthrough. Do not present older footage as the current Ichido interface. Do not invent testimonials, social proof, or outcome claims. A later demo or campaign needs its own brief and evidence.
 
-Reference practice offers one measured target, a single word, when enough words reliably match. Ordinary recordings show measurements. Neither pathway grades an accent, certifies fluency, nor supplies phoneme-level pronunciation correction.
+Practice with a reference offers one measured target, a single word, when enough words reliably match. Practices without a reference show measurements. Neither pathway grades an accent, certifies fluency, nor supplies phoneme-level pronunciation correction.
 
 Words is off by default and requires available Apple Intelligence. It uses text, cannot hear audio, and may answer incorrectly. Chats clear when the app quits, when the user clears the chat, when the recording is deleted, or when experiments are turned off. Translation and transcription language support vary; optional models may need downloads.
 

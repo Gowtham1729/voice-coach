@@ -20,7 +20,7 @@ Local-first **Ichido**: a **macOS 26+** SwiftUI speaking-practice studio (Swift 
 | Marketing site | `website/` | Static promo site at https://ichido.app/. See `docs/marketing-website.md` |
 | Scripts | `scripts/`, `script/build_and_run.sh` | Use these. Do not invent build steps |
 
-**Naming:** UI “recording”, the retry stack, and Mimic are a `CoachingSession`. A UI “take” is a Core `PracticeSession`. Do not rename those storage types. Visible copy uses **Practice**, **Reference practice**, and **Words**. Reference-practice modes stay **Listen & Repeat** and **Speak Along**. Before changing user-facing strings, read `docs/brand/messaging.md`.
+**Naming:** The UI has three nouns. A **practice** is a `CoachingSession` (a one-off recording, a retry stack, or a Mimic). A **take** is a Core `PracticeSession` inside it. A **reference** is the optional `MimicReference`; a practice that has one is shown **With reference**. Do not rename those storage types. Do not use “recording” as a noun for library items, or “reference practice” and “quick practice” as names. Modes stay **Listen & Repeat** and **Speak Along**; **Transcript** and **Words** are unchanged. Before changing user-facing strings, read `docs/brand/messaging.md`.
 
 ## Dependency rules
 
@@ -94,7 +94,7 @@ Root: `~/Library/Application Support/VoiceCoach/`
 - A Mimic session always keeps `reference.wav` and every attempt. The replace path must not run when `mode == .mimic`. Deleting an attempt deletes that take only, not the reference.
 - Deleting a Mimic removes its folder. Deleting a recording removes that take’s audio and analysis after the index save succeeds. Settings cleans empty leftover folders.
 - Captures are 48 kHz mono PCM, auto-stop around 90s, with a discard/analyze gate around 0.6s.
-- Mimic reference sources are import, Mac system-audio capture, and **Practise with this clip**. Reference capture is system output only (Core Audio process tap), uses the same gates, and requires `NSAudioCaptureUsageDescription`. In-app reference capture is shipping.
+- Mimic reference sources are import, Mac system-audio capture, and **Use as reference…**. Reference capture is system output only (Core Audio process tap), uses the same gates, and requires `NSAudioCaptureUsageDescription`. In-app reference capture is shipping.
 - **Listen & Repeat** plays the reference, then records. **Speak Along** plays the reference while the microphone records. `beginRecording` must not stop that reference playback.
 
 ## Visual reference
@@ -106,7 +106,7 @@ Root: `~/Library/Application Support/VoiceCoach/`
 | `01-home.png` | Home |
 | `02-library.png` | Library |
 | `03-mimics.png` | Practice list |
-| `04-mimic-practice.png` | Reference practice |
+| `04-mimic-practice.png` | Practice with reference |
 | `05-mimic-compare.png` | Compare |
 | `06-mimic-analysis.png` | Analysis |
 | `07-take.png` | Take |

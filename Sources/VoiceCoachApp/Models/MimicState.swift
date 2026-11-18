@@ -53,7 +53,7 @@ enum MimicPlaybackSource: CaseIterable, Identifiable {
   var title: String {
     switch self {
     case .reference: "Reference"
-    case .attempt: "You"
+    case .attempt: "Your take"
     }
   }
 
