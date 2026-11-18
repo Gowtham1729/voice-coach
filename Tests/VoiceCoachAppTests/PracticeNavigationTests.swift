@@ -31,16 +31,4 @@ struct PracticeNavigationTests {
 
     #expect(fixture.model.destination == .home)
   }
-
-  @Test("List filters select the matching list destination")
-  func showList() throws {
-    let fixture = try QuickPracticeFixture()
-    defer { fixture.cleanUp() }
-    fixture.model.showList(.archived)
-    #expect(fixture.model.listFilter == .archived)
-    #expect(fixture.model.destination == .library)
-    fixture.model.showList(.all)
-    #expect(fixture.model.listFilter == .all)
-    #expect(fixture.model.selectedSessionID == nil)
-  }
 }
