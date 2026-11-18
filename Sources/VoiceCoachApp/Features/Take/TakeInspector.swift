@@ -82,7 +82,7 @@ struct TakeInspector: View {
         }
 
         Button(role: .destructive, action: { requestDelete(take.id) }) {
-          Label("Delete take…", systemImage: "trash")
+          Label("Delete…", systemImage: "trash")
             .inspectorActionLabel()
         }
         .studioGlassButton()
