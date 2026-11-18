@@ -226,7 +226,7 @@
             .environmentObject(model)
             .environment(\.studioSnapshot, true)
             .padding(24)
-            .frame(width: 1100, height: 640, alignment: .topLeading)
+            .frame(width: 1300, height: 640, alignment: .topLeading)
             .background(Studio.background)
             let renderer = ImageRenderer(content: view)
             renderer.scale = 1
