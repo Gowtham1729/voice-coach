@@ -71,13 +71,31 @@ assert.equal(html.includes("0.0.4"), false, "Public site does not advertise 0.0.
 assert.equal(html.includes("0.0.3"), false, "Public site does not advertise 0.0.3");
 assert.ok(
   html.includes(
-    "Your recordings stay on your Mac. Ichido goes online only to check for updates and to download speech software and models from GitHub, Hugging Face, NVIDIA, and Apple. macOS may also download its own speech and translation models.",
+    "Ichido goes online to check for updates and to download optional speech tools and models. Your recordings, transcripts, and analysis never leave your Mac.",
   ),
-  "Privacy line names the recording boundary and the download hosts",
+  "Privacy line names update checks and keeps recordings on the Mac",
 );
 assert.ok(
   html.includes("stay on your Mac"),
   "Recordings stay on the Mac",
+);
+assert.equal(
+  html.includes("two measured practice targets"),
+  false,
+  "The site no longer claims two measured practice targets",
+);
+assert.ok(
+  (html.match(/When enough words match the reference, Ichido picks one thing to try next\./g) || [])
+    .length === 3,
+  "Compare copy, compare alt text, and the pronunciation FAQ use the one-next-step sentence",
+);
+assert.ok(
+  html.includes("Experimental · Off by default"),
+  "Words step badge says the feature is experimental and off by default",
+);
+assert.ok(
+  html.includes("Words can’t hear your audio and can be wrong."),
+  "Words step says it cannot hear audio and can be wrong",
 );
 assert.ok(
   html.includes(`href="${publicOrigin}/"`),
@@ -101,11 +119,15 @@ assert.match(
   /<title>Ichido \| Private speaking practice for Mac<\/title>/,
   "Title tells a search result this is private speaking practice for Mac",
 );
+const practiceLine =
+  "Practice a language. Rehearse a talk. Hear yourself back, and with a reference, get one thing to try next.";
 assert.ok(
-  html.includes(
-    'content="Ichido is a private Mac app for speaking practice. Practice a language, rehearse a talk, and hear yourself back."',
-  ),
-  "Meta description uses the page language for language practice and rehearsing a talk",
+  html.includes(`content="${practiceLine}"`),
+  "Meta description is the practice line",
+);
+assert.ok(
+  html.includes(`<p class="hero-description">${practiceLine}</p>`),
+  "Hero subhead is the practice line",
 );
 const robots = readFileSync(resolve(root, "robots.txt"), "utf8");
 assert.equal(/^\s*Disallow:/m.test(robots), false, "robots.txt must not disallow paths");
@@ -165,10 +187,7 @@ assert.equal(software["@type"], "SoftwareApplication");
 assert.equal(software.name, "Ichido");
 assert.equal(software.url, `${publicOrigin}/`);
 assert.match(software.operatingSystem, /^macOS$/);
-assert.equal(
-  software.description,
-  "Ichido is a private Mac app for speaking practice. Practice a language, rehearse a talk, and hear yourself back. Free early access.",
-);
+assert.equal(software.description, practiceLine);
 assert.equal(software.isAccessibleForFree, true);
 assert.equal(software.aggregateRating, undefined, "Do not invent ratings");
 assert.equal(software.review, undefined, "Do not invent reviews");
