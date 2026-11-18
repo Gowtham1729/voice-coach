@@ -104,7 +104,7 @@ extension AppModel {
             } ?? [])
           let name =
             excerpt.name
-            ?? transcription.flatMap { PracticeTitle.fromTranscript($0.text) }
+            ?? transcription.flatMap { PracticeNaming.fromTranscript($0.text) }
             ?? draft.sourceName
           prepared.append(
             CoachingSession(

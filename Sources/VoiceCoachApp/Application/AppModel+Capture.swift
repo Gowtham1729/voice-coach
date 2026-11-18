@@ -100,7 +100,7 @@ extension AppModel {
     if let sessionName = selectedSession?.name, !sessionName.isEmpty {
       sourceName = sessionName
     } else {
-      sourceName = PracticeTitle.cleaned(
+      sourceName = PracticeNaming.cleaned(
         fileName: take.audioURL.deletingPathExtension().lastPathComponent)
     }
     let staged = FileManager.default.temporaryDirectory.appendingPathComponent(

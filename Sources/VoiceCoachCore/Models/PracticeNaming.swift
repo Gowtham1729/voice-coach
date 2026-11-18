@@ -2,7 +2,7 @@ import Foundation
 
 /// Display titles for new practices. Titles are only cleaned when a practice is created;
 /// stored names are never rewritten.
-public enum PracticeTitle {
+public enum PracticeNaming {
   /// A file name without encoding noise such as "(128k)" or "[320kbps]", with underscores
   /// read as spaces. Falls back to the input when cleaning would leave nothing.
   public static func cleaned(fileName: String) -> String {
