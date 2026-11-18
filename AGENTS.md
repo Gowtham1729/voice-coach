@@ -99,7 +99,7 @@ Root: `~/Library/Application Support/VoiceCoach/`
 
 ## Visual reference
 
-`docs/screenshots/` is the committed layout reference. Open the matching PNG before asking what a screen looks like. These are real captures of Ichido 0.0.3. Historical filenames containing `mimic` are kept so existing links work. If a label disagrees with the code or `docs/brand/messaging.md`, follow those. Refresh a capture when that screen’s layout or labels change. `build/previews` is synthetic and stays gitignored.
+`docs/screenshots/` is the committed layout reference. Open the matching PNG before asking what a screen looks like. These are real captures of Ichido 0.0.3, from before the three-column layout: Home, Library, the Practice list and sidebar Recents are now one practice list (sidebar filters, list, open practice), so `01-home.png`, `02-library.png` and `03-mimics.png` are out of date until refreshed. Historical filenames containing `mimic` are kept so existing links work. If a label disagrees with the code or `docs/brand/messaging.md`, follow those. Refresh a capture when that screen’s layout or labels change. `build/previews` is synthetic and stays gitignored.
 
 | File | Screen |
 | --- | --- |
