@@ -36,7 +36,7 @@ extension AppModel {
         presentMimicDraft(
           id: id,
           url: staged,
-          sourceName: PracticeTitle.cleaned(
+          sourceName: PracticeNaming.cleaned(
             fileName: sourceURL.deletingPathExtension().lastPathComponent),
           source: AudioImportService.source(for: sourceURL)
         )
