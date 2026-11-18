@@ -56,7 +56,7 @@ struct LibrarySafetyTests {
     model.clearError()
 
     model.startHomeRecording()
-    #expect(model.errorTitle == "Library couldn’t be loaded")
+    #expect(model.errorTitle == "Practices couldn’t be loaded")
     #expect(model.errorMessage?.hasPrefix("Nothing was saved") == true)
     #expect(!model.isRecording)
     #expect(model.selectedSessionID == nil)
