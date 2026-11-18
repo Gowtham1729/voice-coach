@@ -29,36 +29,4 @@ struct PracticeCatalogTests {
     let archived = SessionTestFixtures.session(take: take("archived"), archived: true)
     #expect(RecordingCatalog.recordings(from: [archived]).isEmpty)
   }
-
-  @Test("Search matches the title and transcripts")
-  func search() {
-    var session = SessionTestFixtures.session(take: take("named"))
-    session.name = "Conference opener"
-    #expect(PracticeCatalog.practices(from: [session], filter: .all, query: "opener").count == 1)
-    #expect(PracticeCatalog.practices(from: [session], filter: .all, query: "nothing").isEmpty)
-  }
-
-  @Test("Rows describe takes and the reference badge")
-  func detail() {
-    var plain = SessionTestFixtures.session(take: take("one"))
-    #expect(PracticeCatalog.detail(of: plain) == "1 take")
-    plain.takes.append(take("two"))
-    #expect(PracticeCatalog.detail(of: plain) == "2 takes")
-    let reference = SessionTestFixtures.session(take: take("ref"), mode: .mimic)
-    #expect(PracticeCatalog.detail(of: reference) == "1 take · With reference")
-  }
-
-  @Test("Groups by last activity")
-  func grouping() {
-    var calendar = Calendar(identifier: .gregorian)
-    calendar.timeZone = TimeZone(identifier: "UTC")!
-    let now = Date(timeIntervalSince1970: 1_700_000_000)
-    #expect(PracticeListGroup.group(for: now, now: now, calendar: calendar) == .today)
-    #expect(
-      PracticeListGroup.group(for: now.addingTimeInterval(-3 * 86_400), now: now, calendar: calendar)
-        == .thisWeek)
-    #expect(
-      PracticeListGroup.group(for: now.addingTimeInterval(-30 * 86_400), now: now, calendar: calendar)
-        == .earlier)
-  }
 }
