@@ -69,69 +69,55 @@ struct MimicWorkspace: View {
   }
 
   private func heading(_ session: CoachingSession) -> some View {
-    let currentTakeIndex =
-      session.takes.firstIndex(where: {
-        $0.id == (model.selectedTakeID ?? session.latestTake?.id)
-      }) ?? 0
-
-    return HStack(spacing: 12) {
-      Label("With reference", systemImage: "waveform.path")
-        .font(.callout.weight(.medium))
-      if let locale = session.transcriptionLocaleIdentifier {
-        Text(TranscriptionLanguagePreference.displayName(for: locale))
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
-      Spacer()
-      if !session.takes.isEmpty {
-        if snapshot {
-          Text("Take \(currentTakeIndex + 1) of \(session.takeCount)")
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(spacing: 12) {
+        Label("With reference", systemImage: "waveform.path")
+          .font(.callout.weight(.medium))
+        if let locale = session.transcriptionLocaleIdentifier {
+          Text(TranscriptionLanguagePreference.displayName(for: locale))
             .font(.caption)
-            .padding(7)
-            .background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
-          Text(model.mimicWorkspaceMode.title)
-            .font(.caption.weight(.semibold))
-            .padding(7)
-            .background(Studio.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
-        } else {
-          Menu {
+            .foregroundStyle(.secondary)
+        }
+        Spacer()
+        if !session.takes.isEmpty {
+          if snapshot {
+            Text(model.mimicWorkspaceMode.switchCase.title)
+              .font(.caption.weight(.semibold))
+              .padding(7)
+              .background(Studio.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
+          } else {
+            if model.mimicWorkspaceMode != .practice {
+              Button(model.mimicWorkspaceMode == .analysis ? "Show comparison" : "Take details") {
+                model.setMimicWorkspaceMode(
+                  model.mimicWorkspaceMode == .analysis ? .compare : .analysis)
+              }
+              .buttonStyle(.borderless)
+              .help(
+                model.mimicWorkspaceMode == .analysis
+                  ? "Compare this take with the reference"
+                  : "Measurements for this take on its own")
+              .disabled(model.isRecording || model.mimicPhase != .ready)
+            }
             Picker(
-              "Take",
+              "View",
               selection: Binding(
-                get: { model.selectedTakeID ?? session.latestTake!.id },
-                set: { value in model.selectTake(value) }
+                get: { model.mimicWorkspaceMode.switchCase },
+                set: { model.setMimicWorkspaceMode($0) }
               )
             ) {
-              ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, take in
-                Text(
-                  "Take \(index + 1) · \((session.mimicAttemptStyles?[take.id] ?? .listenAndRepeat).title) · \(take.createdAt.formatted(date: .omitted, time: .shortened))"
-                )
-                .tag(take.id)
+              ForEach(MimicWorkspaceMode.switchCases) { mode in
+                Text(mode.title).tag(mode)
               }
             }
-            .pickerStyle(.inline)
             .labelsHidden()
-          } label: {
-            Text("Take \(currentTakeIndex + 1) of \(session.takeCount)")
+            .pickerStyle(.segmented)
+            .frame(width: 180)
+            .disabled(model.isRecording || model.mimicPhase != .ready)
           }
-          .disabled(model.isRecording || model.mimicPhase != .ready)
-
-          Picker(
-            "Workspace",
-            selection: Binding(
-              get: { model.mimicWorkspaceMode },
-              set: { model.setMimicWorkspaceMode($0) }
-            )
-          ) {
-            ForEach(MimicWorkspaceMode.allCases) { mode in
-              Text(mode.title).tag(mode)
-            }
-          }
-          .labelsHidden()
-          .pickerStyle(.segmented)
-          .frame(width: 270)
-          .disabled(model.isRecording || model.mimicPhase != .ready)
         }
+      }
+      if !session.takes.isEmpty {
+        TakeStrip(session: session)
       }
     }
   }

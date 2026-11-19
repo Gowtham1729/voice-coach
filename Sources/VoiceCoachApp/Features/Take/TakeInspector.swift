@@ -39,7 +39,13 @@ struct TakeInspector: View {
           takeFooter(take)
         }
         .modifier(
-          DeleteTakeDialog(takeID: $takePendingDelete) { takeID in
+          DeleteTakeDialog(
+            takeID: $takePendingDelete,
+            title: "Delete this take?",
+            message: session.takeCount == 1
+              ? "This is the only take, so the practice is deleted too, including its audio, transcript, and analysis."
+              : "This take's audio, transcript, and analysis are deleted. The other takes stay."
+          ) { takeID in
             deleteTake(takeID, in: session)
           })
       }
@@ -72,17 +78,17 @@ struct TakeInspector: View {
           }
           .studioGlassButton(prominent: chrome.isFilled(TakeScreenCopy.export))
           .controlSize(.regular)
+          .layoutPriority(1)
           .help("Export the audio and report")
         }
 
-        Button(action: { requestDelete(take.id) }) {
-          Label("Delete", systemImage: "trash")
-            .inspectorActionLabel()
+        Button(role: .destructive, action: { requestDelete(take.id) }) {
+          Image(systemName: "trash")
+            .accessibilityLabel("Delete take")
         }
-        .tint(.red)
-        .studioGlassButton(destructive: true)
+        .studioGlassButton()
         .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
-        .help("Delete")
+        .help("Delete this take")
       }
     }
   }

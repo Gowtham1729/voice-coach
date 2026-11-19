@@ -65,14 +65,13 @@ struct MimicInspector: View {
           .studioGlassButton()
           .help("More")
 
-          Button(action: { requestDelete(take.id) }) {
-            Label("Delete", systemImage: "trash")
-              .inspectorActionLabel()
+          Button(role: .destructive, action: { requestDelete(take.id) }) {
+            Image(systemName: "trash")
+              .accessibilityLabel("Delete take")
           }
-          .tint(.red)
-          .studioGlassButton(destructive: true)
+          .studioGlassButton()
           .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
-          .help("Delete")
+          .help("Delete this take. The reference and other takes stay.")
         }
       }
     }
