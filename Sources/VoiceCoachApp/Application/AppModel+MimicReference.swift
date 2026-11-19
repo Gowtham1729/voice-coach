@@ -208,7 +208,7 @@ extension AppModel {
           mimicPreparationID = nil
           clearMimicReferenceCaptureMeters()
           if !(error is CancellationError) {
-            let title = "Reference practice failed"
+            let title = "Couldn’t set up the reference"
             let fallback = "Couldn’t prepare this reference."
             if fromMenuBar {
               presentCaptureError(title: title, error: error, fallback: fallback)

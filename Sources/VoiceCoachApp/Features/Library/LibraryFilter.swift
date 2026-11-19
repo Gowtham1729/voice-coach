@@ -13,7 +13,7 @@ enum LibraryFilter: String, CaseIterable, Identifiable {
     case .all: "All"
     case .recorded: "Recorded"
     case .imported: "Imported"
-    case .mimic: "Reference practice"
+    case .mimic: "With reference"
     }
   }
 

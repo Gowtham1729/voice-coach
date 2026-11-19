@@ -18,20 +18,20 @@ struct DesktopMimicsWorkspace: View {
             .font(.caption)
             .foregroundStyle(Studio.secondary)
           Spacer()
-          Button("New reference practice…", action: model.startMimic)
+          Button("New practice with reference…", action: model.startMimic)
             .studioGlassButton(prominent: true)
             .disabled(model.isRecording || model.isAnalyzing)
         }
 
         if model.mimicSessions.isEmpty {
           ContentUnavailableView {
-            Label("No reference practice yet", systemImage: "waveform.path")
+            Label("No practices with a reference yet", systemImage: "waveform.path")
           } description: {
             Text(
               "Add a reference clip, then listen, repeat, and compare your take."
             )
           } actions: {
-            Button("New reference practice…", action: model.startMimic)
+            Button("New practice with reference…", action: model.startMimic)
               .studioGlassButton(prominent: true)
           }
           .frame(maxWidth: .infinity, minHeight: 420)
@@ -59,7 +59,7 @@ struct DesktopMimicsWorkspace: View {
         }
       }
     }
-    .alert("Delete reference practice?", isPresented: deleteAlertBinding, presenting: deleteCandidate) {
+    .alert("Delete this practice?", isPresented: deleteAlertBinding, presenting: deleteCandidate) {
       session in
       Button("Delete", role: .destructive) { model.deleteSession(session.id) }
       Button("Cancel", role: .cancel) {}

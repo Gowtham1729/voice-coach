@@ -29,7 +29,7 @@ struct ContentView: View {
         Button("Cancel", role: .cancel) { model.pendingReplaceOnly = nil }
       } message: {
         Text(
-          "This session keeps only the latest take. Keep all takes from now on, or delete older takes when a new one is saved?"
+          "This practice keeps only the latest take. Keep all takes from now on, or delete older takes when a new one is saved?"
         )
       }
       .overlay(alignment: .bottom) { toast }
@@ -281,12 +281,12 @@ struct ContentView: View {
   private var windowTitle: String {
     switch model.destination {
     case .home: "Home"
-    case .mimicStart: "Reference practice"
+    case .mimicStart: "New practice with reference"
     case .practice:
       model.selectedSession?.mimicReference?.sourceName
         ?? model.selectedSession?.name
-        ?? "Reference practice"
-    case .take: model.selectedSession?.name ?? "Recording"
+        ?? "Practice"
+    case .take: model.selectedSession?.name ?? "Practice"
     case .library: "Library"
     case .mimics: "Practice"
     }

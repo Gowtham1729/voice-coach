@@ -32,7 +32,7 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
   }
 
   package var sidebarSubtitle: String {
-    if isMimicAttempt { return "Practice take" }
+    if isMimicAttempt { return "Take \(takeNumber) · With reference" }
     return take.takeSource.title
   }
 
@@ -48,7 +48,7 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
   }
 
   package var subtitle: String {
-    if isMimicAttempt { return "Practice take" }
+    if isMimicAttempt { return "Take \(takeNumber) of \(takeCount) · With reference" }
     if isRetryStack { return prompt.isEmpty ? "Take \(takeNumber) of \(takeCount)" : prompt }
     return take.takeSource.title
   }
@@ -56,10 +56,10 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
   package var accessibilityLabel: String {
     if isMimicAttempt {
       let source = mimicSourceName ?? groupName
-      return "Take \(takeNumber) of \(takeCount), reference practice, \(source)"
+      return "\(source), take \(takeNumber) of \(takeCount), with reference"
     }
     if isRetryStack {
-      return "Take \(takeNumber) of \(takeCount), \(stackLabel)"
+      return "\(stackLabel), take \(takeNumber) of \(takeCount)"
     }
     return "\(groupName), \(take.takeSource.title)"
   }

@@ -65,6 +65,6 @@ struct IchidoMenuBarLabel: View {
     if model.hasMenuBarReference && model.mimicDraft != nil {
       return (IchidoMenuBarIcon.ready, "Ichido — capture ready to review")
     }
-    return (IchidoMenuBarIcon.idle, "Ichido — quick practice")
+    return (IchidoMenuBarIcon.idle, "Ichido")
   }
 }

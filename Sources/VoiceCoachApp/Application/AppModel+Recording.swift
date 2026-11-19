@@ -417,7 +417,7 @@ extension AppModel {
   ) {
     let name: String
     if let source = pendingImportSourceURL {
-      name = source.deletingPathExtension().lastPathComponent
+      name = PracticeNaming.cleaned(fileName: source.deletingPathExtension().lastPathComponent)
     } else {
       name = RecordingTitle.make(date: take.createdAt)
     }

@@ -16,13 +16,13 @@ struct CreateSessionView: View {
   }
 
   private var title: String {
-    if model.mimicDraft == nil { return "New reference practice" }
+    if model.mimicDraft == nil { return "New practice with reference" }
     return editor.clips.isEmpty ? "Choose a clip" : "Choose phrases"
   }
 
   private var instruction: String {
     if model.mimicDraft == nil { return "Import a clip or capture audio playing on your Mac." }
-    if editor.clips.isEmpty { return "Drag the handles to choose the clip you want to practise." }
+    if editor.clips.isEmpty { return "Drag the handles to choose the clip you want to practice." }
     return "Choose a phrase, then adjust its edges if needed."
   }
 

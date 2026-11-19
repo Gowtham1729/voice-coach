@@ -28,7 +28,7 @@ struct QuickPracticeMenu: View {
           ) {
             model.startMenuBarReferenceCapture()
           }
-          .help("Capture a clip playing on your Mac for reference practice.")
+          .help("Capture a clip playing on your Mac to use as a reference.")
         }
         .fixedSize(horizontal: false, vertical: true)
         .disabled(!model.canStartQuickPractice)
@@ -65,10 +65,7 @@ struct QuickPracticeMenu: View {
         .resizable().interpolation(.high)
         .frame(width: 30, height: 30)
         .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: 1) {
-        Text("Ichido").font(.headline)
-        Text("Quick practice").font(.caption).foregroundStyle(.secondary)
-      }
+      Text("Ichido").font(.headline)
       Spacer()
       optionsMenu
     }
@@ -134,9 +131,9 @@ struct QuickPracticeMenu: View {
     } else if model.isAnalyzing || model.mimicIsPreparing {
       preparationStatus("Preparing audio…")
     } else if model.mimicDraft != nil || model.destination == .mimicStart {
-      heading("Reference practice", icon: "waveform", tint: Studio.accent)
+      heading("Practice with reference", icon: "waveform", tint: Studio.accent)
       caption("Finish or cancel the current reference.")
-      Button("Finish reference practice…") { showIchido() }
+      Button("Finish practice…") { showIchido() }
         .buttonStyle(QuickPracticeButtonStyle(prominent: true))
     } else {
       heading("Practice in progress", icon: "waveform", tint: Studio.accent)

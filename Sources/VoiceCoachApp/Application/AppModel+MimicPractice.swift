@@ -13,7 +13,7 @@ extension AppModel {
     else { return }
     let panel = NSOpenPanel()
     panel.title = "Choose a practice reference"
-    panel.message = "Import audio and choose phrases to practise."
+    panel.message = "Import audio and choose phrases to practice."
     panel.prompt = "Use Clip"
     panel.allowedContentTypes = AudioImportService.allowedContentTypes
     panel.allowsMultipleSelection = false
@@ -36,7 +36,8 @@ extension AppModel {
         presentMimicDraft(
           id: id,
           url: staged,
-          sourceName: sourceURL.deletingPathExtension().lastPathComponent,
+          sourceName: PracticeNaming.cleaned(
+            fileName: sourceURL.deletingPathExtension().lastPathComponent),
           source: AudioImportService.source(for: sourceURL)
         )
       } catch {
@@ -45,7 +46,7 @@ extension AppModel {
           mimicIsPreparing = false
           mimicPreparationID = nil
           presentError(
-            title: "Reference practice failed",
+            title: "Couldn’t set up the reference",
             error: error,
             fallback: "Couldn’t prepare this reference.")
         }

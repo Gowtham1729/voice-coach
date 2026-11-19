@@ -102,7 +102,10 @@ extension AppModel {
             words: transcription.map {
               WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
             } ?? [])
-          let name = excerpt.name ?? draft.sourceName
+          let name =
+            excerpt.name
+            ?? transcription.flatMap { PracticeNaming.fromTranscript($0.text) }
+            ?? draft.sourceName
           prepared.append(
             CoachingSession(
               id: sessionID, name: name, mode: .mimic, prompt: "", keepsRecordings: true,
