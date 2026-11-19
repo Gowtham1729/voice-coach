@@ -21,7 +21,8 @@ struct PracticeListView: View {
   var body: some View {
     let practices = practices
     let groups = PracticeCatalog.grouped(practices)
-    return Group {
+    return VStack(spacing: 0) {
+      Group {
       if practices.isEmpty {
         emptyState
       } else if snapshot {
@@ -41,8 +42,11 @@ struct PracticeListView: View {
         .listStyle(.inset)
         .disabled(!model.canNavigate)
       }
+      }
+      .frame(maxHeight: .infinity)
+      // Below the list, not over it: a safe-area inset let rows scroll under the text.
+      footer
     }
-    .safeAreaInset(edge: .bottom) { footer }
     .navigationTitle(model.listFilter.title)
     .modifier(ListSearch(text: $search, enabled: !snapshot))
     .alert("Delete practice?", isPresented: deleteAlertBinding, presenting: deleteCandidate) {
