@@ -112,7 +112,7 @@ struct SettingsView: View {
 
       Section {
         Toggle("Confirm before deleting", isOn: $confirmDelete)
-        Toggle("Hide transcript snippets in Library", isOn: $hideTranscriptSnippets)
+        Toggle("Hide transcript snippets in the practice list", isOn: $hideTranscriptSnippets)
       } header: {
         Text("Library")
       }

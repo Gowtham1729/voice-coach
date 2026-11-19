@@ -1,7 +1,7 @@
 import Foundation
 import VoiceCoachCore
 
-/// User-facing library row. Mimic references are never included.
+/// One take with its practice context. Mimic references are never included.
 package struct LibraryRecording: Identifiable, Equatable, Sendable {
   package let sessionID: UUID
   package let take: PracticeSession
@@ -109,7 +109,7 @@ package enum RecordingCatalog {
     -> [LibraryRecording]
   {
     sessions.flatMap { session in
-      if session.isMimic, session.archived, !includeArchived { return [] as [LibraryRecording] }
+      if session.archived, !includeArchived { return [] as [LibraryRecording] }
       return session.takes.compactMap { LibraryRecording.make(session: session, take: $0) }
     }
     .sorted { $0.take.createdAt > $1.take.createdAt }

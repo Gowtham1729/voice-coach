@@ -58,7 +58,7 @@ struct CreateSessionView: View {
         Spacer()
         Button("Cancel") {
           model.cancelMimicPreparation()
-          model.navigate(to: .home)
+          model.returnFromCreateSheet()
         }
         .keyboardShortcut(.cancelAction)
         .studioGlassButton()

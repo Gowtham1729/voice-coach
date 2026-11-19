@@ -61,8 +61,11 @@ struct ContentView: View {
         snapshotShell
       } else {
         NavigationSplitView {
-          sidebarColumn
-            .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
+          SourceListSidebar()
+            .navigationSplitViewColumnWidth(min: 170, ideal: 200, max: 260)
+        } content: {
+          PracticeListView()
+            .navigationSplitViewColumnWidth(min: 240, ideal: 300, max: 420)
         } detail: {
           HStack(spacing: 0) {
             destination
@@ -75,6 +78,7 @@ struct ContentView: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
           }
+          .navigationSplitViewColumnWidth(min: 640, ideal: 820)
           .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: showInspector)
           .navigationTitle(windowTitle)
           .toolbar { workspaceToolbar }
@@ -91,10 +95,19 @@ struct ContentView: View {
 
   private var snapshotShell: some View {
     HStack(spacing: 0) {
-      sidebarColumn
-        .frame(width: 240)
+      SourceListSidebar()
+        .frame(width: 200)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Studio.sidebar)
+
+      Divider()
+
+      PracticeListView()
+        .frame(width: 300)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Studio.background)
+
+      Divider()
 
       destination
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -111,28 +124,16 @@ struct ContentView: View {
     .background(Studio.background)
   }
 
-  @ViewBuilder
-  private var sidebarColumn: some View {
-    if snapshot {
-      SnapshotSourceListSidebar()
-    } else {
-      SourceListSidebar()
-    }
-  }
-
+  /// While the New practice sheet is up, keep showing what it was opened over.
   @ViewBuilder
   private var destination: some View {
-    switch model.destination {
-    case .home, .mimicStart:
-      HomeView()
+    switch model.destination == .mimicStart ? model.destinationBeforeCreate : model.destination {
     case .practice:
       MimicWorkspace()
     case .take:
       TakeView()
-    case .library:
-      DesktopLibraryWorkspace()
-    case .mimics:
-      DesktopMimicsWorkspace()
+    case .home, .mimicStart, .library, .mimics:
+      HomeView()
     }
   }
 
@@ -214,15 +215,6 @@ struct ContentView: View {
 
   @ToolbarContentBuilder
   private var workspaceToolbar: some ToolbarContent {
-    if showsBackButton {
-      ToolbarItem(placement: .navigation) {
-        Button(action: goBack) {
-          Label(parentSectionTitle, systemImage: "chevron.backward")
-        }
-        .help("Back to \(parentSectionTitle)")
-      }
-    }
-
     ToolbarSpacer(.flexible)
 
     if inspectorEligible {
@@ -244,29 +236,6 @@ struct ContentView: View {
     inspectorPresented && inspectorEligible
   }
 
-  private var showsBackButton: Bool {
-    switch model.destination {
-    case .take:
-      true
-    case .practice:
-      model.selectedSession != nil
-    case .home, .mimicStart, .library, .mimics:
-      false
-    }
-  }
-
-  private var parentSectionTitle: String {
-    parentSection?.title ?? ""
-  }
-
-  private var parentSection: NavigationSection? {
-    switch model.destination {
-    case .take: .library
-    case .practice: .mimics
-    case .home, .mimicStart, .library, .mimics: nil
-    }
-  }
-
   private var inspectorEligible: Bool {
     switch model.destination {
     case .practice:
@@ -280,26 +249,13 @@ struct ContentView: View {
 
   private var windowTitle: String {
     switch model.destination {
-    case .home: "Home"
+    case .home, .library, .mimics: model.listFilter.title
     case .mimicStart: "New practice with reference"
     case .practice:
       model.selectedSession?.mimicReference?.sourceName
         ?? model.selectedSession?.name
         ?? "Practice"
     case .take: model.selectedSession?.name ?? "Practice"
-    case .library: "Library"
-    case .mimics: "Practice"
-    }
-  }
-
-  private func goBack() {
-    switch model.destination {
-    case .take:
-      model.navigate(to: .library)
-    case .practice:
-      model.navigate(to: .mimics)
-    case .home, .mimicStart, .library, .mimics:
-      break
     }
   }
 
@@ -312,7 +268,7 @@ struct ContentView: View {
       set: { isPresented in
         if !isPresented, case .mimicStart = model.destination {
           model.cancelMimicPreparation()
-          model.navigate(to: .home)
+          model.returnFromCreateSheet()
         }
       }
     )
