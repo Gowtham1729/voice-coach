@@ -21,28 +21,32 @@ struct PracticeListView: View {
   var body: some View {
     let practices = practices
     let groups = PracticeCatalog.grouped(practices)
-    return Group {
-      if practices.isEmpty {
-        emptyState
-      } else if snapshot {
-        snapshotList(groups)
-      } else {
-        List(selection: selection) {
-          ForEach(groups, id: \.group) { entry in
-            Section(entry.group.title) {
-              ForEach(entry.sessions) { session in
-                PracticeRow(session: session, snippet: snippet(for: session))
-                  .tag(session.id)
-                  .contextMenu { rowMenu(session) }
+    return VStack(spacing: 0) {
+      Group {
+        if practices.isEmpty {
+          emptyState
+        } else if snapshot {
+          snapshotList(groups)
+        } else {
+          List(selection: selection) {
+            ForEach(groups, id: \.group) { entry in
+              Section(entry.group.title) {
+                ForEach(entry.sessions) { session in
+                  PracticeRow(session: session, snippet: snippet(for: session))
+                    .tag(session.id)
+                    .contextMenu { rowMenu(session) }
+                }
               }
             }
           }
+          .listStyle(.inset)
+          .disabled(!model.canNavigate)
         }
-        .listStyle(.inset)
-        .disabled(!model.canNavigate)
       }
+      .frame(maxHeight: .infinity)
+      // Below the list, not over it: a safe-area inset let rows scroll under the text.
+      footer
     }
-    .safeAreaInset(edge: .bottom) { footer }
     .navigationTitle(model.listFilter.title)
     .modifier(ListSearch(text: $search, enabled: !snapshot))
     .alert("Delete practice?", isPresented: deleteAlertBinding, presenting: deleteCandidate) {
