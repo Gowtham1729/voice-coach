@@ -68,26 +68,15 @@ struct SettingsView: View {
   private var experimentsPane: some View {
     Form {
       Section {
-        Toggle("Enable experimental features", isOn: $experimentalFeatures)
+        Toggle("Words chat", isOn: $experimentalFeatures)
           .onChange(of: experimentalFeatures) { _, enabled in
             model.noteExperimentalFeaturesChanged()
             if !enabled { model.clearExperimentalChats() }
           }
       } footer: {
         Text(
-          "Turning this off clears all Words chats."
+          "Ask about a take’s or reference’s transcript. It reads text only, so it can’t hear your audio, and replies can be wrong. Chats clear when you quit or turn this off."
         )
-      }
-      if experimentalFeatures {
-        Section {
-          LabeledContent("Words", value: "Enabled")
-        } footer: {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Choose Words beside a recording or reference to explore its transcript.")
-            Text("Uses Apple Intelligence on this Mac. Chats clear when you quit.")
-            Text("Replies can be wrong. Words can’t hear or evaluate your audio.")
-          }
-        }
       }
     }
     .settingsPaneChrome()
@@ -169,11 +158,9 @@ struct SettingsView: View {
         .pickerStyle(.radioGroup)
         .disabled(busy)
       } footer: {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Apple: built in, many languages including Japanese. Language packs download as needed.")
-          Text("Parakeet: a one-time 714 MB download. 25 European languages, detected automatically.")
-          Text("Both run on this Mac.")
-        }
+        Text(
+          "Apple is built in and covers more languages, including Japanese. Parakeet is a 714 MB download for 25 European languages and detects the language for you. Both run on this Mac."
+        )
       }
 
       Section {
@@ -181,7 +168,7 @@ struct SettingsView: View {
       } footer: {
         if activeEngine == .system {
           Text(
-            "Applies to new recordings and references. Existing recordings keep their language."
+            "The default for new takes and references. The new practice sheet shows this same setting. Existing takes keep their language."
           )
         } else {
           Text(
@@ -227,8 +214,6 @@ struct SettingsView: View {
     }
     .settingsPaneChrome()
   }
-
-
 
   private var engineSelection: Binding<TranscriptionEnginePreference> {
     Binding(
@@ -304,33 +289,21 @@ struct SettingsView: View {
           Image(systemName: autoGenerateTitles ? "checkmark.circle.fill" : "circle")
             .foregroundStyle(Studio.accent)
         }
-        if autoGenerateTitles {
-          HStack {
-            Text("Apple Intelligence")
-            Spacer()
-            Text(SmartTitleGenerator.status.settingsLabel)
-              .foregroundStyle(.secondary)
-          }
-        }
         HStack {
           Text("Rephrase practice exercises")
           Spacer()
           Image(systemName: rewriteInsightWording ? "checkmark.circle.fill" : "circle")
             .foregroundStyle(Studio.accent)
         }
-        Text("Titles use Apple Intelligence on this Mac when enabled.")
+        LabeledContent("Apple Intelligence", value: SmartTitleGenerator.status.settingsLabel)
+        Text("Runs on this Mac. Rephrasing changes wording only; measured targets stay the same.")
           .font(.caption)
           .foregroundStyle(.secondary)
-        Text(
-          "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
       }
 
       snapshotCard("Experiments", symbol: "flask") {
-        LabeledContent("Experimental features", value: experimentalFeatures ? "On" : "Off")
-        Text("Words explores your transcript on this Mac. Chats clear when you quit.")
+        LabeledContent("Words chat", value: experimentalFeatures ? "On" : "Off")
+        Text("Asks about a transcript. Text only; replies can be wrong.")
           .font(.caption).foregroundStyle(.secondary)
       }
 
@@ -351,12 +324,6 @@ struct SettingsView: View {
           .font(.caption)
           .foregroundStyle(!isSystem ? .primary : .secondary)
           .opacity(!isSystem ? 1.0 : 0.65)
-      }
-
-      snapshotCard("Library", symbol: "internaldrive") {
-        LabeledContent("Recordings", value: "\(model.userRecordedTakeCount)")
-        LabeledContent("Imported", value: "\(model.importedTakeCount)")
-        LabeledContent("Practice", value: "\(model.mimicSessions.count)")
       }
     }
     .padding(24)
@@ -387,17 +354,6 @@ extension View {
       .contentMargins(.bottom, 12, for: .scrollContent)
       .padding(.top, -6)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-  }
-}
-
-extension TranscriptionEnginePreference {
-  fileprivate var settingsFooter: String {
-    switch self {
-    case .system:
-      "Transcribes on this Mac using Apple’s speech models."
-    case .parakeet:
-      "Transcribes on this Mac. Supports 25 European languages; download is about 714 MB."
-    }
   }
 }
 
