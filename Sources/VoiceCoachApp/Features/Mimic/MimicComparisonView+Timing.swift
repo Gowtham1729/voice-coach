@@ -29,7 +29,7 @@ extension MimicComparisonView {
             .frame(width: 132, alignment: .leading)
             timingWord(
               index: index, source: .reference, duration: pair.reference.end - pair.reference.start,
-              otherDuration: pair.attempt.end - pair.attempt.start, color: .cyan)
+              otherDuration: pair.attempt.end - pair.attempt.start, color: Studio.referenceSeries)
             timingWord(
               index: index, source: .attempt, duration: pair.attempt.end - pair.attempt.start,
               otherDuration: pair.reference.end - pair.reference.start, color: Studio.accent)
@@ -42,7 +42,7 @@ extension MimicComparisonView {
           .overlay(alignment: .bottomLeading) {
             if model.isPlaying, followedWordIndex == index {
               Rectangle()
-                .fill(model.mimicPlaybackSource == .reference ? .cyan : Studio.accent)
+                .fill(model.mimicPlaybackSource == .reference ? Studio.referenceSeries : Studio.accent)
                 .frame(width: 144 * playbackPositionInWord, height: 2)
             }
           }

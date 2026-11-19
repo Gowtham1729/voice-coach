@@ -64,6 +64,7 @@ struct MimicInspector: View {
           .menuIndicator(.hidden)
           .studioGlassButton()
           .help("More")
+        .accessibilityLabel("More actions")
 
           Button(role: .destructive, action: { requestDelete(take.id) }) {
             Image(systemName: "trash")

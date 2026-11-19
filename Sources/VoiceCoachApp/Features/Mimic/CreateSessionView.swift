@@ -26,6 +26,16 @@ struct CreateSessionView: View {
     return "Choose a phrase, then adjust its edges if needed."
   }
 
+  /// Why Create is off, or what it will do, next to the button.
+  private var createHint: String? {
+    if model.practiceClipCreationProgress != nil || model.mimicIsPreparing { return nil }
+    if model.mimicDraft == nil { return "Add audio first." }
+    if editor.creationSelections.isEmpty { return "Choose at least one phrase." }
+    if !canCreate { return "A phrase is too short or outside the clip." }
+    if editor.creationSelections.count > 1 { return "Each phrase becomes its own practice." }
+    return nil
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
       VStack(alignment: .leading, spacing: 6) {
@@ -54,6 +64,10 @@ struct CreateSessionView: View {
           ProgressView().controlSize(.small)
           Text("Creating \(progress.completed) of \(progress.total)…")
             .font(.callout).foregroundStyle(Studio.secondary)
+        } else if let createHint {
+          Text(createHint)
+            .font(.callout)
+            .foregroundStyle(Studio.secondary)
         }
         Spacer()
         Button("Cancel") {

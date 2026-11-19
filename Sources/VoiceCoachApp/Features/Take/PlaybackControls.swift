@@ -150,7 +150,7 @@ struct MimicComparePlaybackRow: View {
   }
 
   private var waveformColor: Color {
-    model.mimicPlaybackSource == .reference ? .cyan : Studio.accent
+    model.mimicPlaybackSource == .reference ? Studio.referenceSeries : Studio.accent
   }
 
   private var highlightedRange: ClosedRange<Double>? {

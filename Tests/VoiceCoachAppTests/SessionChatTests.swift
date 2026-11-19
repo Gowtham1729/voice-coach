@@ -413,10 +413,10 @@ struct SessionChatTests {
     #expect(unmatched.notice == "Not enough of your words matched the reference to compare.")
 
     let settings = try repositorySource("Sources/VoiceCoachApp/Features/Settings/SettingsView.swift")
-    #expect(settings.contains("Text(\"Practice next\")"))
+    #expect(settings.contains("Toggle(\"Rephrase practice exercises\""))
     #expect(
       settings.contains(
-        "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
+        "Rephrasing changes wording only; measured targets stay the same."
       ))
     let planner = try repositorySource("Sources/VoiceCoachCore/Coaching/CoachingPlan.swift")
     for phrase in [

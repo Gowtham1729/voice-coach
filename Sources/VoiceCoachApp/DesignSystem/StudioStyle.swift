@@ -37,6 +37,9 @@ enum Studio {
   static var secondary: Color { .secondary }
   static var accent: Color { .accentColor }
   static var line: Color { Color.primary.opacity(0.10) }
+  /// The reference in every comparison: neutral grey, so it never reads as a second blue
+  /// next to your take in the accent colour.
+  static var referenceSeries: Color { Color(nsColor: .secondaryLabelColor) }
 }
 
 enum StudioMotion {

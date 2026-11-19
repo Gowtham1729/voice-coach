@@ -101,7 +101,7 @@ extension MimicComparisonView {
       .frame(width: 1.5, height: metric == .timing ? 100 : 238)
       .overlay(alignment: .top) {
         Circle()
-          .fill(model.mimicPlaybackSource == .reference ? .cyan : Studio.accent)
+          .fill(model.mimicPlaybackSource == .reference ? Studio.referenceSeries : Studio.accent)
           .frame(width: 8, height: 8)
       }
       .allowsHitTesting(false)
@@ -112,7 +112,7 @@ extension MimicComparisonView {
     switch metric {
     case .pitch: "Relative pitch · semitones by matched words"
     case .timing:
-      "Word length · orange = pause change"
+      "Word length · ⏸ marks a word whose pause before it differs"
     case .emphasis: "Relative word energy · dB"
     }
   }
@@ -279,7 +279,7 @@ extension MimicComparisonView {
               lastTime = sample.time
             }
             context.stroke(
-              path, with: .color(isReference ? .cyan : Studio.accent),
+              path, with: .color(isReference ? Studio.referenceSeries : Studio.accent),
               style: StrokeStyle(lineWidth: 2, dash: isReference ? [5, 4] : []))
           }
         }
@@ -308,10 +308,10 @@ extension MimicComparisonView {
           lastIndex = index
           context.fill(
             Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)),
-            with: .color(isReference ? .cyan : Studio.accent))
+            with: .color(isReference ? Studio.referenceSeries : Studio.accent))
         }
         context.stroke(
-          path, with: .color(isReference ? .cyan : Studio.accent),
+          path, with: .color(isReference ? Studio.referenceSeries : Studio.accent),
           style: StrokeStyle(lineWidth: 2, dash: isReference ? [5, 4] : []))
       }
     }
@@ -333,7 +333,7 @@ extension MimicComparisonView {
           context.stroke(path, with: .color(Studio.ink.opacity(0.8)), lineWidth: 1.5)
           context.fill(
             Path(ellipseIn: CGRect(x: x - 4, y: 2, width: 8, height: 8)),
-            with: .color(model.mimicPlaybackSource == .reference ? .cyan : Studio.accent))
+            with: .color(model.mimicPlaybackSource == .reference ? Studio.referenceSeries : Studio.accent))
         }
         .frame(width: chartWidth, height: 238)
         .allowsHitTesting(false)
