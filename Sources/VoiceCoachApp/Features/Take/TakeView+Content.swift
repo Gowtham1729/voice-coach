@@ -51,7 +51,7 @@ extension TakeView {
       }
     }
     .padding(18)
-    .frame(maxWidth: .infinity, minHeight: 320, alignment: .topLeading)
+    .frame(maxWidth: .infinity, alignment: .topLeading)
     .studioCard()
   }
 

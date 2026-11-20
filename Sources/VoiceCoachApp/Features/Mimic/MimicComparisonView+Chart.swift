@@ -56,7 +56,13 @@ extension MimicComparisonView {
   }
 
   var chartHeight: CGFloat { metric == .timing ? 105 : 280 }
-  var chartCellWidth: CGFloat { metric == .timing ? 150 : 74 }
+  /// Word columns are at least 74 pt and grow to fill a wide card.
+  var wordCellWidth: CGFloat {
+    let count = CGFloat(max(1, comparison.pairs.count))
+    return max(74, (chartViewportWidth / count).rounded(.down))
+  }
+
+  var chartCellWidth: CGFloat { metric == .timing ? 150 : wordCellWidth }
 
   var chartContentWidth: CGFloat {
     let count = CGFloat(comparison.pairs.count)
@@ -64,7 +70,7 @@ extension MimicComparisonView {
     case .timing:
       return max(590, count * 150 - 6)
     case .pitch, .emphasis:
-      return max(630, count * 74)
+      return max(630, count * wordCellWidth)
     }
   }
 
@@ -144,7 +150,7 @@ extension MimicComparisonView {
       source == .reference ? comparison.pairs[index].reference : comparison.pairs[index].attempt
     let cell = chartCellWidth
     let inset: CGFloat = metric == .timing ? 6 : 0
-    let spokenWidth: CGFloat = metric == .timing ? 132 : 74
+    let spokenWidth: CGFloat = metric == .timing ? 132 : cell
     let wordEndX = CGFloat(index) * cell + inset + spokenWidth
     if comparison.pairs.indices.contains(index + 1) {
       let next =
@@ -217,7 +223,7 @@ extension MimicComparisonView {
         } label: {
           Text(comparison.pairs[index].word)
             .lineLimit(1)
-            .frame(width: 70)
+            .frame(width: wordCellWidth - 4)
             .padding(.vertical, 6)
             .background(
               (model.mimicSelectedWord ?? focusPairIndex) == index
@@ -238,9 +244,9 @@ extension MimicComparisonView {
     let displayedMetric = metric
     let ref = reference
     let own = attempt
-    let chartWidth = max(630, CGFloat(pairs.count) * 74)
+    let cell = wordCellWidth
+    let chartWidth = max(630, CGFloat(pairs.count) * cell)
     return Canvas { context, size in
-      let cell: CGFloat = 74
       let middle = size.height / 2
       if let focusPairIndex {
         context.fill(
@@ -253,6 +259,19 @@ extension MimicComparisonView {
       axis.addLine(to: CGPoint(x: size.width, y: middle))
       context.stroke(axis, with: .color(Studio.secondary.opacity(0.3)), lineWidth: 1)
 
+      // Scale: the middle line is the speaker's usual level; top and bottom are the clamp.
+      let limit = displayedMetric == .pitch ? "8 st" : "12 dB"
+      let scaleFont = Font.caption2
+      context.draw(
+        Text("higher +\(limit)").font(scaleFont).foregroundStyle(Studio.secondary),
+        at: CGPoint(x: 4, y: 4), anchor: .topLeading)
+      context.draw(
+        Text("usual").font(scaleFont).foregroundStyle(Studio.secondary),
+        at: CGPoint(x: 4, y: middle - 3), anchor: .bottomLeading)
+      context.draw(
+        Text("lower −\(limit)").font(scaleFont).foregroundStyle(Studio.secondary),
+        at: CGPoint(x: 4, y: size.height - 4), anchor: .bottomLeading)
+
       if displayedMetric == .pitch {
         for (take, isReference) in [(ref, true), (own, false)] {
           guard let median = take.result.metrics.medianPitchHz, median > 0 else { continue }
@@ -262,10 +281,15 @@ extension MimicComparisonView {
             let span = max(0.001, word.end - word.start)
             var path = Path()
             var lastTime: Double?
-            for sample in samples
-            where sample.time >= word.start && sample.time <= word.end && sample.value > 0 {
+            // Drop octave jumps and onset glitches: keep frames within 5 st of the word's median.
+            let voiced = samples.filter {
+              $0.time >= word.start && $0.time <= word.end && $0.value > 0
+            }
+            guard voiced.count >= 3 else { continue }
+            let semitones = voiced.map { 12 * log2($0.value / median) }
+            let wordMedian = semitones.sorted()[semitones.count / 2]
+            for (sample, relative) in zip(voiced, semitones) where abs(relative - wordMedian) <= 5 {
               let position = max(0, min(1, (sample.time - word.start) / span))
-              let relative = 12 * log2(sample.value / median)
               let fraction = max(-1, min(1, relative / 8))
               let point = CGPoint(
                 x: CGFloat(index) * cell + CGFloat(position) * cell,
@@ -318,7 +342,7 @@ extension MimicComparisonView {
     .frame(width: chartWidth, height: 238)
     .contentShape(Rectangle())
     .onTapGesture { location in
-      let index = Int(location.x / 74)
+      let index = Int(location.x / cell)
       jump(to: index, source: model.mimicPlaybackSource)
     }
     .accessibilityLabel(
