@@ -51,20 +51,32 @@ struct MimicInspector: View {
     } footer: {
       InspectorFooterStack {
         HStack(spacing: 8) {
-          Menu {
-            Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyMimicAIAnalysisPrompt)
-              .help("Copies instructions and the comparison JSON. Ichido does not send it.")
-            Button("Copy report JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
-          } label: {
-            Image(systemName: "ellipsis")
-              .inspectorActionLabel()
-              .accessibilityLabel("More")
+          // Report exports are for debugging analysis, so they stay behind Experiments.
+          if model.showsExperimentalAsk {
+            Menu {
+              Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyMimicAIAnalysisPrompt)
+                .help("Copies instructions and the comparison JSON. Ichido does not send it.")
+              Button("Copy report JSON", systemImage: "curlybraces", action: model.copyMimicCompareJSON)
+            } label: {
+              Image(systemName: "ellipsis")
+                .inspectorActionLabel()
+                .accessibilityLabel("More")
+            }
+            .menuStyle(.button)
+            .menuIndicator(.hidden)
+            .studioGlassButton()
+            .help("More")
+            .accessibilityLabel("More actions")
           }
-          .menuStyle(.button)
-          .menuIndicator(.hidden)
+
+          Button(action: model.exportCurrent) {
+            Label(TakeScreenCopy.export, systemImage: "square.and.arrow.up")
+              .inspectorActionLabel()
+          }
           .studioGlassButton()
-          .help("More")
-        .accessibilityLabel("More actions")
+          .layoutPriority(1)
+          .disabled(model.isRecording || model.isAnalyzing)
+          .help("Export the audio and report")
 
           Button(role: .destructive, action: { requestDelete(take.id) }) {
             Image(systemName: "trash")

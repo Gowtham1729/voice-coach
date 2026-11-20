@@ -33,9 +33,11 @@ struct VoiceCoachCommands: Commands {
         .keyboardShortcut("e", modifiers: [.command, .shift])
         .disabled(model.selectedTake == nil || model.isRecording || model.isAnalyzing)
 
-      Button("Copy AI analysis prompt + JSON") { model.copySelectedAIAnalysisPrompt() }
-        .keyboardShortcut("c", modifiers: [.command, .option])
-        .disabled(model.selectedTake == nil || model.isRecording || model.isAnalyzing)
+      if model.showsExperimentalAsk {
+        Button("Copy AI analysis prompt + JSON") { model.copySelectedAIAnalysisPrompt() }
+          .keyboardShortcut("c", modifiers: [.command, .option])
+          .disabled(model.selectedTake == nil || model.isRecording || model.isAnalyzing)
+      }
     }
 
     CommandMenu("Navigate") {

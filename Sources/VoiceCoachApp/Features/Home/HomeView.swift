@@ -79,15 +79,6 @@ struct HomeView: View {
             : model.isRequestingPermission ? "Waiting for microphone access" : "Record")
       }
 
-      if !model.isRecording && !model.isAnalyzing && !model.isRequestingPermission {
-        SettingsLink {
-          Label("Transcription settings", systemImage: "globe")
-        }
-        .font(.caption)
-        .frame(maxWidth: .infinity, alignment: .trailing)
-        .help("Choose the transcription engine and spoken language.")
-      }
-
       if model.isAnalyzing {
         HStack(spacing: 8) {
           ProgressView().controlSize(.small)
@@ -125,7 +116,7 @@ struct HomeView: View {
           Text("Continue practice")
             .font(.caption.weight(.semibold))
             .foregroundStyle(Studio.secondary)
-          Text(session.mimicReference?.sourceName ?? session.name)
+          Text(PracticeCatalog.title(of: session))
             .font(.body.weight(.medium))
             .lineLimit(1)
           Text("\(session.takeCount) \(session.takeCount == 1 ? "take" : "takes")")
@@ -142,6 +133,6 @@ struct HomeView: View {
     .buttonStyle(.plain)
     .disabled(!model.canNavigate)
     .desktopPanel()
-    .accessibilityLabel("Continue practice, \(session.mimicReference?.sourceName ?? session.name)")
+    .accessibilityLabel("Continue practice, \(PracticeCatalog.title(of: session))")
   }
 }

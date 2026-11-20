@@ -71,8 +71,13 @@ struct MimicWorkspace: View {
   private func heading(_ session: CoachingSession) -> some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 12) {
+        Text(PracticeCatalog.title(of: session))
+          .font(.title3.weight(.semibold))
+          .lineLimit(1)
+          .truncationMode(.middle)
         Label("With reference", systemImage: "waveform.path")
-          .font(.callout.weight(.medium))
+          .font(.caption)
+          .foregroundStyle(.secondary)
         if let locale = session.transcriptionLocaleIdentifier {
           Text(TranscriptionLanguagePreference.displayName(for: locale))
             .font(.caption)
@@ -167,17 +172,12 @@ struct MimicWorkspace: View {
       Text(vcDuration(reference.take.result.metrics.duration))
         .font(.caption.monospacedDigit())
         .foregroundStyle(Studio.secondary)
-      if model.showsExperimentalAsk {
-        Button("Explore words") { model.revealSessionChat() }
-          .help("Open Words for meanings, synonyms, and translations.")
-          .disabled(model.isRecording || model.isAnalyzing)
-      }
     }
     .padding(14)
     .desktopPanel()
     .overlay(alignment: .bottomLeading) {
       if !audioAvailable {
-        Text("Reference audio is missing. Previous takes remain in Analysis.")
+        Text("Reference audio is missing. Earlier takes are still in Review.")
           .font(.caption)
           .foregroundStyle(.orange)
           .padding(.horizontal, 14)

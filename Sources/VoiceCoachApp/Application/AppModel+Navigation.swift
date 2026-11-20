@@ -156,10 +156,8 @@ extension AppModel {
     guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
     let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !cleanName.isEmpty else { return }
+    // The reference keeps its own source name; the practice title is `name`.
     sessions[index].name = cleanName
-    if sessions[index].mode == .mimic {
-      sessions[index].mimicReference?.sourceName = cleanName
-    }
     sessions[index].updatedAt = Date()
     sortSessions()
     persist()

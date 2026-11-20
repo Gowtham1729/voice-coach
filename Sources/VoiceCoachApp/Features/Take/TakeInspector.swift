@@ -57,20 +57,23 @@ struct TakeInspector: View {
     let chrome = TakeActionChrome.plainTake()
     InspectorFooterStack {
       HStack(spacing: 8) {
-        Menu {
-          Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyAIAnalysisPrompt)
-            .help("Copies instructions and this take's JSON. Ichido does not send it.")
-          Button("Copy report JSON", systemImage: "curlybraces", action: model.copyReport)
-        } label: {
-          Image(systemName: "ellipsis")
-            .inspectorActionLabel()
-            .accessibilityLabel("More")
+        // Report exports are for debugging analysis, so they stay behind Experiments.
+        if model.showsExperimentalAsk {
+          Menu {
+            Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyAIAnalysisPrompt)
+              .help("Copies instructions and this take's JSON. Ichido does not send it.")
+            Button("Copy report JSON", systemImage: "curlybraces", action: model.copyReport)
+          } label: {
+            Image(systemName: "ellipsis")
+              .inspectorActionLabel()
+              .accessibilityLabel("More")
+          }
+          .menuStyle(.button)
+          .menuIndicator(.hidden)
+          .studioGlassButton()
+          .help("More")
+          .accessibilityLabel("More actions")
         }
-        .menuStyle(.button)
-        .menuIndicator(.hidden)
-        .studioGlassButton()
-        .help("More")
-        .accessibilityLabel("More actions")
 
         if chrome.exportSitsWithDelete {
           Button(action: model.exportCurrent) {
