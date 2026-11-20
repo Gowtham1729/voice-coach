@@ -92,15 +92,21 @@ struct MimicWorkspace: View {
               .background(Studio.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
           } else {
             if model.mimicWorkspaceMode != .practice {
-              Button(model.mimicWorkspaceMode == .analysis ? "Show comparison" : "Take details") {
-                model.setMimicWorkspaceMode(
-                  model.mimicWorkspaceMode == .analysis ? .compare : .analysis)
+              // Review has two views of the selected take; name both instead of hiding one.
+              Picker(
+                "Review view",
+                selection: Binding(
+                  get: { model.mimicWorkspaceMode },
+                  set: { model.setMimicWorkspaceMode($0) }
+                )
+              ) {
+                Text("Compare").tag(MimicWorkspaceMode.compare)
+                Text("This take").tag(MimicWorkspaceMode.analysis)
               }
-              .buttonStyle(.borderless)
-              .help(
-                model.mimicWorkspaceMode == .analysis
-                  ? "Compare this take with the reference"
-                  : "Measurements for this take on its own")
+              .labelsHidden()
+              .pickerStyle(.segmented)
+              .frame(width: 170)
+              .help("Compare with the reference, or see this take's own measurements")
               .disabled(model.isRecording || model.mimicPhase != .ready)
             }
             Picker(
@@ -253,6 +259,10 @@ struct MimicWorkspace: View {
 
       if model.isRecording {
         HStack(spacing: 12) {
+          Button("Stop") { model.recordButtonPressed() }
+            .tint(.red)
+            .studioGlassButton(prominent: true)
+            .controlSize(.large)
           Circle().fill(.red).frame(width: 9, height: 9)
           Text("Recording · \(vcDuration(model.elapsed))")
             .font(.headline.monospacedDigit())
@@ -260,14 +270,25 @@ struct MimicWorkspace: View {
             .frame(maxWidth: 260)
         }
       } else if case .countIn(let number) = model.mimicPhase {
-        Text("Starting in \(number)…")
-          .font(.headline.monospacedDigit())
+        HStack(spacing: 12) {
+          Button("Cancel") { model.cancelMimicCountIn() }
+            .controlSize(.large)
+          Text("Starting in \(number)…")
+            .font(.headline.monospacedDigit())
+        }
       } else if model.mimicPhase == .playingReference {
-        Text("Listening… A 2-second count-in comes before recording.")
-          .font(.callout)
-          .foregroundStyle(Studio.secondary)
+        HStack(spacing: 12) {
+          Button("Cancel") { model.stopPlayback() }
+            .keyboardShortcut(.space, modifiers: [])
+            .controlSize(.large)
+          Text("Listening… A 2-second count-in comes before recording.")
+            .font(.callout)
+            .foregroundStyle(Studio.secondary)
+        }
       } else if model.isAnalyzing || model.mimicPhase == .analyzing {
         ProgressView("Analyzing…")
+      } else {
+        practiceActions
       }
       if model.hasPendingMimicWork {
         Divider()
@@ -290,8 +311,6 @@ struct MimicWorkspace: View {
         let reference = session.mimicReference, let attempt = model.selectedTake
       {
         compareTransport(reference: reference.take, attempt: attempt)
-      } else {
-        practiceTransport
       }
     }
   }
@@ -312,45 +331,41 @@ struct MimicWorkspace: View {
     .transportBarBackground()
   }
 
-  private var practiceTransport: some View {
+  /// Listen and record sit right under the sentence they act on. Review lives in the
+  /// Practice / Review switch, so there is no separate bottom bar in Practice.
+  private var practiceActions: some View {
     HStack(spacing: 12) {
-      if case .countIn = model.mimicPhase {
-        Button("Cancel") { model.cancelMimicCountIn() }
-      } else if model.mimicPhase == .playingReference {
-        Button("Cancel") { model.stopPlayback() }
-          .keyboardShortcut(.space, modifiers: [])
-      } else if model.isRecording {
-        Button("Stop") { model.recordButtonPressed() }
-          .tint(.red)
-          .studioGlassButton(prominent: true)
-      } else {
-        Button("Listen") { model.toggleMimicPlayback() }
-          .keyboardShortcut(.space, modifiers: [])
-          .disabled(model.isAnalyzing || model.mimicPhase != .ready || model.hasPendingMimicWork)
-        Button("Record take") { model.startMimicPractice() }
-          .studioGlassButton(prominent: true)
-          .help(
-            model.selectedSession?.mimicStyle == .speakAlong
-              ? "Play the reference while you record"
-              : "Play the reference, then record")
-          .disabled(
-            model.isAnalyzing || model.isRequestingPermission || model.isPlaying
-              || model.mimicPhase != .ready || model.hasPendingMimicWork)
-        if model.selectedSession?.mimicStyle == .listenAndRepeat {
-          Button("Record only") { model.startMimicPractice(skipReference: true) }
-            .help("Record without listening first")
-            .disabled(model.isAnalyzing || model.isPlaying || model.hasPendingMimicWork)
-        }
+      Button {
+        model.toggleMimicPlayback()
+      } label: {
+        Label("Listen", systemImage: "play.fill")
       }
-      Spacer()
-      if let session = model.selectedSession, let take = session.latestTake, !model.isRecording {
-        Button("Review take \(session.takeCount)") { model.selectTake(take.id) }
-          .disabled(model.isAnalyzing)
+      .keyboardShortcut(.space, modifiers: [])
+      .controlSize(.large)
+      .disabled(model.isAnalyzing || model.mimicPhase != .ready || model.hasPendingMimicWork)
+
+      Button {
+        model.startMimicPractice()
+      } label: {
+        Label("Record take", systemImage: "record.circle")
+      }
+      .studioGlassButton(prominent: true)
+      .controlSize(.large)
+      .help(
+        model.selectedSession?.mimicStyle == .speakAlong
+          ? "Play the reference while you record"
+          : "Play the reference, then record")
+      .disabled(
+        model.isAnalyzing || model.isRequestingPermission || model.isPlaying
+          || model.mimicPhase != .ready || model.hasPendingMimicWork)
+
+      if model.selectedSession?.mimicStyle == .listenAndRepeat {
+        Button("Record without listening") { model.startMimicPractice(skipReference: true) }
+          .buttonStyle(.borderless)
+          .font(.callout)
+          .help("Start recording right away, without playing the reference first")
+          .disabled(model.isAnalyzing || model.isPlaying || model.hasPendingMimicWork)
       }
     }
-    .padding(.horizontal, 20)
-    .padding(.vertical, 12)
-    .frame(maxWidth: .infinity)
-    .transportBarBackground()
   }
 }

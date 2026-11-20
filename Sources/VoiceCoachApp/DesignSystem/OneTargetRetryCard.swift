@@ -152,13 +152,11 @@ struct OneTargetRetryCard: View {
 
             if hasCue && evaluation?.verdict != .closeEnough {
               Button(OneTargetRetryStrings.skip) { model.skipRetryCard(for: take.id) }
-                .buttonStyle(.plain)
-                .foregroundStyle(Studio.secondary)
+                .buttonStyle(.bordered)
               Button(OneTargetRetryStrings.thatWasOnPurpose) {
                 model.dismissRetryCard(for: take.id)
               }
-              .buttonStyle(.plain)
-              .foregroundStyle(Studio.secondary)
+              .buttonStyle(.bordered)
             }
           }
         }
@@ -173,9 +171,12 @@ struct OneTargetRetryCard: View {
     _ title: String, word: String, source: MimicPlaybackSource, span: ClosedRange<Double>,
     focusWordRange: ClosedRange<Double>
   ) -> some View {
-    Button(title) {
+    Button {
       model.playFocusSegment(
         source: source, range: span, focusWordRange: focusWordRange)
+    } label: {
+      // A play icon so these read as playback, not as tabs.
+      Label(title, systemImage: "play.fill")
     }
     .buttonStyle(.bordered)
     .accessibilityLabel(source == .attempt

@@ -216,6 +216,20 @@ struct ContentView: View {
 
   @ToolbarContentBuilder
   private var workspaceToolbar: some ToolbarContent {
+    ToolbarItemGroup {
+      Button(action: model.startHomeRecording) {
+        Label("New practice", systemImage: "record.circle")
+      }
+      .help("Record a new practice (⌘N)")
+      .disabled(!model.canStartQuickPractice)
+
+      Button(action: model.startMimic) {
+        Label("New practice with reference…", systemImage: "waveform.path")
+      }
+      .help("Practice against a reference clip (⇧⌘N)")
+      .disabled(!model.canStartQuickPractice)
+    }
+
     ToolbarSpacer(.flexible)
 
     if inspectorEligible {
