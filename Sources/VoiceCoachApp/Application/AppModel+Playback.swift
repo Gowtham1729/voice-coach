@@ -69,7 +69,7 @@ extension AppModel {
   func exportCurrent() {
     guard let take = selectedTake else { return }
     let panel = NSOpenPanel()
-    panel.title = "Export Recording"
+    panel.title = "Export Take"
     panel.prompt = "Export"
     panel.canChooseFiles = false
     panel.canChooseDirectories = true

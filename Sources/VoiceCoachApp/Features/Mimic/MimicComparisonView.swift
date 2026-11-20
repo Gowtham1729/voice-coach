@@ -52,7 +52,7 @@ struct MimicComparisonView: View {
       if comparison.correspondenceReliable {
         VStack(alignment: .leading, spacing: 14) {
           HStack(spacing: 12) {
-            SectionEyebrow(text: "Analysis")
+            SectionEyebrow(text: "Comparison")
             Spacer()
             if !snapshot {
               Toggle("Follow", isOn: $followPlayback)

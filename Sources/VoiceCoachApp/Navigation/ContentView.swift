@@ -1,4 +1,5 @@
 import SwiftUI
+import VoiceCoachSession
 
 struct ContentView: View {
   @EnvironmentObject private var model: AppModel
@@ -251,11 +252,8 @@ struct ContentView: View {
     switch model.destination {
     case .home, .library, .mimics: model.listFilter.title
     case .mimicStart: "New practice with reference"
-    case .practice:
-      model.selectedSession?.mimicReference?.sourceName
-        ?? model.selectedSession?.name
-        ?? "Practice"
-    case .take: model.selectedSession?.name ?? "Practice"
+    case .practice, .take:
+      model.selectedSession.map(PracticeCatalog.title(of:)) ?? "Practice"
     }
   }
 

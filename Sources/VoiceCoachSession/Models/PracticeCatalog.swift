@@ -86,10 +86,12 @@ package enum PracticeCatalog {
     }
   }
 
-  /// The one name a practice goes by everywhere.
+  /// The one name a practice goes by everywhere. The reference's file name only
+  /// fills in when an older practice has no name of its own.
   package static func title(of session: CoachingSession) -> String {
-    if let source = session.mimicReference?.sourceName, !source.isEmpty { return source }
-    return session.name
+    let name = session.name.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !name.isEmpty { return name }
+    return session.mimicReference?.sourceName ?? ""
   }
 
   /// "3 takes · With reference" style detail for a row.

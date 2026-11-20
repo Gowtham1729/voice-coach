@@ -105,7 +105,7 @@ extension TakeView {
     return VStack(alignment: .leading, spacing: 16) {
       ViewThatFits(in: .horizontal) {
         HStack(spacing: 12) {
-          SectionEyebrow(text: "Analysis")
+          SectionEyebrow(text: "Charts")
           Spacer()
           plotPicker
           copyGraphButton(take)
@@ -113,7 +113,7 @@ extension TakeView {
 
         VStack(alignment: .leading, spacing: 10) {
           HStack {
-            SectionEyebrow(text: "Analysis")
+            SectionEyebrow(text: "Charts")
             Spacer()
             copyGraphButton(take)
           }
