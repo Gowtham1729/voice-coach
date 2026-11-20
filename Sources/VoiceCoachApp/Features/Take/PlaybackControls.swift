@@ -21,7 +21,7 @@ struct TakePlaybackRow<Trailing: View>: View {
     HStack(spacing: large ? 18 : 11) {
       if let onPreviousWord {
         wordStepButton(
-          systemImage: "chevron.backward",
+          systemImage: "backward.frame.fill",
           help: "Previous word (←)",
           shortcut: .leftArrow,
           active: canStepPreviousWord,
@@ -33,7 +33,7 @@ struct TakePlaybackRow<Trailing: View>: View {
 
       if let onNextWord {
         wordStepButton(
-          systemImage: "chevron.forward",
+          systemImage: "forward.frame.fill",
           help: "Next word (→)",
           shortcut: .rightArrow,
           active: canStepNextWord,
