@@ -1,6 +1,8 @@
 import SwiftUI
 import VoiceCoachCore
 
+/// The take's transcript as wrapping text. Each word is clickable and plays from there;
+/// the word being played or selected is highlighted.
 struct TakeTranscriptPane: View {
   let transcription: TranscriptionResult
   let highlightedWordIndex: Int?
@@ -8,118 +10,28 @@ struct TakeTranscriptPane: View {
   let reduceMotion: Bool
   let onSelectWord: (Int, TranscriptWord) -> Void
 
-  @Environment(\.studioSnapshot) private var snapshot
-
-  private let paneHeight: CGFloat = 280
+  private let maxHeight: CGFloat = 220
 
   var body: some View {
-    wordBrowser
-      .frame(height: paneHeight, alignment: .topLeading)
-      .clipped()
-      .accessibilityLabel("Word timings")
-  }
-
-  @ViewBuilder
-  private var wordBrowser: some View {
-    let words = Array(transcription.words.enumerated())
-    if snapshot {
-      wordGrid(entries: Array(words.prefix(36)))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .clipped()
-    } else {
-      ScrollViewReader { proxy in
-        ScrollView {
-          wordGrid(entries: words)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onChange(of: highlightedWordIndex) { _, index in
-          guard let index else { return }
-          withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
-            proxy.scrollTo(index, anchor: .center)
-          }
-        }
-      }
+    // Short transcripts take only the room they need; long ones scroll.
+    ViewThatFits(in: .vertical) {
+      text
+      ScrollView { text }
     }
+    .frame(maxWidth: .infinity, maxHeight: maxHeight, alignment: .topLeading)
+    .accessibilityLabel("Transcript")
   }
 
-  private func wordGrid(entries: [(offset: Int, element: TranscriptWord)]) -> some View {
-    LazyVGrid(
-      columns: [GridItem(.adaptive(minimum: 92), spacing: 8)], alignment: .leading, spacing: 8
-    ) {
-      ForEach(entries, id: \.offset) { index, word in
-        WordTimingChip(
-          word: word,
-          isHighlighted: highlightedWordIndex == index,
-          isPlaying: isPlaying,
-          reduceMotion: reduceMotion,
-          action: { onSelectWord(index, word) }
-        )
-        .id(index)
-      }
-    }
-  }
-}
-
-private struct WordTimingChip: View {
-  let word: TranscriptWord
-  let isHighlighted: Bool
-  let isPlaying: Bool
-  let reduceMotion: Bool
-  let action: () -> Void
-
-  @Environment(\.studioSnapshot) private var snapshot
-  @State private var isHovered = false
-
-  private var showTiming: Bool {
-    isHovered || isHighlighted
-  }
-
-  private var timingText: String {
-    "\(vcNumber(word.start, 2))–\(vcNumber(word.end, 2))s"
-  }
-
-  var body: some View {
-    Button(action: action) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text(word.word)
-          .font(.system(size: 12, weight: .medium))
-          .lineLimit(1)
-        if showTiming {
-          Text(timingText)
-            .font(.system(size: 8, design: .monospaced))
-            .foregroundStyle(Studio.secondary)
-            .lineLimit(1)
-        }
-      }
-      .padding(.horizontal, 9)
-      .padding(.vertical, 6)
-      .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
-      .contentShape(RoundedRectangle(cornerRadius: 9))
-      .background(
-        isHighlighted
-          ? Studio.accent.opacity(0.16)
-          : (isHovered ? Studio.surface : Studio.surface.opacity(0.7)),
-        in: RoundedRectangle(cornerRadius: 9)
-      )
-      .overlay(
-        RoundedRectangle(cornerRadius: 9).stroke(
-          isHighlighted ? Studio.accent : (isHovered ? Studio.line.opacity(1.5) : Studio.line)
-        )
-      )
-      .scaleEffect(isHighlighted && isPlaying ? 1.015 : 1)
-      .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: isHighlighted)
-      .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isHovered)
-    }
-    .buttonStyle(.plain)
-    .onHover { hovering in
-      if !snapshot {
-        isHovered = hovering
-      }
-    }
-    .accessibilityLabel(word.word)
-    .accessibilityValue(timingText)
-    .accessibilityAddTraits(isHighlighted ? .isSelected : [])
-    .help("\(word.word): \(timingText)")
+  private var text: some View {
+    MimicTranscriptText(
+      transcription: transcription,
+      activeIndex: highlightedWordIndex,
+      activeColor: Studio.accent,
+      onSelect: onSelectWord
+    )
+    .font(.title3)
+    .lineSpacing(6)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .fixedSize(horizontal: false, vertical: true)
   }
 }

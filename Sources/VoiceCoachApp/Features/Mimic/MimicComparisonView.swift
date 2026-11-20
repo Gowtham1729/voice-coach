@@ -18,6 +18,8 @@ struct MimicComparisonView: View {
   @State var metric: MimicMetric = .pitch
   @State var followPlayback = true
   @State var chartPosition = ScrollPosition(edge: .leading)
+  /// Visible chart width, so words spread across the card instead of stopping early.
+  @State var chartViewportWidth: CGFloat = 0
 
   init(
     reference: PracticeSession, attempt: PracticeSession, comparison: MimicComparison,
@@ -84,6 +86,8 @@ struct MimicComparisonView: View {
           } else {
             GeometryReader { geometry in
               followableChart(viewportWidth: geometry.size.width)
+                .onAppear { chartViewportWidth = geometry.size.width }
+                .onChange(of: geometry.size.width) { _, width in chartViewportWidth = width }
             }
             .frame(height: chartHeight)
           }

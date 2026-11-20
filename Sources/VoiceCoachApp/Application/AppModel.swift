@@ -311,14 +311,9 @@ final class AppModel: ObservableObject {
   var emptyLegacySessions: [CoachingSession] {
     sessions.filter(\.isEmptyLegacy)
   }
-  var continueMimic: CoachingSession? {
-    if let lastUsedMimicID,
-      let session = sessions.first(where: { $0.id == lastUsedMimicID && $0.isMimic && !$0.archived }
-      )
-    {
-      return session
-    }
-    return mimicSessions.first
+  /// The latest practices with at least one take, newest first, for Home.
+  var recentPractices: [CoachingSession] {
+    Array(sessions.lazy.filter { !$0.archived && ($0.takeCount > 0 || $0.isMimic) }.prefix(3))
   }
   var userRecordedTakeCount: Int {
     sessions.reduce(0) { $0 + $1.takes.filter { $0.takeSource == .recorded }.count }
