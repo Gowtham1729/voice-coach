@@ -6,7 +6,7 @@
 - **Pronunciation:** approximately ee-chee-doh
 - **Descriptor:** Your private speaking room.
 - **Website headline:** Speaking practice. At your own pace.
-- **Website introduction:** Practice a language. Rehearse a talk. Hear yourself back and find something to try next.
+- **Website introduction:** Practice a language. Rehearse a talk. Hear yourself back, and with a reference, get one thing to try next.
 - **Page title:** Ichido | Private speaking practice for Mac.
 
 ## Product description

@@ -71,9 +71,14 @@ assert.equal(html.includes("0.0.4"), false, "Public site does not advertise 0.0.
 assert.equal(html.includes("0.0.3"), false, "Public site does not advertise 0.0.3");
 assert.ok(
   html.includes(
-    "Ichido goes online to check for updates and to download optional speech tools and models. Your recordings, transcripts, and analysis never leave your Mac.",
+    "No account. No recording uploads. No analytics. Ichido goes online to check for updates and to download optional speech tools and models. Your recordings, transcripts, and analysis never leave your Mac.",
   ),
-  "Privacy line names update checks and keeps recordings on the Mac",
+  "Privacy line opens with the privacy statement, then names update checks and keeps recordings on the Mac",
+);
+assert.equal(
+  /reference practice/i.test(html),
+  false,
+  "Say practice with a reference or With reference, not Reference practice",
 );
 assert.ok(
   html.includes("stay on your Mac"),
