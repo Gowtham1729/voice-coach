@@ -14,7 +14,6 @@ struct MimicWorkspace: View {
         practiceCompareLayout
       }
     }
-    .background { takeStepShortcuts }
   }
 
   private var analysisLayout: some View {
@@ -46,7 +45,8 @@ struct MimicWorkspace: View {
             if model.mimicWorkspaceMode == .compare, let attempt = model.selectedTake {
               MimicComparisonView(
                 reference: reference.take, attempt: attempt,
-                comparison: MimicComparison.compare(reference: reference.take, attempt: attempt)
+                comparison: MimicComparison.compare(reference: reference.take, attempt: attempt),
+                localeIdentifier: session.transcriptionLocaleIdentifier
               )
             } else {
               practicePanel(session, reference: reference)
@@ -59,7 +59,7 @@ struct MimicWorkspace: View {
         } else {
           ContentUnavailableView(
             "Reference unavailable", systemImage: "waveform.badge.exclamationmark",
-            description: Text("This practice session needs its reference audio.")
+            description: Text("This practice needs its reference audio.")
           )
           .frame(maxWidth: .infinity, minHeight: 350)
         }
@@ -68,85 +68,67 @@ struct MimicWorkspace: View {
     }
   }
 
-  @ViewBuilder
-  private var takeStepShortcuts: some View {
-    if !snapshot {
-      HStack {
-        Button("Previous practice take") { model.stepMimicTake(by: -1) }
-          .keyboardShortcut(.leftArrow, modifiers: .option)
-        Button("Next practice take") { model.stepMimicTake(by: 1) }
-          .keyboardShortcut(.rightArrow, modifiers: .option)
-      }
-      .opacity(0)
-      .frame(width: 0, height: 0)
-      .accessibilityHidden(true)
-    }
-  }
-
   private func heading(_ session: CoachingSession) -> some View {
-    let currentTakeIndex =
-      session.takes.firstIndex(where: {
-        $0.id == (model.selectedTakeID ?? session.latestTake?.id)
-      }) ?? 0
-
-    return HStack(spacing: 12) {
-      Label("Reference practice", systemImage: "waveform.path")
-        .font(.callout.weight(.medium))
-      if let locale = session.transcriptionLocaleIdentifier {
-        Text(TranscriptionLanguagePreference.displayName(for: locale))
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(spacing: 12) {
+        Text(PracticeCatalog.title(of: session))
+          .font(.title3.weight(.semibold))
+          .lineLimit(1)
+          .truncationMode(.middle)
+        Label("With reference", systemImage: "waveform.path")
           .font(.caption)
           .foregroundStyle(.secondary)
-      }
-      Spacer()
-      if !session.takes.isEmpty {
-        if snapshot {
-          Text("Take \(currentTakeIndex + 1) of \(session.takeCount)")
+        if let locale = session.transcriptionLocaleIdentifier {
+          Text(TranscriptionLanguagePreference.displayName(for: locale))
             .font(.caption)
-            .padding(7)
-            .background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
-          Text(model.mimicWorkspaceMode.title)
-            .font(.caption.weight(.semibold))
-            .padding(7)
-            .background(Studio.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
-        } else {
-          Menu {
+            .foregroundStyle(.secondary)
+        }
+        Spacer()
+        if !session.takes.isEmpty {
+          if snapshot {
+            Text(model.mimicWorkspaceMode.switchCase.title)
+              .font(.caption.weight(.semibold))
+              .padding(7)
+              .background(Studio.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
+          } else {
+            if model.mimicWorkspaceMode != .practice {
+              // Review has two views of the selected take; name both instead of hiding one.
+              Picker(
+                "Review view",
+                selection: Binding(
+                  get: { model.mimicWorkspaceMode },
+                  set: { model.setMimicWorkspaceMode($0) }
+                )
+              ) {
+                Text("Compare").tag(MimicWorkspaceMode.compare)
+                Text("This take").tag(MimicWorkspaceMode.analysis)
+              }
+              .labelsHidden()
+              .pickerStyle(.segmented)
+              .frame(width: 170)
+              .help("Compare with the reference, or see this take's own measurements")
+              .disabled(model.isRecording || model.mimicPhase != .ready)
+            }
             Picker(
-              "Take",
+              "View",
               selection: Binding(
-                get: { model.selectedTakeID ?? session.latestTake!.id },
-                set: { value in model.selectTake(value) }
+                get: { model.mimicWorkspaceMode.switchCase },
+                set: { model.setMimicWorkspaceMode($0) }
               )
             ) {
-              ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, take in
-                Text(
-                  "Take \(index + 1) · \((session.mimicAttemptStyles?[take.id] ?? .listenAndRepeat).title) · \(take.createdAt.formatted(date: .omitted, time: .shortened))"
-                )
-                .tag(take.id)
+              ForEach(MimicWorkspaceMode.switchCases) { mode in
+                Text(mode.title).tag(mode)
               }
             }
-            .pickerStyle(.inline)
             .labelsHidden()
-          } label: {
-            Text("Take \(currentTakeIndex + 1) of \(session.takeCount)")
+            .pickerStyle(.segmented)
+            .frame(width: 180)
+            .disabled(model.isRecording || model.mimicPhase != .ready)
           }
-          .disabled(model.isRecording || model.mimicPhase != .ready)
-
-          Picker(
-            "Workspace",
-            selection: Binding(
-              get: { model.mimicWorkspaceMode },
-              set: { model.setMimicWorkspaceMode($0) }
-            )
-          ) {
-            ForEach(MimicWorkspaceMode.allCases) { mode in
-              Text(mode.title).tag(mode)
-            }
-          }
-          .labelsHidden()
-          .pickerStyle(.segmented)
-          .frame(width: 270)
-          .disabled(model.isRecording || model.mimicPhase != .ready)
         }
+      }
+      if !session.takes.isEmpty {
+        TakeStrip(session: session)
       }
     }
   }
@@ -172,6 +154,7 @@ struct MimicWorkspace: View {
 
       VStack(alignment: .leading, spacing: 2) {
         SectionEyebrow(text: "Reference")
+          .fixedSize()
         Text(reference.sourceName)
           .font(.callout.weight(.medium))
           .lineLimit(1)
@@ -195,17 +178,12 @@ struct MimicWorkspace: View {
       Text(vcDuration(reference.take.result.metrics.duration))
         .font(.caption.monospacedDigit())
         .foregroundStyle(Studio.secondary)
-      if model.showsExperimentalAsk {
-        Button("Explore words") { model.revealSessionChat() }
-          .help("Open Words for meanings, synonyms, and translations.")
-          .disabled(model.isRecording || model.isAnalyzing)
-      }
     }
     .padding(14)
     .desktopPanel()
     .overlay(alignment: .bottomLeading) {
       if !audioAvailable {
-        Text("Reference audio is missing. Previous takes remain in Analysis.")
+        Text("Reference audio is missing. Earlier takes are still in Review.")
           .font(.caption)
           .foregroundStyle(.orange)
           .padding(.horizontal, 14)
@@ -266,6 +244,7 @@ struct MimicWorkspace: View {
           }
         }
         .pickerStyle(.segmented)
+        .labelsHidden()
         .frame(maxWidth: 360)
         .disabled(model.mimicPhase != .ready)
       }
@@ -280,6 +259,10 @@ struct MimicWorkspace: View {
 
       if model.isRecording {
         HStack(spacing: 12) {
+          Button("Stop") { model.recordButtonPressed() }
+            .tint(.red)
+            .studioGlassButton(prominent: true)
+            .controlSize(.large)
           Circle().fill(.red).frame(width: 9, height: 9)
           Text("Recording · \(vcDuration(model.elapsed))")
             .font(.headline.monospacedDigit())
@@ -287,18 +270,29 @@ struct MimicWorkspace: View {
             .frame(maxWidth: 260)
         }
       } else if case .countIn(let number) = model.mimicPhase {
-        Text("Starting in \(number)…")
-          .font(.headline.monospacedDigit())
+        HStack(spacing: 12) {
+          Button("Cancel") { model.cancelMimicCountIn() }
+            .controlSize(.large)
+          Text("Starting in \(number)…")
+            .font(.headline.monospacedDigit())
+        }
       } else if model.mimicPhase == .playingReference {
-        Text("Listening… A 2-second count-in comes before recording.")
-          .font(.callout)
-          .foregroundStyle(Studio.secondary)
+        HStack(spacing: 12) {
+          Button("Cancel") { model.stopPlayback() }
+            .keyboardShortcut(.space, modifiers: [])
+            .controlSize(.large)
+          Text("Listening… A 2-second count-in comes before recording.")
+            .font(.callout)
+            .foregroundStyle(Studio.secondary)
+        }
       } else if model.isAnalyzing || model.mimicPhase == .analyzing {
         ProgressView("Analyzing…")
+      } else {
+        practiceActions
       }
       if model.hasPendingMimicWork {
         Divider()
-        Text("This take isn’t in the library yet.")
+        Text("This take isn’t saved yet.")
           .font(.callout)
         HStack {
           Button("Retry saving") { model.retryPendingMimicWork() }
@@ -317,8 +311,6 @@ struct MimicWorkspace: View {
         let reference = session.mimicReference, let attempt = model.selectedTake
       {
         compareTransport(reference: reference.take, attempt: attempt)
-      } else {
-        practiceTransport
       }
     }
   }
@@ -326,10 +318,6 @@ struct MimicWorkspace: View {
   private func compareTransport(reference: PracticeSession, attempt: PracticeSession) -> some View {
     let comparison = MimicComparison.compare(reference: reference, attempt: attempt)
     return VStack(spacing: 0) {
-      Rectangle()
-        .fill(Studio.line)
-        .frame(height: 1)
-
       MimicComparePlaybackRow(
         reference: reference,
         attempt: attempt,
@@ -340,53 +328,44 @@ struct MimicWorkspace: View {
       .frame(maxWidth: 1050)
       .frame(maxWidth: .infinity)
     }
-    .background {
-      if snapshot {
-        Studio.surface
-      } else {
-        Rectangle()
-          .fill(.ultraThinMaterial)
-          .overlay(Studio.surface.opacity(0.72))
-          .ignoresSafeArea(edges: .bottom)
-      }
-    }
+    .transportBarBackground()
   }
 
-  private var practiceTransport: some View {
+  /// Listen and record sit right under the sentence they act on. Review lives in the
+  /// Practice / Review switch, so there is no separate bottom bar in Practice.
+  private var practiceActions: some View {
     HStack(spacing: 12) {
-      if case .countIn = model.mimicPhase {
-        Button("Cancel") { model.cancelMimicCountIn() }
-      } else if model.mimicPhase == .playingReference {
-        Button("Cancel") { model.stopPlayback() }
-          .keyboardShortcut(.space, modifiers: [])
-      } else if model.isRecording {
-        Button("Stop") { model.recordButtonPressed() }
-          .tint(.red)
-          .studioGlassButton(prominent: true)
-      } else {
-        Button("Listen") { model.toggleMimicPlayback() }
-          .keyboardShortcut(.space, modifiers: [])
-          .disabled(model.isAnalyzing || model.mimicPhase != .ready || model.hasPendingMimicWork)
-        Button("Start practice") { model.startMimicPractice() }
-          .studioGlassButton(prominent: true)
-          .disabled(
-            model.isAnalyzing || model.isRequestingPermission || model.isPlaying
-              || model.mimicPhase != .ready || model.hasPendingMimicWork)
-        if model.selectedSession?.mimicStyle == .listenAndRepeat {
-          Button("Record") { model.startMimicPractice(skipReference: true) }
-            .help("Record without listening first")
-            .disabled(model.isAnalyzing || model.isPlaying || model.hasPendingMimicWork)
-        }
+      Button {
+        model.toggleMimicPlayback()
+      } label: {
+        Label("Listen", systemImage: "play.fill")
       }
-      Spacer()
-      if let session = model.selectedSession, let take = session.latestTake, !model.isRecording {
-        Button("Review take \(session.takeCount)") { model.selectTake(take.id) }
-          .disabled(model.isAnalyzing)
+      .keyboardShortcut(.space, modifiers: [])
+      .controlSize(.large)
+      .disabled(model.isAnalyzing || model.mimicPhase != .ready || model.hasPendingMimicWork)
+
+      Button {
+        model.startMimicPractice()
+      } label: {
+        Label("Record take", systemImage: "record.circle")
+      }
+      .studioGlassButton(prominent: true)
+      .controlSize(.large)
+      .help(
+        model.selectedSession?.mimicStyle == .speakAlong
+          ? "Play the reference while you record"
+          : "Play the reference, then record")
+      .disabled(
+        model.isAnalyzing || model.isRequestingPermission || model.isPlaying
+          || model.mimicPhase != .ready || model.hasPendingMimicWork)
+
+      if model.selectedSession?.mimicStyle == .listenAndRepeat {
+        Button("Record without listening") { model.startMimicPractice(skipReference: true) }
+          .buttonStyle(.borderless)
+          .font(.callout)
+          .help("Start recording right away, without playing the reference first")
+          .disabled(model.isAnalyzing || model.isPlaying || model.hasPendingMimicWork)
       }
     }
-    .padding(.horizontal, 20)
-    .padding(.vertical, 12)
-    .frame(maxWidth: .infinity)
-    .background(.regularMaterial)
   }
 }

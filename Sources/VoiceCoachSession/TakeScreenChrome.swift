@@ -6,8 +6,8 @@ package enum TakeScreenCopy {
   package static let homeSubtitle = "Record a phrase, or practice with a reference."
   package static let missingTranscriptLine = "No transcript for this take."
   package static let retranscribe = "Re-transcribe"
-  package static let record = "Record"
-  package static let export = "Export"
+  package static let record = "Record take"
+  package static let export = "Export…"
   package static let tryAgain = "Try again"
   /// Existing analysis status. Not a new sentence.
   package static let analyzing = "Analyzing…"

@@ -170,6 +170,7 @@ struct InspectorFooterStack<Content: View>: View {
 
 extension View {
   func inspectorActionLabel() -> some View {
-    frame(maxWidth: .infinity)
+    lineLimit(1)
+      .frame(maxWidth: .infinity)
   }
 }

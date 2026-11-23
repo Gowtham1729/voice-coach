@@ -52,7 +52,7 @@ public enum ReportFormatter {
       transform: { frequency, median in 12 * log2(frequency / median) }
     )
     let activeLoudness = result.loudnessContour.filter {
-      $0.value >= min(-32, max(-50, value.noiseFloorDBFS + 8))
+      $0.value >= activeSpeechThreshold(noiseFloorDBFS: value.noiseFloorDBFS)
     }
     let loudnessContour = normalizedContour(
       activeLoudness,
@@ -137,7 +137,8 @@ public enum ReportFormatter {
   /// Generates an aligned frame-by-frame timeline inspection string for debugging acoustic analysis,
   /// showing time, RMS loudness, VAD activation, pitch estimation, and ASR word boundaries.
   public static func makeTimelineDebug(session: PracticeSession) -> String {
-    let activeThreshold = min(-32, max(-50, session.result.metrics.noiseFloorDBFS + 8))
+    let activeThreshold = activeSpeechThreshold(
+      noiseFloorDBFS: session.result.metrics.noiseFloorDBFS)
     var lines: [String] = []
     lines.append(
       String(
@@ -254,14 +255,5 @@ public enum ReportFormatter {
       return Decimal(0)
     }
     return result
-  }
-
-  private static func median(_ values: [Double]) -> Double {
-    guard !values.isEmpty else { return 0 }
-    let sorted = values.sorted()
-    let middle = sorted.count / 2
-    return sorted.count.isMultiple(of: 2)
-      ? (sorted[middle - 1] + sorted[middle]) / 2
-      : sorted[middle]
   }
 }

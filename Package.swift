@@ -31,7 +31,7 @@ let package = Package(
     ),
     .executableTarget(
       name: "VoiceCoachSelfTest",
-      dependencies: ["VoiceCoachCore"]
+      dependencies: ["VoiceCoachCore", "VoiceCoachSession"]
     ),
     .testTarget(
       name: "VoiceCoachCoreTests",

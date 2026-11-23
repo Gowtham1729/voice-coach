@@ -39,8 +39,14 @@ struct TakeInspector: View {
           takeFooter(take)
         }
         .modifier(
-          DeleteTakeDialog(takeID: $takePendingDelete) { takeID in
-            model.deleteTake(takeID)
+          DeleteTakeDialog(
+            takeID: $takePendingDelete,
+            title: "Delete this take?",
+            message: session.takeCount == 1
+              ? "This is the only take, so the practice is deleted too, including its audio, transcript, and analysis."
+              : "This take's audio, transcript, and analysis are deleted. The other takes stay."
+          ) { takeID in
+            deleteTake(takeID, in: session)
           })
       }
     }
@@ -51,19 +57,23 @@ struct TakeInspector: View {
     let chrome = TakeActionChrome.plainTake()
     InspectorFooterStack {
       HStack(spacing: 8) {
-        Menu {
-          Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyAIAnalysisPrompt)
-            .help("Copies instructions and this take's JSON. Ichido does not send it.")
-          Button("Copy report JSON", systemImage: "curlybraces", action: model.copyReport)
-        } label: {
-          Image(systemName: "ellipsis")
-            .inspectorActionLabel()
-            .accessibilityLabel("More")
+        // Report exports are for debugging analysis, so they stay behind Experiments.
+        if model.showsExperimentalAsk {
+          Menu {
+            Button("Copy AI analysis prompt + JSON", systemImage: "doc.on.doc", action: model.copyAIAnalysisPrompt)
+              .help("Copies instructions and this take's JSON. Ichido does not send it.")
+            Button("Copy report JSON", systemImage: "curlybraces", action: model.copyReport)
+          } label: {
+            Image(systemName: "ellipsis")
+              .inspectorActionLabel()
+              .accessibilityLabel("More")
+          }
+          .menuStyle(.button)
+          .menuIndicator(.hidden)
+          .studioGlassButton()
+          .help("More")
+          .accessibilityLabel("More actions")
         }
-        .menuStyle(.button)
-        .menuIndicator(.hidden)
-        .studioGlassButton()
-        .help("More")
 
         if chrome.exportSitsWithDelete {
           Button(action: model.exportCurrent) {
@@ -72,17 +82,17 @@ struct TakeInspector: View {
           }
           .studioGlassButton(prominent: chrome.isFilled(TakeScreenCopy.export))
           .controlSize(.regular)
+          .layoutPriority(1)
           .help("Export the audio and report")
         }
 
-        Button(action: { requestDelete(take.id) }) {
-          Label("Delete", systemImage: "trash")
-            .inspectorActionLabel()
+        Button(role: .destructive, action: { requestDelete(take.id) }) {
+          Image(systemName: "trash")
+            .accessibilityLabel("Delete take")
         }
-        .tint(.red)
-        .studioGlassButton(destructive: true)
-        .disabled(model.isPlaying || model.isAnalyzing)
-        .help("Delete")
+        .studioGlassButton()
+        .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
+        .help("Delete this take")
       }
     }
   }
@@ -102,6 +112,14 @@ struct TakeInspector: View {
   }
 
   private func requestDelete(_ takeID: UUID) {
-    if confirmBeforeDelete { takePendingDelete = takeID } else { model.deleteTake(takeID) }
+    if confirmBeforeDelete {
+      takePendingDelete = takeID
+    } else if let session = model.selectedSession {
+      deleteTake(takeID, in: session)
+    }
+  }
+
+  private func deleteTake(_ takeID: UUID, in session: CoachingSession) {
+    model.deleteTake(sessionID: session.id, takeID: takeID)
   }
 }

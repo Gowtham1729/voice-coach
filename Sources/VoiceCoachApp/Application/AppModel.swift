@@ -5,14 +5,37 @@ import VoiceCoachSession
 
 @MainActor
 final class AppModel: ObservableObject {
-  @Published var destination: AppDestination = .home
+  @Published var destination: AppDestination = .home {
+    didSet {
+      if destination == .mimicStart, oldValue != .mimicStart {
+        destinationBeforeCreate = oldValue
+      }
+      switch destination {
+      case .mimics: listFilter = .withReference
+      case .library: if listFilter == .withReference { listFilter = .all }
+      default: break
+      }
+    }
+  }
+  /// Which practices the list column shows. The list stays beside whatever is open.
+  @Published var listFilter: PracticeListFilter = .all
+  /// Where the New practice sheet was opened from, so Cancel can go back there.
+  var destinationBeforeCreate: AppDestination = .home
   @Published var sessions: [CoachingSession] = []
-  @Published var selectedSessionID: UUID?
-  @Published var selectedTakeID: UUID?
+  @Published var selectedSessionID: UUID? {
+    didSet { if oldValue != selectedSessionID { pendingRetryTarget = nil } }
+  }
+  @Published var selectedTakeID: UUID? {
+    didSet { if oldValue != selectedTakeID { pendingRetryTarget = nil } }
+  }
+  @Published var dismissedRetryCardTakeIDs: Set<UUID> = []
+  @Published var skippedRetryCardTakeIDs: Set<UUID> = []
   @Published var pendingReplaceOnly: ReplaceOnlyPrompt?
   @Published var lastUsedMimicID: UUID?
   @Published var isRecording = false
   @Published var isCapturingMimicReference = false
+  /// Tracks a pending reference started from the menu bar.
+  @Published var hasMenuBarReference = false
   @Published var isAnalyzing = false
   @Published var isSuggestingTitle = false
   @Published var isRequestingPermission = false
@@ -24,6 +47,8 @@ final class AppModel: ObservableObject {
   @Published var mimicReferenceCaptureLevel: Double = -80
   @Published var errorTitle = "Ichido"
   @Published var errorMessage: String?
+  /// True when the current error came from the reference capture flow, so the menu bar can show it.
+  @Published private(set) var errorIsFromCapture = false
   @Published var toastMessage: String?
   @Published var transcriptionNotice: String?
   @Published var transcriptionSetupStatus: TranscriptionSetupStatus = .missing
@@ -35,6 +60,7 @@ final class AppModel: ObservableObject {
   @Published var isCheckingSpeechLanguages = false
   @Published var mimicDraft: MimicReferenceDraft?
   @Published var mimicIsPreparing = false
+  @Published var mimicIsFindingPhrases = false
   @Published var mimicPhase: MimicPhase = .ready
   @Published var mimicWorkspaceMode: MimicWorkspaceMode = .practice
   @Published var mimicPlaybackSource: MimicPlaybackSource = .reference
@@ -49,6 +75,7 @@ final class AppModel: ObservableObject {
   @Published var pendingMimicTake: PracticeSession?
   @Published var pendingMimicAudio: (url: URL, id: UUID)?
   @Published var pendingMimicSessionID: UUID?
+  @Published var practiceClipCreationProgress: (completed: Int, total: Int)?
 
   let recorder: any AudioRecording
   let systemAudioCapture: any SystemAudioCapturing
@@ -56,6 +83,11 @@ final class AppModel: ObservableObject {
   let transcribe:
     @Sendable (URL, TranscriptionEnginePreference, Locale?) async throws -> TranscriptionOutcome
   let sessionChatResponder: any SessionChatResponding
+  let preparePracticeClip:
+    @Sendable (URL, URL, Double, Double) async throws -> AnalysisResult
+  var practiceClipCreationTask: Task<Void, Never>?
+  var practiceClipCreationID: UUID?
+  var mimicPreparationTask: Task<Void, Never>?
   var timer: Timer?
   var playbackTimer: Timer?
   var mimicReferenceCaptureTimer: Timer?
@@ -70,10 +102,16 @@ final class AppModel: ObservableObject {
   var mimicPreparationID: UUID?
   var mimicCountInTask: Task<Void, Never>?
   var mimicPlaybackEnd: Double?
+  var replayBothPendingAttempt = false
+  var pendingRetryTarget: (sessionID: UUID, style: MimicStyle?, target: TargetFocus)?
   var mimicShouldRecordAfterPlayback = false
   var mimicAlong = false
   var pendingCaptureIsNewSession = false
   var pendingImportSourceURL: URL?
+  /// Set when the library index could not be read. Saving then would overwrite it.
+  var libraryLoadFailed = false
+  /// Shortest take the save gate keeps. Shorter captures are discarded.
+  static let minimumCaptureDuration: TimeInterval = 0.6
 
   @Published var insightActionOverrides: [String: String] = [:]
   var insightAttemptedKeys: Set<String> = []
@@ -96,12 +134,19 @@ final class AppModel: ObservableObject {
     dependencies: AppDependencies? = nil
   ) {
     do {
-      let dependencies = try dependencies ?? AppDependencies.live(storageRoot: storageRoot)
+      #if DEBUG
+      let qaRoot = ProcessInfo.processInfo.environment["VOICECOACH_SUPPORT_DIR"]
+        .flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
+      #else
+      let qaRoot: URL? = nil
+      #endif
+      let dependencies = try dependencies ?? AppDependencies.live(storageRoot: storageRoot ?? qaRoot)
       recorder = dependencies.recorder
       systemAudioCapture = dependencies.systemAudioCapture
       store = dependencies.sessionStore
       transcribe = dependencies.transcribe
       sessionChatResponder = dependencies.sessionChatResponder
+      preparePracticeClip = dependencies.preparePracticeClip
     } catch {
       fatalError("Ichido could not open local storage: \(error.localizedDescription)")
     }
@@ -129,17 +174,44 @@ final class AppModel: ObservableObject {
     guard loadPersistedData else { return }
     do {
       sessions = try store.load()
+      if store.lastLoadSkippedTakeCount > 0 {
+        toastMessage = "Some recordings couldn’t be read and were left on disk."
+      }
+      // Clears staging folders left by a crash mid-batch. Never blocks launch.
+      _ = try? store.removeOrphanedSessionDirectories(knownSessionIDs: Set(sessions.map(\.id)))
       lastUsedMimicID = sessions.first(where: { $0.isMimic && !$0.archived })?.id
     } catch {
+      libraryLoadFailed = true
       presentError(
-        title: "Library couldn’t be loaded",
+        title: "Practices couldn’t be loaded",
         message: "Existing files were left untouched. Try quitting and reopening Ichido.")
     }
+  }
+
+  /// False, with an error, while the library failed to load: nothing may be captured or
+  /// saved until the index is readable again.
+  func requireWritableLibrary() -> Bool {
+    guard libraryLoadFailed else { return true }
+    presentError(
+      title: "Practices couldn’t be loaded",
+      message:
+        "Nothing was saved, so your existing library stays as it is. Quit and reopen Ichido.")
+    return false
   }
 
   func presentError(title: String, message: String) {
     errorTitle = title
     errorMessage = message
+    errorIsFromCapture = false
+  }
+
+  func presentCaptureError(title: String, message: String) {
+    presentError(title: title, message: message)
+    errorIsFromCapture = true
+  }
+
+  func presentCaptureError(title: String, error: Error, fallback: String) {
+    presentCaptureError(title: title, message: Self.userFacingMessage(error, fallback: fallback))
   }
 
   func presentError(title: String, error: Error, fallback: String) {
@@ -149,6 +221,7 @@ final class AppModel: ObservableObject {
   func clearError() {
     errorTitle = "Ichido"
     errorMessage = nil
+    errorIsFromCapture = false
   }
 
   static func userFacingMessage(_ error: Error, fallback: String) -> String {
@@ -226,6 +299,9 @@ final class AppModel: ObservableObject {
   var libraryRecordings: [LibraryRecording] {
     RecordingCatalog.recordings(from: sessions)
   }
+  var listedPractices: [CoachingSession] {
+    PracticeCatalog.practices(from: sessions, filter: listFilter)
+  }
   var mimicSessions: [CoachingSession] {
     sessions.filter { $0.isMimic && !$0.archived }
   }
@@ -235,14 +311,9 @@ final class AppModel: ObservableObject {
   var emptyLegacySessions: [CoachingSession] {
     sessions.filter(\.isEmptyLegacy)
   }
-  var continueMimic: CoachingSession? {
-    if let lastUsedMimicID,
-      let session = sessions.first(where: { $0.id == lastUsedMimicID && $0.isMimic && !$0.archived }
-      )
-    {
-      return session
-    }
-    return mimicSessions.first
+  /// The latest practices with at least one take, newest first, for Home.
+  var recentPractices: [CoachingSession] {
+    Array(sessions.lazy.filter { !$0.archived && ($0.takeCount > 0 || $0.isMimic) }.prefix(3))
   }
   var userRecordedTakeCount: Int {
     sessions.reduce(0) { $0 + $1.takes.filter { $0.takeSource == .recorded }.count }

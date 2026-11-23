@@ -1,4 +1,5 @@
 import SwiftUI
+import VoiceCoachSession
 
 struct ContentView: View {
   @EnvironmentObject private var model: AppModel
@@ -21,7 +22,7 @@ struct ContentView: View {
       .sheet(isPresented: mimicStartBinding) {
         CreateSessionView()
           .environmentObject(model)
-          .frame(width: 680, height: 640)
+          .frame(width: 680)
       }
       .alert("Keep all takes?", isPresented: replaceOnlyBinding) {
         Button("Keep all takes") { model.confirmKeepAllFromNowOn() }
@@ -29,10 +30,28 @@ struct ContentView: View {
         Button("Cancel", role: .cancel) { model.pendingReplaceOnly = nil }
       } message: {
         Text(
-          "This session keeps only the latest take. Keep all takes from now on, or delete older takes when a new one is saved?"
+          "This practice keeps only the latest take. Keep all takes from now on, or delete older takes when a new one is saved?"
         )
       }
       .overlay(alignment: .bottom) { toast }
+      .overlay(alignment: .top) { menuBarClipBanner }
+  }
+
+  @ViewBuilder
+  private var menuBarClipBanner: some View {
+    if model.hasMenuBarClipAwaitingReview {
+      HStack(spacing: 12) {
+        Label("Clip ready", systemImage: "checkmark.circle")
+          .font(.callout.weight(.medium))
+        Button("Review") { model.reviewMenuBarReference() }
+          .studioGlassButton(prominent: true)
+        Button("Discard") { model.discardMenuBarReference() }
+          .studioGlassButton()
+      }
+      .padding(.horizontal, 14).padding(.vertical, 8)
+      .studioCard(cornerRadius: 10)
+      .padding(.top, 10)
+    }
   }
 
   private var shell: some View {
@@ -43,8 +62,11 @@ struct ContentView: View {
         snapshotShell
       } else {
         NavigationSplitView {
-          sidebarColumn
-            .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
+          SourceListSidebar()
+            .navigationSplitViewColumnWidth(min: 170, ideal: 200, max: 260)
+        } content: {
+          PracticeListView()
+            .navigationSplitViewColumnWidth(min: 240, ideal: 300, max: 420)
         } detail: {
           HStack(spacing: 0) {
             destination
@@ -57,6 +79,7 @@ struct ContentView: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
           }
+          .navigationSplitViewColumnWidth(min: 640, ideal: 820)
           .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: showInspector)
           .navigationTitle(windowTitle)
           .toolbar { workspaceToolbar }
@@ -73,10 +96,19 @@ struct ContentView: View {
 
   private var snapshotShell: some View {
     HStack(spacing: 0) {
-      sidebarColumn
-        .frame(width: 240)
+      SourceListSidebar()
+        .frame(width: 200)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Studio.sidebar)
+
+      Divider()
+
+      PracticeListView()
+        .frame(width: 300)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Studio.background)
+
+      Divider()
 
       destination
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -93,28 +125,16 @@ struct ContentView: View {
     .background(Studio.background)
   }
 
-  @ViewBuilder
-  private var sidebarColumn: some View {
-    if snapshot {
-      SnapshotSourceListSidebar()
-    } else {
-      SourceListSidebar()
-    }
-  }
-
+  /// While the New practice sheet is up, keep showing what it was opened over.
   @ViewBuilder
   private var destination: some View {
-    switch model.destination {
-    case .home, .mimicStart:
-      HomeView()
+    switch model.destination == .mimicStart ? model.destinationBeforeCreate : model.destination {
     case .practice:
       MimicWorkspace()
     case .take:
       TakeView()
-    case .library:
-      DesktopLibraryWorkspace()
-    case .mimics:
-      DesktopMimicsWorkspace()
+    case .home, .mimicStart, .library, .mimics:
+      HomeView()
     }
   }
 
@@ -196,13 +216,18 @@ struct ContentView: View {
 
   @ToolbarContentBuilder
   private var workspaceToolbar: some ToolbarContent {
-    if showsBackButton {
-      ToolbarItem(placement: .navigation) {
-        Button(action: goBack) {
-          Label(parentSectionTitle, systemImage: "chevron.backward")
-        }
-        .help("Back to \(parentSectionTitle)")
+    ToolbarItemGroup {
+      Button(action: model.startHomeRecording) {
+        Label("New practice", systemImage: "record.circle")
       }
+      .help("Record a new practice (⌘N)")
+      .disabled(!model.canStartQuickPractice)
+
+      Button(action: model.startMimic) {
+        Label("New practice with reference…", systemImage: "waveform.path")
+      }
+      .help("Practice against a reference clip (⇧⌘N)")
+      .disabled(!model.canStartQuickPractice)
     }
 
     ToolbarSpacer(.flexible)
@@ -226,29 +251,6 @@ struct ContentView: View {
     inspectorPresented && inspectorEligible
   }
 
-  private var showsBackButton: Bool {
-    switch model.destination {
-    case .take:
-      true
-    case .practice:
-      model.selectedSession != nil
-    case .home, .mimicStart, .library, .mimics:
-      false
-    }
-  }
-
-  private var parentSectionTitle: String {
-    parentSection?.title ?? ""
-  }
-
-  private var parentSection: NavigationSection? {
-    switch model.destination {
-    case .take: .library
-    case .practice: .mimics
-    case .home, .mimicStart, .library, .mimics: nil
-    }
-  }
-
   private var inspectorEligible: Bool {
     switch model.destination {
     case .practice:
@@ -262,26 +264,10 @@ struct ContentView: View {
 
   private var windowTitle: String {
     switch model.destination {
-    case .home: "Home"
-    case .mimicStart: "Reference practice"
-    case .practice:
-      model.selectedSession?.mimicReference?.sourceName
-        ?? model.selectedSession?.name
-        ?? "Reference practice"
-    case .take: model.selectedSession?.name ?? "Recording"
-    case .library: "Library"
-    case .mimics: "Practice"
-    }
-  }
-
-  private func goBack() {
-    switch model.destination {
-    case .take:
-      model.navigate(to: .library)
-    case .practice:
-      model.navigate(to: .mimics)
-    case .home, .mimicStart, .library, .mimics:
-      break
+    case .home, .library, .mimics: model.listFilter.title
+    case .mimicStart: "New practice with reference"
+    case .practice, .take:
+      model.selectedSession.map(PracticeCatalog.title(of:)) ?? "Practice"
     }
   }
 
@@ -294,7 +280,7 @@ struct ContentView: View {
       set: { isPresented in
         if !isPresented, case .mimicStart = model.destination {
           model.cancelMimicPreparation()
-          model.navigate(to: .home)
+          model.returnFromCreateSheet()
         }
       }
     )

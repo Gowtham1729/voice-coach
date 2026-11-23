@@ -4,7 +4,6 @@ import VoiceCoachCore
 private enum SettingsPane: String {
   case general
   case transcription
-  case library
   case experiments
 }
 
@@ -15,6 +14,7 @@ struct SettingsView: View {
   @AppStorage("voiceCoach.confirmBeforeDelete") private var confirmDelete = true
   @AppStorage("voiceCoach.hideTranscriptSnippets") private var hideTranscriptSnippets = false
   @AppStorage("voiceCoach.autoGenerateTitles") private var autoGenerateTitles = false
+  @AppStorage(MenuBarExtraPreference.storageKey) private var showsMenuBarExtra = true
   @AppStorage(InsightWordingPreference.storageKey) private var rewriteInsightWording =
     InsightWordingPreference.default
 
@@ -58,9 +58,6 @@ struct SettingsView: View {
       Tab("Transcription", systemImage: "waveform", value: SettingsPane.transcription) {
         transcriptionPane
       }
-      Tab("Library", systemImage: "internaldrive", value: SettingsPane.library) {
-        libraryPane
-      }
       Tab("Experiments", systemImage: "flask", value: SettingsPane.experiments) {
         experimentsPane
       }
@@ -71,27 +68,15 @@ struct SettingsView: View {
   private var experimentsPane: some View {
     Form {
       Section {
-        Toggle("Enable experimental features", isOn: $experimentalFeatures)
+        Toggle("Words chat", isOn: $experimentalFeatures)
           .onChange(of: experimentalFeatures) { _, enabled in
             model.noteExperimentalFeaturesChanged()
             if !enabled { model.clearExperimentalChats() }
           }
       } footer: {
         Text(
-          "Turning this off clears all Words chats."
+          "Ask about a take’s or reference’s transcript. It reads text only, so it can’t hear your audio, and replies can be wrong. Chats clear when you quit or turn this off."
         )
-      }
-      if experimentalFeatures {
-        Section {
-          LabeledContent("Words", value: "Enabled")
-          LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
-        } footer: {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Choose Words beside a recording or reference to explore its transcript.")
-            Text("Uses Apple Intelligence on this Mac. Chats clear when you quit.")
-            Text("Replies can be wrong. Words can’t hear or evaluate your audio.")
-          }
-        }
       }
     }
     .settingsPaneChrome()
@@ -101,32 +86,42 @@ struct SettingsView: View {
     let intelligenceStatus = SmartTitleGenerator.status
     return Form {
       Section {
-        Toggle("Confirm before deleting", isOn: $confirmDelete)
-        Toggle("Hide transcript snippets in Library", isOn: $hideTranscriptSnippets)
+        Toggle("Show Ichido in the menu bar", isOn: $showsMenuBarExtra)
+          .disabled(model.isCapturingMimicReference || model.hasMenuBarReference)
       } header: {
-        Text("Library")
+        Text("Menu bar")
+      } footer: {
+        Text("Capture Mac audio and return to practice without opening the main window first.")
       }
 
       Section {
-        Toggle("Name recordings from transcripts", isOn: $autoGenerateTitles)
+        Toggle("Confirm before deleting", isOn: $confirmDelete)
+        Toggle("Hide transcript snippets in the practice list", isOn: $hideTranscriptSnippets)
+        Button("Show in Finder…", systemImage: "folder", action: model.revealStorage)
+        if !model.emptyLegacySessions.isEmpty {
+          Button("Remove \(model.emptyLegacySessions.count) unused folders") {
+            model.cleanupEmptyLegacySessions()
+          }
+        }
+      } header: {
+        Text("Practices")
+      } footer: {
+        VStack(alignment: .leading, spacing: 6) {
+          Text("Audio and transcripts stay in this folder on your Mac.")
+          Text(model.storageLocation.path)
+            .font(.caption.monospaced())
+            .textSelection(.enabled)
+            .lineLimit(2)
+            .truncationMode(.middle)
+        }
+      }
+
+      Section {
+        LabeledContent("Status", value: intelligenceStatus.settingsLabel)
+        Toggle("Name practices from transcripts", isOn: $autoGenerateTitles)
           .onChange(of: autoGenerateTitles) { _, enabled in
             if enabled { SmartTitleGenerator.prewarmIfAvailable() }
           }
-        if autoGenerateTitles {
-          LabeledContent("Apple Intelligence", value: intelligenceStatus.settingsLabel)
-        }
-      } header: {
-        Text("Naming")
-      } footer: {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Uses Apple Intelligence on this Mac.")
-          if autoGenerateTitles && intelligenceStatus != .available {
-            Text(intelligenceStatus.settingsFooter)
-          }
-        }
-      }
-
-      Section {
         Toggle("Rephrase practice exercises", isOn: $rewriteInsightWording)
           .onChange(of: rewriteInsightWording) { _, enabled in
             if enabled {
@@ -134,15 +129,15 @@ struct SettingsView: View {
               model.rescheduleInsightWordingForSelection()
             }
           }
-        if rewriteInsightWording {
-          LabeledContent("Apple Intelligence", value: CoachingWordingGenerator.status.settingsLabel)
-        }
       } header: {
-        Text("Practice next")
+        Text("Apple Intelligence")
       } footer: {
-        Text(
-          "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
-        )
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Runs on this Mac. Rephrasing changes wording only; measured targets stay the same.")
+          if intelligenceStatus != .available {
+            Text(intelligenceStatus.settingsFooter)
+          }
+        }
       }
     }
     .settingsPaneChrome()
@@ -158,12 +153,14 @@ struct SettingsView: View {
       Section {
         Picker("Engine", selection: engineSelection) {
           Text("Apple (recommended)").tag(TranscriptionEnginePreference.system)
-          Text("Parakeet").tag(TranscriptionEnginePreference.parakeet)
+          Text("Parakeet (optional download)").tag(TranscriptionEnginePreference.parakeet)
         }
         .pickerStyle(.radioGroup)
         .disabled(busy)
       } footer: {
-        Text(model.transcriptionEngine.settingsFooter)
+        Text(
+          "Apple is built in and covers more languages, including Japanese. Parakeet is a 714 MB download for 25 European languages and detects the language for you. Both run on this Mac."
+        )
       }
 
       Section {
@@ -171,7 +168,7 @@ struct SettingsView: View {
       } footer: {
         if activeEngine == .system {
           Text(
-            "Applies to new recordings and references. Existing recordings keep their language."
+            "The default for new takes and references. The new practice sheet shows this same setting. Existing takes keep their language."
           )
         } else {
           Text(
@@ -213,36 +210,6 @@ struct SettingsView: View {
             parakeetButtons(status: parakeetStatus, busy: busy)
           }
         )
-      }
-    }
-    .settingsPaneChrome()
-  }
-
-  private var libraryPane: some View {
-    Form {
-      Section {
-        LabeledContent("Recordings", value: "\(model.userRecordedTakeCount)")
-        LabeledContent("Minutes recorded", value: vcNumber(model.userRecordedDuration / 60, 1))
-        LabeledContent("Imported", value: "\(model.importedTakeCount)")
-        LabeledContent("Practice", value: "\(model.mimicSessions.count)")
-        Button("Show in Finder…", systemImage: "folder", action: model.revealStorage)
-      } footer: {
-        VStack(alignment: .leading, spacing: 6) {
-          Text("Audio and transcripts stay in this folder.")
-          Text(model.storageLocation.path)
-            .font(.caption.monospaced())
-            .textSelection(.enabled)
-            .lineLimit(2)
-            .truncationMode(.middle)
-        }
-      }
-
-      if !model.emptyLegacySessions.isEmpty {
-        Section {
-          Button("Remove \(model.emptyLegacySessions.count) unused folders") {
-            model.cleanupEmptyLegacySessions()
-          }
-        }
       }
     }
     .settingsPaneChrome()
@@ -305,24 +272,22 @@ struct SettingsView: View {
 
       snapshotCard("General", symbol: "gearshape") {
         HStack {
+          Text("Show Ichido in the menu bar")
+          Spacer()
+          Image(systemName: showsMenuBarExtra ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(Studio.accent)
+        }
+        HStack {
           Text("Confirm before deleting")
           Spacer()
           Image(systemName: confirmDelete ? "checkmark.circle.fill" : "circle")
             .foregroundStyle(Studio.accent)
         }
         HStack {
-          Text("Name recordings from transcripts")
+          Text("Name practices from transcripts")
           Spacer()
           Image(systemName: autoGenerateTitles ? "checkmark.circle.fill" : "circle")
             .foregroundStyle(Studio.accent)
-        }
-        if autoGenerateTitles {
-          HStack {
-            Text("Apple Intelligence")
-            Spacer()
-            Text(SmartTitleGenerator.status.settingsLabel)
-              .foregroundStyle(.secondary)
-          }
         }
         HStack {
           Text("Rephrase practice exercises")
@@ -330,19 +295,15 @@ struct SettingsView: View {
           Image(systemName: rewriteInsightWording ? "checkmark.circle.fill" : "circle")
             .foregroundStyle(Studio.accent)
         }
-        Text("Titles use Apple Intelligence on this Mac when enabled.")
+        LabeledContent("Apple Intelligence", value: SmartTitleGenerator.status.settingsLabel)
+        Text("Runs on this Mac. Rephrasing changes wording only; measured targets stay the same.")
           .font(.caption)
           .foregroundStyle(.secondary)
-        Text(
-          "Apple Intelligence rephrases exercises on this Mac. Measured targets stay the same."
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
       }
 
       snapshotCard("Experiments", symbol: "flask") {
-        LabeledContent("Experimental features", value: experimentalFeatures ? "On" : "Off")
-        Text("Words explores your transcript on this Mac. Chats clear when you quit.")
+        LabeledContent("Words chat", value: experimentalFeatures ? "On" : "Off")
+        Text("Asks about a transcript. Text only; replies can be wrong.")
           .font(.caption).foregroundStyle(.secondary)
       }
 
@@ -363,12 +324,6 @@ struct SettingsView: View {
           .font(.caption)
           .foregroundStyle(!isSystem ? .primary : .secondary)
           .opacity(!isSystem ? 1.0 : 0.65)
-      }
-
-      snapshotCard("Library", symbol: "internaldrive") {
-        LabeledContent("Recordings", value: "\(model.userRecordedTakeCount)")
-        LabeledContent("Imported", value: "\(model.importedTakeCount)")
-        LabeledContent("Practice", value: "\(model.mimicSessions.count)")
       }
     }
     .padding(24)
@@ -399,17 +354,6 @@ extension View {
       .contentMargins(.bottom, 12, for: .scrollContent)
       .padding(.top, -6)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-  }
-}
-
-extension TranscriptionEnginePreference {
-  fileprivate var settingsFooter: String {
-    switch self {
-    case .system:
-      "Transcribes on this Mac using Apple’s speech models."
-    case .parakeet:
-      "Transcribes on this Mac. Supports 25 European languages; download is about 714 MB."
-    }
   }
 }
 

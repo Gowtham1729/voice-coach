@@ -14,17 +14,24 @@ struct MimicComparisonView: View {
   let reference: PracticeSession
   let attempt: PracticeSession
   let comparison: MimicComparison
+  let focusReferenceWordIndex: Int?
   @State var metric: MimicMetric = .pitch
   @State var followPlayback = true
   @State var chartPosition = ScrollPosition(edge: .leading)
+  /// Visible chart width, so words spread across the card instead of stopping early.
+  @State var chartViewportWidth: CGFloat = 0
 
   init(
     reference: PracticeSession, attempt: PracticeSession, comparison: MimicComparison,
-    initialMetric: String = "Pitch"
+    initialMetric: String = "Pitch", localeIdentifier: String? = nil
   ) {
     self.reference = reference
     self.attempt = attempt
     self.comparison = comparison
+    focusReferenceWordIndex = CoachingPlanner.mimic(
+      reference: reference, attempt: attempt,
+      pinnedTarget: attempt.savedTarget,
+      localeIdentifier: localeIdentifier).focus?.referenceWordIndex
     _metric = State(initialValue: MimicMetric(rawValue: initialMetric) ?? .pitch)
   }
 
@@ -33,17 +40,21 @@ struct MimicComparisonView: View {
       VStack(alignment: .leading, spacing: 16) {
         SectionEyebrow(text: "Transcripts")
         transcriptRow(
-          "Reference", transcription: reference.transcription, color: .cyan, source: .reference)
+          "Reference", transcription: reference.transcription, color: Studio.referenceSeries, source: .reference)
         transcriptRow(
-          "You", transcription: attempt.transcription, color: Studio.accent, source: .attempt)
+          "Your take", transcription: attempt.transcription, color: Studio.accent, source: .attempt)
       }
       .padding(18)
       .desktopPanel()
 
+      if let session = model.selectedSession {
+        OneTargetRetryCard(session: session, take: attempt)
+      }
+
       if comparison.correspondenceReliable {
         VStack(alignment: .leading, spacing: 14) {
           HStack(spacing: 12) {
-            SectionEyebrow(text: "Analysis")
+            SectionEyebrow(text: "Comparison")
             Spacer()
             if !snapshot {
               Toggle("Follow", isOn: $followPlayback)
@@ -75,17 +86,22 @@ struct MimicComparisonView: View {
           } else {
             GeometryReader { geometry in
               followableChart(viewportWidth: geometry.size.width)
+                .onAppear { chartViewportWidth = geometry.size.width }
+                .onChange(of: geometry.size.width) { _, width in chartViewportWidth = width }
             }
             .frame(height: chartHeight)
           }
-          if metric != .timing {
-            HStack(spacing: 14) {
-              MimicSeriesLegendItem(title: "Reference", color: .cyan, dashed: true)
-              MimicSeriesLegendItem(title: "You", color: Studio.accent, dashed: false)
-            }
-            .font(.caption)
-            .accessibilityLabel("Dashed cyan: reference. Solid blue: you.")
+          HStack(spacing: 14) {
+            MimicSeriesLegendItem(
+              title: "Reference", color: Studio.referenceSeries, dashed: metric != .timing)
+            MimicSeriesLegendItem(title: "Your take", color: Studio.accent, dashed: false)
           }
+          .font(.caption)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(
+            metric == .timing
+              ? "Grey bars: reference. Blue bars: your take."
+              : "Dashed grey: reference. Solid: your take.")
         }
         .padding(18)
         .studioCard()

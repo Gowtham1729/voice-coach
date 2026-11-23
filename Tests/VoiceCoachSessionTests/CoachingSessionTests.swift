@@ -82,6 +82,6 @@ struct CoachingSessionTests {
     let mimicRec = LibraryRecording.make(session: mimicSession, take: take)!
     #expect(mimicRec.iconSymbol == "waveform.path")
     #expect(mimicRec.sidebarTitle == "Reference Speech")
-    #expect(mimicRec.sidebarSubtitle == "Practice take")
+    #expect(mimicRec.sidebarSubtitle == "Take 1 · With reference")
   }
 }

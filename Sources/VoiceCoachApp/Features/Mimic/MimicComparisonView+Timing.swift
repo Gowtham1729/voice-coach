@@ -6,8 +6,8 @@ extension MimicComparisonView {
     let pairs = comparison.pairs
     let selected =
       model.isPlaying
-      ? (followedWordIndex ?? model.mimicSelectedWord ?? 0)
-      : (model.mimicSelectedWord ?? 0)
+      ? (followedWordIndex ?? model.mimicSelectedWord ?? focusPairIndex ?? 0)
+      : (model.mimicSelectedWord ?? focusPairIndex ?? 0)
     return VStack(alignment: .leading, spacing: 10) {
       HStack(alignment: .bottom, spacing: 6) {
         ForEach(pairs.indices, id: \.self) { index in
@@ -29,7 +29,7 @@ extension MimicComparisonView {
             .frame(width: 132, alignment: .leading)
             timingWord(
               index: index, source: .reference, duration: pair.reference.end - pair.reference.start,
-              otherDuration: pair.attempt.end - pair.attempt.start, color: .cyan)
+              otherDuration: pair.attempt.end - pair.attempt.start, color: Studio.referenceSeries)
             timingWord(
               index: index, source: .attempt, duration: pair.attempt.end - pair.attempt.start,
               otherDuration: pair.reference.end - pair.reference.start, color: Studio.accent)
@@ -42,7 +42,7 @@ extension MimicComparisonView {
           .overlay(alignment: .bottomLeading) {
             if model.isPlaying, followedWordIndex == index {
               Rectangle()
-                .fill(model.mimicPlaybackSource == .reference ? .cyan : Studio.accent)
+                .fill(model.mimicPlaybackSource == .reference ? Studio.referenceSeries : Studio.accent)
                 .frame(width: 144 * playbackPositionInWord, height: 2)
             }
           }

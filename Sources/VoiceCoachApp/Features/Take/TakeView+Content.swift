@@ -51,7 +51,7 @@ extension TakeView {
       }
     }
     .padding(18)
-    .frame(maxWidth: .infinity, minHeight: 320, alignment: .topLeading)
+    .frame(maxWidth: .infinity, alignment: .topLeading)
     .studioCard()
   }
 
@@ -72,10 +72,6 @@ extension TakeView {
   func stickyTransport(_ take: PracticeSession) -> some View {
     let hasWords = !(take.transcription?.words.isEmpty ?? true)
     return VStack(spacing: 0) {
-      Rectangle()
-        .fill(Studio.line)
-        .frame(height: 1)
-
       TakePlaybackRow(
         take: take,
         large: true,
@@ -99,16 +95,7 @@ extension TakeView {
       .frame(maxWidth: 1050)
       .frame(maxWidth: .infinity)
     }
-    .background {
-      if snapshot {
-        Studio.surface
-      } else {
-        Rectangle()
-          .fill(.ultraThinMaterial)
-          .overlay(Studio.surface.opacity(0.72))
-          .ignoresSafeArea(edges: .bottom)
-      }
-    }
+    .transportBarBackground()
     .accessibilityElement(children: .contain)
     .accessibilityLabel("Take timeline")
   }
@@ -118,7 +105,7 @@ extension TakeView {
     return VStack(alignment: .leading, spacing: 16) {
       ViewThatFits(in: .horizontal) {
         HStack(spacing: 12) {
-          SectionEyebrow(text: "Analysis")
+          SectionEyebrow(text: "Charts")
           Spacer()
           plotPicker
           copyGraphButton(take)
@@ -126,7 +113,7 @@ extension TakeView {
 
         VStack(alignment: .leading, spacing: 10) {
           HStack {
-            SectionEyebrow(text: "Analysis")
+            SectionEyebrow(text: "Charts")
             Spacer()
             copyGraphButton(take)
           }

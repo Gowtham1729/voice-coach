@@ -1,8 +1,15 @@
 import Foundation
 
-func rootMeanSquare(_ samples: [Float]) -> Double {
+func rootMeanSquare<Samples: Collection>(_ samples: Samples) -> Double
+where Samples.Element == Float {
   guard !samples.isEmpty else { return 0 }
   return sqrt(samples.reduce(0.0) { $0 + Double($1 * $1) } / Double(samples.count))
+}
+
+/// Loudness above which a frame counts as speech. Analysis, word metrics, and the
+/// report must agree on this, so it lives in one place.
+func activeSpeechThreshold(noiseFloorDBFS: Double) -> Double {
+  min(-32, max(-50, noiseFloorDBFS + 8))
 }
 
 func amplitudeToDB(_ amplitude: Double) -> Double {
@@ -33,11 +40,16 @@ func standardDeviation(_ values: [Double]) -> Double {
   return sqrt(mean(values.map { pow($0 - average, 2) }))
 }
 
-func relativeSuccessiveDifference(_ values: [Double]) -> Double? {
-  guard values.count > 1 else { return nil }
-  let differences = zip(values, values.dropFirst()).map { abs($1 - $0) }
-  let average = mean(values)
-  return average > 0 ? mean(differences) / average * 100 : nil
+/// Mean frame-to-frame change as a percentage of the mean value. Only points closer
+/// than `maximumGap` seconds are compared, so a jump across a pause or an unvoiced
+/// stretch does not count as frame-level instability.
+func relativeSuccessiveDifference(_ points: [TimePoint], maximumGap: Double) -> Double? {
+  let differences = zip(points, points.dropFirst()).compactMap { previous, next in
+    next.time - previous.time <= maximumGap ? abs(next.value - previous.value) : nil
+  }
+  let average = mean(points.map(\.value))
+  guard !differences.isEmpty, average > 0 else { return nil }
+  return mean(differences) / average * 100
 }
 
 func semitoneDistance(low: Double?, high: Double?) -> Double? {

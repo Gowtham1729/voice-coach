@@ -6,19 +6,29 @@ set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
 cd "$PROJECT_DIR"
 
-# No arguments: ad-hoc signature for CI and local builds. Not a public release.
+# No arguments: ad-hoc signed release configuration for CI and local builds.
+# --debug: separate ad-hoc signed bundle with QA hooks for copied support dirs.
 # --developer-id: tag releases via notarize.yml. Never falls through to ad-hoc.
 DEVELOPER_ID_IDENTITY=""
+BUILD_CONFIG="release"
 if [[ $# -gt 0 ]]; then
-    if [[ "$1" != "--developer-id" ]]; then
-        echo "usage: $0 [--developer-id <identity>]" >&2
-        exit 2
-    fi
-    if [[ $# -ne 2 || -z "${2:-}" || "$2" == "-" ]]; then
-        echo "build-app.sh: --developer-id requires a Developer ID Application identity. Refusing an ad-hoc signature." >&2
-        exit 1
-    fi
-    DEVELOPER_ID_IDENTITY="$2"
+    case "$1" in
+        --debug)
+            [[ $# -eq 1 ]] || { echo "usage: $0 [--debug|--developer-id <identity>]" >&2; exit 2; }
+            BUILD_CONFIG="debug"
+            ;;
+        --developer-id)
+            if [[ $# -ne 2 || -z "${2:-}" || "$2" == "-" ]]; then
+                echo "build-app.sh: --developer-id requires a Developer ID Application identity. Refusing an ad-hoc signature." >&2
+                exit 1
+            fi
+            DEVELOPER_ID_IDENTITY="$2"
+            ;;
+        *)
+            echo "usage: $0 [--debug|--developer-id <identity>]" >&2
+            exit 2
+            ;;
+    esac
 fi
 
 XCODE_DEVELOPER="/Applications/Xcode.app/Contents/Developer"
@@ -32,9 +42,13 @@ fi
 export CLANG_MODULE_CACHE_PATH="$PROJECT_DIR/.build/module-cache"
 export SWIFTPM_MODULECACHE_OVERRIDE="$PROJECT_DIR/.build/module-cache"
 
-"$SWIFT_BIN" build -c release --disable-sandbox
+"$SWIFT_BIN" build -c "$BUILD_CONFIG" --disable-sandbox
 
-APP_DIR="$PROJECT_DIR/build/Ichido.app"
+if [[ "$BUILD_CONFIG" == "debug" ]]; then
+    APP_DIR="$PROJECT_DIR/build/Ichido-Debug.app"
+else
+    APP_DIR="$PROJECT_DIR/build/Ichido.app"
+fi
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 SPARKLE_FRAMEWORK="$PROJECT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
@@ -43,7 +57,7 @@ rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR"
 mkdir -p "$CONTENTS_DIR/Resources"
 mkdir -p "$CONTENTS_DIR/Frameworks"
-cp "$PROJECT_DIR/.build/release/VoiceCoachApp" "$MACOS_DIR/VoiceCoachApp"
+cp "$PROJECT_DIR/.build/$BUILD_CONFIG/VoiceCoachApp" "$MACOS_DIR/VoiceCoachApp"
 cp "$PROJECT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$PROJECT_DIR/Resources/AppIcon.icns" "$CONTENTS_DIR/Resources/AppIcon.icns"
 ditto "$SPARKLE_FRAMEWORK" "$CONTENTS_DIR/Frameworks/Sparkle.framework"

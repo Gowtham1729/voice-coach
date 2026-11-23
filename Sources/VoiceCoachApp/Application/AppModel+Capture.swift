@@ -61,7 +61,9 @@ extension AppModel {
   }
 
   func importClip() {
-    guard !isRecording, !isAnalyzing, !isRequestingPermission else { return }
+    guard !isRecording, !isAnalyzing, !isRequestingPermission, !isCapturingMimicReference,
+      !mimicIsPreparing, !hasMenuBarReference, mimicPhase == .ready, requireWritableLibrary()
+    else { return }
     if selectedSession?.isMimic == true, destination.isWorkspace { return }
     guard let session = selectedSession,
       !session.isMimic,
@@ -78,12 +80,17 @@ extension AppModel {
   }
 
   func startMimic() {
-    guard !isRecording, !isAnalyzing, !isRequestingPermission else { return }
+    guard !isRecording, !isAnalyzing, !isRequestingPermission,
+      !isCapturingMimicReference, !mimicIsPreparing, !hasMenuBarReference
+    else { return }
     navigate(to: .mimicStart)
   }
 
   func useCurrentRecordingAsMimicReference() {
-    guard let take = selectedTake, !isRecording, !isAnalyzing else { return }
+    guard let take = selectedTake, !isRecording, !isAnalyzing, !isRequestingPermission,
+      !isCapturingMimicReference, !mimicIsPreparing, !hasMenuBarReference,
+      mimicPhase == .ready, !hasPendingMimicWork
+    else { return }
     cancelMimicPreparation()
     let id = UUID()
     mimicPreparationID = id
@@ -93,7 +100,8 @@ extension AppModel {
     if let sessionName = selectedSession?.name, !sessionName.isEmpty {
       sourceName = sessionName
     } else {
-      sourceName = take.audioURL.deletingPathExtension().lastPathComponent
+      sourceName = PracticeNaming.cleaned(
+        fileName: take.audioURL.deletingPathExtension().lastPathComponent)
     }
     let staged = FileManager.default.temporaryDirectory.appendingPathComponent(
       "voice-coach-mimic-\(id).wav")
@@ -107,7 +115,9 @@ extension AppModel {
           try? FileManager.default.removeItem(at: staged)
           return
         }
-        presentMimicDraft(id: id, url: staged, sourceName: sourceName, source: take.takeSource)
+        presentMimicDraft(
+          id: id, url: staged, sourceName: sourceName, source: take.takeSource,
+          transcription: take.transcription)
         destination = .mimicStart
       } catch {
         try? FileManager.default.removeItem(at: staged)
@@ -115,7 +125,7 @@ extension AppModel {
           mimicIsPreparing = false
           mimicPreparationID = nil
           presentError(
-            title: "Reference practice failed",
+            title: "Couldn’t set up the reference",
             error: error,
             fallback: "Couldn’t use this recording as a practice reference.")
         }

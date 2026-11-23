@@ -9,8 +9,10 @@ extension AppModel {
       return
     }
     guard let take = selectedTake else { return }
+    mimicPlaybackEnd = nil
     let duration = take.result.metrics.duration
     let startTime = playbackTime >= max(duration - 0.05, 0) ? 0 : playbackTime
+    recorder.playbackVolume = 1
     do {
       try recorder.play(url: take.audioURL, from: startTime)
       playbackTime = startTime
@@ -30,12 +32,14 @@ extension AppModel {
   }
 
   func stopPlayback() {
+    replayBothPendingAttempt = false
     recorder.stopPlayback()
     stopPlaybackTimer()
     isPlaying = false
     playbackTime = 0
     mimicPlaybackEnd = nil
     if mimicPhase == .playingReference {
+      if mimicShouldRecordAfterPlayback { pendingRetryTarget = nil }
       mimicShouldRecordAfterPlayback = false
       mimicPhase = .ready
     }
@@ -43,11 +47,13 @@ extension AppModel {
 
   func seek(to time: TimeInterval, autoplay: Bool = false) {
     guard let take = selectedTake, !isRecording, !isAnalyzing else { return }
+    mimicPlaybackEnd = nil
     let clamped = max(0, min(time, take.result.metrics.duration))
     playbackTime = clamped
     if isPlaying {
       recorder.seek(to: clamped)
     } else if autoplay {
+      recorder.playbackVolume = 1
       do {
         try recorder.play(url: take.audioURL, from: clamped)
         isPlaying = true
@@ -63,7 +69,7 @@ extension AppModel {
   func exportCurrent() {
     guard let take = selectedTake else { return }
     let panel = NSOpenPanel()
-    panel.title = "Export Recording"
+    panel.title = "Export Take"
     panel.prompt = "Export"
     panel.canChooseFiles = false
     panel.canChooseDirectories = true

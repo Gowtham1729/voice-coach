@@ -56,13 +56,17 @@ public struct NemoSpeechTranscriber: Sendable {
 
   public let executableURL: URL?
   public let modelIdentifier: String
+  /// Clips are capped near 90 seconds, so this only ever fires on a stuck runtime.
+  public let timeout: TimeInterval
 
   public init(
     executableURL: URL? = nil,
-    modelIdentifier: String = NemoSpeechTranscriber.defaultModel
+    modelIdentifier: String = NemoSpeechTranscriber.defaultModel,
+    timeout: TimeInterval = 600
   ) {
     self.executableURL = executableURL
     self.modelIdentifier = modelIdentifier
+    self.timeout = timeout
   }
 
   public func transcribe(url: URL) throws -> TranscriptionResult {
@@ -86,46 +90,64 @@ public struct NemoSpeechTranscriber: Sendable {
       fileManager.createFile(atPath: stderrURL.path, contents: nil)
     else { throw TranscriptionError.launchFailed("Could not create temporary output files.") }
 
+    let stdout: FileHandle
+    let stderr: FileHandle
     do {
-      let stdout = try FileHandle(forWritingTo: stdoutURL)
-      let stderr = try FileHandle(forWritingTo: stderrURL)
-      defer {
-        try? stdout.close()
-        try? stderr.close()
-      }
-
-      let process = Process()
-      process.executableURL = executable
-      process.arguments = [
-        "--quiet",
-        "transcribe",
-        url.path,
-        "--model", modelIdentifier,
-        "--json",
-      ]
-      process.standardOutput = stdout
-      process.standardError = stderr
-
-      do {
-        try process.run()
-      } catch {
-        throw TranscriptionError.launchFailed(error.localizedDescription)
-      }
-      process.waitUntilExit()
-      try? stdout.synchronize()
-      try? stderr.synchronize()
-
-      let output = (try? Data(contentsOf: stdoutURL)) ?? Data()
-      if process.terminationStatus != 0 {
-        let diagnostics = ((try? String(contentsOf: stderrURL, encoding: .utf8)) ?? "")
-          .trimmingCharacters(in: .whitespacesAndNewlines)
-        throw TranscriptionError.recognitionFailed(
-          diagnostics.isEmpty
-            ? "nemo-speech exited with status \(process.terminationStatus)." : diagnostics
-        )
-      }
-      return try Self.parseOutput(output)
+      stdout = try FileHandle(forWritingTo: stdoutURL)
+      stderr = try FileHandle(forWritingTo: stderrURL)
+    } catch {
+      throw TranscriptionError.launchFailed(error.localizedDescription)
     }
+    defer {
+      try? stdout.close()
+      try? stderr.close()
+    }
+
+    let process = Process()
+    process.executableURL = executable
+    process.arguments = [
+      "--quiet",
+      "transcribe",
+      url.path,
+      "--model", modelIdentifier,
+      "--json",
+    ]
+    process.standardOutput = stdout
+    process.standardError = stderr
+
+    do {
+      try process.run()
+    } catch {
+      throw TranscriptionError.launchFailed(error.localizedDescription)
+    }
+
+    // A hung runtime would otherwise leave the take on "Analyzing…" forever.
+    let startedAt = Date()
+    let watchdog = DispatchWorkItem { [process] in
+      if process.isRunning { process.terminate() }
+    }
+    DispatchQueue.global(qos: .utility).asyncAfter(
+      deadline: .now() + timeout, execute: watchdog)
+    process.waitUntilExit()
+    watchdog.cancel()
+    let timedOut =
+      process.terminationReason == .uncaughtSignal
+      && Date().timeIntervalSince(startedAt) >= timeout
+
+    if timedOut {
+      throw TranscriptionError.recognitionFailed(
+        "nemo-speech did not finish within \(Int(timeout)) seconds.")
+    }
+    let output = (try? Data(contentsOf: stdoutURL)) ?? Data()
+    if process.terminationStatus != 0 {
+      let diagnostics = ((try? String(contentsOf: stderrURL, encoding: .utf8)) ?? "")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      throw TranscriptionError.recognitionFailed(
+        diagnostics.isEmpty
+          ? "nemo-speech exited with status \(process.terminationStatus)." : diagnostics
+      )
+    }
+    return try Self.parseOutput(output)
   }
 
   public static func findExecutable(

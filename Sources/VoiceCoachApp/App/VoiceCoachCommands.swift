@@ -11,13 +11,14 @@ struct VoiceCoachCommands: Commands {
     }
 
     CommandGroup(replacing: .newItem) {
-      Button("Record") { model.startHomeRecording() }
+      Button("New practice") { model.startHomeRecording() }
         .keyboardShortcut("n", modifiers: .command)
-        .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+        .help("Start recording a new practice")
+        .disabled(!model.canStartQuickPractice)
 
-      Button("Reference practice…") { model.startMimic() }
-        .keyboardShortcut("m", modifiers: [.command, .shift])
-        .disabled(model.isRecording || model.isAnalyzing || model.isRequestingPermission)
+      Button("New practice with reference…") { model.startMimic() }
+        .keyboardShortcut("n", modifiers: [.command, .shift])
+        .disabled(!model.canStartQuickPractice)
     }
 
     CommandGroup(after: .importExport) {
@@ -25,24 +26,34 @@ struct VoiceCoachCommands: Commands {
         .keyboardShortcut("i", modifiers: [.command, .shift])
         .disabled(
           model.isRecording || model.isAnalyzing || model.isRequestingPermission
+            || model.isCapturingMimicReference || model.mimicIsPreparing || model.hasMenuBarReference
             || (model.selectedSession?.mode == .mimic && model.destination.isWorkspace))
 
-      Button("Export…") { model.exportCurrent() }
+      Button("Export take…") { model.exportCurrent() }
         .keyboardShortcut("e", modifiers: [.command, .shift])
         .disabled(model.selectedTake == nil || model.isRecording || model.isAnalyzing)
 
-      Button("Copy AI analysis prompt + JSON") { model.copySelectedAIAnalysisPrompt() }
-        .keyboardShortcut("c", modifiers: [.command, .option])
-        .disabled(model.selectedTake == nil || model.isRecording || model.isAnalyzing)
+      if model.showsExperimentalAsk {
+        Button("Copy AI analysis prompt + JSON") { model.copySelectedAIAnalysisPrompt() }
+          .keyboardShortcut("c", modifiers: [.command, .option])
+          .disabled(model.selectedTake == nil || model.isRecording || model.isAnalyzing)
+      }
     }
 
     CommandMenu("Navigate") {
-      navigationButton("Home", section: .home, shortcut: "1")
-      navigationButton("Library", section: .library, shortcut: "2")
-      navigationButton("Practice", section: .mimics, shortcut: "3")
+      listButton(.all, shortcut: "1")
+      listButton(.withReference, shortcut: "2")
+      listButton(.archived, shortcut: "3")
     }
 
     CommandMenu("Practice") {
+      #if DEBUG
+      if let path = ProcessInfo.processInfo.environment["VOICECOACH_INJECT_TAKE"], !path.isEmpty {
+        Button("Inject QA take") { model.injectTakeFromEnvironment() }
+          .keyboardShortcut("j", modifiers: [.command, .shift])
+          .disabled(model.selectedSession == nil || model.isRecording || model.isAnalyzing)
+      }
+      #endif
       Button(
         model.mimicPhase == .playingReference
           ? "Stop"
@@ -54,13 +65,40 @@ struct VoiceCoachCommands: Commands {
         !model.isMimicWorkspace || model.isRecording || model.isAnalyzing
           || (model.mimicPhase != .ready && model.mimicPhase != .playingReference))
 
-      Button(model.isRecording ? "Stop recording" : "Start practice") {
+      Button(model.isRecording ? "Stop recording" : "Record take") {
         model.recordButtonPressed()
       }
       .keyboardShortcut("r", modifiers: .command)
       .disabled(
         !model.isMimicWorkspace || model.isAnalyzing || model.isRequestingPermission
           || (!model.isRecording && (model.isPlaying || model.mimicPhase != .ready)))
+
+      Divider()
+
+      Button("Previous take") { model.stepTake(by: -1) }
+        .keyboardShortcut(.leftArrow, modifiers: .option)
+        .disabled(!model.destination.isWorkspace || !model.canStepTake(by: -1))
+
+      Button("Next take") { model.stepTake(by: 1) }
+        .keyboardShortcut(.rightArrow, modifiers: .option)
+        .disabled(!model.destination.isWorkspace || !model.canStepTake(by: 1))
+
+      if model.isMimicWorkspace, let style = model.selectedSession?.mimicStyle {
+        Divider()
+        Picker(
+          "Mode",
+          selection: Binding(
+            get: { style },
+            set: { model.updateMimicStyle($0) }
+          )
+        ) {
+          ForEach(MimicStyle.allCases) { option in
+            Text(option.title).tag(option)
+          }
+        }
+        .pickerStyle(.inline)
+        .disabled(model.isRecording || model.isAnalyzing || model.mimicPhase != .ready)
+      }
 
       if model.showsExperimentalAsk {
         Button("Words") { model.revealSessionChat() }
@@ -70,11 +108,9 @@ struct VoiceCoachCommands: Commands {
     }
   }
 
-  private func navigationButton(
-    _ title: String, section: NavigationSection, shortcut: KeyEquivalent
-  ) -> some View {
-    Button(title) { model.navigate(toSection: section) }
+  private func listButton(_ filter: PracticeListFilter, shortcut: KeyEquivalent) -> some View {
+    Button(filter.title) { model.showList(filter) }
       .keyboardShortcut(shortcut, modifiers: .command)
-      .disabled(model.isRecording)
+      .disabled(!model.canNavigate)
   }
 }

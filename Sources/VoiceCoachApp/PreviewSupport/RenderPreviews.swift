@@ -76,7 +76,8 @@
       let afterAnalysis = try Data(contentsOf: analysisURL)
       precondition(afterAnalysis == beforeAnalysis, "Metadata save rewrote analysis blob")
 
-      func render(_ name: String, width: CGFloat = 1440, height: CGFloat = 920) throws {
+      // Wide enough for sidebar, practice list, detail and inspector side by side.
+      func render(_ name: String, width: CGFloat = 1780, height: CGFloat = 920) throws {
         let view = ContentView()
           .environmentObject(model)
           .defaultAppStorage(previewDefaults)
@@ -132,9 +133,9 @@
       }
 
       func renderCreateSession(
-        _ name: String, mode: PracticeMode = .general, width: CGFloat = 720, height: CGFloat = 760
+        _ name: String, width: CGFloat = 680, height: CGFloat = 340
       ) throws {
-        let view = CreateSessionView(initialMode: mode)
+        let view = CreateSessionView()
           .environmentObject(model)
           .defaultAppStorage(previewDefaults)
           .environment(\.studioSnapshot, true)
@@ -153,7 +154,7 @@
       try render("01-home")
       try render("01b-home-compact", width: 920, height: 640)
       model.destination = .mimicStart
-      try renderCreateSession("02-mimic-start", mode: .mimic)
+      try renderCreateSession("02-mimic-start")
       if let first = model.sessions[0].takes.first {
         model.openTake(sessionID: model.sessions[0].id, takeID: first.id)
       }
@@ -225,7 +226,7 @@
             .environmentObject(model)
             .environment(\.studioSnapshot, true)
             .padding(24)
-            .frame(width: 1100, height: 640, alignment: .topLeading)
+            .frame(width: 1300, height: 640, alignment: .topLeading)
             .background(Studio.background)
             let renderer = ImageRenderer(content: view)
             renderer.scale = 1
@@ -255,16 +256,52 @@
           id: UUID(), url: fixtureRoot.appendingPathComponent("preview-only.wav"),
           sourceName: "Interview excerpt", duration: 8,
           peaks: (0..<180).map { Float(0.1 + 0.6 * abs(sin(Double($0) / 8))) },
-          source: .importedAudio
+          source: .importedAudio, transcription: mimic.mimicReference?.take.transcription
         )
-        try renderCreateSession("13-mimic-setup", mode: .mimic)
+        try renderCreateSession("13-mimic-setup", height: 480)
         model.mimicDraft = MimicReferenceDraft(
           id: UUID(), url: fixtureRoot.appendingPathComponent("preview-only-long.wav"),
           sourceName: "Long interview", duration: 180,
           peaks: (0..<2_880).map { Float(0.1 + 0.6 * abs(sin(Double($0) / 8))) },
           source: .importedAudio
         )
-        try renderCreateSession("14-mimic-long-setup", mode: .mimic)
+        try renderCreateSession("14-mimic-long-setup", height: 400)
+      }
+
+      // Menu bar states use the real controls without a microphone or process tap.
+      model.destination = .home
+      model.mimicPhase = .ready
+      model.isRecording = false
+      model.mimicDraft = nil
+      for scheme in [ColorScheme.light, .dark] {
+        let appearance = scheme == .light ? "light" : "dark"
+        for state in ["idle", "permission", "capturing", "preparing", "ready", "recording", "error"] {
+          model.isCapturingMimicReference = state == "capturing"
+          model.hasMenuBarReference = ["permission", "capturing", "preparing", "ready"].contains(state)
+          model.isRequestingPermission = state == "permission"
+          model.mimicIsPreparing = state == "preparing"
+          model.isRecording = state == "recording"
+          model.mimicReferenceCaptureElapsed = 24
+          model.mimicReferenceCaptureLevel = -18
+          model.elapsed = 12
+          if state == "error" {
+            model.presentCaptureError(
+              title: "Capture failed",
+              message: SystemAudioCaptureError.permissionOrSilent.errorDescription ?? "")
+          } else {
+            model.clearError()
+          }
+          let view = QuickPracticeMenu(model: model)
+            .environment(\.studioSnapshot, true)
+            .environment(\.colorScheme, scheme)
+            .background(scheme == .light ? Color.white : Color.black)
+          let renderer = ImageRenderer(content: view)
+          renderer.scale = 2
+          guard let image = renderer.cgImage,
+            let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+          else { throw NSError(domain: "VoiceCoachPreview", code: 6) }
+          try png.write(to: output.appendingPathComponent("20-quick-practice-\(state)-\(appearance).png"))
+        }
       }
 
       // Hang regression: a multi-thousand-word transcript must layout quickly.

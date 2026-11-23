@@ -78,43 +78,41 @@ public struct AudioAnalyzer: Sendable {
 
     var loudness: [TimePoint] = []
     var allFrameDB: [Double] = []
-    var rawFrames: [(time: Double, db: Double, frame: [Float])] = []
+    // Frame offsets only: copying every 40 ms frame at a 10 ms hop would hold the
+    // whole signal four times over, which a long import cannot afford.
+    var frameOffsets: [Int] = []
 
+    // frameSize never exceeds samples.count, so at least one frame is always produced.
     var offset = 0
     while offset + frameSize <= samples.count {
-      let frame = Array(samples[offset..<(offset + frameSize)])
-      let rms = rootMeanSquare(frame)
-      let db = amplitudeToDB(rms)
+      let db = amplitudeToDB(rootMeanSquare(samples[offset..<(offset + frameSize)]))
       let time = (Double(offset) + Double(frameSize) / 2) / sampleRate
       allFrameDB.append(db)
       loudness.append(TimePoint(time: time, value: db))
-      rawFrames.append((time: time, db: db, frame: frame))
+      frameOffsets.append(offset)
       offset += hopSize
     }
 
-    if loudness.isEmpty {
-      let db = amplitudeToDB(rootMeanSquare(samples))
-      loudness = [TimePoint(time: duration / 2, value: db)]
-      allFrameDB = [db]
-    }
-
     let noiseFloor = percentile(allFrameDB, 0.15)
-    let activeThreshold = min(-32, max(-50, noiseFloor + 8))
+    let activeThreshold = activeSpeechThreshold(noiseFloorDBFS: noiseFloor)
     let pitchThreshold = min(-32, max(-48, activeThreshold - 3))
 
     var frameEstimates: [PitchFrameEstimate] = []
-    for f in rawFrames {
+    frameEstimates.reserveCapacity(frameOffsets.count)
+    for (index, frameOffset) in frameOffsets.enumerated() {
+      let point = loudness[index]
       var candidates: [PitchCandidate] = []
-      if f.db >= pitchThreshold, maximumLag > minimumLag {
+      if point.value >= pitchThreshold, maximumLag > minimumLag {
         candidates = extractCandidates(
-          frame: f.frame,
+          frame: Array(samples[frameOffset..<(frameOffset + frameSize)]),
           rate: rate,
           decimation: decimation,
           minimumLag: minimumLag,
           maximumLag: maximumLag
         )
       }
-      frameEstimates.append(PitchFrameEstimate(time: f.time, db: f.db, candidates: candidates))
+      frameEstimates.append(
+        PitchFrameEstimate(time: point.time, db: point.value, candidates: candidates))
     }
 
     let tracking = trackPitch(frameEstimates: frameEstimates)
@@ -177,7 +175,8 @@ public struct AudioAnalyzer: Sendable {
       return 12 * log2(frequency / medianPitch)
     }
     let pitchDeviationSemitones = pitchSemitones.count > 1 ? standardDeviation(pitchSemitones) : nil
-    let pitchInstability = relativeSuccessiveDifference(pitchValues)
+    let pitchInstability = relativeSuccessiveDifference(
+      pitch, maximumGap: 1.5 * Double(hopSize) / sampleRate)
     let cpp = cppSummary(samples: samples, sampleRate: sampleRate)
     let metrics = VoiceMetrics(
       duration: duration,

@@ -66,7 +66,8 @@ final class SessionChatConversation: ObservableObject {
   }
 
   func cancel() {
-    if let pendingQuestion { draft = pendingQuestion }
+    // Restore the cancelled question only when it would not replace newer typing.
+    if let pendingQuestion, draft.isEmpty { draft = pendingQuestion }
     task?.cancel()
     finishRequest()
   }

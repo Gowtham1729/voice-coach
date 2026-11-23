@@ -14,6 +14,11 @@ extension MimicComparisonView {
     .frame(minWidth: 590, alignment: .leading)
   }
 
+  var focusPairIndex: Int? {
+    guard let focusReferenceWordIndex else { return nil }
+    return comparison.pairs.firstIndex { $0.referenceIndex == focusReferenceWordIndex }
+  }
+
   func followableChart(viewportWidth: CGFloat) -> some View {
     ScrollView(.horizontal) {
       chartContents
@@ -51,7 +56,13 @@ extension MimicComparisonView {
   }
 
   var chartHeight: CGFloat { metric == .timing ? 105 : 280 }
-  var chartCellWidth: CGFloat { metric == .timing ? 150 : 74 }
+  /// Word columns are at least 74 pt and grow to fill a wide card.
+  var wordCellWidth: CGFloat {
+    let count = CGFloat(max(1, comparison.pairs.count))
+    return max(74, (chartViewportWidth / count).rounded(.down))
+  }
+
+  var chartCellWidth: CGFloat { metric == .timing ? 150 : wordCellWidth }
 
   var chartContentWidth: CGFloat {
     let count = CGFloat(comparison.pairs.count)
@@ -59,7 +70,7 @@ extension MimicComparisonView {
     case .timing:
       return max(590, count * 150 - 6)
     case .pitch, .emphasis:
-      return max(630, count * 74)
+      return max(630, count * wordCellWidth)
     }
   }
 
@@ -96,7 +107,7 @@ extension MimicComparisonView {
       .frame(width: 1.5, height: metric == .timing ? 100 : 238)
       .overlay(alignment: .top) {
         Circle()
-          .fill(model.mimicPlaybackSource == .reference ? .cyan : Studio.accent)
+          .fill(model.mimicPlaybackSource == .reference ? Studio.referenceSeries : Studio.accent)
           .frame(width: 8, height: 8)
       }
       .allowsHitTesting(false)
@@ -107,7 +118,7 @@ extension MimicComparisonView {
     switch metric {
     case .pitch: "Relative pitch · semitones by matched words"
     case .timing:
-      "Word length · orange = pause change"
+      "Word length · ⏸ marks a word whose pause before it differs"
     case .emphasis: "Relative word energy · dB"
     }
   }
@@ -139,7 +150,7 @@ extension MimicComparisonView {
       source == .reference ? comparison.pairs[index].reference : comparison.pairs[index].attempt
     let cell = chartCellWidth
     let inset: CGFloat = metric == .timing ? 6 : 0
-    let spokenWidth: CGFloat = metric == .timing ? 132 : 74
+    let spokenWidth: CGFloat = metric == .timing ? 132 : cell
     let wordEndX = CGFloat(index) * cell + inset + spokenWidth
     if comparison.pairs.indices.contains(index + 1) {
       let next =
@@ -194,10 +205,14 @@ extension MimicComparisonView {
   func activeTranscriptIndex(in transcription: TranscriptionResult, source: MimicPlaybackSource)
     -> Int?
   {
-    guard model.isPlaying, model.mimicPlaybackSource == source else { return nil }
-    return transcription.words.firstIndex(where: {
-      model.playbackTime >= $0.start && model.playbackTime < $0.end
-    })
+    if model.isPlaying, model.mimicPlaybackSource == source {
+      return transcription.words.firstIndex(where: {
+        model.playbackTime >= $0.start && model.playbackTime < $0.end
+      })
+    }
+    guard let focusPairIndex else { return nil }
+    let pair = comparison.pairs[focusPairIndex]
+    return source == .reference ? pair.referenceIndex : pair.attemptIndex
   }
 
   var wordPicker: some View {
@@ -208,10 +223,11 @@ extension MimicComparisonView {
         } label: {
           Text(comparison.pairs[index].word)
             .lineLimit(1)
-            .frame(width: 70)
+            .frame(width: wordCellWidth - 4)
             .padding(.vertical, 6)
             .background(
-              model.mimicSelectedWord == index ? Studio.accent.opacity(0.22) : .clear,
+              (model.mimicSelectedWord ?? focusPairIndex) == index
+                ? Studio.accent.opacity(0.22) : .clear,
               in: RoundedRectangle(cornerRadius: 5))
         }
         .buttonStyle(.plain)
@@ -228,14 +244,33 @@ extension MimicComparisonView {
     let displayedMetric = metric
     let ref = reference
     let own = attempt
-    let chartWidth = max(630, CGFloat(pairs.count) * 74)
+    let cell = wordCellWidth
+    let chartWidth = max(630, CGFloat(pairs.count) * cell)
     return Canvas { context, size in
-      let cell: CGFloat = 74
       let middle = size.height / 2
+      if let focusPairIndex {
+        context.fill(
+          Path(roundedRect: CGRect(x: CGFloat(focusPairIndex) * cell, y: 0,
+            width: cell, height: size.height), cornerRadius: 5),
+          with: .color(Studio.accent.opacity(0.10)))
+      }
       var axis = Path()
       axis.move(to: CGPoint(x: 0, y: middle))
       axis.addLine(to: CGPoint(x: size.width, y: middle))
       context.stroke(axis, with: .color(Studio.secondary.opacity(0.3)), lineWidth: 1)
+
+      // Scale: the middle line is the speaker's usual level; top and bottom are the clamp.
+      let limit = displayedMetric == .pitch ? "8 st" : "12 dB"
+      let scaleFont = Font.caption2
+      context.draw(
+        Text("higher +\(limit)").font(scaleFont).foregroundStyle(Studio.secondary),
+        at: CGPoint(x: 4, y: 4), anchor: .topLeading)
+      context.draw(
+        Text("usual").font(scaleFont).foregroundStyle(Studio.secondary),
+        at: CGPoint(x: 4, y: middle - 3), anchor: .bottomLeading)
+      context.draw(
+        Text("lower −\(limit)").font(scaleFont).foregroundStyle(Studio.secondary),
+        at: CGPoint(x: 4, y: size.height - 4), anchor: .bottomLeading)
 
       if displayedMetric == .pitch {
         for (take, isReference) in [(ref, true), (own, false)] {
@@ -246,10 +281,15 @@ extension MimicComparisonView {
             let span = max(0.001, word.end - word.start)
             var path = Path()
             var lastTime: Double?
-            for sample in samples
-            where sample.time >= word.start && sample.time <= word.end && sample.value > 0 {
+            // Drop octave jumps and onset glitches: keep frames within 5 st of the word's median.
+            let voiced = samples.filter {
+              $0.time >= word.start && $0.time <= word.end && $0.value > 0
+            }
+            guard voiced.count >= 3 else { continue }
+            let semitones = voiced.map { 12 * log2($0.value / median) }
+            let wordMedian = semitones.sorted()[semitones.count / 2]
+            for (sample, relative) in zip(voiced, semitones) where abs(relative - wordMedian) <= 5 {
               let position = max(0, min(1, (sample.time - word.start) / span))
-              let relative = 12 * log2(sample.value / median)
               let fraction = max(-1, min(1, relative / 8))
               let point = CGPoint(
                 x: CGFloat(index) * cell + CGFloat(position) * cell,
@@ -263,7 +303,7 @@ extension MimicComparisonView {
               lastTime = sample.time
             }
             context.stroke(
-              path, with: .color(isReference ? .cyan : Studio.accent),
+              path, with: .color(isReference ? Studio.referenceSeries : Studio.accent),
               style: StrokeStyle(lineWidth: 2, dash: isReference ? [5, 4] : []))
           }
         }
@@ -292,17 +332,17 @@ extension MimicComparisonView {
           lastIndex = index
           context.fill(
             Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)),
-            with: .color(isReference ? .cyan : Studio.accent))
+            with: .color(isReference ? Studio.referenceSeries : Studio.accent))
         }
         context.stroke(
-          path, with: .color(isReference ? .cyan : Studio.accent),
+          path, with: .color(isReference ? Studio.referenceSeries : Studio.accent),
           style: StrokeStyle(lineWidth: 2, dash: isReference ? [5, 4] : []))
       }
     }
     .frame(width: chartWidth, height: 238)
     .contentShape(Rectangle())
     .onTapGesture { location in
-      let index = Int(location.x / 74)
+      let index = Int(location.x / cell)
       jump(to: index, source: model.mimicPlaybackSource)
     }
     .accessibilityLabel(
@@ -317,7 +357,7 @@ extension MimicComparisonView {
           context.stroke(path, with: .color(Studio.ink.opacity(0.8)), lineWidth: 1.5)
           context.fill(
             Path(ellipseIn: CGRect(x: x - 4, y: 2, width: 8, height: 8)),
-            with: .color(model.mimicPlaybackSource == .reference ? .cyan : Studio.accent))
+            with: .color(model.mimicPlaybackSource == .reference ? Studio.referenceSeries : Studio.accent))
         }
         .frame(width: chartWidth, height: 238)
         .allowsHitTesting(false)

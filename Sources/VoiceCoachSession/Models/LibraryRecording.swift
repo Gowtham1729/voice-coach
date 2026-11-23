@@ -1,7 +1,7 @@
 import Foundation
 import VoiceCoachCore
 
-/// User-facing library row. Mimic references are never included.
+/// One take with its practice context. Mimic references are never included.
 package struct LibraryRecording: Identifiable, Equatable, Sendable {
   package let sessionID: UUID
   package let take: PracticeSession
@@ -32,7 +32,7 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
   }
 
   package var sidebarSubtitle: String {
-    if isMimicAttempt { return "Practice take" }
+    if isMimicAttempt { return "Take \(takeNumber) · With reference" }
     return take.takeSource.title
   }
 
@@ -48,7 +48,7 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
   }
 
   package var subtitle: String {
-    if isMimicAttempt { return "Practice take" }
+    if isMimicAttempt { return "Take \(takeNumber) of \(takeCount) · With reference" }
     if isRetryStack { return prompt.isEmpty ? "Take \(takeNumber) of \(takeCount)" : prompt }
     return take.takeSource.title
   }
@@ -56,19 +56,21 @@ package struct LibraryRecording: Identifiable, Equatable, Sendable {
   package var accessibilityLabel: String {
     if isMimicAttempt {
       let source = mimicSourceName ?? groupName
-      return "Take \(takeNumber) of \(takeCount), reference practice, \(source)"
+      return "\(source), take \(takeNumber) of \(takeCount), with reference"
     }
     if isRetryStack {
-      return "Take \(takeNumber) of \(takeCount), \(stackLabel)"
+      return "\(stackLabel), take \(takeNumber) of \(takeCount)"
     }
     return "\(groupName), \(take.takeSource.title)"
   }
 
   package var stackLabel: String {
     guard !prompt.isEmpty else { return groupName }
-    let excerpt = prompt.split(separator: " ").prefix(8).joined(separator: " ")
-    guard prompt.count > excerpt.count else { return excerpt }
-    return "\(excerpt)…"
+    // Compare word counts: collapsing repeated spaces shortens the text without
+    // truncating it, and that must not add an ellipsis.
+    let words = prompt.split(whereSeparator: \.isWhitespace)
+    let excerpt = words.prefix(8).joined(separator: " ")
+    return words.count > 8 ? "\(excerpt)…" : excerpt
   }
 
   private static func timeText(_ date: Date) -> String {
@@ -107,7 +109,7 @@ package enum RecordingCatalog {
     -> [LibraryRecording]
   {
     sessions.flatMap { session in
-      if session.isMimic, session.archived, !includeArchived { return [] as [LibraryRecording] }
+      if session.archived, !includeArchived { return [] as [LibraryRecording] }
       return session.takes.compactMap { LibraryRecording.make(session: session, take: $0) }
     }
     .sorted { $0.take.createdAt > $1.take.createdAt }

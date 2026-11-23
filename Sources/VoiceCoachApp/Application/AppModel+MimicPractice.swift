@@ -1,15 +1,19 @@
 import AVFoundation
 import AppKit
 import Foundation
+import OSLog
 import VoiceCoachCore
 import VoiceCoachSession
 
 extension AppModel {
   func chooseMimicReference() {
-    guard !mimicIsPreparing, !isRecording, !isCapturingMimicReference else { return }
+    guard !mimicIsPreparing, !isRecording, !isAnalyzing, !isCapturingMimicReference,
+      !isRequestingPermission, !hasMenuBarReference || destination == .mimicStart,
+      requireWritableLibrary()
+    else { return }
     let panel = NSOpenPanel()
     panel.title = "Choose a practice reference"
-    panel.message = "Import a clip, then trim a short excerpt."
+    panel.message = "Import audio and choose phrases to practice."
     panel.prompt = "Use Clip"
     panel.allowedContentTypes = AudioImportService.allowedContentTypes
     panel.allowsMultipleSelection = false
@@ -32,7 +36,8 @@ extension AppModel {
         presentMimicDraft(
           id: id,
           url: staged,
-          sourceName: sourceURL.deletingPathExtension().lastPathComponent,
+          sourceName: PracticeNaming.cleaned(
+            fileName: sourceURL.deletingPathExtension().lastPathComponent),
           source: AudioImportService.source(for: sourceURL)
         )
       } catch {
@@ -41,7 +46,7 @@ extension AppModel {
           mimicIsPreparing = false
           mimicPreparationID = nil
           presentError(
-            title: "Reference practice failed",
+            title: "Couldn’t set up the reference",
             error: error,
             fallback: "Couldn’t prepare this reference.")
         }
@@ -50,12 +55,18 @@ extension AppModel {
   }
 
   func cancelMimicPreparation() {
-    if isCapturingMimicReference {
-      systemAudioCapture.stop()
+    hasMenuBarReference = false
+    mimicPreparationTask?.cancel()
+    mimicPreparationTask = nil
+    mimicIsFindingPhrases = false
+    cancelSuggestedPracticeCreation()
+    if let url = mimicReferenceCaptureURL {
+      if isCapturingMimicReference { systemAudioCapture.stop() }
+      // A capture still waiting on the system permission dialog returns to idle now.
+      // Its late completion no longer matches `mimicPreparationID` and tears itself down.
+      if !isCapturingMimicReference { isRequestingPermission = false }
       stopMimicReferenceCaptureTimer()
-      if let url = mimicReferenceCaptureURL {
-        try? FileManager.default.removeItem(at: url)
-      }
+      try? FileManager.default.removeItem(at: url)
       isCapturingMimicReference = false
       mimicReferenceCaptureURL = nil
       mimicReferenceCaptureStartedAt = nil
@@ -66,100 +77,6 @@ extension AppModel {
     stopPlayback()
     if let url = mimicDraft?.url { try? FileManager.default.removeItem(at: url) }
     mimicDraft = nil
-  }
-
-  func createMimicSession(name: String, start: Double, end: Double) {
-    guard let draft = mimicDraft, !mimicIsPreparing,
-      start >= 0, end <= draft.duration + 0.02, end - start >= 1,
-      let activeID = mimicPreparationID
-    else { return }
-    mimicIsPreparing = true
-    stopPlayback()
-    let sessionID = UUID()
-    let referenceID = UUID()
-    let preferredEngine = transcriptionEngine
-    let locale = newSessionTranscriptionLocale
-    transcriptionNotice = nil
-    // Precedence for titles: user-entered name > LLM > sourceName.
-    let trimmedUserName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-    let userProvidedCustomName = !trimmedUserName.isEmpty && trimmedUserName != draft.sourceName
-    let fallbackName = trimmedUserName.isEmpty ? draft.sourceName : trimmedUserName
-    do {
-      let destinationURL = try store.referenceURL(sessionID: sessionID)
-      Task {
-        do {
-          let acoustic = try await Task.detached(priority: .userInitiated) {
-            try AudioImportService.trimAudio(
-              from: draft.url, to: destinationURL, start: start, end: end)
-            return try AudioAnalyzer().analyze(url: destinationURL)
-          }.value
-          try RecordingValidation.validateAudio(acoustic)
-          let (transcription, notice) = try await transcribeForAnalysis(
-            url: destinationURL, engine: preferredEngine, locale: locale)
-          let words =
-            transcription.map {
-              WordAcousticAnalyzer().analyze(transcription: $0, result: acoustic)
-            } ?? []
-          transcriptionNotice = notice
-          // Cancel check after ASR, before insert — never insert after dismiss.
-          guard mimicPreparationID == activeID else {
-            try? store.deleteSessionData(sessionID: sessionID)
-            return
-          }
-          let referenceTake = PracticeSession(
-            id: referenceID, audioURL: destinationURL,
-            source: draft.source, result: acoustic,
-            transcription: transcription, words: words
-          )
-          let session = CoachingSession(
-            id: sessionID,
-            name: fallbackName,
-            mode: .mimic, prompt: "", keepsRecordings: true,
-            mimicReference: MimicReference(
-              sourceName: fallbackName, take: referenceTake,
-              sourceStart: start, sourceEnd: end
-            ), mimicStyle: .listenAndRepeat, mimicAttemptStyles: [:],
-            transcriptionLocaleIdentifier: locale?.identifier
-          )
-          sessions.insert(session, at: 0)
-          guard persist(analysisTakeIDs: [referenceID]) else {
-            sessions.removeAll { $0.id == sessionID }
-            try? store.deleteSessionData(sessionID: sessionID)
-            mimicIsPreparing = false
-            return
-          }
-          lastUsedMimicID = sessionID
-          selectedSessionID = sessionID
-          selectedTakeID = nil
-          mimicWorkspaceMode = .practice
-          destination = .practice(sessionID)
-          cancelMimicPreparation()
-
-          if !userProvidedCustomName, let text = transcription?.text {
-            scheduleDeferredSmartTitle(
-              sessionID: sessionID,
-              fallbackName: fallbackName,
-              transcript: text,
-              syncMimicSourceName: true
-            )
-          }
-        } catch {
-          try? store.deleteSessionData(sessionID: sessionID)
-          if mimicPreparationID == activeID {
-            mimicIsPreparing = false
-            presentError(
-              title: "Reference practice failed",
-              error: error,
-              fallback: "Couldn’t start this practice session.")
-          }
-        }
-      }
-    } catch {
-      mimicIsPreparing = false
-      presentError(
-        title: "Reference practice failed",
-        message: "Couldn’t create a local file for this reference.")
-    }
   }
 
   func updateMimicStyle(_ style: MimicStyle) {
@@ -174,6 +91,7 @@ extension AppModel {
 
   func startMimicPractice(skipReference: Bool = false) {
     guard !isRecording, !isPlaying, !isAnalyzing, !isRequestingPermission,
+      !isCapturingMimicReference, !mimicIsPreparing, !hasMenuBarReference,
       mimicPhase == .ready, !hasPendingMimicWork,
       let reference = selectedSession?.mimicReference
     else { return }
@@ -205,6 +123,7 @@ extension AppModel {
           if granted {
             begin()
           } else {
+            self.pendingRetryTarget = nil
             self.presentError(
               title: "Microphone Access Needed",
               message: RecorderError.microphoneDenied.errorDescription
@@ -213,6 +132,7 @@ extension AppModel {
         }
       }
     default:
+      pendingRetryTarget = nil
       presentError(
         title: "Microphone Access Needed",
         message: RecorderError.microphoneDenied.errorDescription
@@ -224,6 +144,7 @@ extension AppModel {
     guard case .countIn = mimicPhase else { return }
     mimicCountInTask?.cancel()
     mimicPhase = .ready
+    pendingRetryTarget = nil
   }
 
   private func startMimicCountIn() {
@@ -261,6 +182,49 @@ extension AppModel {
       url: take.audioURL, source: .attempt, start: bounds.lowerBound, end: bounds.upperBound)
   }
 
+  func replayBoth() {
+    guard selectedSession?.mimicReference != nil, selectedTake != nil else { return }
+    replayBothPendingAttempt = true
+    playMimicReference()
+  }
+
+  func playFocusSegment(
+    source: MimicPlaybackSource, range: ClosedRange<Double>,
+    focusWordRange: ClosedRange<Double>
+  ) {
+    let take = source == .reference ? selectedSession?.mimicReference?.take : selectedTake
+    guard let take else { return }
+    let duration = take.result.metrics.duration
+    let start = max(0, range.lowerBound - 0.150)
+    let end = min(duration, range.upperBound + 0.150)
+    guard end > start else { return }
+    #if DEBUG
+    if ProcessInfo.processInfo.environment["VOICECOACH_REPLAY_LOG"] == "1" {
+      Logger(subsystem: "com.gowtham.voicecoach", category: "Replay").debug(
+        "VOICECOACH_REPLAY source=\(String(describing: source), privacy: .public) played=\(start, privacy: .public)...\(end, privacy: .public) focus=\(focusWordRange.lowerBound, privacy: .public)...\(focusWordRange.upperBound, privacy: .public)")
+    }
+    #endif
+    if source == .reference {
+      playMimicReference(range: start...end)
+    } else {
+      playMimicAttempt(range: start...end)
+    }
+  }
+
+  func playPreviousFocusSegment(takeID: UUID, range: ClosedRange<Double>) {
+    guard let take = selectedSession?.takes.first(where: { $0.id == takeID }) else { return }
+    let start = max(0, range.lowerBound - 0.150)
+    let end = min(take.result.metrics.duration, range.upperBound + 0.150)
+    guard end > start else { return }
+    #if DEBUG
+    if ProcessInfo.processInfo.environment["VOICECOACH_REPLAY_LOG"] == "1" {
+      Logger(subsystem: "com.gowtham.voicecoach", category: "Replay").debug(
+        "VOICECOACH_REPLAY source=previous played=\(start, privacy: .public)...\(end, privacy: .public) focus=\(range.lowerBound, privacy: .public)...\(range.upperBound, privacy: .public)")
+    }
+    #endif
+    playMimicSegment(url: take.audioURL, source: .attempt, start: start, end: end)
+  }
+
   func seekMimic(source: MimicPlaybackSource, to time: Double) {
     guard !isRecording, !isAnalyzing, mimicPhase == .ready else { return }
     let take = source == .reference ? selectedSession?.mimicReference?.take : selectedTake
@@ -272,9 +236,9 @@ extension AppModel {
   }
 
   func retryPendingMimicWork() {
-    guard hasPendingMimicWork else { return }
+    guard hasPendingMimicWork, !isAnalyzing, let sessionID = selectedSessionID else { return }
     if let pendingMimicTake {
-      append(pendingMimicTake)
+      append(pendingMimicTake, toSessionID: sessionID)
     } else if let pendingMimicAudio {
       analyze(url: pendingMimicAudio.url, takeID: pendingMimicAudio.id)
     }
@@ -359,6 +323,11 @@ extension AppModel {
     isPlaying = false
     playbackTime = 0
     mimicPlaybackEnd = nil
+    if replayBothPendingAttempt {
+      replayBothPendingAttempt = false
+      playMimicAttempt()
+      return
+    }
     if mimicShouldRecordAfterPlayback {
       mimicShouldRecordAfterPlayback = false
       startMimicCountIn()

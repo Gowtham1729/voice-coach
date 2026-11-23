@@ -227,6 +227,7 @@ struct SessionChatInspector: View {
           .font(.caption).foregroundStyle(.secondary)
       }
       Spacer()
+      suggestedQuestions
       if snapshot {
         Text("Translate…").font(.caption).foregroundStyle(Studio.accent)
       } else {
@@ -239,24 +240,29 @@ struct SessionChatInspector: View {
     .disabled(conversation.isResponding || busy)
   }
 
-  private var composer: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Menu("Suggested questions") {
-        Button("Explain the meaning") { conversation.draft = "What does this transcript mean?" }
-        Button("Word-by-word meanings") {
-          conversation.draft =
-            "Explain each word or meaningful phrase in English. Use one mapping per line: source = meaning."
-        }
-        Button("Synonyms in context") {
-          conversation.draft = SessionChatTask.synonymSuggestion
-        }
-        Menu("Translate into") {
-          ForEach(SessionChatTask.menuLanguages, id: \.self) { language in
-            Button(language) { conversation.draft = "Translate this into \(language)." }
-          }
+  /// Sits on the transcript row so the text field is the first thing under the chat.
+  private var suggestedQuestions: some View {
+    Menu("Suggested questions") {
+      Button("Explain the meaning") { conversation.draft = "What does this transcript mean?" }
+      Button("Word-by-word meanings") {
+        conversation.draft =
+          "Explain each word or meaningful phrase in English. Use one mapping per line: source = meaning."
+      }
+      Button("Synonyms in context") {
+        conversation.draft = SessionChatTask.synonymSuggestion
+      }
+      Menu("Translate into") {
+        ForEach(SessionChatTask.menuLanguages, id: \.self) { language in
+          Button(language) { conversation.draft = "Translate this into \(language)." }
         }
       }
-      .controlSize(.small).disabled(!modelReady || conversation.isResponding || busy)
+    }
+    .controlSize(.small).disabled(!modelReady || conversation.isResponding || busy)
+    .menuStyle(.borderlessButton).fixedSize()
+  }
+
+  private var composer: some View {
+    VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .bottom, spacing: 8) {
         if snapshot {
           Text("Ask about this transcript…").font(.callout).foregroundStyle(.secondary)
@@ -282,6 +288,6 @@ struct SessionChatInspector: View {
   }
 
   private func sourceName(_ origin: SessionChatTranscript.Origin) -> String {
-    origin == .reference ? "Reference" : (conversation.context.isMimic ? "This take" : "Recording")
+    origin == .reference ? "Reference" : "This take"
   }
 }

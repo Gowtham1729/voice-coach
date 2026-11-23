@@ -13,7 +13,6 @@ struct TakeView: View {
   @State var selectedWordIndex: Int?
   @State var isGraphCopied = false
   @State var isTranscriptCopied = false
-  @State var isHandlingWordStep = false
 
   var body: some View {
     Group {
@@ -23,11 +22,11 @@ struct TakeView: View {
         StudioPage(maxWidth: 1050, horizontalPadding: 20) {
           EmptyState(
             icon: "waveform",
-            title: "Recording Unavailable",
-            detail: "Choose another recording from Library.",
-            actionTitle: "Library"
+            title: "Take unavailable",
+            detail: "Choose another practice from the list.",
+            actionTitle: "All practices"
           ) {
-            model.navigate(to: .library)
+            model.showList(.all)
           }
         }
       }
@@ -39,7 +38,14 @@ struct TakeView: View {
       StudioScroll {
         VStack(alignment: .leading, spacing: 14) {
           takeBar(session, take: take)
+          if !embedded, session.takeCount > 1 {
+            TakeStrip(session: session)
+          }
           transcriptCard(take)
+          // Review already shows the coaching card for a practice with a reference.
+          if !embedded {
+            OneTargetRetryCard(session: session, take: take)
+          }
           analysisCard(take)
         }
         .id(take.id)
@@ -62,7 +68,6 @@ struct TakeView: View {
 
       stickyTransport(take)
     }
-    .background(wordStepShortcuts(for: take))
   }
 
   func takeBar(_ session: CoachingSession, take: PracticeSession) -> some View {
@@ -78,31 +83,9 @@ struct TakeView: View {
 
       Spacer()
 
-      if embedded {
-        Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
-          .font(.caption)
-          .foregroundStyle(Studio.secondary)
-      } else if snapshot {
-        Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
-          .font(.caption)
-          .padding(.horizontal, 10)
-          .frame(height: 28)
-          .background(Studio.surface, in: RoundedRectangle(cornerRadius: 6))
-      } else {
-        Picker(
-          "Take",
-          selection: Binding(
-            get: { model.selectedTakeID ?? take.id },
-            set: { takeID in model.selectTake(takeID) }
-          )
-        ) {
-          ForEach(Array(session.takes.enumerated()), id: \.element.id) { index, item in
-            Text("Take \(index + 1) of \(session.takeCount)").tag(item.id)
-          }
-        }
-        .labelsHidden()
-        .frame(width: 150)
-      }
+      Text("Take \(takeNumber(take, in: session)) of \(session.takeCount)")
+        .font(.caption)
+        .foregroundStyle(Studio.secondary)
 
       if !embedded, !session.isMimic {
         if !snapshot, model.isRecording {
@@ -125,7 +108,7 @@ struct TakeView: View {
         }
       }
       if !embedded, take.takeSource != .recorded {
-        Button("Practise with this clip") { model.useCurrentRecordingAsMimicReference() }
+        Button("Use as reference…") { model.useCurrentRecordingAsMimicReference() }
           .tint(.primary)
           .studioGlassButton()
           .disabled(model.isRecording || model.isAnalyzing)

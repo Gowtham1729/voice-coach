@@ -78,6 +78,8 @@ public struct AudioImportService {
       do {
         try await exporter.export(to: exportedAudioURL, as: .m4a)
         try await normalizeAudio(from: exportedAudioURL, to: destinationURL)
+      } catch is CancellationError {
+        throw CancellationError()
       } catch {
         let nsError = error as NSError
         let reason = nsError.localizedFailureReason ?? "Unknown media error."

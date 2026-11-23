@@ -8,6 +8,8 @@ struct MimicReferenceDraft {
   let duration: Double
   let peaks: [Float]
   let source: TakeSource
+  var transcription: TranscriptionResult? = nil
+  var transcriptionLocaleIdentifier: String? = nil
 }
 
 enum MimicPhase: Equatable {
@@ -18,6 +20,8 @@ enum MimicPhase: Equatable {
   case analyzing
 }
 
+/// Two views a person chooses between: Practice and Review. `.analysis` is Review's
+/// "Take details" sub-view (your take on its own), not a third tab.
 enum MimicWorkspaceMode: String, CaseIterable, Identifiable {
   case practice
   case compare
@@ -25,19 +29,25 @@ enum MimicWorkspaceMode: String, CaseIterable, Identifiable {
 
   var id: Self { self }
 
+  /// The segments of the Practice / Review switch.
+  static let switchCases: [MimicWorkspaceMode] = [.practice, .compare]
+
   var title: String {
     switch self {
     case .practice: "Practice"
-    case .compare: "Compare"
-    case .analysis: "Analysis"
+    case .compare: "Review"
+    case .analysis: "Take details"
     }
   }
+
+  /// Which switch segment shows as selected.
+  var switchCase: MimicWorkspaceMode { self == .analysis ? .compare : self }
 
   var inspectorTitle: String {
     switch self {
     case .practice: "Practice"
-    case .compare: "Comparison"
-    case .analysis: "Analysis"
+    case .compare: "Review"
+    case .analysis: "Take details"
     }
   }
 }
@@ -51,7 +61,7 @@ enum MimicPlaybackSource: CaseIterable, Identifiable {
   var title: String {
     switch self {
     case .reference: "Reference"
-    case .attempt: "You"
+    case .attempt: "Your take"
     }
   }
 

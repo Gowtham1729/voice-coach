@@ -3,9 +3,26 @@ import VoiceCoachCore
 
 enum VoiceMetricCopy {
   static let pitchRange = "Pitch range"
-  static let phraseFade = "Drop at phrase end"
+  static let phraseFade = "Loudness at phrase end"
   static let clarity = "Clarity"
   static let pauses = "Pauses"
+}
+
+/// One plain word under each number, so people can read it without knowing the unit.
+/// Descriptive only: none of these says what is good or bad.
+enum VoiceMetricWords {
+  static func pitchRange(_ semitones: Double) -> String {
+    semitones < 3 ? "narrow" : semitones < 7 ? "moderate" : "wide"
+  }
+
+  /// `endMinusStart` is the end of the phrase minus its start, in dB.
+  static func phraseEnd(_ endMinusStart: Double) -> String {
+    abs(endMinusStart) < 1.5 ? "steady" : endMinusStart < 0 ? "ends softer" : "ends louder"
+  }
+
+  static func clarity(_ hnr: Double) -> String {
+    hnr < 7 ? "low" : hnr < 15 ? "medium" : "high"
+  }
 }
 
 struct InspectorMetricItem: Identifiable {
@@ -25,6 +42,7 @@ extension InspectorMetricItem {
         title: VoiceMetricCopy.pitchRange,
         value: vcOptional(metrics.pitchRangeSemitones),
         unit: "st",
+        detail: metrics.pitchRangeSemitones.map(VoiceMetricWords.pitchRange),
         symbol: "waveform.path"
       ),
       InspectorMetricItem(
@@ -32,6 +50,7 @@ extension InspectorMetricItem {
         title: VoiceMetricCopy.phraseFade,
         value: vcSigned(metrics.phraseDecayDB),
         unit: "dB",
+        detail: VoiceMetricWords.phraseEnd(metrics.phraseDecayDB),
         symbol: "arrow.down.right"
       ),
       InspectorMetricItem(
@@ -39,6 +58,7 @@ extension InspectorMetricItem {
         title: VoiceMetricCopy.clarity,
         value: vcOptional(metrics.hnrDB),
         unit: "dB",
+        detail: metrics.hnrDB.map(VoiceMetricWords.clarity),
         symbol: "sparkles"
       ),
       InspectorMetricItem(
@@ -74,6 +94,7 @@ struct InspectorMetricStack: View {
 }
 
 struct InspectorMetricRow: View {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   let metric: InspectorMetricItem
 
   var body: some View {
@@ -105,7 +126,7 @@ struct InspectorMetricRow: View {
     .padding(.vertical, 8)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(accessibilityLabel)
-    .animation(.smooth(duration: 0.22), value: metric.value)
+    .animation(StudioMotion.quick(reduceMotion: reduceMotion), value: metric.value)
   }
 
   private var accessibilityLabel: String {

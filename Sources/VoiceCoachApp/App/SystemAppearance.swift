@@ -27,7 +27,8 @@ final class SystemAppearance: ObservableObject {
         SystemAppearance.shared.apply()
       }
     }
-    NotificationCenter.default.addObserver(
+    // Workspace notifications are only delivered on the workspace's own center.
+    NSWorkspace.shared.notificationCenter.addObserver(
       forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification,
       object: NSWorkspace.shared,
       queue: .main
