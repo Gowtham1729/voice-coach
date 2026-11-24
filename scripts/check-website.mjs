@@ -59,14 +59,15 @@ assert.equal(
 );
 assert.match(
   html,
-  /Ichido 0\.0\.6 · Early access · macOS 26\+/,
-  "Download dialog shows Ichido 0.0.6 for macOS 26+",
+  /Ichido 0\.0\.7 · Early access · macOS 26\+/,
+  "Download dialog shows Ichido 0.0.7 for macOS 26+",
 );
 assert.match(
   html,
-  /Version 0\.0\.6 · Early access · macOS 26\+/,
-  "Download section shows version 0.0.6 for macOS 26+",
+  /Version 0\.0\.7 · Early access · macOS 26\+/,
+  "Download section shows version 0.0.7 for macOS 26+",
 );
+assert.equal(html.includes("0.0.6"), false, "Public site does not advertise 0.0.6");
 assert.equal(html.includes("0.0.5"), false, "Public site does not advertise 0.0.5");
 assert.equal(html.includes("0.0.4"), false, "Public site does not advertise 0.0.4");
 assert.equal(html.includes("0.0.3"), false, "Public site does not advertise 0.0.3");
