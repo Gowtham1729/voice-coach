@@ -105,28 +105,41 @@
         try png.write(to: output.appendingPathComponent(name + ".png"))
       }
 
-      /// The live grouped Form rows. ImageRenderer cannot draw a Form, so this goes through
-      /// an offscreen NSHostingView.
-      func renderSoundComparisonForm(_ name: String) throws {
-        let view = Form { SoundComparisonSettingsSections() }
-          .formStyle(.grouped)
+      /// Live AppKit-backed views (grouped Form rows, the inspector at its real width) through an
+      /// offscreen NSHostingView, since ImageRenderer cannot draw a Form. Light and dark.
+      func renderHosted<Content: View>(
+        _ name: String, width: CGFloat, height: CGFloat, @ViewBuilder content: () -> Content
+      ) throws {
+        let root = content()
           .environmentObject(model)
           .defaultAppStorage(previewDefaults)
-        let host = NSHostingView(rootView: view)
-        host.frame = NSRect(x: 0, y: 0, width: 480, height: 620)
-        host.appearance = NSAppearance(named: .aqua)
-        let window = NSWindow(
-          contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
-        window.contentView = host
-        host.layoutSubtreeIfNeeded()
-        guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else {
-          throw NSError(domain: "VoiceCoachPreview", code: 7)
+          .frame(width: width, height: height, alignment: .topLeading)
+          .background(Color(nsColor: .windowBackgroundColor))
+        for dark in [false, true] {
+          let host = NSHostingView(rootView: root)
+          host.frame = NSRect(x: 0, y: 0, width: width, height: height)
+          host.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+          let window = NSWindow(
+            contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+          window.appearance = host.appearance
+          window.contentView = host
+          host.layoutSubtreeIfNeeded()
+          guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else {
+            throw NSError(domain: "VoiceCoachPreview", code: 7)
+          }
+          host.cacheDisplay(in: host.bounds, to: bitmap)
+          guard let png = bitmap.representation(using: .png, properties: [:]) else {
+            throw NSError(domain: "VoiceCoachPreview", code: 7)
+          }
+          try png.write(
+            to: output.appendingPathComponent(name + (dark ? "-dark" : "-light") + ".png"))
         }
-        host.cacheDisplay(in: host.bounds, to: bitmap)
-        guard let png = bitmap.representation(using: .png, properties: [:]) else {
-          throw NSError(domain: "VoiceCoachPreview", code: 7)
+      }
+
+      func renderSoundComparisonForm(_ name: String) throws {
+        try renderHosted(name, width: 480, height: 620) {
+          Form { SoundComparisonSettingsSections() }.formStyle(.grouped)
         }
-        try png.write(to: output.appendingPathComponent(name + ".png"))
       }
 
       func renderChat(_ name: String, context: SessionChatContext, width: CGFloat = 320) throws {
@@ -191,6 +204,7 @@
       model.showsExperimentalSoundEngines = true
       model.soundEngines = [SoundEngineInstall(id: "lite", sizeBytes: 131_971_855, isCurrent: true)]
       try render("04b-take-sounds-no-reference", height: 1_360)
+      try renderHosted("04c-take-inspector-sounds", width: 340, height: 760) { TakeInspector() }
       model.soundEngines = []
       model.showsExperimentalSoundEngines = false
       previewDefaults.set(true, forKey: ExperimentalFeaturesPreference.storageKey)
@@ -231,6 +245,9 @@
         SoundEngineInstall(id: "full", sizeBytes: 544_210_000, isCurrent: true),
       ]
       try renderSoundComparisonForm("07e-settings-sound-comparison-picker")
+      try renderHosted("07f-settings-sound-install", width: 340, height: 250) {
+        SoundEngineInstallInstructions(engine: SoundEngineCatalog.all[1]) {}
+      }
       model.soundEngines = []
       model.showsExperimentalSoundEngines = false
       model.destination = .home
@@ -291,6 +308,9 @@
           model.soundEngines = [SoundEngineInstall(id: "lite", sizeBytes: 131_971_855, isCurrent: true)]
           model.mimicWorkspaceMode = .compare
           try render("10d-mimic-sounds")
+          try renderHosted("10e-mimic-inspector-sounds", width: 340, height: 760) {
+            MimicInspector()
+          }
           model.soundEngines = []
           model.showsExperimentalSoundEngines = false
         }

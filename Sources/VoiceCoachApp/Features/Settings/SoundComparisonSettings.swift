@@ -157,7 +157,7 @@ struct SoundComparisonSettingsSections: View {
 
 /// There is no hosted download yet, so Install shows the exact command to run (FR-24: the size
 /// comes first, and nothing is left behind if it fails, because the script stages its work).
-private struct SoundEngineInstallInstructions: View {
+struct SoundEngineInstallInstructions: View {
   let engine: SoundEngineDescriptor
   let onCheckAgain: () -> Void
   @State private var copied = false
