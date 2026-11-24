@@ -23,10 +23,20 @@ final class AppModel: ObservableObject {
   var destinationBeforeCreate: AppDestination = .home
   @Published var sessions: [CoachingSession] = []
   @Published var selectedSessionID: UUID? {
-    didSet { if oldValue != selectedSessionID { pendingRetryTarget = nil } }
+    didSet {
+      if oldValue != selectedSessionID {
+        pendingRetryTarget = nil
+        scheduleSoundComparison()
+      }
+    }
   }
   @Published var selectedTakeID: UUID? {
-    didSet { if oldValue != selectedTakeID { pendingRetryTarget = nil } }
+    didSet {
+      if oldValue != selectedTakeID {
+        pendingRetryTarget = nil
+        scheduleSoundComparison()
+      }
+    }
   }
   @Published var dismissedRetryCardTakeIDs: Set<UUID> = []
   @Published var skippedRetryCardTakeIDs: Set<UUID> = []
@@ -76,6 +86,11 @@ final class AppModel: ObservableObject {
   @Published var pendingMimicAudio: (url: URL, id: UUID)?
   @Published var pendingMimicSessionID: UUID?
   @Published var practiceClipCreationProgress: (completed: Int, total: Int)?
+  /// Installed Sound comparison engines (for Settings in PR 3).
+  @Published var soundEngines: [SoundEngineInstall] = []
+  /// Takes being compared now, and takes whose comparison failed this launch.
+  @Published var soundComparisonRunning: Set<UUID> = []
+  @Published var soundComparisonFailed: Set<UUID> = []
 
   let recorder: any AudioRecording
   let systemAudioCapture: any SystemAudioCapturing
@@ -85,6 +100,7 @@ final class AppModel: ObservableObject {
   let sessionChatResponder: any SessionChatResponding
   let preparePracticeClip:
     @Sendable (URL, URL, Double, Double) async throws -> AnalysisResult
+  let soundComparison: any SoundComparing
   var practiceClipCreationTask: Task<Void, Never>?
   var practiceClipCreationID: UUID?
   var mimicPreparationTask: Task<Void, Never>?
@@ -147,6 +163,7 @@ final class AppModel: ObservableObject {
       transcribe = dependencies.transcribe
       sessionChatResponder = dependencies.sessionChatResponder
       preparePracticeClip = dependencies.preparePracticeClip
+      soundComparison = dependencies.soundComparison
     } catch {
       fatalError("Ichido could not open local storage: \(error.localizedDescription)")
     }
@@ -170,6 +187,7 @@ final class AppModel: ObservableObject {
 
     refreshTranscriptionSetupStatus()
     refreshSystemTranscriptionStatus()
+    refreshSoundEngines()
 
     guard loadPersistedData else { return }
     do {
