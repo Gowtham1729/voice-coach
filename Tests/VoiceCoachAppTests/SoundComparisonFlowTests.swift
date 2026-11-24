@@ -9,8 +9,13 @@ private actor FakeSoundComparison: SoundComparing {
   var referenceCalls = 0
   var compareCalls = 0
   let fails: Bool
+  let unreadableTake: Bool
+  var lastTakeWords: [SoundWord?] = []
 
-  init(fails: Bool = false) { self.fails = fails }
+  init(fails: Bool = false, unreadableTake: Bool = false) {
+    self.fails = fails
+    self.unreadableTake = unreadableTake
+  }
 
   func installedEngines() -> [SoundEngineInstall] {
     [SoundEngineInstall(id: "lite", sizeBytes: 1, isCurrent: true)]
@@ -26,10 +31,12 @@ private actor FakeSoundComparison: SoundComparing {
       models: [])
   }
 
-  func compare(engineID: String, reference: ReferenceAnalysis, takeAudioURL: URL) throws
-    -> SoundComparisonResult
-  {
+  func compare(
+    engineID: String, reference: ReferenceAnalysis, takeAudioURL: URL, takeWords: [SoundWord?]
+  ) throws -> SoundComparisonResult {
     compareCalls += 1
+    lastTakeWords = takeWords
+    if unreadableTake { throw SoundComparisonError.unreadableAudio }
     return SoundComparisonResult(
       engineID: engineID, engineVersion: reference.engineVersion, words: [], phones: [])
   }
@@ -53,6 +60,7 @@ struct SoundComparisonFlowTests {
 
     #expect(await service.referenceCalls == 1)
     #expect(await service.compareCalls == 2)
+    #expect(await service.lastTakeWords.map { $0?.text } == ["clear", "steady", "voice"])
     let loaded = try #require(try model.store.load().first)
     #expect(loaded.takes.allSatisfy { $0.sounds?.comparisons["lite"] != nil })
     #expect(loaded.mimicReference?.take.sounds?.referenceAnalyses["lite"] != nil)
@@ -70,6 +78,29 @@ struct SoundComparisonFlowTests {
     #expect(model.soundComparisonStatus(sessionID: session.id, takeID: take.id) == .failed)
     #expect(try model.store.load().first?.takes.map(\.id) == session.takes.map(\.id))
     #expect(model.errorMessage == nil)
+  }
+
+  @Test("A missing or unreadable audio file shows why, not a retry")
+  func missingAudioIsNotComparable() async throws {
+    let service = FakeSoundComparison(unreadableTake: true)
+    let (model, root, session) = try await makeModel(service)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let take = session.takes[0]
+    model.selectTake(take.id)
+
+    await model.compareSoundsIfNeeded()?.value
+    #expect(
+      model.soundComparisonStatus(sessionID: session.id, takeID: take.id)
+        == .notComparable(.takeAudioMissing))
+
+    try FileManager.default.removeItem(at: try #require(session.mimicReference).take.audioURL)
+    let other = session.takes[1]
+    model.selectTake(other.id)
+    #expect(
+      model.soundComparisonStatus(sessionID: session.id, takeID: other.id)
+        == .notComparable(.referenceAudioMissing))
+    #expect(model.compareSoundsIfNeeded() == nil)
+    #expect(await service.compareCalls == 1)
   }
 
   @Test("Experimental engines do not run or show while Experiments hides them")
@@ -159,6 +190,12 @@ struct SoundComparisonFlowTests {
       sourceStart: 0, sourceEnd: 1.2)
     model.sessions = [session]
     #expect(model.persist())
+    // The engine is faked, but Review checks that both audio files are there.
+    for url in session.takes.map(\.audioURL) + [session.mimicReference!.take.audioURL] {
+      try FileManager.default.createDirectory(
+        at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+      try Data([0]).write(to: url)
+    }
     model.selectedSessionID = sessionID
     return (model, root, session)
   }
