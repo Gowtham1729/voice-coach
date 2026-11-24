@@ -19,8 +19,11 @@ struct SoundEngineDescriptor: Identifiable, Equatable, Sendable {
   /// No hosted download yet: engines are built on this Mac by the setup script.
   var installCommand: String { "./scripts/setup-sound-comparison.sh \(id)" }
 
+  /// Whole binary megabytes, so a measured install reads like its estimate ("126 MB", not
+  /// "125.9 MB") and like Parakeet's "714 MB".
   static func formattedSize(_ bytes: Int) -> String {
-    ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .memory)
+    let megabytes = Int((Double(bytes) / 1_048_576).rounded())
+    return "\(megabytes.formatted()) MB"
   }
 }
 
