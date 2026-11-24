@@ -36,7 +36,7 @@ assert.equal(
 );
 const html = readFileSync(resolve(root, "index.html"), "utf8");
 assert.ok(
-  html.includes('href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip"'),
+  html.includes('href="https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.dmg"'),
   "Website download must follow GitHub's latest release",
 );
 const verifiedNotarization = "Notarized by Apple.";
@@ -59,14 +59,15 @@ assert.equal(
 );
 assert.match(
   html,
-  /Ichido 0\.0\.5 · Early access · macOS 26\+/,
-  "Download dialog shows Ichido 0.0.5 for macOS 26+",
+  /Ichido 0\.0\.6 · Early access · macOS 26\+/,
+  "Download dialog shows Ichido 0.0.6 for macOS 26+",
 );
 assert.match(
   html,
-  /Version 0\.0\.5 · Early access · macOS 26\+/,
-  "Download section shows version 0.0.5 for macOS 26+",
+  /Version 0\.0\.6 · Early access · macOS 26\+/,
+  "Download section shows version 0.0.6 for macOS 26+",
 );
+assert.equal(html.includes("0.0.5"), false, "Public site does not advertise 0.0.5");
 assert.equal(html.includes("0.0.4"), false, "Public site does not advertise 0.0.4");
 assert.equal(html.includes("0.0.3"), false, "Public site does not advertise 0.0.3");
 assert.ok(
