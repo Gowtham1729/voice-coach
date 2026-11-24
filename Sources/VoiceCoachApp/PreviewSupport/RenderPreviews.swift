@@ -105,6 +105,30 @@
         try png.write(to: output.appendingPathComponent(name + ".png"))
       }
 
+      /// The live grouped Form rows. ImageRenderer cannot draw a Form, so this goes through
+      /// an offscreen NSHostingView.
+      func renderSoundComparisonForm(_ name: String) throws {
+        let view = Form { SoundComparisonSettingsSections() }
+          .formStyle(.grouped)
+          .environmentObject(model)
+          .defaultAppStorage(previewDefaults)
+        let host = NSHostingView(rootView: view)
+        host.frame = NSRect(x: 0, y: 0, width: 480, height: 620)
+        host.appearance = NSAppearance(named: .aqua)
+        let window = NSWindow(
+          contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else {
+          throw NSError(domain: "VoiceCoachPreview", code: 7)
+        }
+        host.cacheDisplay(in: host.bounds, to: bitmap)
+        guard let png = bitmap.representation(using: .png, properties: [:]) else {
+          throw NSError(domain: "VoiceCoachPreview", code: 7)
+        }
+        try png.write(to: output.appendingPathComponent(name + ".png"))
+      }
+
       func renderChat(_ name: String, context: SessionChatContext, width: CGFloat = 320) throws {
         let conversation = model.conversation(for: context)
         conversation.replaceForPreview(exchanges: [
@@ -163,6 +187,12 @@
         model.openTake(sessionID: model.sessions[0].id, takeID: latest.id)
       }
       try render("04-take", height: 1_360)
+      // FR-29: with an engine active, a take without a reference gets one line in Sounds.
+      model.showsExperimentalSoundEngines = true
+      model.soundEngines = [SoundEngineInstall(id: "lite", sizeBytes: 131_971_855, isCurrent: true)]
+      try render("04b-take-sounds-no-reference", height: 1_360)
+      model.soundEngines = []
+      model.showsExperimentalSoundEngines = false
       previewDefaults.set(true, forKey: ExperimentalFeaturesPreference.storageKey)
       previewDefaults.set(InspectorPane.ask.rawValue, forKey: InspectorPane.storageKey)
       try render("15-recording-chat", height: 980)
@@ -185,8 +215,24 @@
       try renderSettings("07b-settings-parakeet", height: 820)
       model.transcriptionEngine = .system
       previewDefaults.set(true, forKey: ExperimentalFeaturesPreference.storageKey)
-      try renderSettings("19-settings-experiments", height: 820)
+      model.showsExperimentalSoundEngines = true
+      model.soundEngines = [
+        SoundEngineInstall(id: "lite", sizeBytes: 131_971_855, isCurrent: true),
+        SoundEngineInstall(id: "full", sizeBytes: 544_210_000, isCurrent: true),
+      ]
+      try renderSettings("19-settings-experiments", height: 920)
       previewDefaults.set(false, forKey: ExperimentalFeaturesPreference.storageKey)
+      // One engine ready, one not installed: no picker.
+      model.soundEngines = [SoundEngineInstall(id: "lite", sizeBytes: 131_971_855, isCurrent: true)]
+      try renderSettings("07c-settings-sound-comparison", height: 920)
+      try renderSoundComparisonForm("07d-settings-sound-comparison-rows")
+      model.soundEngines = [
+        SoundEngineInstall(id: "lite", sizeBytes: 131_971_855, isCurrent: true),
+        SoundEngineInstall(id: "full", sizeBytes: 544_210_000, isCurrent: true),
+      ]
+      try renderSoundComparisonForm("07e-settings-sound-comparison-picker")
+      model.soundEngines = []
+      model.showsExperimentalSoundEngines = false
       model.destination = .home
       model.selectedSessionID = nil
       model.selectedTakeID = nil
@@ -238,6 +284,15 @@
           }
           model.mimicWorkspaceMode = .analysis
           try render("10c-mimic-analysis")
+
+          // Sound comparison on (experimental tier): flags in the Sounds section, a quiet mark
+          // in the take transcript.
+          model.showsExperimentalSoundEngines = true
+          model.soundEngines = [SoundEngineInstall(id: "lite", sizeBytes: 131_971_855, isCurrent: true)]
+          model.mimicWorkspaceMode = .compare
+          try render("10d-mimic-sounds")
+          model.soundEngines = []
+          model.showsExperimentalSoundEngines = false
         }
         model.mimicWorkspaceMode = .practice
         model.isRecording = true
@@ -513,10 +568,28 @@
       audioFileName: "reference.wav"
     )
     // One word heard differently, so Review shows a "We heard" row.
-    let attempt = take(
+    let plainAttempt = take(
       sessionID: mimicID, frequency: 161, duration: 8.7,
       text: "I really don't sink that's a good idea.", offsetHours: -7,
       shortPauses: true)
+    // Fake Sound comparison result (shown only when a preview turns an engine on): "think" and
+    // "idea" sounded different, placed on the take by their words' times.
+    let attemptWords = plainAttempt.transcription?.words ?? []
+    let flagged = [3: 1, 7: 2]
+    let soundResult = SoundComparisonResult(
+      engineID: "lite", engineVersion: SoundComparisonConfiguration.engineVersion,
+      words: (reference.transcription?.words ?? []).enumerated().map { index, word in
+        WordSoundScore(
+          wordIndex: index, text: word.word, score: nil, eligible: true,
+          flagged: flagged[index] != nil, flagRank: flagged[index])
+      },
+      phones: flagged.keys.sorted().compactMap { index in
+        attemptWords.indices.contains(index)
+          ? SoundPhone(
+            symbol: "?", wordIndex: index, start: attemptWords[index].start,
+            end: attemptWords[index].end) : nil
+      })
+    let attempt = plainAttempt.replacingSounds(TakeSounds(comparisons: ["lite": soundResult]))
     let mimic = CoachingSession(
       id: mimicID,
       name: "A confident answer",

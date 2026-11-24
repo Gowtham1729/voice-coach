@@ -4,6 +4,7 @@ import Foundation
 extension AppModel {
   func playCurrent() {
     guard !isRecording, !isAnalyzing else { return }
+    cancelSoundListen()
     if isPlaying {
       pausePlayback()
       return
@@ -26,12 +27,14 @@ extension AppModel {
   }
 
   func pausePlayback() {
+    cancelSoundListen()
     recorder.pausePlayback()
     stopPlaybackTimer()
     isPlaying = false
   }
 
   func stopPlayback() {
+    cancelSoundListen()
     replayBothPendingAttempt = false
     recorder.stopPlayback()
     stopPlaybackTimer()

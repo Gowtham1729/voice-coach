@@ -7,6 +7,8 @@ struct MimicTranscriptText: View {
   let transcription: TranscriptionResult
   let activeIndex: Int?
   let activeColor: Color
+  /// Words that sounded different from the reference get one quiet mark (UX-1). No red or green.
+  var markedIndices: Set<Int> = []
   let onSelect: (Int, TranscriptWord) -> Void
 
   var body: some View {
@@ -36,6 +38,9 @@ struct MimicTranscriptText: View {
         part.foregroundColor = activeColor
       } else {
         part.foregroundColor = Studio.ink
+      }
+      if markedIndices.contains(index) {
+        part.underlineStyle = Text.LineStyle(pattern: .dot, color: Studio.secondary)
       }
       result += part
     }

@@ -86,11 +86,17 @@ final class AppModel: ObservableObject {
   @Published var pendingMimicAudio: (url: URL, id: UUID)?
   @Published var pendingMimicSessionID: UUID?
   @Published var practiceClipCreationProgress: (completed: Int, total: Int)?
-  /// Installed Sound comparison engines (for Settings in PR 3).
+  /// Installed Sound comparison engines, of every tier.
   @Published var soundEngines: [SoundEngineInstall] = []
   /// Takes being compared now, and takes whose comparison failed this launch.
   @Published var soundComparisonRunning: Set<UUID> = []
   @Published var soundComparisonFailed: Set<UUID> = []
+  /// Settings → Experiments: lists the experimental-tier engines and lets them run (D5, FR-26).
+  @Published var showsExperimentalSoundEngines = SoundEngineVisibilityPreference.isEnabled
+  /// The Reference word whose Listen sequence is playing (FR-17).
+  @Published var soundListenWordIndex: Int?
+  var soundListenQueue: [SoundListenSegment] = []
+  var soundListenTask: Task<Void, Never>?
 
   let recorder: any AudioRecording
   let systemAudioCapture: any SystemAudioCapturing

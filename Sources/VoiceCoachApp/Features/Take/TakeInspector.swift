@@ -33,6 +33,16 @@ struct TakeInspector: View {
               metrics: take.result.metrics,
               plan: model.coachingPlan(for: take, in: session)
             )
+
+            // FR-29: no flags without a Reference; one line on how to get them.
+            if model.activeSoundEngineID != nil, session.mimicReference == nil {
+              Divider()
+              SectionEyebrow(text: SoundComparisonCopy.section)
+              Text(SoundComparisonCopy.noReference)
+                .font(.caption)
+                .foregroundStyle(Studio.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         } footer: {
