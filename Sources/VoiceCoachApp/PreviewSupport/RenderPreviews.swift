@@ -512,8 +512,10 @@
       shortPauses: true,
       audioFileName: "reference.wav"
     )
+    // One word heard differently, so Review shows a "We heard" row.
     let attempt = take(
-      sessionID: mimicID, frequency: 161, duration: 8.7, text: script, offsetHours: -7,
+      sessionID: mimicID, frequency: 161, duration: 8.7,
+      text: "I really don't sink that's a good idea.", offsetHours: -7,
       shortPauses: true)
     let mimic = CoachingSession(
       id: mimicID,

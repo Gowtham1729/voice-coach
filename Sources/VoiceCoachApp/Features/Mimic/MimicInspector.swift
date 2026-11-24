@@ -46,6 +46,8 @@ struct MimicInspector: View {
           metrics: metrics,
           plan: model.coachingPlan(for: take, in: session)
         )
+        heardDifferently(
+          MimicComparison.compare(reference: reference.take, attempt: take).heardDifferently)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     } footer: {
@@ -96,6 +98,28 @@ struct MimicInspector: View {
       ) { takeID in
         deleteTake(takeID, in: session)
       })
+  }
+
+  @ViewBuilder
+  private func heardDifferently(_ differences: [MimicHeardDifference]) -> some View {
+    if !differences.isEmpty {
+      Divider()
+      VStack(alignment: .leading, spacing: 8) {
+        SectionEyebrow(text: "Sounds")
+        ForEach(differences, id: \.referenceIndex) { difference in
+          let reference = displayWord(difference.reference.word)
+          let heard = displayWord(difference.attempt.word)
+          Text("Reference: \(Text(reference).italic()) · We heard: \(Text(heard).italic())")
+            .font(.callout)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityLabel("Reference: \(reference). We heard: \(heard).")
+        }
+      }
+    }
+  }
+
+  private func displayWord(_ word: String) -> String {
+    word.trimmingCharacters(in: .punctuationCharacters.union(.whitespaces))
   }
 
   @ViewBuilder
