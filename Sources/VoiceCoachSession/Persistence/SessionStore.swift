@@ -126,11 +126,14 @@ package struct StoredMimicReference: Codable {
   }
 }
 
+/// Per-take analysis file. `sounds` is optional and additive: schemaVersion stays 1, so builds
+/// without Sound comparison still read (and ignore) it, and files without it load unchanged.
 private struct TakeAnalysisDocument: Codable {
   let schemaVersion: Int
   let result: AnalysisResult
   let transcription: TranscriptionResult?
   let words: [WordAnalysis]
+  let sounds: TakeSounds?
 }
 
 package final class SessionStore: SessionStoring {
@@ -429,7 +432,8 @@ package final class SessionStore: SessionStoring {
       result: analysis.result,
       transcription: analysis.transcription,
       words: analysis.words,
-      savedTarget: stored.savedTarget
+      savedTarget: stored.savedTarget,
+      sounds: analysis.sounds
     )
   }
 
@@ -438,7 +442,8 @@ package final class SessionStore: SessionStoring {
       schemaVersion: Self.analysisSchemaVersion,
       result: take.result,
       transcription: take.transcription,
-      words: take.words
+      words: take.words,
+      sounds: take.sounds
     )
     try JSONEncoder().encode(document).write(
       to: analysisURL(sessionID: sessionID, takeID: take.id),
