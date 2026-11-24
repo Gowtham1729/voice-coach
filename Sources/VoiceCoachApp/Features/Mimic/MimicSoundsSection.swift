@@ -55,14 +55,21 @@ struct MimicSoundsSection: View {
     let line = statusLine(status, hasFlags: !flags.isEmpty)
 
     if !flags.isEmpty || !heard.isEmpty || line != nil {
-      Divider()
-      VStack(alignment: .leading, spacing: 10) {
+      // Same shape as Metrics just above: eyebrow, then rows on one content panel.
+      VStack(alignment: .leading, spacing: 8) {
         SectionEyebrow(text: SoundComparisonCopy.section)
-        ForEach(flags) { row in
-          flagRow(row)
-        }
-        ForEach(heard, id: \.referenceIndex) { difference in
-          heardRow(difference)
+        if !flags.isEmpty || !heard.isEmpty {
+          VStack(spacing: 0) {
+            ForEach(Array(flags.enumerated()), id: \.element.id) { index, row in
+              if index > 0 { Divider() }
+              flagRow(row)
+            }
+            ForEach(Array(heard.enumerated()), id: \.element.referenceIndex) { index, difference in
+              if index > 0 || !flags.isEmpty { Divider() }
+              heardRow(difference)
+            }
+          }
+          .desktopPanel()
         }
         if let line {
           statusView(line, running: status == .running || status == .pending)
@@ -88,19 +95,27 @@ struct MimicSoundsSection: View {
       .accessibilityLabel(
         SoundComparisonCopy.flagSentence(row.word)
           + (row.heard.map { " We heard: \($0)." } ?? ""))
-      Spacer(minLength: 4)
+      .frame(maxWidth: .infinity, alignment: .leading)
       if row.takeRange != nil {
-        Button(isListening ? SoundComparisonCopy.stop : SoundComparisonCopy.listen) {
+        // Same control as the retry card's replay buttons: a play icon, so it reads as audio.
+        Button {
           model.listenToSoundFlag(row)
+        } label: {
+          Label(
+            isListening ? SoundComparisonCopy.stop : SoundComparisonCopy.listen,
+            systemImage: isListening ? "stop.fill" : "play.fill")
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(Studio.accent)
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .fixedSize()
         .disabled(model.isRecording || model.isAnalyzing)
         .help(SoundComparisonCopy.listenHelp(row.word))
         .accessibilityLabel(
           isListening ? "Stop listening" : "Listen to \(row.word): reference, your take, reference")
       }
     }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 8)
   }
 
   private func heardRow(_ difference: MimicHeardDifference) -> some View {
@@ -109,6 +124,9 @@ struct MimicSoundsSection: View {
     return Text("Reference: \(Text(reference).italic()) · We heard: \(Text(heard).italic())")
       .font(.callout)
       .fixedSize(horizontal: false, vertical: true)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, 12)
+      .padding(.vertical, 8)
       .accessibilityLabel("Reference: \(reference). We heard: \(heard).")
   }
 
