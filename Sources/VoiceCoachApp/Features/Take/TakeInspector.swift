@@ -34,17 +34,6 @@ struct TakeInspector: View {
               plan: model.coachingPlan(for: take, in: session)
             )
 
-            // FR-29: no flags without a Reference; one line on how to get them.
-            if model.activeSoundEngineID != nil, session.mimicReference == nil {
-              VStack(alignment: .leading, spacing: 8) {
-                SectionEyebrow(text: SoundComparisonCopy.section)
-                Text(SoundComparisonCopy.noReference)
-                  .font(.caption)
-                  .foregroundStyle(Studio.secondary)
-                  .fixedSize(horizontal: false, vertical: true)
-              }
-              .accessibilityElement(children: .combine)
-            }
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         } footer: {
@@ -103,6 +92,8 @@ struct TakeInspector: View {
             .accessibilityLabel("Delete take")
         }
         .studioGlassButton()
+        // Neutral, so the one filled control in the footer is never Delete.
+        .tint(.secondary)
         .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
         .help("Delete this take")
       }

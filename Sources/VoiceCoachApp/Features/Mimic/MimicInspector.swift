@@ -84,6 +84,8 @@ struct MimicInspector: View {
               .accessibilityLabel("Delete take")
           }
           .studioGlassButton()
+          // Neutral, so the one filled control in the footer is never Delete.
+          .tint(.secondary)
           .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
           .help("Delete this take. The reference and other takes stay.")
         }

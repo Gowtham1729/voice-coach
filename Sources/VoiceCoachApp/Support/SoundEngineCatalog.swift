@@ -15,6 +15,8 @@ struct SoundEngineDescriptor: Identifiable, Equatable, Sendable {
   /// matching the setup script and docs (126 MB, 519 MB).
   let approximateSizeBytes: Int
   let tier: Tier
+  /// One short line on how it differs from the other engine.
+  let summary: String
 
   /// No hosted download yet: engines are built on this Mac by the setup script.
   var installCommand: String { "./scripts/setup-sound-comparison.sh \(id)" }
@@ -31,8 +33,10 @@ enum SoundEngineCatalog {
   /// Lab outcome (build/pron-lab/docs/02-eval-results.md): both engines passed the trust gates
   /// only, so both are experimental. Smallest first.
   static let all: [SoundEngineDescriptor] = [
-    .init(id: "lite", name: "Lite", approximateSizeBytes: 126 << 20, tier: .experimental),
-    .init(id: "full", name: "Full", approximateSizeBytes: 519 << 20, tier: .experimental),
+    .init(id: "lite", name: "Lite", approximateSizeBytes: 126 << 20, tier: .experimental,
+      summary: "Smaller and faster."),
+    .init(id: "full", name: "Full", approximateSizeBytes: 519 << 20, tier: .experimental,
+      summary: "Checks with three models, so it is slower."),
   ]
 
   static func descriptor(_ id: String) -> SoundEngineDescriptor? {

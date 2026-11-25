@@ -7,11 +7,10 @@ enum SoundComparisonCopy {
   static let section = "Sounds"
   static let listen = "Listen"
   static let stop = "Stop"
+  static let caption = "Sounded different from your reference. Listen plays the reference, then yours."
   static let running = "Comparing sounds…"
-  static let noFlags = "No clear sound differences from your reference in this take."
-  static let failed = "Couldn’t compare sounds in this take. Open it again later to retry."
-  static let noReference =
-    "To see words that sounded different, practice with a reference, or choose Use as reference… on a take you like."
+  static let noFlags = "No clear sound differences found."
+  static let failed = "Couldn’t compare sounds right now. Open this take again to retry."
 
   static func flagSentence(_ word: String) -> String {
     "\(word) sounded different from your reference."
@@ -21,24 +20,26 @@ enum SoundComparisonCopy {
     "Plays \(word) from your reference, then from your take, then from your reference again."
   }
 
-  static func notComparable(_ reason: SoundComparisonSkipReason) -> String {
-    let why =
-      switch reason {
-      case .noReference: "there’s no reference"
-      case .referenceAudioMissing: "the reference audio is missing or can’t be opened"
-      case .takeAudioMissing: "this take’s audio is missing or can’t be opened"
-      case .notEnglish: "it isn’t English"
-      case .missingTranscript: "there’s no transcript"
-      case .wordsDidNotLineUp: "the words didn’t line up"
-      case .noisy: "the audio was noisy"
-      case .clipping: "the audio was too loud"
-      }
+  /// Nil when another part of Review already says it (a non-English take gets the English-only
+  /// note in the coaching card) or there is nothing to compare against.
+  static func notComparable(_ reason: SoundComparisonSkipReason) -> String? {
+    let why: String
+    switch reason {
+    case .noReference, .notEnglish: return nil
+    case .referenceAudioMissing: why = "the reference audio is missing or can’t be opened"
+    case .takeAudioMissing: why = "this take’s audio is missing or can’t be opened"
+    case .missingTranscript: why = "there’s no transcript"
+    case .wordsDidNotLineUp: why = "the words didn’t line up"
+    case .noisy: why = "the audio was noisy"
+    case .clipping: why = "the audio was too loud"
+    }
     return "Couldn’t compare sounds in this take: \(why)."
   }
 }
 
 /// The Sounds section of the Compare inspector: words the transcript heard differently (FR-1)
-/// and, with a Sound comparison engine, words that sounded different (UX-2, UX-6).
+/// and, with a Sound comparison engine, words that sounded different (UX-2, UX-6). One row per
+/// word, in transcript order, each with Listen.
 struct MimicSoundsSection: View {
   @EnvironmentObject private var model: AppModel
   let session: CoachingSession
@@ -53,40 +54,43 @@ struct MimicSoundsSection: View {
         model.soundFlagRows(for: take, in: session, result: result)
       } else { [] }
     let flaggedWords = Set(flags.map(\.referenceWordIndex))
-    let heard = comparison.heardDifferently.filter { !flaggedWords.contains($0.referenceIndex) }
-    let line = statusLine(status, hasFlags: !flags.isEmpty)
+    let heard = comparison.heardDifferently
+      .filter { !flaggedWords.contains($0.referenceIndex) }
+      .map(SoundFlagRows.heardRow)
+    let rows = (flags + heard).sorted { $0.referenceWordIndex < $1.referenceWordIndex }
+    let line = statusLine(status, hasRows: !rows.isEmpty)
 
-    if !flags.isEmpty || !heard.isEmpty || line != nil {
+    if !rows.isEmpty || line != nil {
       // Same shape as Metrics just above: eyebrow, then rows on one content panel.
       VStack(alignment: .leading, spacing: 8) {
         SectionEyebrow(text: SoundComparisonCopy.section)
-        if !flags.isEmpty || !heard.isEmpty {
-          VStack(spacing: 0) {
-            ForEach(Array(flags.enumerated()), id: \.element.id) { index, row in
-              if index > 0 { Divider() }
-              flagRow(row)
-            }
-            ForEach(Array(heard.enumerated()), id: \.element.referenceIndex) { index, difference in
-              if index > 0 || !flags.isEmpty { Divider() }
-              heardRow(difference)
-            }
+        if !rows.isEmpty {
+          Text(SoundComparisonCopy.caption)
+            .font(.caption)
+            .foregroundStyle(Studio.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        VStack(spacing: 0) {
+          ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+            if index > 0 { Divider().padding(.leading, 12) }
+            flagRow(row)
           }
-          .desktopPanel()
+          if let line {
+            if !rows.isEmpty { Divider().padding(.leading, 12) }
+            statusView(line, running: status == .running || status == .pending)
+          }
         }
-        if let line {
-          statusView(line, running: status == .running || status == .pending)
-        }
+        .desktopPanel()
       }
     }
   }
 
   private func flagRow(_ row: SoundFlagRow) -> some View {
     let isListening = model.soundListenWordIndex == row.referenceWordIndex
-    return HStack(alignment: .firstTextBaseline, spacing: 10) {
-      VStack(alignment: .leading, spacing: 2) {
-        Text("\(Text(row.word).italic()) sounded different from your reference.")
-          .font(.callout)
-          .fixedSize(horizontal: false, vertical: true)
+    return HStack(alignment: .center, spacing: 10) {
+      VStack(alignment: .leading, spacing: 1) {
+        Text(row.word)
+          .font(.callout.weight(.medium))
         if let heard = row.heard {
           Text("We heard: \(Text(heard).italic())")
             .font(.caption)
@@ -120,18 +124,6 @@ struct MimicSoundsSection: View {
     .padding(.vertical, 8)
   }
 
-  private func heardRow(_ difference: MimicHeardDifference) -> some View {
-    let reference = SoundFlagRows.displayWord(difference.reference.word)
-    let heard = SoundFlagRows.displayWord(difference.attempt.word)
-    return Text("Reference: \(Text(reference).italic()) · We heard: \(Text(heard).italic())")
-      .font(.callout)
-      .fixedSize(horizontal: false, vertical: true)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.horizontal, 12)
-      .padding(.vertical, 8)
-      .accessibilityLabel("Reference: \(reference). We heard: \(heard).")
-  }
-
   private func statusView(_ line: String, running: Bool) -> some View {
     HStack(alignment: .firstTextBaseline, spacing: 6) {
       if running {
@@ -142,17 +134,20 @@ struct MimicSoundsSection: View {
         .foregroundStyle(Studio.secondary)
         .fixedSize(horizontal: false, vertical: true)
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.horizontal, 12)
+    .padding(.vertical, 8)
     .accessibilityElement(children: .combine)
   }
 
   /// One line for every state except a shown flag list (UX-6). Nothing without an engine.
-  private func statusLine(_ status: SoundComparisonStatus, hasFlags: Bool) -> String? {
+  private func statusLine(_ status: SoundComparisonStatus, hasRows: Bool) -> String? {
     switch status {
     case .noEngine: nil
     case .notComparable(let reason): SoundComparisonCopy.notComparable(reason)
     case .running, .pending: SoundComparisonCopy.running
     case .failed: SoundComparisonCopy.failed
-    case .ready: hasFlags ? nil : SoundComparisonCopy.noFlags
+    case .ready: hasRows ? nil : SoundComparisonCopy.noFlags
     }
   }
 }

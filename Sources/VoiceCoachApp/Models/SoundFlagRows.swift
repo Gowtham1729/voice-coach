@@ -57,6 +57,19 @@ enum SoundFlagRows {
     }
   }
 
+  /// A word the transcript heard differently (FR-1), as a row with its own Listen.
+  static func heardRow(_ difference: MimicHeardDifference) -> SoundFlagRow {
+    let reference = difference.reference
+    let attempt = difference.attempt
+    return SoundFlagRow(
+      referenceWordIndex: difference.referenceIndex,
+      word: displayWord(reference.word),
+      heard: displayWord(attempt.word),
+      referenceRange: reference.start...max(reference.start, reference.end),
+      takeRange: attempt.end > attempt.start ? attempt.start...attempt.end : nil,
+      takeWordIndex: difference.attemptIndex)
+  }
+
   /// Reference word, your word, Reference word, each with a little room around it (FR-17).
   static func listenSequence(
     for row: SoundFlagRow, referenceDuration: Double, takeDuration: Double

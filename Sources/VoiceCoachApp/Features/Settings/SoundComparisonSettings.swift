@@ -74,7 +74,7 @@ struct SoundComparisonSettingsSections: View {
         Text("Sound comparison")
       } footer: {
         Text(
-          "Compares each take with its reference, sound by sound, on this Mac. Review shows up to 3 words that sounded different, and you can listen to both. It does not grade your accent."
+          "English only. Compares each take with its reference, sound by sound, on this Mac. Review shows up to 3 words that sounded different, and you can listen to both. It does not grade your accent."
         )
       }
 
@@ -111,7 +111,7 @@ struct SoundComparisonSettingsSections: View {
         Button("Delete…", role: .destructive) { pendingDelete = engine }
           .disabled(!model.soundComparisonRunning.isEmpty)
       case .notInstalled:
-        installButton(engine, title: "Install…")
+        installButton(engine, title: "Set Up…")
       case .unavailable:
         EmptyView()
       }
@@ -123,7 +123,7 @@ struct SoundComparisonSettingsSections: View {
         }
       }
     } footer: {
-      Text(status.footer)
+      Text(status == .ready || status == .notInstalled ? "\(engine.summary) \(status.footer)" : status.footer)
     }
   }
 
@@ -164,12 +164,14 @@ struct SoundEngineInstallInstructions: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
-      Text("Install \(engine.name) (about \(SoundEngineDescriptor.formattedSize(engine.approximateSizeBytes)))")
+      Text("Set up \(engine.name) (about \(SoundEngineDescriptor.formattedSize(engine.approximateSizeBytes)))")
         .font(.headline)
       Text("In Terminal, from the Ichido source folder, run:")
         .font(.callout)
       Text(engine.installCommand)
-        .font(.callout.monospaced())
+        .font(.caption.monospaced())
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
         .textSelection(.enabled)
         .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -181,18 +183,18 @@ struct SoundEngineInstallInstructions: View {
       .foregroundStyle(.secondary)
       .fixedSize(horizontal: false, vertical: true)
       HStack {
-        Button(copied ? "Copied" : "Copy command") {
+        Button("Check Again", action: onCheckAgain)
+        Spacer()
+        Button(copied ? "Copied" : "Copy Command") {
           NSPasteboard.general.clearContents()
           NSPasteboard.general.setString(engine.installCommand, forType: .string)
           copied = true
         }
-        Spacer()
-        Button("Check again", action: onCheckAgain)
-          .keyboardShortcut(.defaultAction)
+        .keyboardShortcut(.defaultAction)
       }
     }
     .padding(16)
-    .frame(width: 340)
+    .frame(width: 380)
   }
 }
 
@@ -210,7 +212,7 @@ struct ExperimentalBadge: View {
 
 enum SoundComparisonSettingsCopy {
   static let experimentsFooter =
-    "Lists Sound comparison engines in Transcription. They rarely mark words you said the same way as your reference, but they miss many real differences."
+    "Shows Sound comparison in Settings › Transcription. English only. It rarely marks a word you said like your reference, but it misses many real differences."
 }
 
 /// Static Sound comparison rows for the Settings snapshot used by layout previews.

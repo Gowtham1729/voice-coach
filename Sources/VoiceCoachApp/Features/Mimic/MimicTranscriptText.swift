@@ -41,7 +41,7 @@ struct MimicTranscriptText: View {
       }
       if markedIndices.contains(index), let core = Self.letterRange(in: part) {
         // Mark the word itself, not its trailing comma or full stop.
-        part[core].underlineStyle = Text.LineStyle(pattern: .dot, color: Studio.secondary)
+        part[core].underlineStyle = Text.LineStyle(pattern: .dot, color: Studio.ink.opacity(0.75))
       }
       result += part
     }
