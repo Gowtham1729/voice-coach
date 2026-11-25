@@ -4,7 +4,7 @@
 
 A Mac app for speaking practice. Record yourself, practice with a reference clip, and explore the words in your transcript. Audio, transcripts, and analysis stay on your Mac.
 
-[Download for macOS](https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.zip) · [Website](https://ichido.app) · [Release notes](https://github.com/Gowtham1729/voice-coach/releases/latest)
+[Download for macOS](https://github.com/Gowtham1729/voice-coach/releases/latest/download/Ichido-macOS.dmg) · [Website](https://ichido.app) · [Release notes](https://github.com/Gowtham1729/voice-coach/releases/latest)
 
 https://github.com/user-attachments/assets/3efb9a61-5bff-4cef-8706-50102a6433b4
 
@@ -12,9 +12,9 @@ https://github.com/user-attachments/assets/3efb9a61-5bff-4cef-8706-50102a6433b4
 
 Requires **macOS 26 or later**. Apple Silicon recommended. Free while in early access.
 
-1. Download the ZIP, unzip it, and drag **Ichido** into Applications.
+1. Download and open the disk image, then drag **Ichido** into Applications.
 2. Open Ichido from Applications.
-3. Choose **Record** for your own recording, or **Practice → New reference practice…** to practice with a clip.
+3. Choose **New practice** (⌘N) to record your own voice, or **New practice with reference…** (⇧⌘N) to practice with a clip. **Record take** (⌘R) adds another take to the open practice.
 
 Get updates from **Ichido → Check for Updates…**.
 
@@ -22,11 +22,11 @@ Get updates from **Ichido → Check for Updates…**.
 
 | Feature | Use it to |
 | --- | --- |
-| **Recording** | Record or import audio or video. Replay a moment, read the transcript, and review pauses, pitch, loudness, and recording quality. |
-| **Reference practice** | Import a clip or capture Mac audio. Listen, record your version, compare, and try another take. |
+| **Practices** | Record or import audio or video. Each practice keeps its takes together in one **Practices** list. Replay a moment, read the transcript, and review pauses, pitch, loudness, and recording quality. |
+| **With reference** | Import a clip or capture Mac audio as the reference. Listen, record your version, open **Review** to compare, and try another take. |
 | **Words** | Ask about meanings, grammar, synonyms, and translations beside your transcript. Optional and experimental. |
 
-**Listen & Repeat** plays the reference before you record. **Speak Along** plays it while you record; use headphones. When enough words match reliably, **Practice next** gives two measured targets. Ichido does not grade accents or correct individual sounds.
+**Listen & Repeat** plays the reference before you record. **Speak Along** plays it while you record; use headphones. When enough words match reliably, **Practice next** picks one word to try next. Ichido does not grade accents or correct individual sounds.
 
 Apple transcription is the default. Choose your spoken language in **Settings → Transcription**. Optional Parakeet detects 25 European languages automatically; use Apple for Japanese.
 
