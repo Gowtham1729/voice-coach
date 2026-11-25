@@ -123,6 +123,15 @@ public struct SoundComparisonResult: Codable, Sendable, Equatable {
     words.filter(\.flagged).sorted { ($0.flagRank ?? .max) < ($1.flagRank ?? .max) }
   }
 
+  /// Where a Reference word was found in the take (take clock), from its aligned sounds.
+  /// Nil when the take could not be aligned or the word has no sounds.
+  public func takeSpan(wordIndex: Int) -> ClosedRange<Double>? {
+    let sounds = phones.filter { $0.wordIndex == wordIndex }
+    guard let start = sounds.map(\.start).min(), let end = sounds.map(\.end).max(), end > start
+    else { return nil }
+    return start...end
+  }
+
   /// FR-21: a verdict may compare two results only from the same engine and version.
   public func isComparable(with other: SoundComparisonResult) -> Bool {
     engineID == other.engineID && engineVersion == other.engineVersion

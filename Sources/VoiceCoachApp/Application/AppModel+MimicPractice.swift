@@ -297,8 +297,12 @@ extension AppModel {
     }
   }
 
-  private func playMimicSegment(url: URL, source: MimicPlaybackSource, start: Double, end: Double) {
+  func playMimicSegment(
+    url: URL, source: MimicPlaybackSource, start: Double, end: Double,
+    continuesSoundListen: Bool = false
+  ) {
     guard !isRecording, end > start else { return }
+    if !continuesSoundListen { cancelSoundListen() }
     recorder.stopPlayback()
     stopPlaybackTimer()
     do {
@@ -323,6 +327,7 @@ extension AppModel {
     isPlaying = false
     playbackTime = 0
     mimicPlaybackEnd = nil
+    if continueSoundListen() { return }
     if replayBothPendingAttempt {
       replayBothPendingAttempt = false
       playMimicAttempt()

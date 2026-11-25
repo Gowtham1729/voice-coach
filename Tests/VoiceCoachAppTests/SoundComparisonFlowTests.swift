@@ -72,6 +72,62 @@ struct SoundComparisonFlowTests {
     #expect(model.errorMessage == nil)
   }
 
+  @Test("Experimental engines do not run or show while Experiments hides them")
+  func hiddenTierIsInactive() async throws {
+    let service = FakeSoundComparison()
+    let (model, root, session) = try await makeModel(service)
+    defer { try? FileManager.default.removeItem(at: root) }
+    model.showsExperimentalSoundEngines = false
+    model.selectTake(session.takes[0].id)
+
+    #expect(model.activeSoundEngineID == nil)
+    #expect(model.compareSoundsIfNeeded() == nil)
+    #expect(
+      model.soundComparisonStatus(sessionID: session.id, takeID: session.takes[0].id) == .noEngine)
+    #expect(await service.compareCalls == 0)
+  }
+
+  @Test("A flag is placed on the take from its sounds, and Listen plays reference, take, reference")
+  func flagRowsAndListenSequence() throws {
+    func take(_ text: String) -> PracticeSession {
+      let words = text.split(separator: " ").enumerated().map {
+        TranscriptWord(
+          word: String($0.element), start: Double($0.offset) * 0.5,
+          end: Double($0.offset) * 0.5 + 0.4)
+      }
+      return PracticeSession(
+        audioURL: URL(fileURLWithPath: "/dev/null"),
+        result: AudioAnalyzer().analyze(samples: tone, sampleRate: 16_000),
+        transcription: TranscriptionResult(text: text, words: words, localeIdentifier: "en-US"))
+    }
+    let reference = take("I really think so")
+    let attempt = take("I really sink so")
+    let result = SoundComparisonResult(
+      engineID: "lite", engineVersion: SoundComparisonConfiguration.engineVersion,
+      words: [
+        WordSoundScore(wordIndex: 1, text: "really", score: 1, eligible: true, flagged: true, flagRank: 2),
+        WordSoundScore(wordIndex: 2, text: "think", score: 2, eligible: true, flagged: true, flagRank: 1),
+      ],
+      phones: [
+        SoundPhone(symbol: "θ", wordIndex: 2, start: 1.02, end: 1.1),
+        SoundPhone(symbol: "ŋ", wordIndex: 2, start: 1.2, end: 1.35),
+      ])
+
+    let rows = SoundFlagRows.make(
+      result: result, reference: reference, attempt: attempt,
+      comparison: MimicComparison.compare(reference: reference, attempt: attempt))
+
+    #expect(rows.map(\.word) == ["think", "really"])
+    #expect(rows[0].takeWordIndex == 2)
+    #expect(rows[0].takeRange == 1.02...1.35)
+    #expect(rows[1].takeWordIndex == 1)
+    let sequence = SoundFlagRows.listenSequence(
+      for: rows[0], referenceDuration: 2, takeDuration: 2)
+    #expect(sequence.map(\.source) == [.reference, .attempt, .reference])
+    #expect(sequence[0].range.lowerBound < 1.0 && sequence[0].range.upperBound > 1.4)
+    #expect(sequence[0] == sequence[2])
+  }
+
   private func makeModel(_ service: FakeSoundComparison) async throws
     -> (AppModel, URL, CoachingSession)
   {
@@ -82,6 +138,7 @@ struct SoundComparisonFlowTests {
       sessionStore: try SessionStore(rootURL: root),
       sessionChatResponder: LocalSessionChatResponder(), soundComparison: service)
     let model = AppModel(loadPersistedData: false, dependencies: dependencies)
+    model.showsExperimentalSoundEngines = true
     await model.refreshSoundEngines().value
     let sessionID = UUID()
     func take(_ id: UUID = UUID(), url: URL) -> PracticeSession {

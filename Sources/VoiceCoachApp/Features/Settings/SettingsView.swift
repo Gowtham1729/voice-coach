@@ -41,6 +41,7 @@ struct SettingsView: View {
     .onAppear {
       model.refreshTranscriptionSetupStatus()
       model.refreshSystemTranscriptionStatus()
+      model.refreshSoundEngines()
       if autoGenerateTitles {
         SmartTitleGenerator.prewarmIfAvailable()
       }
@@ -77,6 +78,12 @@ struct SettingsView: View {
         Text(
           "Ask about a take’s or reference’s transcript. It reads text only, so it can’t hear your audio, and replies can be wrong. Chats clear when you quit or turn this off."
         )
+      }
+
+      Section {
+        Toggle("Show experimental sound engines", isOn: experimentalSoundEngines)
+      } footer: {
+        Text(SoundComparisonSettingsCopy.experimentsFooter)
       }
     }
     .settingsPaneChrome()
@@ -211,8 +218,17 @@ struct SettingsView: View {
           }
         )
       }
+
+      SoundComparisonSettingsSections()
     }
     .settingsPaneChrome()
+  }
+
+  private var experimentalSoundEngines: Binding<Bool> {
+    Binding(
+      get: { model.showsExperimentalSoundEngines },
+      set: { model.setShowsExperimentalSoundEngines($0) }
+    )
   }
 
   private var engineSelection: Binding<TranscriptionEnginePreference> {
@@ -305,6 +321,12 @@ struct SettingsView: View {
         LabeledContent("Words chat", value: experimentalFeatures ? "On" : "Off")
         Text("Asks about a transcript. Text only; replies can be wrong.")
           .font(.caption).foregroundStyle(.secondary)
+        LabeledContent(
+          "Show experimental sound engines",
+          value: model.showsExperimentalSoundEngines ? "On" : "Off")
+        Text(SoundComparisonSettingsCopy.experimentsFooter)
+          .font(.caption).foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
       }
 
       snapshotCard("Transcription", symbol: "waveform") {
@@ -324,6 +346,12 @@ struct SettingsView: View {
           .font(.caption)
           .foregroundStyle(!isSystem ? .primary : .secondary)
           .opacity(!isSystem ? 1.0 : 0.65)
+      }
+
+      if model.showsExperimentalSoundEngines {
+        snapshotCard("Sound comparison", symbol: "waveform.badge.magnifyingglass") {
+          SoundComparisonSnapshotRows()
+        }
       }
     }
     .padding(24)
