@@ -12,6 +12,14 @@ public struct MimicWordPair: Sendable, Equatable {
   public let attemptEnergy: Double?
 }
 
+/// One Reference word and one take word left unmatched between the same two matched words.
+public struct MimicHeardDifference: Sendable, Equatable {
+  public let referenceIndex: Int
+  public let attemptIndex: Int
+  public let reference: TranscriptWord
+  public let attempt: TranscriptWord
+}
+
 public enum MimicAlignmentStatus: String, Sendable, Equatable {
   case ok
   case missingTranscript = "missing_transcript"
@@ -24,6 +32,8 @@ public enum MimicAlignmentStatus: String, Sendable, Equatable {
 public struct MimicComparison: Sendable, Equatable {
   public let pairs: [MimicWordPair]
   public let status: MimicAlignmentStatus
+  /// Shown only when the alignment is reliable, at most three. Never a Practice next target.
+  public let heardDifferently: [MimicHeardDifference]
 
   public var correspondenceReliable: Bool { status == .ok }
 
@@ -99,11 +109,25 @@ public struct MimicComparison: Sendable, Equatable {
     } else {
       status = .ok
     }
-    return .init(pairs: pairs, status: status)
+    var heardDifferently: [MimicHeardDifference] = []
+    if status == .ok {
+      for (before, after) in zip(indices, indices.dropFirst())
+      where after.0 - before.0 == 2 && after.1 - before.1 == 2 {
+        let a = before.0 + 1
+        let b = before.1 + 1
+        guard !left[a].isEmpty, !right[b].isEmpty else { continue }
+        heardDifferently.append(
+          .init(
+            referenceIndex: a, attemptIndex: b,
+            reference: referenceWords[a], attempt: attemptWords[b]))
+        if heardDifferently.count == 3 { break }
+      }
+    }
+    return .init(pairs: pairs, status: status, heardDifferently: heardDifferently)
   }
 
   private static func empty(_ status: MimicAlignmentStatus) -> Self {
-    .init(pairs: [], status: status)
+    .init(pairs: [], status: status, heardDifferently: [])
   }
 
   private static func normalized(_ word: String) -> String {

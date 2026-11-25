@@ -42,4 +42,42 @@ struct MimicComparisonTests {
 
     #expect(MimicComparison.compare(reference: reference, attempt: attempt).status == expected)
   }
+
+  @Test("One unmatched word each between two matched words is heard differently")
+  func heardDifferently() {
+    let reference = CoreTestFixtures.session(words: ["the", "ship", "sails", "away"])
+    let heard = CoreTestFixtures.session(words: ["the", "sheep", "sails", "away"])
+    let swapped = MimicComparison.compare(reference: reference, attempt: heard)
+    #expect(
+      swapped.heardDifferently.map { [$0.reference.word, $0.attempt.word] } == [["ship", "sheep"]])
+    // Not a Practice next target on its own.
+    #expect(
+      CoachingPlanner.mimic(reference: reference, attempt: heard).focus?.referenceWordIndex != 1)
+
+    let twoForOne = MimicComparison.compare(
+      reference: CoreTestFixtures.session(
+        words: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]),
+      attempt: CoreTestFixtures.session(
+        words: ["a", "x", "y", "c", "d", "e", "f", "g", "h", "i", "j"]))
+    #expect(twoForOne.status == .ok)
+    #expect(twoForOne.heardDifferently.isEmpty)
+
+    let noisy = MimicComparison.compare(
+      reference: reference,
+      attempt: CoreTestFixtures.session(words: ["the", "sheep", "sails", "away"], snrDB: 3))
+    #expect(noisy.heardDifferently.isEmpty)
+
+    let anchors = (1...12).map { "w\($0)" }
+    var left = anchors
+    var right = anchors
+    for slot in [1, 5, 9, 13] {  // after w1, w4, w7, w10
+      left.insert("ref\(slot)", at: slot)
+      right.insert("heard\(slot)", at: slot)
+    }
+    let many = MimicComparison.compare(
+      reference: CoreTestFixtures.session(words: left),
+      attempt: CoreTestFixtures.session(words: right))
+    #expect(many.status == .ok)
+    #expect(many.heardDifferently.map(\.reference.word) == ["ref1", "ref5", "ref9"])
+  }
 }
