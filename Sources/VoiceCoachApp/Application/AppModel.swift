@@ -23,10 +23,20 @@ final class AppModel: ObservableObject {
   var destinationBeforeCreate: AppDestination = .home
   @Published var sessions: [CoachingSession] = []
   @Published var selectedSessionID: UUID? {
-    didSet { if oldValue != selectedSessionID { pendingRetryTarget = nil } }
+    didSet {
+      if oldValue != selectedSessionID {
+        pendingRetryTarget = nil
+        scheduleSoundComparison()
+      }
+    }
   }
   @Published var selectedTakeID: UUID? {
-    didSet { if oldValue != selectedTakeID { pendingRetryTarget = nil } }
+    didSet {
+      if oldValue != selectedTakeID {
+        pendingRetryTarget = nil
+        scheduleSoundComparison()
+      }
+    }
   }
   @Published var dismissedRetryCardTakeIDs: Set<UUID> = []
   @Published var skippedRetryCardTakeIDs: Set<UUID> = []
@@ -76,6 +86,19 @@ final class AppModel: ObservableObject {
   @Published var pendingMimicAudio: (url: URL, id: UUID)?
   @Published var pendingMimicSessionID: UUID?
   @Published var practiceClipCreationProgress: (completed: Int, total: Int)?
+  /// Installed Sound comparison engines, of every tier.
+  @Published var soundEngines: [SoundEngineInstall] = []
+  /// Takes being compared now, and takes whose comparison failed this launch.
+  @Published var soundComparisonRunning: Set<UUID> = []
+  @Published var soundComparisonFailed: Set<UUID> = []
+  /// Takes that failed this launch for a reason a retry cannot fix (an unreadable audio file).
+  @Published var soundComparisonUnavailable: [UUID: SoundComparisonSkipReason] = [:]
+  /// Settings → Experiments: lists the experimental-tier engines and lets them run (D5, FR-26).
+  @Published var showsExperimentalSoundEngines = SoundEngineVisibilityPreference.isEnabled
+  /// The Reference word whose Listen sequence is playing (FR-17).
+  @Published var soundListenWordIndex: Int?
+  var soundListenQueue: [SoundListenSegment] = []
+  var soundListenTask: Task<Void, Never>?
 
   let recorder: any AudioRecording
   let systemAudioCapture: any SystemAudioCapturing
@@ -85,6 +108,7 @@ final class AppModel: ObservableObject {
   let sessionChatResponder: any SessionChatResponding
   let preparePracticeClip:
     @Sendable (URL, URL, Double, Double) async throws -> AnalysisResult
+  let soundComparison: any SoundComparing
   var practiceClipCreationTask: Task<Void, Never>?
   var practiceClipCreationID: UUID?
   var mimicPreparationTask: Task<Void, Never>?
@@ -147,6 +171,7 @@ final class AppModel: ObservableObject {
       transcribe = dependencies.transcribe
       sessionChatResponder = dependencies.sessionChatResponder
       preparePracticeClip = dependencies.preparePracticeClip
+      soundComparison = dependencies.soundComparison
     } catch {
       fatalError("Ichido could not open local storage: \(error.localizedDescription)")
     }
@@ -170,6 +195,7 @@ final class AppModel: ObservableObject {
 
     refreshTranscriptionSetupStatus()
     refreshSystemTranscriptionStatus()
+    refreshSoundEngines()
 
     guard loadPersistedData else { return }
     do {

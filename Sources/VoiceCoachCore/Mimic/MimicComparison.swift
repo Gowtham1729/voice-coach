@@ -131,8 +131,43 @@ public struct MimicComparison: Sendable, Equatable {
   }
 
   private static func normalized(_ word: String) -> String {
-    word.lowercased().unicodeScalars
+    let token = word.lowercased().unicodeScalars
       .filter { CharacterSet.letters.contains($0) || CharacterSet.decimalDigits.contains($0) }
       .map(String.init).joined()
+    return spokenNumbers[token] ?? token
   }
+
+  /// Transcripts write the same spoken word as "1st" or "first", "2" or "two". Treat them as
+  /// one word so a formatting choice is never shown as a difference.
+  private static let spokenNumbers: [String: String] = {
+    let cardinals = [
+      "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+      "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen",
+      "eighteen", "nineteen", "twenty",
+    ]
+    let ordinals = [
+      "zeroth", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth",
+      "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth",
+      "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth",
+    ]
+    var map: [String: String] = [:]
+    for (value, word) in cardinals.enumerated() { map[String(value)] = word }
+    for (value, word) in ordinals.enumerated() {
+      let suffix =
+        switch value % 10 {
+        case 1 where value != 11: "st"
+        case 2 where value != 12: "nd"
+        case 3 where value != 13: "rd"
+        default: "th"
+        }
+      map["\(value)\(suffix)"] = word
+    }
+    for (tens, word) in [
+      (30, "thirty"), (40, "forty"), (50, "fifty"), (60, "sixty"), (70, "seventy"),
+      (80, "eighty"), (90, "ninety"), (100, "hundred"),
+    ] {
+      map[String(tens)] = word
+    }
+    return map
+  }()
 }

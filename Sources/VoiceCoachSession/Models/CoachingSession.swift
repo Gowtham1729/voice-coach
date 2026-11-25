@@ -140,6 +140,38 @@ package struct CoachingSession: Codable, Identifiable, Equatable, Sendable {
     return items
   }
 
+  /// Applies `change` to the sound data of one take or of the Reference. False when no take
+  /// has that id.
+  @discardableResult
+  package mutating func updateSounds(
+    takeID: UUID, _ change: (inout TakeSounds) -> Void
+  ) -> Bool {
+    func updated(_ take: PracticeSession) -> PracticeSession {
+      var sounds = take.sounds ?? TakeSounds()
+      change(&sounds)
+      return take.replacingSounds(sounds)
+    }
+    if let index = takes.firstIndex(where: { $0.id == takeID }) {
+      takes[index] = updated(takes[index])
+      return true
+    }
+    if let reference = mimicReference?.take, reference.id == takeID {
+      mimicReference?.take = updated(reference)
+      return true
+    }
+    return false
+  }
+
+  /// Removes everything one engine made in this practice (FR-27). Returns the ids of the takes
+  /// whose analysis file changed. Audio, transcripts and other analysis stay as they are.
+  package mutating func removeSoundResults(engineID: String) -> Set<UUID> {
+    let changed = allPracticeTakes.filter {
+      $0.sounds?.comparisons[engineID] != nil || $0.sounds?.referenceAnalyses[engineID] != nil
+    }.map(\.id)
+    for id in changed { updateSounds(takeID: id) { $0 = $0.removingEngine(engineID) } }
+    return Set(changed)
+  }
+
   enum CodingKeys: String, CodingKey {
     case id, name, createdAt, updatedAt, mode, prompt, keepsRecordings, takes
     case mimicReference, mimicStyle, mimicAttemptStyles, archived, transcriptionLocaleIdentifier

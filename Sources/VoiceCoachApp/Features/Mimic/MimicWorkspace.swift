@@ -70,66 +70,90 @@ struct MimicWorkspace: View {
 
   private func heading(_ session: CoachingSession) -> some View {
     VStack(alignment: .leading, spacing: 10) {
-      HStack(spacing: 12) {
-        Text(PracticeCatalog.title(of: session))
-          .font(.title3.weight(.semibold))
-          .lineLimit(1)
-          .truncationMode(.middle)
-        Label("With reference", systemImage: "waveform.path")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-        if let locale = session.transcriptionLocaleIdentifier {
-          Text(TranscriptionLanguagePreference.displayName(for: locale))
-            .font(.caption)
-            .foregroundStyle(.secondary)
+      // One row when the whole title fits beside the view controls; otherwise the title gets
+      // its own row so it never collapses at the default window width.
+      ViewThatFits(in: .horizontal) {
+        HStack(spacing: 12) {
+          headingTitle(session).fixedSize()
+          Spacer(minLength: 12)
+          viewControls(session)
         }
-        Spacer()
-        if !session.takes.isEmpty {
-          if snapshot {
-            Text(model.mimicWorkspaceMode.switchCase.title)
-              .font(.caption.weight(.semibold))
-              .padding(7)
-              .background(Studio.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
-          } else {
-            if model.mimicWorkspaceMode != .practice {
-              // Review has two views of the selected take; name both instead of hiding one.
-              Picker(
-                "Review view",
-                selection: Binding(
-                  get: { model.mimicWorkspaceMode },
-                  set: { model.setMimicWorkspaceMode($0) }
-                )
-              ) {
-                Text("Compare").tag(MimicWorkspaceMode.compare)
-                Text("This take").tag(MimicWorkspaceMode.analysis)
-              }
-              .labelsHidden()
-              .pickerStyle(.segmented)
-              .frame(width: 170)
-              .help("Compare with the reference, or see this take's own measurements")
-              .disabled(model.isRecording || model.mimicPhase != .ready)
-            }
-            Picker(
-              "View",
-              selection: Binding(
-                get: { model.mimicWorkspaceMode.switchCase },
-                set: { model.setMimicWorkspaceMode($0) }
-              )
-            ) {
-              ForEach(MimicWorkspaceMode.switchCases) { mode in
-                Text(mode.title).tag(mode)
-              }
-            }
-            .labelsHidden()
-            .pickerStyle(.segmented)
-            .frame(width: 180)
-            .disabled(model.isRecording || model.mimicPhase != .ready)
+        VStack(alignment: .leading, spacing: 10) {
+          headingTitle(session)
+          HStack {
+            Spacer(minLength: 0)
+            viewControls(session)
           }
         }
       }
       if !session.takes.isEmpty {
         TakeStrip(session: session)
       }
+    }
+  }
+
+  private func headingTitle(_ session: CoachingSession) -> some View {
+    HStack(alignment: .firstTextBaseline, spacing: 10) {
+      Text(PracticeCatalog.title(of: session))
+        .font(.title3.weight(.semibold))
+        .lineLimit(1)
+        .truncationMode(.tail)
+        .help(PracticeCatalog.title(of: session))
+      if let locale = session.transcriptionLocaleIdentifier {
+        Text(TranscriptionLanguagePreference.displayName(for: locale))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize()
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func viewControls(_ session: CoachingSession) -> some View {
+    if !session.takes.isEmpty {
+      HStack(spacing: 12) {
+        if snapshot {
+          Text(model.mimicWorkspaceMode.switchCase.title)
+            .font(.caption.weight(.semibold))
+            .padding(7)
+            .background(Studio.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
+        } else {
+          if model.mimicWorkspaceMode != .practice {
+            // Review has two views of the selected take; name both instead of hiding one.
+            Picker(
+              "Review view",
+              selection: Binding(
+                get: { model.mimicWorkspaceMode },
+                set: { model.setMimicWorkspaceMode($0) }
+              )
+            ) {
+              Text("Compare").tag(MimicWorkspaceMode.compare)
+              Text("This take").tag(MimicWorkspaceMode.analysis)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 170)
+            .help("Compare with the reference, or see this take's own measurements")
+            .disabled(model.isRecording || model.mimicPhase != .ready)
+          }
+          Picker(
+            "View",
+            selection: Binding(
+              get: { model.mimicWorkspaceMode.switchCase },
+              set: { model.setMimicWorkspaceMode($0) }
+            )
+          ) {
+            ForEach(MimicWorkspaceMode.switchCases) { mode in
+              Text(mode.title).tag(mode)
+            }
+          }
+          .labelsHidden()
+          .pickerStyle(.segmented)
+          .frame(width: 180)
+          .disabled(model.isRecording || model.mimicPhase != .ready)
+        }
+      }
+      .fixedSize()
     }
   }
 

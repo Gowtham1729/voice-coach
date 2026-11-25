@@ -46,8 +46,7 @@ struct MimicInspector: View {
           metrics: metrics,
           plan: model.coachingPlan(for: take, in: session)
         )
-        heardDifferently(
-          MimicComparison.compare(reference: reference.take, attempt: take).heardDifferently)
+        MimicSoundsSection(session: session, reference: reference.take, take: take)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     } footer: {
@@ -85,6 +84,8 @@ struct MimicInspector: View {
               .accessibilityLabel("Delete take")
           }
           .studioGlassButton()
+          // Neutral, so the one filled control in the footer is never Delete.
+          .tint(.secondary)
           .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
           .help("Delete this take. The reference and other takes stay.")
         }
@@ -98,28 +99,6 @@ struct MimicInspector: View {
       ) { takeID in
         deleteTake(takeID, in: session)
       })
-  }
-
-  @ViewBuilder
-  private func heardDifferently(_ differences: [MimicHeardDifference]) -> some View {
-    if !differences.isEmpty {
-      Divider()
-      VStack(alignment: .leading, spacing: 8) {
-        SectionEyebrow(text: "Sounds")
-        ForEach(differences, id: \.referenceIndex) { difference in
-          let reference = displayWord(difference.reference.word)
-          let heard = displayWord(difference.attempt.word)
-          Text("Reference: \(Text(reference).italic()) · We heard: \(Text(heard).italic())")
-            .font(.callout)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityLabel("Reference: \(reference). We heard: \(heard).")
-        }
-      }
-    }
-  }
-
-  private func displayWord(_ word: String) -> String {
-    word.trimmingCharacters(in: .punctuationCharacters.union(.whitespaces))
   }
 
   @ViewBuilder

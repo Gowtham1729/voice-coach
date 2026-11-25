@@ -19,6 +19,7 @@ Local-first **Ichido**: a **macOS 26+** SwiftUI speaking-practice studio (Swift 
 | Bundle resources | `Resources/` | Packaged by `scripts/build-app.sh` |
 | Marketing site | `website/` | Static promo site at https://ichido.app/. See `docs/marketing-website.md` |
 | Scripts | `scripts/`, `script/build_and_run.sh` | Use these. Do not invent build steps |
+| Model conversion | `tools/sound-comparison/` | Python run by `scripts/setup-sound-comparison.sh` in a temporary uv env. Not part of the app |
 
 **Naming:** The UI has three nouns. A **practice** is a `CoachingSession` (a one-off recording, a retry stack, or a Mimic). A **take** is a Core `PracticeSession` inside it. A **reference** is the optional `MimicReference`; a practice that has one is shown **With reference**. Do not rename those storage types. Do not use “recording” as a noun for library items, or “reference practice” and “quick practice” as names. Modes stay **Listen & Repeat** and **Speak Along**; **Transcript** and **Words** are unchanged. Before changing user-facing strings, read `docs/brand/messaging.md`.
 
@@ -42,6 +43,7 @@ Run from the repo root. Scripts prefer the Xcode toolchain when it is present.
 ./scripts/build-app.sh            # CI and local bundle; ad-hoc unless --developer-id
 ./scripts/render-previews.sh      # SelfTest + DEBUG layout PNGs in build/previews
 ./scripts/setup-transcription.sh  # Optional local ASR (~714 MB). Not in CI or cloud unless asked
+./scripts/setup-sound-comparison.sh [lite|full|all]  # Optional Sound comparison engines (126 / 519 MB). Needs uv. Not in CI
 ```
 
 - Cloud and Linux agents: see **Cursor Cloud specific instructions**. Do not build or run `VoiceCoachApp` there.
@@ -89,6 +91,8 @@ Root: `~/Library/Application Support/VoiceCoach/`
 - `session-library.json` is schemaVersion **3**, a thin index of session metadata and take stubs. Versions 1–2 migrate on load. One backup file is kept per old version.
 - `Sessions/<sessionUUID>/take-<takeUUID>.analysis.json` holds the `AnalysisResult` plus transcript and words, including a Mimic reference.
 - Audio is `take-<takeUUID>.wav` or `…-imported.wav`. Mimic reference audio is `reference.wav`.
+- Sound comparison (optional `sounds` key in the take's analysis file, still analysis schemaVersion 1 so older builds ignore it): per engine id, the take's `comparisons` against its Reference (engine version, per-word results, aligned sounds with times) and, on the Reference take, the cached `referenceAnalyses` (FR-11). Since engine version `eng_r3` a Reference analysis also holds `wordFrames`: the Reference's ZIPA encoder frames inside each timed word (standardised, L2-normalised, base64 little-endian Float16, about 50 KB per second of word audio) for the word DTW. Results and analyses from another engine version are ignored and recomputed. Retranscribing the Reference drops its cached analyses and the takes' comparisons. Deleting an engine (`AppModel.deleteSoundEngine`) removes its folder and every result it made, nothing else.
+- Engines live outside practice folders in `SoundComparison/<lite|full>/`: `manifest.json`, `<model>.mlpackage`, `<model>-vocab.json`, `<model>-substitutions.json` (`full` only: the restricted substitution table, committed in `tools/sound-comparison/substitutions/`), and `compiled/` (`.mlmodelc`, made on first use). `scripts/setup-sound-comparison.sh` converts them from the original Hugging Face weights with `tools/sound-comparison/convert.py`. Always run them with `.cpuAndGPU`.
 - Renames and Mimic style edits rewrite the thin index only. A new or changed take also writes its analysis file.
 - `keepsRecordings == false` replaces prior takes and deletes their WAV and analysis files after a successful save. New recordings keep every valid take. A legacy replace-only folder prompts before the next save.
 - A Mimic session always keeps `reference.wav` and every attempt. The replace path must not run when `mode == .mimic`. Deleting an attempt deletes that take only, not the reference.

@@ -33,6 +33,7 @@ struct TakeInspector: View {
               metrics: take.result.metrics,
               plan: model.coachingPlan(for: take, in: session)
             )
+
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         } footer: {
@@ -91,6 +92,8 @@ struct TakeInspector: View {
             .accessibilityLabel("Delete take")
         }
         .studioGlassButton()
+        // Neutral, so the one filled control in the footer is never Delete.
+        .tint(.secondary)
         .disabled(model.isPlaying || model.isAnalyzing || model.isRecording)
         .help("Delete this take")
       }

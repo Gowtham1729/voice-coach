@@ -43,6 +43,15 @@ struct MimicComparisonTests {
     #expect(MimicComparison.compare(reference: reference, attempt: attempt).status == expected)
   }
 
+  @Test("Numerals and number words count as the same word")
+  func numeralsMatchNumberWords() {
+    let comparison = MimicComparison.compare(
+      reference: CoreTestFixtures.session(words: ["the", "first", "folding", "phone", "2"]),
+      attempt: CoreTestFixtures.session(words: ["the", "1st", "folding", "phone", "two"]))
+    #expect(comparison.heardDifferently.isEmpty)
+    #expect(comparison.pairs.count == 5)
+  }
+
   @Test("One unmatched word each between two matched words is heard differently")
   func heardDifferently() {
     let reference = CoreTestFixtures.session(words: ["the", "ship", "sails", "away"])

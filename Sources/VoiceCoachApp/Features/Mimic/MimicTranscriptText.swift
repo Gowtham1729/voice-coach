@@ -7,6 +7,8 @@ struct MimicTranscriptText: View {
   let transcription: TranscriptionResult
   let activeIndex: Int?
   let activeColor: Color
+  /// Words that sounded different from the reference get one quiet mark (UX-1). No red or green.
+  var markedIndices: Set<Int> = []
   let onSelect: (Int, TranscriptWord) -> Void
 
   var body: some View {
@@ -37,8 +39,22 @@ struct MimicTranscriptText: View {
       } else {
         part.foregroundColor = Studio.ink
       }
+      if markedIndices.contains(index), let core = Self.letterRange(in: part) {
+        // Mark the word itself, not its trailing comma or full stop.
+        part[core].underlineStyle = Text.LineStyle(pattern: .dot, color: Studio.ink.opacity(0.75))
+      }
       result += part
     }
     return result
+  }
+
+  /// From the first to the last letter or digit; nil when the word has none.
+  private static func letterRange(in text: AttributedString) -> Range<AttributedString.Index>? {
+    let characters = text.characters
+    let isCore: (Character) -> Bool = { $0.isLetter || $0.isNumber }
+    guard let first = characters.firstIndex(where: isCore),
+      let last = characters.lastIndex(where: isCore)
+    else { return nil }
+    return first..<characters.index(after: last)
   }
 }

@@ -187,7 +187,8 @@ extension MimicComparisonView {
         MimicTranscriptText(
           transcription: transcription,
           activeIndex: activeTranscriptIndex(in: transcription, source: source),
-          activeColor: color
+          activeColor: color,
+          markedIndices: source == .attempt ? soundFlaggedAttemptIndices : []
         ) { index, word in
           model.mimicSelectedWord = comparison.pairs.firstIndex(where: {
             source == .reference ? $0.referenceIndex == index : $0.attemptIndex == index
@@ -200,6 +201,18 @@ extension MimicComparisonView {
           .foregroundStyle(Studio.secondary)
       }
     }
+  }
+
+  /// Take words that sounded different from the reference, by the active engine (UX-1).
+  var soundFlaggedAttemptIndices: Set<Int> {
+    guard let session = model.selectedSession,
+      case .ready(let result) = model.soundComparisonStatus(
+        sessionID: session.id, takeID: attempt.id)
+    else { return [] }
+    return Set(
+      SoundFlagRows.make(
+        result: result, reference: reference, attempt: attempt, comparison: comparison
+      ).compactMap(\.takeWordIndex))
   }
 
   func activeTranscriptIndex(in transcription: TranscriptionResult, source: MimicPlaybackSource)

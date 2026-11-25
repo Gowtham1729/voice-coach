@@ -10,6 +10,8 @@ public struct PracticeSession: Codable, Sendable, Identifiable, Equatable {
   public let transcription: TranscriptionResult?
   public let words: [WordAnalysis]
   public let savedTarget: TargetFocus?
+  /// Sound comparison results and the cached Reference analysis, per engine. Nil when none.
+  public let sounds: TakeSounds?
 
   public init(
     id: UUID = UUID(),
@@ -19,7 +21,8 @@ public struct PracticeSession: Codable, Sendable, Identifiable, Equatable {
     result: AnalysisResult,
     transcription: TranscriptionResult? = nil,
     words: [WordAnalysis] = [],
-    savedTarget: TargetFocus? = nil
+    savedTarget: TargetFocus? = nil,
+    sounds: TakeSounds? = nil
   ) {
     self.id = id
     self.createdAt = createdAt
@@ -29,6 +32,7 @@ public struct PracticeSession: Codable, Sendable, Identifiable, Equatable {
     self.transcription = transcription
     self.words = words
     self.savedTarget = savedTarget
+    self.sounds = sounds.flatMap { $0.isEmpty ? nil : $0 }
   }
 
   public var takeSource: TakeSource { source ?? .recorded }
@@ -37,7 +41,14 @@ public struct PracticeSession: Codable, Sendable, Identifiable, Equatable {
   public func replacingSavedTarget(_ target: TargetFocus?) -> PracticeSession {
     PracticeSession(
       id: id, createdAt: createdAt, audioURL: audioURL, source: source, result: result,
-      transcription: transcription, words: words, savedTarget: target)
+      transcription: transcription, words: words, savedTarget: target, sounds: sounds)
+  }
+
+  /// A copy of this take with different sound comparison data.
+  public func replacingSounds(_ sounds: TakeSounds?) -> PracticeSession {
+    PracticeSession(
+      id: id, createdAt: createdAt, audioURL: audioURL, source: source, result: result,
+      transcription: transcription, words: words, savedTarget: savedTarget, sounds: sounds)
   }
 }
 

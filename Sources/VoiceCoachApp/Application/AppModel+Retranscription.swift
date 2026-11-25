@@ -38,10 +38,14 @@ extension AppModel {
           id: take.id, createdAt: take.createdAt, audioURL: take.audioURL, source: take.source,
           result: take.result, transcription: outcome.result,
           words: WordAcousticAnalyzer().analyze(transcription: outcome.result, result: take.result),
-          savedTarget: take.savedTarget
+          savedTarget: take.savedTarget,
+          // A take's sound results do not use its own transcript. A Reference's cached analysis
+          // does, so it is dropped with the old words.
+          sounds: isReference ? nil : take.sounds
         )
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
         let previousSessions = sessions
+        var changedTakeIDs: Set<UUID> = [take.id]
         if isReference {
           guard sessions[index].mimicReference?.take.id == take.id else { return }
           sessions[index].mimicReference?.take = updatedTake
@@ -53,6 +57,11 @@ extension AppModel {
             else { return attempt }
             return attempt.replacingSavedTarget(nil)
           }
+          // Sound results were made against the old Reference words.
+          for attempt in sessions[index].takes where attempt.sounds?.comparisons.isEmpty == false {
+            sessions[index].updateSounds(takeID: attempt.id) { $0.comparisons = [:] }
+            changedTakeIDs.insert(attempt.id)
+          }
         } else {
           guard let takeIndex = sessions[index].takes.firstIndex(where: { $0.id == take.id }) else {
             return
@@ -60,7 +69,7 @@ extension AppModel {
           sessions[index].takes[takeIndex] = updatedTake
         }
         if let locale { sessions[index].transcriptionLocaleIdentifier = locale.identifier }
-        guard persist(analysisTakeIDs: [take.id]) else {
+        guard persist(analysisTakeIDs: changedTakeIDs) else {
           sessions = previousSessions
           return
         }
@@ -68,6 +77,12 @@ extension AppModel {
         if reportCache?.takeID == take.id { reportCache = nil }
         toastMessage = "Transcript updated"
         mimicSelectedWord = nil
+        if isReference {
+          let takeIDs = sessions[index].takes.map(\.id)
+          soundComparisonFailed.subtract(takeIDs)
+          for id in takeIDs { soundComparisonUnavailable[id] = nil }
+        }
+        scheduleSoundComparison()
       } catch {
         presentError(
           title: "Transcript couldn’t be updated", error: error,
