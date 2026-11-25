@@ -3,8 +3,9 @@ import CoreML
 import Foundation
 
 /// ZIPA small (Zipformer CTC, 127 IPA tokens) through the masked fixed-window Core ML package:
-/// `fbank (1, 1000, 80)` (10 s) and `length` (real fbank frames) in, raw fp16 `logits` out,
-/// one output frame per 2 fbank frames (20 ms). Longer takes run in windows of 1000 frames
+/// `fbank (1, 1000, 80)` (10 s) and `length` (real fbank frames) in, raw fp16 `logits` and the
+/// encoder output `hidden` (512 values, for the word DTW) out, one output frame per 2 fbank frames
+/// (20 ms). Longer takes run in windows of 1000 frames
 /// stepping 800, the last one ending at the last frame; each output frame comes from the window
 /// where it is furthest from an edge.
 final class ZipaPhoneModel: PhoneLogitModel {
@@ -31,10 +32,15 @@ final class ZipaPhoneModel: PhoneLogitModel {
   static func outputFrames(fbankFrames: Int) -> Int { max(0, (fbankFrames - 7) / 2) }
 
   func rawLogits(samples: [Float]) throws -> FrameMatrix {
+    try rawOutputs(samples: samples).logits
+  }
+
+  func rawOutputs(samples: [Float]) throws -> (logits: FrameMatrix, hidden: FrameMatrix?) {
     let features = fbank.compute(samples)
     let total = Self.outputFrames(fbankFrames: features.rows)
     let width = vocabulary.tokens.count
     var logits = FrameMatrix(rows: total, columns: width)
+    var hidden: FrameMatrix?
     var starts = [0]
     if features.rows > windowFrames {
       starts =
@@ -57,15 +63,22 @@ final class ZipaPhoneModel: PhoneLogitModel {
       let owned = (0..<total).filter { owner[$0] == k }
       guard let first = owned.first, let last = owned.last else { continue }
       let window = try predict(features, from: start)
+      if hidden == nil { hidden = FrameMatrix(rows: total, columns: window.hidden.columns) }
+      let depth = window.hidden.columns
       for g in first...last {
-        let local = min(max(g - start / 2, 0), window.rows - 1)
-        logits.values.replaceSubrange(g * width..<(g + 1) * width, with: window.row(local))
+        let local = min(max(g - start / 2, 0), window.logits.rows - 1)
+        logits.values.replaceSubrange(
+          g * width..<(g + 1) * width, with: window.logits.row(local))
+        hidden!.values.replaceSubrange(
+          g * depth..<(g + 1) * depth, with: window.hidden.row(local))
       }
     }
-    return logits
+    return (logits, hidden)
   }
 
-  private func predict(_ features: FrameMatrix, from start: Int) throws -> FrameMatrix {
+  private func predict(_ features: FrameMatrix, from start: Int) throws
+    -> (logits: FrameMatrix, hidden: FrameMatrix)
+  {
     let input = try MLMultiArray(shape: [1, NSNumber(value: windowFrames), 80], dataType: .float32)
     let available = min(windowFrames, features.rows - start)
     input.withUnsafeMutableBufferPointer(ofType: Float.self) { buffer, strides in
@@ -82,10 +95,10 @@ final class ZipaPhoneModel: PhoneLogitModel {
       from: MLDictionaryFeatureProvider(dictionary: [
         "fbank": MLFeatureValue(multiArray: input), "length": MLFeatureValue(multiArray: length),
       ]))
-    guard let logits = result.featureValue(for: "logits")?.multiArrayValue else {
-      throw SoundComparisonError.unexpectedModel("zipa logits")
-    }
-    return logits.frameMatrix()
+    guard let logits = result.featureValue(for: "logits")?.multiArrayValue,
+      let hidden = result.featureValue(for: "hidden")?.multiArrayValue
+    else { throw SoundComparisonError.unexpectedModel("zipa logits") }
+    return (logits.frameMatrix(), hidden.frameMatrix())
   }
 }
 
@@ -212,7 +225,7 @@ extension MLMultiArray {
 
 extension PhoneModelSoundComparisonEngine {
   /// Loads an engine installed by `scripts/setup-sound-comparison.sh`: `manifest.json`, one
-  /// `.mlpackage` and vocabulary per model. Packages are compiled once into `compiled/` beside
+  /// `.mlpackage` and vocabulary per model, and a substitution table per model for `full`. Packages are compiled once into `compiled/` beside
   /// them. Always `.cpuAndGPU`: the thresholds were set on GPU logits, and CPU-only is a
   /// different engine for `full`.
   public static func load(installedAt directory: URL) async throws
@@ -224,9 +237,15 @@ extension PhoneModelSoundComparisonEngine {
     guard manifest.isCurrent, let configuration = SoundComparisonConfiguration.named(manifest.engineID)
     else { throw SoundComparisonError.engineNotInstalled(manifest.engineID) }
     var models: [any PhoneLogitModel] = []
+    var substitutions: [SubstitutionTable?] = []
     for entry in manifest.models {
       let vocabulary = try PhoneVocabulary(
         contentsOf: directory.appendingPathComponent(entry.vocabulary))
+      substitutions.append(
+        try entry.substitutions.map {
+          try SubstitutionTable(
+            contentsOf: directory.appendingPathComponent($0), vocabulary: vocabulary)
+        })
       let compiled = try await compile(
         directory.appendingPathComponent(entry.package),
         cacheDirectory: directory.appendingPathComponent("compiled", isDirectory: true))
@@ -241,7 +260,8 @@ extension PhoneModelSoundComparisonEngine {
             computeUnits: .cpuAndGPU))
       }
     }
-    return try PhoneModelSoundComparisonEngine(configuration: configuration, models: models)
+    return try PhoneModelSoundComparisonEngine(
+      configuration: configuration, models: models, substitutions: substitutions)
   }
 
   /// Compiles an `.mlpackage` once and keeps the `.mlmodelc`; recompiles when the package is

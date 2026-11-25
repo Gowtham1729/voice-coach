@@ -77,7 +77,11 @@ extension AppModel {
         if reportCache?.takeID == take.id { reportCache = nil }
         toastMessage = "Transcript updated"
         mimicSelectedWord = nil
-        if isReference { soundComparisonFailed.subtract(sessions[index].takes.map(\.id)) }
+        if isReference {
+          let takeIDs = sessions[index].takes.map(\.id)
+          soundComparisonFailed.subtract(takeIDs)
+          for id in takeIDs { soundComparisonUnavailable[id] = nil }
+        }
         scheduleSoundComparison()
       } catch {
         presentError(

@@ -154,6 +154,16 @@ extension AppModel {
       return .ready(result)
     }
     if soundComparisonRunning.contains(takeID) { return .running }
+    // Reasons a retry cannot fix are shown as such, never as "retry later".
+    if let reference = session.mimicReference?.take,
+      !FileManager.default.fileExists(atPath: reference.audioURL.path)
+    {
+      return .notComparable(.referenceAudioMissing)
+    }
+    if !FileManager.default.fileExists(atPath: take.audioURL.path) {
+      return .notComparable(.takeAudioMissing)
+    }
+    if let reason = soundComparisonUnavailable[takeID] { return .notComparable(reason) }
     return soundComparisonFailed.contains(takeID) ? .failed : .pending
   }
 
@@ -174,26 +184,30 @@ extension AppModel {
     else { return nil }
     let version = SoundComparisonConfiguration.engineVersion
     let words = (reference.transcription?.words ?? []).map(SoundWord.init)
+    let takeWords = SoundComparisonWordMap.takeWords(reference: reference, attempt: take)
     let cached = reference.sounds?.referenceAnalysis(
       engineID: engineID, engineVersion: version, words: words)
     let service = soundComparison
     soundComparisonRunning.insert(take.id)
     return Task {
       defer { soundComparisonRunning.remove(take.id) }
+      var analysis = cached
       do {
-        let analysis: ReferenceAnalysis
-        if let cached {
-          analysis = cached
-        } else {
+        if analysis == nil {
           analysis = try await service.analyzeReference(
             engineID: engineID, audioURL: reference.audioURL, words: words)
         }
         let result = try await service.compare(
-          engineID: engineID, reference: analysis, takeAudioURL: take.audioURL)
+          engineID: engineID, reference: analysis!, takeAudioURL: take.audioURL,
+          takeWords: takeWords)
         guard storeSoundResult(
           result, analysis: cached == nil ? analysis : nil, sessionID: session.id,
           takeID: take.id, reference: reference)
         else { throw CocoaError(.fileWriteUnknown) }
+      } catch SoundComparisonError.unreadableAudio {
+        // The Reference is read first: no analysis yet means its audio was the unreadable one.
+        soundComparisonUnavailable[take.id] =
+          analysis == nil ? .referenceAudioMissing : .takeAudioMissing
       } catch {
         soundComparisonFailed.insert(take.id)
       }

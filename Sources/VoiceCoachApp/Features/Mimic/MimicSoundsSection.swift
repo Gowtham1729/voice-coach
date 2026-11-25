@@ -25,6 +25,8 @@ enum SoundComparisonCopy {
     let why =
       switch reason {
       case .noReference: "there’s no reference"
+      case .referenceAudioMissing: "the reference audio is missing or can’t be opened"
+      case .takeAudioMissing: "this take’s audio is missing or can’t be opened"
       case .notEnglish: "it isn’t English"
       case .missingTranscript: "there’s no transcript"
       case .wordsDidNotLineUp: "the words didn’t line up"

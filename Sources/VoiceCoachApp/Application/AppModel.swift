@@ -91,6 +91,8 @@ final class AppModel: ObservableObject {
   /// Takes being compared now, and takes whose comparison failed this launch.
   @Published var soundComparisonRunning: Set<UUID> = []
   @Published var soundComparisonFailed: Set<UUID> = []
+  /// Takes that failed this launch for a reason a retry cannot fix (an unreadable audio file).
+  @Published var soundComparisonUnavailable: [UUID: SoundComparisonSkipReason] = [:]
   /// Settings → Experiments: lists the experimental-tier engines and lets them run (D5, FR-26).
   @Published var showsExperimentalSoundEngines = SoundEngineVisibilityPreference.isEnabled
   /// The Reference word whose Listen sequence is playing (FR-17).

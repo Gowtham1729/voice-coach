@@ -14,8 +14,10 @@ protocol SoundComparing: Sendable {
   func installedEngines() async -> [SoundEngineInstall]
   func analyzeReference(engineID: String, audioURL: URL, words: [SoundWord]) async throws
     -> ReferenceAnalysis
-  func compare(engineID: String, reference: ReferenceAnalysis, takeAudioURL: URL) async throws
-    -> SoundComparisonResult
+  /// `takeWords`: one per Reference word (`SoundComparisonWordMap.takeWords`).
+  func compare(
+    engineID: String, reference: ReferenceAnalysis, takeAudioURL: URL, takeWords: [SoundWord?]
+  ) async throws -> SoundComparisonResult
   /// Removes the engine's files. Results in the library are removed by `AppModel`.
   func deleteEngine(_ engineID: String) async throws
 }
@@ -26,8 +28,9 @@ struct NoSoundComparison: SoundComparing {
   func analyzeReference(engineID: String, audioURL: URL, words: [SoundWord]) async throws
     -> ReferenceAnalysis
   { throw SoundComparisonError.engineNotInstalled(engineID) }
-  func compare(engineID: String, reference: ReferenceAnalysis, takeAudioURL: URL) async throws
-    -> SoundComparisonResult
+  func compare(
+    engineID: String, reference: ReferenceAnalysis, takeAudioURL: URL, takeWords: [SoundWord?]
+  ) async throws -> SoundComparisonResult
   { throw SoundComparisonError.engineNotInstalled(engineID) }
   func deleteEngine(_ engineID: String) async throws {}
 }
@@ -68,15 +71,23 @@ actor LocalSoundComparisonService: SoundComparing {
     -> ReferenceAnalysis
   {
     let engine = try await engine(engineID)
-    return try engine.analyzeReference(samples: SoundComparisonAudio.load(audioURL), words: words)
+    return try engine.analyzeReference(samples: Self.samples(audioURL), words: words)
   }
 
-  func compare(engineID: String, reference: ReferenceAnalysis, takeAudioURL: URL) async throws
-    -> SoundComparisonResult
-  {
+  func compare(
+    engineID: String, reference: ReferenceAnalysis, takeAudioURL: URL, takeWords: [SoundWord?]
+  ) async throws -> SoundComparisonResult {
     let engine = try await engine(engineID)
     return try engine.compare(
-      reference: reference, takeSamples: SoundComparisonAudio.load(takeAudioURL))
+      reference: reference, takeSamples: Self.samples(takeAudioURL),
+      takeWords: takeWords)
+  }
+
+  /// Any read failure becomes `unreadableAudio`, so the app can tell it from an engine failure.
+  private static func samples(_ url: URL) throws -> [Float] {
+    do { return try SoundComparisonAudio.load(url) } catch {
+      throw SoundComparisonError.unreadableAudio
+    }
   }
 
   func deleteEngine(_ engineID: String) throws {

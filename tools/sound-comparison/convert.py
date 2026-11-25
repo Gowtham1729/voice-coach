@@ -5,16 +5,18 @@ Run by scripts/setup-sound-comparison.sh inside a temporary uv environment:
     python convert.py <lite|full> <output-dir> <zipa-source-dir>
 
 Downloads the original weights from Hugging Face at pinned revisions, converts them exactly as
-the lab did for engine version eng_final-r2.1, and writes into <output-dir>:
+the lab did for engine version eng_r3, and writes into <output-dir>:
 
     zipa.mlpackage     ZIPA small CR-CTC, fp16, fixed 10 s fbank window with a padding mask
     hubert8.mlpackage  HuBERT-base ARPAbet CTC, int8 weights, exact length 1-30 s   (full only)
     xlsr8.mlpackage    wav2vec2 XLSR-53 eSpeak CTC, int8 weights, exact length 1-30 s (full only)
     <model>-vocab.json {"blank": n, "tokens": [...]} CTC vocabulary of each model
+    <model>-substitutions.json  restricted substitution table of each model (full only), copied
+                       from tools/sound-comparison/substitutions/ (lab eng_r3 golden/rps_allowed_*)
     manifest.json      engine id and version, models, sizes, sources
 
 Every package outputs raw logits (no log-softmax) and one hidden layer. The app does the
-log-softmax in Double.
+log-softmax in Double. ZIPA's `hidden` is its encoder output, used by the word DTW (eng_r3).
 """
 
 from __future__ import annotations
@@ -30,8 +32,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-ENGINE_VERSION = "eng_final-r2.1"
+ENGINE_VERSION = "eng_r3"
 ENGINE_MODELS = {"lite": ["zipa"], "full": ["zipa", "hubert8", "xlsr8"]}
+# Engines whose GOP-SF denominator uses the restricted substitution set (eng_r3 RPS).
+RESTRICTED_SUBSTITUTIONS = {"full"}
+SUBSTITUTIONS_DIR = Path(__file__).resolve().parent / "substitutions"
 
 ZIPA_REPO, ZIPA_REVISION = "anyspeech/zipa-small-crctc-500k", "dfe87c97662606fa6db90ad06f627d4363314744"
 ZIPA_CHECKPOINT = "zipa_small_crctc_500000_avg10.pth"
@@ -231,10 +236,19 @@ def main() -> None:
         package.save(str(package_path))
         vocab_path.write_text(json.dumps(vocab, ensure_ascii=False))
         repo, revision = (ZIPA_REPO, ZIPA_REVISION) if model_id == "zipa" else W2V[model_id]
-        models.append({"id": model_id, "package": package_path.name, "vocabulary": vocab_path.name,
-                       "sizeBytes": size_bytes(package_path) + size_bytes(vocab_path),
-                       "source": f"https://huggingface.co/{repo}", "revision": revision,
-                       "licence": LICENCES[model_id]})
+        entry = {"id": model_id, "package": package_path.name, "vocabulary": vocab_path.name,
+                 "sizeBytes": size_bytes(package_path) + size_bytes(vocab_path),
+                 "source": f"https://huggingface.co/{repo}", "revision": revision,
+                 "licence": LICENCES[model_id]}
+        if engine in RESTRICTED_SUBSTITUTIONS:
+            table = json.loads((SUBSTITUTIONS_DIR / f"{model_id}.json").read_text("utf-8"))
+            if table["vocab"] != vocab["tokens"]:
+                raise SystemExit(f"{model_id}: the substitution table was made for another vocabulary")
+            table_path = out / f"{model_id}-substitutions.json"
+            table_path.write_text(json.dumps(table, ensure_ascii=False))
+            entry["substitutions"] = table_path.name
+            entry["sizeBytes"] += size_bytes(table_path)
+        models.append(entry)
     manifest = {"engineID": engine, "engineVersion": ENGINE_VERSION, "models": models,
                 "sizeBytes": sum(m["sizeBytes"] for m in models)}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2))
