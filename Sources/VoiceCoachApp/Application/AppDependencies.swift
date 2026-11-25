@@ -23,13 +23,15 @@ struct AppDependencies {
         return try AudioAnalyzer().analyze(url: destination)
       }.value
     }
+  var soundComparison: any SoundComparing = NoSoundComparison()
 
   static func live(storageRoot: URL? = nil) throws -> AppDependencies {
     AppDependencies(
       recorder: AudioRecorder(),
       systemAudioCapture: SystemAudioCapture(),
       sessionStore: try SessionStore(rootURL: storageRoot),
-      sessionChatResponder: LocalSessionChatResponder()
+      sessionChatResponder: LocalSessionChatResponder(),
+      soundComparison: LocalSoundComparisonService()
     )
   }
 }
